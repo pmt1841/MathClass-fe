@@ -1,0 +1,180 @@
+'use client'
+
+import {
+  Home,
+  BookOpen,
+  ClipboardList,
+  BarChart3,
+  Settings,
+  Users,
+  PlusCircle,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+
+interface NavItem {
+  icon: React.ElementType
+  label: string
+  href: string
+  roles?: ('TEACHER' | 'STUDENT')[]
+  badge?: string
+}
+
+const navItems: NavItem[] = [
+  {
+    icon: Home,
+    label: 'Tổng quan',
+    href: '/home',
+  },
+  {
+    icon: BookOpen,
+    label: 'Lớp học của tôi',
+    href: '/classes',
+  },
+  {
+    icon: ClipboardList,
+    label: 'Bài tập',
+    href: '/assignments',
+  },
+  {
+    icon: FileText,
+    label: 'Nộp bài',
+    href: '/assignments/submit',
+    roles: ['STUDENT'],
+  },
+  {
+    icon: Users,
+    label: 'Quản lý học sinh',
+    href: '/students',
+    roles: ['TEACHER'],
+  },
+  {
+    icon: BarChart3,
+    label: 'Báo cáo & Thống kê',
+    href: '/reports',
+    roles: ['TEACHER'],
+  },
+  {
+    icon: Settings,
+    label: 'Cài đặt',
+    href: '/settings',
+  },
+]
+
+interface SidebarProps {
+  onCreateClass?: () => void
+}
+
+export function Sidebar({ onCreateClass }: SidebarProps) {
+  const pathname = usePathname()
+  const [collapsed, setCollapsed] = useState(false)
+  const [userRole, setUserRole] = useState<string>('')
+
+  useEffect(() => {
+    const stored =
+      localStorage.getItem('user_info') ||
+      sessionStorage.getItem('user_info')
+    if (stored) {
+      try {
+        const info = JSON.parse(stored)
+        setUserRole(info.role || info.userRole || 'STUDENT')
+      } catch {}
+    }
+  }, [])
+
+  const visibleItems = navItems.filter(
+    (item) => !item.roles || item.roles.includes(userRole as 'TEACHER' | 'STUDENT')
+  )
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/home' && pathname.startsWith(href))
+
+  return (
+    <aside
+      className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+    >
+      {/* Toggle button */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+      </button>
+
+      <div className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
+        {/* Create Class Button - Teachers only */}
+        {userRole === 'TEACHER' && (
+          <button
+            id="create-class-btn"
+            onClick={onCreateClass}
+            className={`flex items-center gap-3 rounded-xl bg-primary text-primary-foreground px-3 py-2.5 font-semibold hover:bg-primary/90 transition-colors mb-3 ${
+              collapsed ? 'justify-center' : ''
+            }`}
+            title={collapsed ? 'Tạo lớp học' : undefined}
+          >
+            <PlusCircle className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Tạo lớp học</span>}
+          </button>
+        )}
+
+        {/* Nav items */}
+        {visibleItems.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                collapsed ? 'justify-center' : ''
+              } ${
+                active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+              {!collapsed && (
+                <span className="flex-1">{item.label}</span>
+              )}
+              {!collapsed && item.badge && (
+                <span className="rounded-full bg-accent text-accent-foreground text-xs font-bold px-2 py-0.5">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Role indicator at bottom */}
+      {!collapsed && (
+        <div className="p-3 border-t border-border">
+          <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
+            userRole === 'TEACHER' ? 'bg-accent/10' : 'bg-primary/10'
+          }`}>
+            <div className={`h-2 w-2 rounded-full ${
+              userRole === 'TEACHER' ? 'bg-accent' : 'bg-primary'
+            }`} />
+            <span className={`text-xs font-semibold ${
+              userRole === 'TEACHER' ? 'text-accent' : 'text-primary'
+            }`}>
+              {userRole === 'TEACHER' ? 'Giáo viên' : 'Học sinh'}
+            </span>
+          </div>
+        </div>
+      )}
+    </aside>
+  )
+}
