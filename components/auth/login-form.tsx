@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import api from '@/lib/axios'
 
 const validationSchema = yup.object().shape({
   email: yup
@@ -34,39 +35,38 @@ export default function LoginForm() {
       setIsLoading(true)
       setLoginError('')
       try {
-        const response = await fetch('http://localhost:8080/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: values.email, password: values.password }),
+        const response = await api.post('/auth/login', {
+          email: values.email,
+          password: values.password,
         })
 
-        if (response.ok) {
-          const data = await response.json()
-          const token = data.token
-          const role = data.role || data.userRole || 'STUDENT'
-          const maxAge = values.rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24
+        const data = response.data
+        const token = data.token
+        const role = data.role || data.userRole || 'STUDENT'
+        const maxAge = values.rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24
 
-          // Save to cookies for middleware
-          document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
-          document.cookie = `user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
+        // Save to cookies for middleware
+        document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
+        document.cookie = `user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
 
-          // Save to storage for client-side use
-          const storage = values.rememberMe ? localStorage : sessionStorage
-          storage.setItem('auth_token', token)
-          storage.setItem('user_info', JSON.stringify(data))
-          if (values.rememberMe) {
-            localStorage.setItem('remembered_email', values.email)
-          } else {
-            localStorage.removeItem('remembered_email')
-          }
-
-          window.location.href = '/home'
+        // Save to storage for client-side use
+        const storage = values.rememberMe ? localStorage : sessionStorage
+        storage.setItem('auth_token', token)
+        storage.setItem('user_info', JSON.stringify(data))
+        if (values.rememberMe) {
+          localStorage.setItem('remembered_email', values.email)
         } else {
-          const errData = await response.json().catch(() => null)
-          setLoginError(errData?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+          localStorage.removeItem('remembered_email')
         }
-      } catch {
-        setLoginError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+
+        window.location.href = '/home'
+      } catch (err: any) {
+        if (err.response) {
+          const errData = err.response.data
+          setLoginError(errData?.message || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+        } else {
+          setLoginError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
+        }
       } finally {
         setIsLoading(false)
       }

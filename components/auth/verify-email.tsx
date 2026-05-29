@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import api from '@/lib/axios'
 
 export default function VerifyEmail() {
   const searchParams = useSearchParams()
@@ -24,22 +25,18 @@ export default function VerifyEmail() {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/auth/verify?token=${token}`, {
-          method: 'GET',
-        })
-
-        const data = await response.json().catch(() => null)
-
-        if (response.ok) {
-          setStatus('success')
-          setMessage(data?.message || 'Tài khoản đã được kích hoạt thành công!')
-        } else {
-          setStatus('error')
-          setMessage(data?.message || 'Xác nhận thất bại. Link có thể đã hết hạn hoặc không hợp lệ.')
-        }
-      } catch (error) {
+        const response = await api.get(`/auth/verify?token=${token}`)
+        const data = response.data
+        setStatus('success')
+        setMessage(data?.message || 'Tài khoản đã được kích hoạt thành công!')
+      } catch (error: any) {
         setStatus('error')
-        setMessage('Có lỗi kết nối tới máy chủ. Vui lòng thử lại sau.')
+        if (error.response) {
+          const data = error.response.data
+          setMessage(data?.message || 'Xác nhận thất bại. Link có thể đã hết hạn hoặc không hợp lệ.')
+        } else {
+          setMessage('Có lỗi kết nối tới máy chủ. Vui lòng thử lại sau.')
+        }
       }
     }
 
