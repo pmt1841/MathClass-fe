@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { X, BookOpen, Hash, FileText, Users, Loader2 } from 'lucide-react'
+import { X, BookOpen, FileText, Users, Loader2 } from 'lucide-react'
+import { useFormik } from 'formik'
+import * as Yup from 'yup'
+import api from '@/lib/axios'
 
 interface CreateClassModalProps {
   open: boolean
@@ -11,84 +14,59 @@ interface CreateClassModalProps {
 
 interface ClassData {
   name: string
-  code: string
+  maxStudents: number | null
   description: string
-  maxStudents: number
-  subject: string
 }
 
-const SUBJECTS = [
-  'Đại số',
-  'Hình học',
-  'Giải tích',
-  'Xác suất thống kê',
-  'Toán tổ hợp',
-  'Toán ứng dụng',
-]
-
 export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalProps) {
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState<ClassData>({
-    name: '',
-    code: '',
-    description: '',
-    maxStudents: 30,
-    subject: '',
-  })
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === 'maxStudents' ? Number(value) : value,
-    }))
-    setError('')
-  }
+  const formik = useFormik({
+    initialValues: {
+      name: '',
+      description: '',
+      maxStudents: '' as string | number,
+    },
+    validationSchema: Yup.object({
+      name: Yup.string().trim().required('Vui lòng điền tên lớp học'),
+      description: Yup.string(),
+      maxStudents: Yup.number()
+        .transform((value, originalValue) => (String(originalValue).trim() === '' ? null : value))
+        .nullable()
+        .test('min-30', 'Số học sinh tối đa phải từ 30 trở lên', (value) => {
+          if (value === null || value === undefined) return true;
+          return value >= 30;
+        }),
+    }),
+    onSubmit: async (values, { setSubmitting }) => {
+      setError('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.name.trim() || !form.subject) {
-      setError('Vui lòng điền đầy đủ tên lớp và môn học.')
-      return
-    }
+      const payload: ClassData = {
+        name: values.name.trim(),
+        description: values.description.trim(),
+        maxStudents: values.maxStudents === '' || values.maxStudents === null ? null : Number(values.maxStudents),
+      }
 
-    setIsLoading(true)
-    setError('')
-
-    try {
-      const token =
-        localStorage.getItem('auth_token') ||
-        sessionStorage.getItem('auth_token')
-
-      const response = await fetch('http://localhost:8080/api/classes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
+      try {
+        const response = await api.post('/classrooms/create', payload)
+        const data = response.data
         onSuccess?.(data)
         handleClose()
-      } else {
-        const errData = await response.json().catch(() => null)
-        setError(errData?.message || 'Không thể tạo lớp. Vui lòng thử lại.')
+      } catch (err: any) {
+        if (err.response) {
+          const errData = err.response.data
+          setError(errData?.message || 'Không thể tạo lớp. Vui lòng thử lại.')
+        } else {
+          setError('Lỗi kết nối. Vui lòng thử lại.')
+        }
+      } finally {
+        setSubmitting(false)
       }
-    } catch {
-      setError('Lỗi kết nối. Vui lòng thử lại.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    },
+  })
 
   const handleClose = () => {
-    setForm({ name: '', code: '', description: '', maxStudents: 30, subject: '' })
+    formik.resetForm()
     setError('')
     onClose()
   }
@@ -125,7 +103,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={formik.handleSubmit} className="p-6 space-y-4">
           {error && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
               <p className="text-sm text-destructive font-medium">{error}</p>
@@ -144,52 +122,18 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 name="name"
                 type="text"
                 placeholder="VD: Toán 10A - Đại số cơ bản"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pl-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                required
+                value={formik.values.name}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={`w-full rounded-lg border bg-background px-4 py-2.5 pl-10 text-sm outline-none transition-all ${formik.touched.name && formik.errors.name
+                  ? 'border-destructive focus:ring-2 focus:ring-destructive/20'
+                  : 'border-border focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  }`}
               />
             </div>
-          </div>
-
-          {/* Subject & Code row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-foreground">
-                Môn học <span className="text-destructive">*</span>
-              </label>
-              <select
-                id="class-subject"
-                name="subject"
-                value={form.subject}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                required
-              >
-                <option value="">Chọn môn học</option>
-                {SUBJECTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-foreground">
-                Mã lớp (tùy chọn)
-              </label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  id="class-code"
-                  name="code"
-                  type="text"
-                  placeholder="VD: MC2024"
-                  value={form.code}
-                  onChange={handleChange}
-                  maxLength={10}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pl-9 text-sm uppercase outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-              </div>
-            </div>
+            {formik.touched.name && formik.errors.name && (
+              <p className="text-xs text-destructive">{formik.errors.name}</p>
+            )}
           </div>
 
           {/* Max students */}
@@ -203,13 +147,20 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 id="class-max-students"
                 name="maxStudents"
                 type="number"
-                min={1}
+                min={30}
                 max={100}
-                value={form.maxStudents}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pl-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                value={formik.values.maxStudents}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={`w-full rounded-lg border bg-background px-4 py-2.5 pl-10 text-sm outline-none transition-all ${formik.touched.maxStudents && formik.errors.maxStudents
+                  ? 'border-destructive focus:ring-2 focus:ring-destructive/20'
+                  : 'border-border focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  }`}
               />
             </div>
+            {formik.touched.maxStudents && formik.errors.maxStudents && (
+              <p className="text-xs text-destructive">{formik.errors.maxStudents}</p>
+            )}
           </div>
 
           {/* Description */}
@@ -223,8 +174,9 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 id="class-description"
                 name="description"
                 placeholder="Mô tả ngắn về nội dung, mục tiêu của lớp học..."
-                value={form.description}
-                onChange={handleChange}
+                value={formik.values.description}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 rows={3}
                 className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pl-10 text-sm outline-none resize-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
@@ -243,10 +195,10 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
             <button
               id="submit-create-class"
               type="submit"
-              disabled={isLoading}
+              disabled={formik.isSubmitting}
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {formik.isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Đang tạo...

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail, User, Phone, Briefcase } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import api from '@/lib/axios'
 
 const validationSchema = yup.object().shape({
   fullName: yup
@@ -60,31 +61,25 @@ export default function SignupForm() {
     onSubmit: async (values) => {
       setIsLoading(true)
       try {
-        const response = await fetch('http://localhost:8080/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullName: values.fullName,
-            email: values.email,
-            phoneNumber: values.phoneNumber,
-            password: values.password,
-            role: values.role,
-          }),
+        const response = await api.post('/auth/register', {
+          fullName: values.fullName,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          password: values.password,
+          role: values.role,
         })
 
-        if (response.ok) {
-          const data = await response.json().catch(() => null)
-          alert(data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.')
-          router.push('/')
-        } else {
-          const data = await response.json().catch(() => null)
-          alert(`Đăng ký thất bại: ${data?.message || 'Vui lòng kiểm tra lại thông tin.'}`)
-        }
-      } catch (error) {
+        const data = response.data
+        alert(data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.')
+        router.push('/')
+      } catch (error: any) {
         console.error('Signup error:', error)
-        alert('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.')
+        if (error.response) {
+          const data = error.response.data
+          alert(`Đăng ký thất bại: ${data?.message || 'Vui lòng kiểm tra lại thông tin.'}`)
+        } else {
+          alert('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.')
+        }
       } finally {
         setIsLoading(false)
       }
