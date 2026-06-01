@@ -76,8 +76,8 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
 
   useEffect(() => {
     const stored =
-      localStorage.getItem('user_info') ||
-      sessionStorage.getItem('user_info')
+      sessionStorage.getItem('user_info') ||
+      localStorage.getItem('user_info')
     if (stored) {
       try {
         const info = JSON.parse(stored)

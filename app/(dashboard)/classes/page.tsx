@@ -24,6 +24,8 @@ interface Classroom {
   className: string
   teacherId: number
   teacherName: string
+  studentCount: number
+  maxStudents: number
 }
 
 export default function ClassesPage() {
@@ -34,6 +36,7 @@ export default function ClassesPage() {
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'code-asc'>('name-asc')
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [userRole, setUserRole] = useState<string>('STUDENT')
 
   // Gradient themes for cards to look premium and stunning
   const gradients = [
@@ -48,7 +51,7 @@ export default function ClassesPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await api.get('/classrooms')
+      const response = await api.get('/classrooms/my-classroom')
       // Make sure the data is an array
       if (Array.isArray(response.data)) {
         setClasses(response.data)
@@ -69,6 +72,15 @@ export default function ClassesPage() {
 
   useEffect(() => {
     fetchClasses()
+    
+    // Get user role from storage
+    const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
+    if (stored) {
+      try {
+        const info = JSON.parse(stored)
+        setUserRole(info.role || info.userRole || 'STUDENT')
+      } catch {}
+    }
   }, [])
 
   const handleCopyCode = (code: string, id: number) => {
@@ -120,13 +132,15 @@ export default function ClassesPage() {
             >
               <RefreshCw className={`h-4.5 w-4.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
-            >
-              <Plus className="h-4.5 w-4.5" />
-              Tạo lớp học mới
-            </button>
+            {userRole === 'TEACHER' && (
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+              >
+                <Plus className="h-4.5 w-4.5" />
+                Tạo lớp học mới
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -219,7 +233,7 @@ export default function ClassesPage() {
                     : 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học toán đầu tiên.'}
                 </p>
               </div>
-              {!searchQuery && (
+              {!searchQuery && userRole === 'TEACHER' && (
                 <button
                   onClick={() => setCreateModalOpen(true)}
                   className="flex items-center gap-2 h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20"
@@ -271,11 +285,10 @@ export default function ClassesPage() {
                         </div>
                         <button
                           onClick={() => handleCopyCode(item.classCode, item.id)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${
-                            isCopied
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                              : 'bg-white border-slate-200 text-muted-foreground hover:text-slate-800 hover:border-slate-300 active:scale-95'
-                          }`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${isCopied
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                            : 'bg-white border-slate-200 text-muted-foreground hover:text-slate-800 hover:border-slate-300 active:scale-95'
+                            }`}
                           title="Sao chép mã lớp"
                         >
                           {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -284,19 +297,44 @@ export default function ClassesPage() {
                     </div>
 
                     {/* Footer Info & Action */}
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span className="text-xs font-medium">Giáo viên: {item.teacherName}</span>
+                    <div className="mt-5 pt-4 border-t border-slate-100 space-y-3">
+                      {/* Student count */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          <span className="text-xs font-medium">Sĩ số:</span>
+                          <span className="text-xs font-bold text-foreground">
+                            {item.studentCount ?? 0}
+                            <span className="text-muted-foreground font-normal">/{item.maxStudents ?? '—'}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(item.studentCount ?? 0) >= (item.maxStudents ?? Infinity)
+                              ? 'bg-rose-50 text-rose-600'
+                              : 'bg-emerald-50 text-emerald-600'
+                              }`}
+                          >
+                            {(item.studentCount ?? 0) >= (item.maxStudents ?? Infinity) ? 'Đầy lớp' : 'Còn chỗ'}
+                          </span>
+                        </div>
                       </div>
 
-                      <a
-                        href={`/classes/${item.id}`}
-                        className="flex items-center gap-1 rounded-xl bg-slate-100/80 hover:bg-primary hover:text-primary-foreground px-3.5 py-2 text-xs font-bold text-foreground transition-all duration-200 group/btn"
-                      >
-                        Vào lớp
-                        <ExternalLink className="h-3 w-3 opacity-60 group-hover/btn:opacity-100 transition-opacity" />
-                      </a>
+                      {/* Teacher & action */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <GraduationCap className="h-4 w-4" />
+                          <span className="text-xs font-medium">{item.teacherName}</span>
+                        </div>
+
+                        <a
+                          href={`/classes/${item.classCode}`}
+                          className="flex items-center gap-1 rounded-xl bg-slate-100/80 hover:bg-primary hover:text-primary-foreground px-3.5 py-2 text-xs font-bold text-foreground transition-all duration-200 group/btn"
+                        >
+                          Vào lớp
+                          <ExternalLink className="h-3 w-3 opacity-60 group-hover/btn:opacity-100 transition-opacity" />
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )
