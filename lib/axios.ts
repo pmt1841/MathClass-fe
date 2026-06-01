@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,24 +15,34 @@ const getCookie = (name: string): string | undefined => {
   return undefined;
 };
 
-// Add a request interceptor
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    let token: string | undefined = undefined;
+
     if (typeof window !== 'undefined') {
-      const token =
+      // 1. Nếu chạy ở trình duyệt (Client Side)
+      token =
         localStorage.getItem('auth_token') ||
         sessionStorage.getItem('auth_token') ||
         getCookie('auth_token');
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // 2. Nếu chạy ở Server Side (Next.js Server Component)
+      try {
+        const { cookies } = await import('next/headers');
+        token = (await cookies()).get('auth_token')?.value;
+      } catch (e) {
+        // Dự phòng nếu không import được next/headers
+        console.error("Không thể lấy cookie ở Server side", e);
       }
     }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;

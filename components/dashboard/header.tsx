@@ -19,8 +19,8 @@ export function DashboardHeader() {
 
   useEffect(() => {
     const stored =
-      localStorage.getItem('user_info') ||
-      sessionStorage.getItem('user_info')
+      sessionStorage.getItem('user_info') ||
+      localStorage.getItem('user_info')
     if (stored) {
       try {
         setUserInfo(JSON.parse(stored))

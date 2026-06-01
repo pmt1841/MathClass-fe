@@ -49,6 +49,12 @@ export default function LoginForm() {
         document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
         document.cookie = `user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
 
+        // Clear old storage to prevent stale data
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user_info')
+        sessionStorage.removeItem('auth_token')
+        sessionStorage.removeItem('user_info')
+
         // Save to storage for client-side use
         const storage = values.rememberMe ? localStorage : sessionStorage
         storage.setItem('auth_token', token)
