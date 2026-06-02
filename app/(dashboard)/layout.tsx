@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { DashboardHeader } from '@/components/dashboard/header'
-import { Sidebar } from '@/components/dashboard/sidebar'
-import { DashboardFooter } from '@/components/dashboard/footer'
+import { DashboardHeader } from '@/components/layout/header'
+import { Sidebar } from '@/components/layout/sidebar'
+import { DashboardFooter } from '@/components/layout/footer'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 
 export default function DashboardLayout({
