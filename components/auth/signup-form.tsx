@@ -7,6 +7,15 @@ import { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail, User, Phone, Briefcase } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/axios'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const validationSchema = yup.object().shape({
   fullName: yup
@@ -46,6 +55,12 @@ export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, isSuccess: boolean }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    isSuccess: false
+  })
   const router = useRouter()
 
   const formik = useFormik({
@@ -70,15 +85,29 @@ export default function SignupForm() {
         })
 
         const data = response.data
-        alert(data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.')
-        router.push('/')
+        setAlertConfig({
+          isOpen: true,
+          title: 'Thành công',
+          message: data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.',
+          isSuccess: true
+        })
       } catch (error: any) {
         console.error('Signup error:', error)
         if (error.response) {
           const data = error.response.data
-          alert(`Đăng ký thất bại: ${data?.message || 'Vui lòng kiểm tra lại thông tin.'}`)
+          setAlertConfig({
+            isOpen: true,
+            title: 'Đăng ký thất bại',
+            message: data?.message || 'Vui lòng kiểm tra lại thông tin.',
+            isSuccess: false
+          })
         } else {
-          alert('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.')
+          setAlertConfig({
+            isOpen: true,
+            title: 'Lỗi',
+            message: 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.',
+            isSuccess: false
+          })
         }
       } finally {
         setIsLoading(false)
@@ -330,6 +359,27 @@ export default function SignupForm() {
           </p>
         </div>
       </div>
+
+      <AlertDialog open={alertConfig.isOpen} onOpenChange={(open) => setAlertConfig(prev => ({ ...prev, isOpen: open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertConfig.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              setAlertConfig(prev => ({ ...prev, isOpen: false }))
+              if (alertConfig.isSuccess) {
+                router.push('/')
+              }
+            }}>
+              Đồng ý
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

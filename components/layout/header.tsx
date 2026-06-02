@@ -4,6 +4,16 @@ import { Calculator, Bell, LogOut, User, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface UserInfo {
   fullName?: string
@@ -16,6 +26,7 @@ export function DashboardHeader() {
   const router = useRouter()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   useEffect(() => {
     const stored =
@@ -107,7 +118,10 @@ export function DashboardHeader() {
                       </Link>
                       <button
                         id="logout-btn"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          setDropdownOpen(false)
+                          setShowLogoutModal(true)
+                        }}
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/5 transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
@@ -121,6 +135,23 @@ export function DashboardHeader() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Đăng xuất
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

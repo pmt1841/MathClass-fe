@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useFormik } from 'formik'
+import * as yup from 'yup'
 import {
   ArrowLeft,
   Users,
@@ -18,9 +20,31 @@ import {
   AlertCircle,
   Copy,
   Check,
+  Edit,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import api from '@/lib/axios'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Student {
   id: number
@@ -33,7 +57,7 @@ interface ClassroomDetail {
   id: number
   classCode: string
   className: string
-  description?: string
+  description: string
   teacherId: number
   teacherName: string
   studentCount: number
@@ -51,14 +75,23 @@ export default function ClassDetailPage() {
   const [loadingStudents, setLoadingStudents] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Pagination & Sorting state
+  const [page, setPage] = useState(0)
+  const [size, setSize] = useState(10)
+  const [sortAsc, setSortAsc] = useState(true)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
+  // Edit classroom state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
   // Add student state
-  const [addEmail, setAddEmail] = useState('')
-  const [addingStudent, setAddingStudent] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [addSuccess, setAddSuccess] = useState<string | null>(null)
 
   // Remove student state
   const [removingId, setRemovingId] = useState<number | null>(null)
+  const [studentToRemove, setStudentToRemove] = useState<{ id: number, name: string } | null>(null)
 
   // Copy code state
   const [codeCopied, setCodeCopied] = useState(false)
@@ -79,8 +112,17 @@ export default function ClassDetailPage() {
   const fetchStudents = useCallback(async (showToast = false) => {
     try {
       setLoadingStudents(true)
-      const res = await api.get(`/classrooms/${classCode}/students`)
-      setStudents(Array.isArray(res.data) ? res.data : [])
+      const sortParam = `s.fullName,${sortAsc ? 'asc' : 'desc'}`
+      const res = await api.get(`/classrooms/${classCode}/students`, {
+        params: { page, size, sort: sortParam }
+      })
+      if (res.data && res.data.content) {
+        setStudents(res.data.content)
+        setTotalPages(res.data.totalPages)
+        setTotalElements(res.data.totalElements)
+      } else {
+        setStudents(Array.isArray(res.data) ? res.data : [])
+      }
       if (showToast) toast.success('Đã cập nhật danh sách học sinh')
     } catch (err: any) {
       toast.error('Không thể tải danh sách học sinh')
@@ -92,39 +134,46 @@ export default function ClassDetailPage() {
 
   useEffect(() => {
     fetchClassroom()
+  }, [fetchClassroom])
+
+  useEffect(() => {
     fetchStudents()
-  }, [fetchClassroom, fetchStudents])
+  }, [fetchStudents, page, size, sortAsc])
 
-  const handleAddStudent = async (e: React.SubmitEvent) => {
-    e.preventDefault()
-    const email = addEmail.trim()
-    if (!email) return
+  const addStudentForm = useFormik({
+    initialValues: { email: '' },
+    validationSchema: yup.object({
+      email: yup.string().email('Email không hợp lệ').required('Vui lòng nhập email')
+    }),
+    onSubmit: async (values, { setSubmitting, resetForm }) => {
+      setAddError(null)
+      setAddSuccess(null)
 
-    setAddingStudent(true)
-    setAddError(null)
-    setAddSuccess(null)
-
-    try {
-      await api.post(`/classrooms/${classCode}/students/add`, { "studentEmail": email })
-      setAddSuccess(`Đã thêm học sinh với email: ${email}`)
-      setAddEmail('')
-      // Refresh both students list and classroom info (studentCount)
-      await Promise.all([fetchStudents(), fetchClassroom()])
-      toast.success(`Thêm thành công: ${email}`)
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        'Không thể thêm học sinh. Vui lòng kiểm tra email.'
-      setAddError(typeof msg === 'string' ? msg : 'Đã xảy ra lỗi. Vui lòng thử lại.')
-      toast.error('Thêm học sinh thất bại')
-    } finally {
-      setAddingStudent(false)
+      try {
+        await api.post(`/classrooms/${classCode}/students/add`, { "studentEmail": values.email })
+        setAddSuccess(`Đã thêm học sinh với email: ${values.email}`)
+        resetForm()
+        // Refresh both students list and classroom info (studentCount)
+        await Promise.all([fetchStudents(), fetchClassroom()])
+        toast.success(`Thêm thành công: ${values.email}`)
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message ||
+          err?.response?.data ||
+          'Không thể thêm học sinh. Vui lòng kiểm tra email.'
+        setAddError(typeof msg === 'string' ? msg : 'Đã xảy ra lỗi. Vui lòng thử lại.')
+        toast.error('Thêm học sinh thất bại')
+      } finally {
+        setSubmitting(false)
+      }
     }
-  }
+  })
 
-  const handleRemoveStudent = async (studentId: number, studentName: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa học sinh "${studentName}" khỏi lớp?`)) return
+  const confirmRemoveStudent = async () => {
+    if (!studentToRemove) return
+    const { id: studentId, name: studentName } = studentToRemove
+
+    setStudentToRemove(null)
     setRemovingId(studentId)
     try {
       await api.delete(`/classrooms/${classCode}/students/${studentId}`)
@@ -138,11 +187,54 @@ export default function ClassDetailPage() {
     }
   }
 
+  const handleRemoveStudent = (studentId: number, studentName: string) => {
+    setStudentToRemove({ id: studentId, name: studentName })
+  }
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(classCode)
     setCodeCopied(true)
     toast.success(`Đã sao chép mã lớp: ${classCode}`)
     setTimeout(() => setCodeCopied(false), 2000)
+  }
+
+  const editClassroomForm = useFormik({
+    initialValues: {
+      className: classroom?.className || '',
+      maxStudents: classroom?.maxStudents || 0,
+      description: classroom?.description || ''
+    },
+    enableReinitialize: true,
+    validationSchema: yup.object({
+      className: yup.string().required('Vui lòng nhập tên lớp'),
+      maxStudents: yup.number()
+        .required('Vui lòng nhập sĩ số tối đa')
+        .min(classroom?.studentCount || 0, `Sĩ số tối đa không được nhỏ hơn sĩ số hiện tại (${classroom?.studentCount || 0})`),
+      description: yup.string().nullable()
+    }),
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        await api.put(`/classrooms/${classCode}`, {
+          className: values.className,
+          description: values.description,
+          maxStudents: values.maxStudents,
+        })
+        toast.success('Đã cập nhật thông tin lớp học')
+        setIsEditModalOpen(false)
+        fetchClassroom()
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Không thể cập nhật lớp học')
+      } finally {
+        setSubmitting(false)
+      }
+    }
+  })
+
+  const openEditModal = () => {
+    if (classroom) {
+      editClassroomForm.resetForm()
+      setIsEditModalOpen(true)
+    }
   }
 
   const filteredStudents = students.filter(
@@ -156,218 +248,154 @@ export default function ClassDetailPage() {
     : false
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
-      {/* Header */}
-      <div className="border-b border-border bg-white py-5">
-        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
-              title="Quay lại"
-            >
-              <ArrowLeft className="h-4.5 w-4.5" />
-            </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <BookMarked className="h-5 w-5 text-primary" />
+    <div>
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+        {/* Header */}
+        <div className="border-b border-border bg-white py-5">
+          <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
+                title="Quay lại"
+              >
+                <ArrowLeft className="h-4.5 w-4.5" />
+              </button>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <BookMarked className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                {loadingClass ? (
+                  <div className="space-y-1.5">
+                    <div className="h-5 w-48 bg-slate-200 rounded-lg animate-pulse" />
+                    <div className="h-3.5 w-32 bg-slate-100 rounded-lg animate-pulse" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-xl font-bold tracking-tight text-foreground">
+                        {classroom?.className ?? classCode}
+                      </h1>
+                      <button
+                        onClick={openEditModal}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Chỉnh sửa thông tin"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
+                      <span className="flex items-center gap-1.5">
+                        <GraduationCap className="h-3.5 w-3.5" />
+                        {classroom?.teacherName ?? ''}
+                      </span>
+                      <span className="hidden sm:inline text-border">•</span>
+                      <span className="flex items-center gap-1.5 text-slate-500 line-clamp-1 max-w-md">
+                        <Mail className="h-3.5 w-3.5" />
+                        {classroom?.description || 'Chưa có mô tả'} 
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              {loadingClass ? (
-                <div className="space-y-1.5">
-                  <div className="h-5 w-48 bg-slate-200 rounded-lg animate-pulse" />
-                  <div className="h-3.5 w-32 bg-slate-100 rounded-lg animate-pulse" />
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-xl font-bold tracking-tight text-foreground">
-                    {classroom?.className ?? classCode}
-                  </h1>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    {classroom?.teacherName ?? ''}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
 
-          {/* Class code badge + refresh */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopyCode}
-              className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border bg-white text-sm font-mono font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
-            >
-              {codeCopied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-              {classCode}
-            </button>
-            <button
-              onClick={() => fetchStudents(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
-              title="Làm mới"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingStudents ? 'animate-spin' : ''}`} />
-            </button>
+            {/* Class code badge + refresh */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyCode}
+                className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border bg-white text-sm font-mono font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+              >
+                {codeCopied ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+                {classCode}
+              </button>
+              <button
+                onClick={() => fetchStudents(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
+                title="Làm mới"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingStudents ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
-          {/* Stats row */}
-          {!loadingClass && classroom && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard
-                label="Sĩ số hiện tại"
-                value={`${classroom.studentCount ?? 0}`}
-                sub={`/ ${classroom.maxStudents ?? '∞'} học sinh`}
-                color="from-indigo-500 to-purple-600"
-                icon={<Users className="h-5 w-5 text-white" />}
-              />
-              <StatCard
-                label="Trạng thái"
-                value={isFull ? 'Đầy lớp' : 'Còn chỗ'}
-                sub={
-                  isFull
-                    ? 'Không thể nhận thêm'
-                    : `Còn ${(classroom.maxStudents ?? 0) - (classroom.studentCount ?? 0)} chỗ trống`
-                }
-                color={isFull ? 'from-rose-500 to-pink-600' : 'from-emerald-400 to-teal-600'}
-                icon={
-                  isFull ? (
-                    <UserX className="h-5 w-5 text-white" />
-                  ) : (
-                    <UserPlus className="h-5 w-5 text-white" />
-                  )
-                }
-              />
-              <div className="sm:col-span-2 rounded-2xl border border-border bg-white p-4 shadow-sm flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-                  <Mail className="h-5 w-5 text-slate-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Mô tả lớp học</p>
-                  <p className="text-sm font-semibold text-foreground line-clamp-2">
-                    {classroom.description || 'Chưa có mô tả'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+            {/* Stats row */}
+            {!loadingClass && classroom && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <StatCard
+                  label="Sĩ số hiện tại"
+                  value={`${classroom.studentCount ?? 0}`}
+                  sub={`/ ${classroom.maxStudents ?? '∞'} học sinh`}
+                  color="from-indigo-500 to-purple-600"
+                  icon={<Users className="h-5 w-5 text-white" />}
+                />
 
-          {/* Two-column layout: Add student | Student list */}
-          <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-            {/* ---- Add Student Panel ---- */}
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-                {/* Panel header */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-                    <UserPlus className="h-4.5 w-4.5 text-primary" />
+                {/* Add Student Quick Form (Moved from side panel) */}
+                <div className="rounded-2xl border border-border bg-white shadow-sm flex items-center gap-4 p-4 overflow-hidden relative">
+                  <div className={`absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b ${isFull ? 'from-rose-500 to-pink-600' : 'from-emerald-400 to-teal-500'}`} />
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                    <UserPlus className="h-5 w-5 text-slate-500" />
                   </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-foreground">Thêm học sinh</h2>
-                    <p className="text-xs text-muted-foreground">Nhập email để thêm vào lớp</p>
-                  </div>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleAddStudent} className="p-5 space-y-4">
-                  {/* Success message */}
-                  {addSuccess && (
-                    <div className="flex items-start gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 animate-in slide-in-from-top-2">
-                      <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-emerald-700 font-medium">{addSuccess}</p>
+                  <form onSubmit={addStudentForm.handleSubmit} className="flex-1 flex flex-col gap-1">
+                    <div className="flex gap-2 w-full">
+                      <div className="relative flex-1">
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={addStudentForm.values.email}
+                          onChange={(e) => {
+                            addStudentForm.handleChange(e)
+                            if (addError) setAddError(null)
+                            if (addSuccess) setAddSuccess(null)
+                          }}
+                          onBlur={addStudentForm.handleBlur}
+                          placeholder={isFull ? "Lớp đã đầy" : "Email học sinh..."}
+                          disabled={addStudentForm.isSubmitting || isFull}
+                          className={`w-full h-10 px-3 rounded-lg border ${addStudentForm.touched.email && addStudentForm.errors.email ? 'border-destructive' : 'border-border'} bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        />
+                      </div>
+                      <button
+                        id="submit-add-student"
+                        type="submit"
+                        disabled={addStudentForm.isSubmitting || !addStudentForm.values.email.trim() || isFull}
+                        className="flex-shrink-0 flex items-center justify-center h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {addStudentForm.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Thêm'}
+                      </button>
                     </div>
-                  )}
-                  {/* Error message */}
-                  {addError && (
-                    <div className="flex items-start gap-2.5 rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 animate-in slide-in-from-top-2">
-                      <AlertCircle className="h-4.5 w-4.5 text-destructive flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-destructive font-medium">{addError}</p>
-                    </div>
-                  )}
-
-                  {/* Email input */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-foreground uppercase tracking-wider">
-                      Email học sinh
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <input
-                        id="add-student-email"
-                        type="email"
-                        value={addEmail}
-                        onChange={(e) => {
-                          setAddEmail(e.target.value)
-                          if (addError) setAddError(null)
-                          if (addSuccess) setAddSuccess(null)
-                        }}
-                        placeholder="vd: hocsinh@gmail.com"
-                        disabled={addingStudent || isFull}
-                        className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/60 disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    id="submit-add-student"
-                    type="submit"
-                    disabled={addingStudent || !addEmail.trim() || isFull}
-                    className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/15 hover:shadow-primary/25 active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                  >
-                    {addingStudent ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Đang thêm...
-                      </>
-                    ) : isFull ? (
-                      <>
-                        <UserX className="h-4 w-4" />
-                        Lớp đã đầy
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="h-4 w-4" />
-                        Thêm học sinh
-                      </>
+                    {addStudentForm.touched.email && addStudentForm.errors.email && (
+                      <p className="text-xs text-destructive mt-1 px-1">{addStudentForm.errors.email as string}</p>
                     )}
-                  </button>
-
-                  {isFull && (
-                    <p className="text-center text-xs text-muted-foreground">
-                      Lớp đã đạt sĩ số tối đa. Không thể thêm học sinh mới.
-                    </p>
-                  )}
-                </form>
+                  </form>
+                </div>
               </div>
+            )}
 
-              {/* Quick tips */}
-              <div className="rounded-2xl border border-border bg-white shadow-sm p-4 space-y-2">
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  💡 Lưu ý
-                </h3>
-                <ul className="space-y-1.5">
-                  {[
-                    'Email phải đã được đăng ký trong hệ thống',
-                    'Học sinh sẽ được thông báo khi được thêm vào lớp',
-                  ].map((tip, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary/40 flex-shrink-0" />
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
+            {/* Messages for Add Student */}
+            {(addSuccess || addError) && (
+              <div className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 animate-in slide-in-from-top-2 ${addSuccess ? 'bg-emerald-50 border-emerald-200' : 'bg-destructive/10 border-destructive/20'}`}>
+                {addSuccess ? (
+                  <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-4.5 w-4.5 text-destructive flex-shrink-0 mt-0.5" />
+                )}
+                <p className={`text-xs font-medium ${addSuccess ? 'text-emerald-700' : 'text-destructive'}`}>
+                  {addSuccess || addError}
+                </p>
               </div>
-            </div>
+            )}
 
-            {/* ---- Student List Panel ---- */}
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden flex flex-col">
+            {/* Full width student list */}
+            <div className="grid gap-6 grid-cols-1">
               {/* Panel header */}
               <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-slate-50 to-transparent">
                 <div className="flex items-center gap-3">
@@ -377,21 +405,48 @@ export default function ClassDetailPage() {
                   <div>
                     <h2 className="text-sm font-bold text-foreground">Danh sách học sinh</h2>
                     <p className="text-xs text-muted-foreground">
-                      {loadingStudents ? 'Đang tải...' : `${filteredStudents.length} học sinh`}
+                      {loadingStudents ? 'Đang tải...' : `${totalElements} học sinh`}
                     </p>
                   </div>
                 </div>
 
-                {/* Search within list */}
-                <div className="relative w-56">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Tìm trong danh sách..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-slate-50/80 text-xs outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/60"
-                  />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSortAsc(!sortAsc)
+                      setPage(0)
+                    }}
+                    className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                    title="Sắp xếp theo tên"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    {sortAsc ? 'A-Z' : 'Z-A'}
+                  </button>
+
+                  <select
+                    value={size}
+                    onChange={(e) => {
+                      setSize(Number(e.target.value))
+                      setPage(0)
+                    }}
+                    className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
+                  >
+                    <option value={5}>5 / trang</option>
+                    <option value={10}>10 / trang</option>
+                    <option value={15}>15 / trang</option>
+                    <option value={20}>20 / trang</option>
+                  </select>
+
+                  <div className="relative w-48 hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Tìm trong danh sách..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-slate-50/80 text-xs outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -434,7 +489,7 @@ export default function ClassDetailPage() {
                       <StudentRow
                         key={student.id}
                         student={student}
-                        index={idx + 1}
+                        index={page * size + idx + 1}
                         isRemoving={removingId === student.id}
                         onRemove={() => handleRemoveStudent(student.id, student.fullName)}
                       />
@@ -442,11 +497,142 @@ export default function ClassDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* Pagination controls */}
+              {!loadingStudents && totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-slate-50">
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    Đang hiển thị {page * size + 1} - {Math.min((page + 1) * size, totalElements)} trên tổng số {totalElements}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      disabled={page === 0}
+                      onClick={() => setPage(page - 1)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPage(i)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${page === i ? 'bg-primary text-white' : 'border border-border bg-white text-slate-600 hover:bg-slate-100'
+                          }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      disabled={page === totalPages - 1}
+                      onClick={() => setPage(page + 1)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <AlertDialog open={!!studentToRemove} onOpenChange={(open) => !open && setStudentToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa học sinh</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn xóa học sinh "{studentToRemove?.name}" khỏi lớp không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white text-black border border-slate-200 hover:bg-slate-300 hover:text-black transition-colors">
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveStudent}
+              className="bg-white text-destructive border border-destructive hover:bg-destructive hover:text-white transition-colors"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Cập nhật thông tin lớp học</DialogTitle>
+            <DialogDescription>
+              Thay đổi tên lớp, sĩ số tối đa và mô tả của lớp học này.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editClassroomForm.handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Tên lớp</label>
+              <input
+                id="className"
+                name="className"
+                value={editClassroomForm.values.className}
+                onChange={editClassroomForm.handleChange}
+                onBlur={editClassroomForm.handleBlur}
+                className={`w-full h-10 px-3 rounded-lg border ${editClassroomForm.touched.className && editClassroomForm.errors.className ? 'border-destructive' : 'border-border'} bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+                placeholder="Nhập tên lớp..."
+              />
+              {editClassroomForm.touched.className && editClassroomForm.errors.className && (
+                <p className="text-xs text-destructive">{editClassroomForm.errors.className as string}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">
+                Sĩ số tối đa <span className="text-xs font-normal text-muted-foreground">(Hiện tại: {classroom?.studentCount || 0})</span>
+              </label>
+              <input
+                type="number"
+                id="maxStudents"
+                name="maxStudents"
+                value={editClassroomForm.values.maxStudents}
+                onChange={editClassroomForm.handleChange}
+                onBlur={editClassroomForm.handleBlur}
+                className={`w-full h-10 px-3 rounded-lg border ${editClassroomForm.touched.maxStudents && editClassroomForm.errors.maxStudents ? 'border-destructive' : 'border-border'} bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+              />
+              {editClassroomForm.touched.maxStudents && editClassroomForm.errors.maxStudents && (
+                <p className="text-xs text-destructive">{editClassroomForm.errors.maxStudents as string}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Mô tả lớp học</label>
+              <textarea
+                id="description"
+                name="description"
+                value={editClassroomForm.values.description}
+                onChange={editClassroomForm.handleChange}
+                onBlur={editClassroomForm.handleBlur}
+                className="w-full h-24 p-3 rounded-lg border border-border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
+                placeholder="Nhập mô tả lớp học..."
+              />
+            </div>
+            <DialogFooter className="mt-6">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={editClassroomForm.isSubmitting}
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {editClassroomForm.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Lưu thay đổi
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div >
   )
 }
 
