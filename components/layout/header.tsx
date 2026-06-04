@@ -18,7 +18,6 @@ import {
 interface UserInfo {
   fullName?: string
   email?: string
-  role?: string
   userRole?: string
 }
 
@@ -35,7 +34,7 @@ export function DashboardHeader() {
     if (stored) {
       try {
         setUserInfo(JSON.parse(stored))
-      } catch {}
+      } catch { }
     }
   }, [])
 
@@ -51,14 +50,14 @@ export function DashboardHeader() {
     router.push('/login')
   }
 
-  const role = userInfo?.role || userInfo?.userRole
+  const role = userInfo?.userRole
   const displayName = userInfo?.fullName || userInfo?.email || 'Người dùng'
   const roleLabel = role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
-  const roleColor = role === 'TEACHER' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'
+  const roleColor = role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">
-      <div className="mx-auto max-w-screen-xl px-6 py-3">
+      <div className="mx-auto max-w-screen-xl px-6 py-2">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/home" className="flex items-center gap-2">
@@ -86,9 +85,9 @@ export function DashboardHeader() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
                   <User className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-primary-foreground leading-none">{displayName}</p>
-                  <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${roleColor}`}>
+                <div className="hidden sm:flex flex-col items-start justify-center text-left">
+                  <p className="text-sm font-semibold text-primary-foreground leading-tight">{displayName}</p>
+                  <span className={`mt-0.5 inline-block rounded-full px-2 py-[2px] text-[10px] font-medium ${roleColor}`}>
                     {roleLabel}
                   </span>
                 </div>
@@ -145,8 +144,16 @@ export function DashboardHeader() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel
+              className="bg-white text-black border border-input hover:bg-neutral-800 hover:text-white transition-colors"
+            >
+              Hủy
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors"
+            >
               Đăng xuất
             </AlertDialogAction>
           </AlertDialogFooter>
