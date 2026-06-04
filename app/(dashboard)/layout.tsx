@@ -27,14 +27,14 @@ export default function DashboardLayout({
 
       <DashboardFooter />
 
-      <CreateClassModal
+      {/* <CreateClassModal
         open={createClassOpen}
         onClose={() => setCreateClassOpen(false)}
         onSuccess={(data) => {
           console.log('Class created from layout:', data)
           setCreateClassOpen(false)
         }}
-      />
+      /> */}
     </div>
   )
 }

@@ -130,7 +130,7 @@ export default function ClassDetailPage() {
     } finally {
       setLoadingStudents(false)
     }
-  }, [classCode])
+  }, [classCode, page, size, sortAsc])
 
   useEffect(() => {
     fetchClassroom()

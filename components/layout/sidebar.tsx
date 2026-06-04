@@ -40,12 +40,12 @@ const navItems: NavItem[] = [
     label: 'Bài tập',
     href: '/assignments',
   },
-  {
-    icon: FileText,
-    label: 'Nộp bài',
-    href: '/assignments/submit',
-    roles: ['STUDENT'],
-  },
+  // {
+  //   icon: FileText,
+  //   label: 'Nộp bài',
+  //   href: '/assignments/submit',
+  //   roles: ['STUDENT'],
+  // },
   {
     icon: Users,
     label: 'Quản lý học sinh',
@@ -82,7 +82,7 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
       try {
         const info = JSON.parse(stored)
         setUserRole(info.role || info.userRole || 'STUDENT')
-      } catch {}
+      } catch { }
     }
   }, [])
 
@@ -90,14 +90,22 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
     (item) => !item.roles || item.roles.includes(userRole as 'TEACHER' | 'STUDENT')
   )
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/home' && pathname.startsWith(href))
+  const isActive = (href: string) => {
+    // Nếu là trang chủ, bắt buộc pathname phải giống hệt href (khớp tuyệt đối)
+    if (href === '/' || href === '/home') {
+      return pathname === href;
+    }
+
+    // Với các trang khác, chỉ active nếu pathname khớp hoàn toàn 
+    // HOẶC pathname là trang con của href (ví dụ /assignments/123 là con của /assignments)
+    // nhưng phải đảm bảo không bị nhận diện nhầm sang các nhánh khác
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <aside
-      className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${
-        collapsed ? 'w-16' : 'w-64'
-      }`}
+      className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'
+        }`}
     >
       {/* Toggle button */}
       <button
@@ -112,22 +120,6 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
       </button>
 
       <div className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
-        {/* Create Class Button - Teachers only */}
-        {userRole === 'TEACHER' && (
-          <button
-            id="create-class-btn"
-            onClick={onCreateClass}
-            className={`flex items-center gap-3 rounded-xl bg-primary text-primary-foreground px-3 py-2.5 font-semibold hover:bg-primary/90 transition-colors mb-3 ${
-              collapsed ? 'justify-center' : ''
-            }`}
-            title={collapsed ? 'Tạo lớp học' : undefined}
-          >
-            <PlusCircle className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Tạo lớp học</span>}
-          </button>
-        )}
-
-        {/* Nav items */}
         {visibleItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href)
@@ -136,13 +128,11 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                collapsed ? 'justify-center' : ''
-              } ${
-                active
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${collapsed ? 'justify-center' : ''
+                } ${active
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+                }`}
             >
               <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
               {!collapsed && (
@@ -158,7 +148,7 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
         })}
       </div>
 
-      {/* Role indicator at bottom */}
+      {/* Role indicator at bottom
       {!collapsed && (
         <div className="p-3 border-t border-border">
           <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
@@ -174,7 +164,7 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
             </span>
           </div>
         </div>
-      )}
+      )} */}
     </aside>
   )
 }

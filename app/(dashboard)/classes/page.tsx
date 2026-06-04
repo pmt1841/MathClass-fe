@@ -14,6 +14,7 @@ import {
   ExternalLink,
   BookMarked
 } from 'lucide-react'
+import Link from 'next/link'
 import api from '@/lib/axios'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 import { toast } from 'sonner'
@@ -72,14 +73,14 @@ export default function ClassesPage() {
 
   useEffect(() => {
     fetchClasses()
-    
+
     // Get user role from storage
     const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
     if (stored) {
       try {
         const info = JSON.parse(stored)
         setUserRole(info.role || info.userRole || 'STUDENT')
-      } catch {}
+      } catch { }
     }
   }, [])
 
@@ -230,7 +231,7 @@ export default function ClassesPage() {
                 <p className="text-sm text-muted-foreground">
                   {searchQuery
                     ? 'Thử thay đổi từ khóa tìm kiếm của bạn hoặc kiểm tra chính xác mã lớp.'
-                    : 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học toán đầu tiên.'}
+                    : 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học đầu tiên.'}
                 </p>
               </div>
               {!searchQuery && userRole === 'TEACHER' && (
@@ -327,13 +328,13 @@ export default function ClassesPage() {
                           <span className="text-xs font-medium">{item.teacherName}</span>
                         </div>
 
-                        <a
-                          href={`/classes/${item.classCode}`}
+                        <Link
+                          href={userRole === 'STUDENT' ? `/classes/${item.classCode}/student` : `/classes/${item.classCode}`}
                           className="flex items-center gap-1 rounded-xl bg-slate-100/80 hover:bg-primary hover:text-primary-foreground px-3.5 py-2 text-xs font-bold text-foreground transition-all duration-200 group/btn"
                         >
                           Vào lớp
                           <ExternalLink className="h-3 w-3 opacity-60 group-hover/btn:opacity-100 transition-opacity" />
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </div>
