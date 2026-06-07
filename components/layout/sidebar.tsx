@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: ClipboardList,
-    label: 'Bài tập',
+    label: 'Kho bài tập',
     href: '/assignments',
   },
   // {
