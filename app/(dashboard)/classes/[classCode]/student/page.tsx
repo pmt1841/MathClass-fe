@@ -1,6 +1,6 @@
 'use client'
 
-import React, { use } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -20,22 +20,13 @@ import {
   TrendingUp,
   Award,
 } from 'lucide-react'
+import api from '@/lib/axios'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
 }
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────
-const MOCK_CLASS = {
-  name: 'Toán Đại Số Nâng Cao - 11A1',
-  teacher: 'Thầy Nguyễn Trọng T.',
-  teacherInitials: 'NT',
-  studentCount: 40,
-  maxStudents: 45,
-  description: 'Lớp học nâng cao dành cho học sinh lớp 11 chuyên Toán.',
-  gradients: 'from-indigo-600 via-purple-600 to-blue-700',
-}
-
 const MOCK_STATS = [
   { label: 'Bài tập hoàn thành', value: '8/10', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   { label: 'Điểm trung bình', value: '8.6', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-50' },
@@ -65,23 +56,6 @@ const MOCK_ANNOUNCEMENTS = [
   },
 ]
 
-const MOCK_TODO = [
-  {
-    id: 1,
-    title: 'Bài tập 1: Đạo hàm cơ bản (Trắc nghiệm)',
-    desc: 'Gồm 20 câu trắc nghiệm khách quan.',
-    deadline: '23:59 - Chủ Nhật',
-    urgency: 'high',
-  },
-  {
-    id: 2,
-    title: 'Bài tập 2: Ứng dụng đạo hàm',
-    desc: 'Bài tập tự luận, yêu cầu upload ảnh chụp bài làm.',
-    deadline: '23:59 - Thứ Ba tuần sau',
-    urgency: 'medium',
-  },
-]
-
 const MOCK_DONE = [
   {
     id: 3,
@@ -105,11 +79,39 @@ export default function StudentClassDetailPage({ params }: PageProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = React.useState<'stream' | 'classwork'>('stream')
 
+  const [classroom, setClassroom] = useState<any>(null)
+  const [assignments, setAssignments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchClassData = async () => {
+      try {
+        setLoading(true)
+        const [classRes, assignRes] = await Promise.all([
+          api.get(`/classrooms/${classCode}`),
+          api.get(`/classrooms/${classCode}/assignments`, { params: { size: 100 } })
+        ])
+        setClassroom(classRes.data)
+        const allAssignments = assignRes.data?.content || assignRes.data || []
+        // Chỉ hiện bài tập đã giao
+        setAssignments(allAssignments.filter((a: any) => a.status === 'PUBLISHED'))
+      } catch (error) {
+        console.error('Lỗi khi tải dữ liệu lớp học', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchClassData()
+  }, [classCode])
+
+  const teacherName = classroom?.teacherName || 'Đang cập nhật...'
+  const teacherInitials = teacherName.split(' ').pop()?.[0]?.toUpperCase() || 'GV'
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
 
       {/* ── Hero Banner ── */}
-      <div className={`relative overflow-hidden bg-gradient-to-r ${MOCK_CLASS.gradients} text-white`}>
+      <div className={`relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 text-white`}>
         {/* Decorative blobs */}
         <div className="absolute -top-10 -right-10 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
         <div className="absolute -bottom-16 -left-10 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
@@ -134,22 +136,22 @@ export default function StudentClassDetailPage({ params }: PageProps) {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
                   <Users className="h-3 w-3" />
-                  {MOCK_CLASS.studentCount}/{MOCK_CLASS.maxStudents} học sinh
+                  {classroom?.studentCount || 0}/{classroom?.maxStudents || 0} học sinh
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                {MOCK_CLASS.name}
+                {classroom?.className || 'Đang tải...'}
               </h1>
 
               {/* Teacher */}
               <div className="flex items-center gap-3 pt-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold backdrop-blur-sm border border-white/20">
-                  {MOCK_CLASS.teacherInitials}
+                  {teacherInitials}
                 </div>
                 <div>
                   <p className="text-[11px] text-white/60 font-medium uppercase tracking-wide">Giáo viên phụ trách</p>
-                  <p className="text-sm font-semibold">{MOCK_CLASS.teacher}</p>
+                  <p className="text-sm font-semibold">{teacherName}</p>
                 </div>
               </div>
             </div>
@@ -324,49 +326,39 @@ export default function StudentClassDetailPage({ params }: PageProps) {
                     <Clock className="h-4 w-4 text-orange-600" />
                   </div>
                   <h3 className="text-base font-bold text-foreground">
-                    Chưa hoàn thành
+                    Bài tập được giao
                     <span className="ml-2 rounded-full bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5">
-                      {MOCK_TODO.length}
+                      {assignments.length}
                     </span>
                   </h3>
                 </div>
 
                 <div className="grid gap-3">
-                  {MOCK_TODO.map((task) => (
+                  {loading ? (
+                    <div className="text-sm text-muted-foreground">Đang tải...</div>
+                  ) : assignments.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Chưa có bài tập nào được giao.</div>
+                  ) : assignments.map((task) => (
                     <div
                       key={task.id}
-                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 ${
-                        task.urgency === 'high'
-                          ? 'border-l-red-500'
-                          : 'border-l-orange-400'
-                      }`}
+                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500`}
                     >
                       <div className="flex items-start gap-4">
                         <div
-                          className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl ${
-                            task.urgency === 'high'
-                              ? 'bg-red-100'
-                              : 'bg-orange-100'
-                          }`}
+                          className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100`}
                         >
                           <FileText
-                            className={`h-5 w-5 ${
-                              task.urgency === 'high' ? 'text-red-600' : 'text-orange-600'
-                            }`}
+                            className={`h-5 w-5 text-blue-600`}
                           />
                         </div>
                         <div>
                           <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{task.desc}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{task.description || 'Không có mô tả'}</p>
                           <span
-                            className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 ${
-                              task.urgency === 'high'
-                                ? 'bg-red-50 text-red-600'
-                                : 'bg-orange-50 text-orange-600'
-                            }`}
+                            className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-blue-50 text-blue-600`}
                           >
                             <Clock className="h-3 w-3" />
-                            Hết hạn: {task.deadline}
+                            Hết hạn: {task.deadline ? new Date(task.deadline).toLocaleString('vi-VN') : 'Không có thời hạn'}
                           </span>
                         </div>
                       </div>
