@@ -6,6 +6,7 @@ import { Plus, BookMarked, Search, Edit, Trash2, Send, Clock, BookOpen, Layers }
 import api from '@/lib/axios'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/dashboard/publish-assignment-modal'
+import { DeleteAssignmentModal } from '@/components/dashboard/delete-assignment-modal'
 
 interface Assignment {
   id: number
@@ -31,6 +32,12 @@ export default function AssignmentsPage() {
   // Publish Modal State
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null)
+
+  // Delete Confirm Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
+  const [deleteTargetTitle, setDeleteTargetTitle] = useState<string>('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
@@ -84,11 +91,27 @@ export default function AssignmentsPage() {
     fetchAssignments()
   }, [fetchAssignments])
 
-  const handleDelete = (id: number) => {
-    // API chưa có, hiển thị thông báo
-    toast.info('Tính năng xóa đang được hoàn thiện', {
-      description: 'Chức năng này sẽ sớm ra mắt trong bản cập nhật tới.'
-    })
+  const handleDeleteClick = (id: number, title: string) => {
+    setDeleteTargetId(id)
+    setDeleteTargetTitle(title)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (deleteTargetId === null) return
+    try {
+      setIsDeleting(true)
+      await api.delete(`/assignments/${deleteTargetId}`)
+      toast.success('Đã xóa bài tập thành công')
+      setDeleteModalOpen(false)
+      setDeleteTargetId(null)
+      fetchAssignments()
+    } catch (error) {
+      console.error('Error deleting assignment:', error)
+      toast.error('Xóa bài tập thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handlePublishClick = (id: number) => {
@@ -265,7 +288,7 @@ export default function AssignmentsPage() {
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(assignment.id)}
+                          onClick={() => handleDeleteClick(assignment.id, assignment.title)}
                           className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all"
                           title="Xóa bài tập"
                         >
@@ -310,6 +333,15 @@ export default function AssignmentsPage() {
           fetchAssignments()
         }}
         assignmentId={selectedAssignmentId}
+      />
+
+      <DeleteAssignmentModal
+        open={deleteModalOpen}
+        assignmentTitle={deleteTargetTitle}
+        isDraft={activeTab === 'DRAFT'}
+        isDeleting={isDeleting}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   )
