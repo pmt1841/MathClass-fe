@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,26 +19,35 @@ export type AssignmentFormValues = z.infer<typeof assignmentSchema>
 
 interface AssignmentFormProps {
   onSubmitDraft: (data: AssignmentFormValues) => void
-  onPublishClick: (data: AssignmentFormValues) => void
+  onPublishClick?: (data: AssignmentFormValues) => void
   isSubmitting?: boolean
+  defaultValues?: AssignmentFormValues
+  submitDraftText?: string
 }
 
-export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting }: AssignmentFormProps) {
+export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, defaultValues, submitDraftText = 'Lưu nháp' }: AssignmentFormProps) {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
 
   const {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors, isValid }
   } = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
-    defaultValues: {
+    defaultValues: defaultValues || {
       title: '',
       description: ''
     },
     mode: 'onChange'
   })
+
+  useEffect(() => {
+    if (defaultValues) {
+      reset(defaultValues)
+    }
+  }, [defaultValues, reset])
 
   const descriptionValue = watch('description')
 
@@ -47,7 +56,9 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting }: 
   }
 
   const handlePublish = (data: AssignmentFormValues) => {
-    onPublishClick(data)
+    if (onPublishClick) {
+      onPublishClick(data)
+    }
   }
 
   return (
@@ -142,17 +153,19 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting }: 
           className="flex items-center gap-2 h-10 px-4 rounded-xl border border-border bg-white text-sm font-semibold text-foreground hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />
-          Lưu nháp
+          {submitDraftText}
         </button>
-        <button
-          type="button"
-          disabled={!isValid || isSubmitting}
-          onClick={handleSubmit(handlePublish)}
-          className="flex items-center gap-2 h-10 px-5 rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Send className="w-4 h-4" />
-          Đăng bài
-        </button>
+        {onPublishClick && (
+          <button
+            type="button"
+            disabled={!isValid || isSubmitting}
+            onClick={handleSubmit(handlePublish)}
+            className="flex items-center gap-2 h-10 px-5 rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-4 h-4" />
+            Đăng bài
+          </button>
+        )}
       </div>
     </div>
   )
