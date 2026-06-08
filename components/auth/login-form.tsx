@@ -63,11 +63,16 @@ export default function LoginForm() {
       const data = response.data
       const token = data.token
       const role = data.role || data.userRole || 'STUDENT'
-      const maxAge = values.rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24
-
       // Save to cookies for middleware
-      document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
-      document.cookie = `user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
+      if (values.rememberMe) {
+        const maxAge = 60 * 60 * 24 * 30 // 30 days
+        document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`
+        document.cookie = `user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
+      } else {
+        // Session cookie (expires when browser is closed)
+        document.cookie = `auth_token=${token}; path=/; SameSite=Lax`
+        document.cookie = `user_role=${role}; path=/; SameSite=Lax`
+      }
 
       // Clear old storage to prevent stale data
       localStorage.removeItem('auth_token')
@@ -176,7 +181,7 @@ export default function LoginForm() {
                       />
                     </FormControl>
                     <FormLabel className="font-medium text-muted-foreground group-hover:text-foreground transition-colors cursor-pointer">
-                      Nhớ mật khẩu
+                      Giữ đăng nhập
                     </FormLabel>
                   </FormItem>
                 )}
