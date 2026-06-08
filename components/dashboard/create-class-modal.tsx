@@ -32,11 +32,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
       description: Yup.string(),
       maxStudents: Yup.number()
         .transform((value, originalValue) => (String(originalValue).trim() === '' ? null : value))
-        .nullable()
-        .test('min-30', 'Số học sinh tối đa phải từ 30 trở lên', (value) => {
-          if (value === null || value === undefined) return true;
-          return value >= 30;
-        }),
+        .nullable(),
     }),
     onSubmit: async (values, { setSubmitting }) => {
       setError('')
@@ -147,7 +143,6 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 id="class-max-students"
                 name="maxStudents"
                 type="number"
-                min={30}
                 max={100}
                 value={formik.values.maxStudents}
                 onChange={formik.handleChange}

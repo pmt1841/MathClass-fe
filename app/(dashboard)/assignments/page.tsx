@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, BookMarked, Search, Edit, Trash2, Send, Clock, BookOpen, Layers } from 'lucide-react'
 import api from '@/lib/axios'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/dashboard/publish-assignment-modal'
 import { DeleteAssignmentModal } from '@/components/dashboard/delete-assignment-modal'
@@ -18,9 +19,11 @@ interface Assignment {
   teacherName: string
   classCode: string
   className: string
+  hasSubmissions?: boolean
 }
 
 export default function AssignmentsPage() {
+  const router = useRouter()
   const [userRole, setUserRole] = useState<string>('STUDENT')
   const [isRoleLoaded, setIsRoleLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState<'DRAFT' | 'ARCHIVED'>('DRAFT')
@@ -119,9 +122,9 @@ export default function AssignmentsPage() {
     setPublishModalOpen(true)
   }
 
-  const handleEditClick = (id: number) => {
-    // Route to edit page, assuming it's /assignments/edit/[id]
-    toast.info('Tính năng sửa đang được hoàn thiện')
+  const handleEditClick = (id: number, hasSubmissions?: boolean) => {
+    if (hasSubmissions) return
+    router.push(`/assignments/${id}/edit`)
   }
 
   return (
@@ -281,11 +284,21 @@ export default function AssignmentsPage() {
                     <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
                       <div className="flex gap-2">
                         <button 
-                          onClick={() => handleEditClick(assignment.id)}
-                          className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm transition-all"
-                          title="Sửa nội dung"
+                          onClick={() => handleEditClick(assignment.id, assignment.hasSubmissions)}
+                          disabled={assignment.hasSubmissions}
+                          className={`p-2 rounded-lg transition-all relative group/editbtn ${
+                            assignment.hasSubmissions 
+                              ? 'text-slate-400 bg-slate-100 cursor-not-allowed' 
+                              : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
+                          }`}
+                          title={assignment.hasSubmissions ? "" : "Sửa nội dung"}
                         >
                           <Edit className="h-4 w-4" />
+                          {assignment.hasSubmissions && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover/editbtn:opacity-100 transition-opacity pointer-events-none z-10">
+                              Không thể sửa đề bài do đã có học sinh nộp bài làm
+                            </div>
+                          )}
                         </button>
                         <button 
                           onClick={() => handleDeleteClick(assignment.id, assignment.title)}

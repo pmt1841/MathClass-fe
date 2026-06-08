@@ -1,5 +1,5 @@
 import React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { ClipboardList, Clock, Pencil, Send } from 'lucide-react'
 import { Assignment } from '../types'
 
@@ -11,6 +11,8 @@ export function AssignmentRow({
   onPublish: () => void
 }) {
   const router = useRouter()
+  const params = useParams()
+  const classCode = params.classCode as string
 
   const statusConfig = {
     DRAFT: {
@@ -73,7 +75,12 @@ export function AssignmentRow({
       <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
         <button
           id={`edit-assignment-${assignment.id}`}
-          onClick={() => router.push(`/assignments/${assignment.id}/edit`)}
+          onClick={() => {
+            const url = classCode 
+              ? `/assignments/${assignment.id}/edit?returnUrl=/classes/${classCode}` 
+              : `/assignments/${assignment.id}/edit`
+            router.push(url)
+          }}
           className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
           title="Chỉnh sửa bài tập"
         >
