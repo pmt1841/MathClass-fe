@@ -91,7 +91,6 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             <option value="">Tất cả trạng thái</option>
             <option value="DRAFT">Bản nháp</option>
             <option value="PUBLISHED">Đã giao</option>
-            <option value="ARCHIVED">Đã lưu trữ</option>
           </select>
           <button
             onClick={() => fetchAssignments()}

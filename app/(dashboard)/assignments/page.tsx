@@ -357,7 +357,7 @@ export default function AssignmentsPage() {
                   ) : (
                     <div className="p-4 border-t border-slate-100 bg-slate-50/50">
                       <Link
-                        href={`/assignments/submit?id=${assignment.id}`}
+                        href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
                         className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold shadow-sm hover:bg-primary/95 transition-all active:scale-95"
                       >
                         Vào làm bài

@@ -12,7 +12,8 @@ import { Save, Send, Eye, Edit3, Image as ImageIcon } from 'lucide-react'
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
-  description: z.string().min(1, 'Mô tả bài tập không được để trống')
+  description: z.string().min(1, 'Mô tả bài tập không được để trống'),
+  content: z.string().min(1, 'Nội dung bài tập không được để trống')
 })
 
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
@@ -38,7 +39,8 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, de
     resolver: zodResolver(assignmentSchema),
     defaultValues: defaultValues || {
       title: '',
-      description: ''
+      description: '',
+      content: ''
     },
     mode: 'onChange'
   })
@@ -49,7 +51,7 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, de
     }
   }, [defaultValues, reset])
 
-  const descriptionValue = watch('description')
+  const contentValue = watch('content')
 
   const handleDraft = (data: AssignmentFormValues) => {
     onSubmitDraft(data)
@@ -82,11 +84,28 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, de
           )}
         </div>
 
-        {/* Description Editor */}
+        {/* Simple Description Input */}
+        <div>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">
+            Mô tả bài tập <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            {...register('description')}
+            placeholder="Nhập mô tả ngắn gọn cho bài tập"
+            className={`w-full min-h-[80px] p-4 rounded-xl border bg-slate-50/50 text-sm outline-none resize-y transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${
+              errors.description ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
+            }`}
+          />
+          {errors.description && (
+            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.description.message}</p>
+          )}
+        </div>
+
+        {/* Content Editor */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-sm font-semibold text-foreground">
-              Nội dung mô tả <span className="text-destructive">*</span>
+              Nội dung bài tập <span className="text-destructive">*</span>
             </label>
             <div className="flex bg-slate-100/80 p-1 rounded-lg">
               <button
@@ -118,29 +137,26 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, de
           </p>
 
           <div className="border border-border rounded-xl overflow-hidden bg-slate-50/50 focus-within:border-primary focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/15 transition-all">
-            {activeTab === 'edit' ? (
-              <textarea
-                {...register('description')}
-                placeholder="Nhập nội dung bài tập, có thể sử dụng công thức LaTeX..."
-                className="w-full min-h-[300px] p-4 text-sm bg-transparent outline-none resize-y"
-              />
-            ) : (
-              <div className="w-full min-h-[300px] p-4 bg-white prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-100 prose-pre:text-slate-800">
-                {descriptionValue ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {descriptionValue}
-                  </ReactMarkdown>
-                ) : (
-                  <p className="text-muted-foreground italic text-sm">Chưa có nội dung...</p>
-                )}
-              </div>
-            )}
+            <textarea
+              {...register('content')}
+              placeholder="Nhập nội dung bài tập, có thể sử dụng công thức LaTeX..."
+              className={`w-full min-h-[300px] p-4 text-sm bg-transparent outline-none resize-y ${activeTab === 'edit' ? 'block' : 'hidden'}`}
+            />
+            <div className={`w-full min-h-[300px] p-4 bg-white prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-100 prose-pre:text-slate-800 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
+              {contentValue ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {contentValue}
+                </ReactMarkdown>
+              ) : (
+                <p className="text-muted-foreground italic text-sm">Chưa có nội dung...</p>
+              )}
+            </div>
           </div>
-          {errors.description && (
-            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.description.message}</p>
+          {errors.content && (
+            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.content.message}</p>
           )}
         </div>
       </div>
