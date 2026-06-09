@@ -58,7 +58,8 @@ export default function EditAssignmentPage() {
         // But if it's already published and has submissions, the backend will throw an error when saving.
         setAssignmentData({
           title: data.title || '',
-          description: data.description || ''
+          description: data.description || '',
+          content: data.content || ''
         })
       } catch (err: any) {
         console.error('Error fetching assignment:', err)
