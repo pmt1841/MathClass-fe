@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check } from 'lucide-react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useRouter } from 'next/navigation'
 
@@ -29,6 +29,7 @@ interface AssignmentFormProps {
   isSubmitting?: boolean
   defaultValues?: AssignmentFormValues
   submitDraftText?: string
+  assignmentId?: string
 }
 
 export function AssignmentForm({
@@ -39,10 +40,17 @@ export function AssignmentForm({
   onPublishClick,
   isSubmitting,
   defaultValues,
-  submitDraftText = 'Lưu nháp'
+  submitDraftText = 'Lưu nháp',
+  assignmentId
 }: AssignmentFormProps) {
   const router = useRouter()
   const [showLeaveModal, setShowLeaveModal] = useState(false)
+  
+  const [isSavingLocal, setIsSavingLocal] = useState(false)
+  const [lastSavedLocal, setLastSavedLocal] = useState<Date | null>(null)
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const isFormLoadedRef = React.useRef(false)
+  const storageKey = assignmentId ? `assignment_form_draft_${assignmentId}` : 'assignment_form_draft_new'
 
   const {
     register,
@@ -61,10 +69,45 @@ export function AssignmentForm({
   })
 
   useEffect(() => {
-    if (defaultValues) {
-      reset(defaultValues)
+    let mergedValues = defaultValues || { title: '', description: '', content: '' }
+
+    const savedDraftStr = localStorage.getItem(storageKey)
+    if (savedDraftStr) {
+      try {
+        const savedDraft = JSON.parse(savedDraftStr)
+        mergedValues = { ...mergedValues, ...savedDraft }
+        // setLastSavedLocal(new Date())
+      } catch (e) {}
     }
-  }, [defaultValues, reset])
+    
+    reset(mergedValues)
+    
+    // Allow a small delay before enabling auto-save to avoid saving empty/initial values immediately
+    setTimeout(() => {
+      isFormLoadedRef.current = true
+    }, 500)
+  }, [defaultValues, reset, storageKey])
+
+  const formValues = watch()
+
+  // Auto save to local storage
+  useEffect(() => {
+    if (!isFormLoadedRef.current) return
+    if (!formValues.title && !formValues.description && !formValues.content) return
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+
+    setIsSavingLocal(true)
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem(storageKey, JSON.stringify(formValues))
+      setLastSavedLocal(new Date())
+      setIsSavingLocal(false)
+    }, 1500)
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
+  }, [formValues, storageKey])
 
   const contentValue = watch('content')
 
@@ -92,7 +135,6 @@ export function AssignmentForm({
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = ''
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -125,6 +167,18 @@ export function AssignmentForm({
 
         {/* Right: Submit Buttons */}
         <div className="flex items-center gap-3">
+          {isSavingLocal ? (
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-amber-600 font-medium mr-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Đang lưu nháp...
+            </span>
+          ) : lastSavedLocal ? (
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
+              <Check className="h-3 w-3" />
+              Đã lưu ({lastSavedLocal.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})
+            </span>
+          ) : null}
+
           <button
             type="button"
             disabled={isSubmitting}

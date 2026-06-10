@@ -45,6 +45,7 @@ export default function CreateAssignmentPage() {
     try {
       setIsSubmitting(true)
       await api.post('/assignments/create', data)
+      localStorage.removeItem('assignment_form_draft_new')
       toast.success('Đã lưu nháp bài tập thành công!')
       router.push('/assignments')
     } catch (err: any) {
@@ -83,6 +84,7 @@ export default function CreateAssignmentPage() {
         })),
       })
 
+      localStorage.removeItem('assignment_form_draft_new')
       toast.success('Đã đăng bài tập thành công!')
       setPublishModalOpen(false)
       router.push('/assignments')
