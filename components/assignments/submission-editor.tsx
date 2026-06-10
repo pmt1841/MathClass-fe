@@ -15,6 +15,7 @@ interface SubmissionEditorProps {
   readOnly?: boolean
   isSavingExternal?: boolean
   lastSavedExternal?: Date | null
+  onAutoSave?: (content: string) => Promise<void>
 }
 
 export function SubmissionEditor({ 
@@ -23,13 +24,11 @@ export function SubmissionEditor({
   onChange, 
   readOnly = false,
   isSavingExternal,
-  lastSavedExternal
+  lastSavedExternal,
+  onAutoSave
 }: SubmissionEditorProps) {
   const [content, setContent] = useState(initialContent)
-  const [isSavingLocal, setIsSavingLocal] = useState(false)
-  const [lastSavedLocal, setLastSavedLocal] = useState<Date | null>(null)
   
-  const storageKey = `assignment_draft_${assignmentId}`
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const isDirtyRef = useRef(false)
@@ -51,41 +50,25 @@ export function SubmissionEditor({
     }
   }, [initialContent])
 
-  // Load from local storage on mount if no initialContent
+  // Auto-save logic (Database)
   useEffect(() => {
-    if (!initialContent && !isDirtyRef.current) {
-      const savedDraft = localStorage.getItem(storageKey)
-      if (savedDraft) {
-        setContent(savedDraft)
-        isDirtyRef.current = true
-        if (onChangeRef.current) {
-          onChangeRef.current(savedDraft)
-        }
-      }
-    }
-  }, [storageKey, initialContent])
-
-  // Auto-save logic (local storage only, as backup)
-  useEffect(() => {
-    if (readOnly) return
+    if (readOnly || !isDirtyRef.current || !onAutoSave) return
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
     }
 
-    setIsSavingLocal(true)
     saveTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem(storageKey, content)
-      setLastSavedLocal(new Date())
-      setIsSavingLocal(false)
-    }, 1500) // 1.5 seconds debounce
+      onAutoSave(content)
+      isDirtyRef.current = false
+    }, 5000) // 5 seconds debounce
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
     }
-  }, [content, storageKey, readOnly])
+  }, [content, readOnly, onAutoSave])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
@@ -96,8 +79,8 @@ export function SubmissionEditor({
     }
   }
 
-  const isSaving = isSavingExternal !== undefined ? isSavingExternal : isSavingLocal
-  const lastSaved = lastSavedExternal !== undefined ? lastSavedExternal : lastSavedLocal
+  const isSaving = isSavingExternal
+  const lastSaved = lastSavedExternal
 
   return (
     <div className={`h-full w-full flex flex-col bg-white rounded-2xl border border-border overflow-hidden shadow-sm ${readOnly ? 'opacity-90' : ''}`}>

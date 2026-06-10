@@ -77,7 +77,6 @@ export default function EditAssignmentPage() {
     try {
       setIsSubmitting(true)
       await api.put(`/assignments/${id}`, data)
-      localStorage.removeItem(`assignment_form_draft_${id}`)
       toast.success('Đã cập nhật bài tập thành công!')
       router.push(backHref)
     } catch (err: any) {
@@ -87,6 +86,10 @@ export default function EditAssignmentPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleAutoSave = async (data: AssignmentFormValues) => {
+    await api.put(`/assignments/${id}`, data)
   }
 
   if (isCheckingAuth || isFetching) {
@@ -107,6 +110,7 @@ export default function EditAssignmentPage() {
       onSubmitDraft={handleUpdate}
       defaultValues={assignmentData || undefined}
       submitDraftText="Lưu thay đổi"
+      onAutoSave={handleAutoSave}
     />
   )
 }
