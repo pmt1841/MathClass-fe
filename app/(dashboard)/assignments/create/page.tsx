@@ -7,17 +7,17 @@ import { ArrowLeft, BookMarked } from 'lucide-react'
 import { toast } from 'sonner'
 import api from '@/lib/axios'
 import { AssignmentForm, AssignmentFormValues } from './components/AssignmentForm'
-import { PublishModal } from './components/PublishModal'
+import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 
 export default function CreateAssignmentPage() {
   const router = useRouter()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  
+
   // State for Draft & Publish
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [currentAssignmentData, setCurrentAssignmentData] = useState<AssignmentFormValues | null>(null)
-  
+
   useEffect(() => {
     // Check role
     const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
@@ -61,24 +61,26 @@ export default function CreateAssignmentPage() {
     setPublishModalOpen(true)
   }
 
-  const handlePublish = async (publishData: { classCodes: string[]; deadline: Date }) => {
+  const handlePublish = async (targets: { classCode: string; deadline: string }[]) => {
     if (!currentAssignmentData) return
 
     try {
       setIsSubmitting(true)
-      
+
       // Step 1: Create the assignment (Draft)
       const createResponse = await api.post('/assignments/create', currentAssignmentData)
       const assignmentId = createResponse.data?.id
-      
+
       if (!assignmentId) {
         throw new Error('Không lấy được ID bài tập sau khi tạo.')
       }
 
       // Step 2: Publish it
       await api.put(`/assignments/${assignmentId}/publish`, {
-        classCodes: publishData.classCodes,
-        deadline: publishData.deadline.toISOString()
+        targets: targets.map(t => ({
+          classCode: t.classCode,
+          deadline: new Date(t.deadline).toISOString(),
+        })),
       })
 
       toast.success('Đã đăng bài tập thành công!')
@@ -102,47 +104,26 @@ export default function CreateAssignmentPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50/50">
-      <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        
-        {/* Header Navigation */}
-        <div>
-          <Link
-            href="/assignments"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại danh sách
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <BookMarked className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Tạo bài tập mới</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Soạn thảo nội dung bài tập, hỗ trợ LaTeX cho công thức toán học.
-              </p>
-            </div>
-          </div>
-        </div>
+    <>
+      <AssignmentForm
+        pageTitle="Tạo bài tập mới"
+        backHref="/assignments"
+        backText="Quay lại danh sách"
+        isSubmitting={isSubmitting}
+        onSubmitDraft={handleDraft}
+        onPublishClick={handleOpenPublishModal}
+      />
 
-        {/* Main Form */}
-        <AssignmentForm
-          isSubmitting={isSubmitting}
-          onSubmitDraft={handleDraft}
-          onPublishClick={handleOpenPublishModal}
-        />
-
-        {/* Publish Modal */}
-        <PublishModal
-          open={publishModalOpen}
-          onClose={() => setPublishModalOpen(false)}
-          assignmentData={currentAssignmentData}
-          onSubmit={handlePublish}
-          isSubmitting={isSubmitting}
-        />
-      </div>
-    </div>
+      {/* Publish Modal */}
+      <PublishAssignmentModal
+        open={publishModalOpen}
+        onClose={() => setPublishModalOpen(false)}
+        assignmentId={null}
+        assignmentTitle={currentAssignmentData?.title}
+        onSubmit={handlePublish}
+        onSuccess={() => {}} // Not used because we pass onSubmit instead
+        isSubmitting={isSubmitting}
+      />
+    </>
   )
 }

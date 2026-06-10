@@ -4,7 +4,7 @@ import api from '@/lib/axios'
 import { toast } from 'sonner'
 import { Assignment } from '../types'
 import { AssignmentRow } from './assignment-row'
-import { PublishAssignmentModal } from '@/components/dashboard/publish-assignment-modal'
+import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 
 export function AssignmentsTab({ classCode }: { classCode: string }) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
