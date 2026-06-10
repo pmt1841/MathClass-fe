@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState, use, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ChevronRight, Send, Save, Users } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -48,9 +48,16 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
   const [lastSavedExternal, setLastSavedExternal] = useState<Date | null>(null)
   const [teacherSubmissions, setTeacherSubmissions] = useState<any[]>([])
 
+  const isSavingExternalRef = useRef(isSavingExternal)
+  useEffect(() => {
+    isSavingExternalRef.current = isSavingExternal
+  }, [isSavingExternal])
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
+      if (isSavingExternalRef.current) {
+        e.preventDefault()
+      }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -130,6 +137,21 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
+  const handleAutoSaveDraft = async (content: string) => {
+    try {
+      setIsSavingExternal(true)
+      const res = await submissionApi.saveSubmission(assignmentId, content, 'DRAFT')
+      setSubmissionStatus('DRAFT')
+      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
+      setLastSavedExternal(new Date(dateStr))
+    } catch (error: any) {
+      console.error('Lỗi auto-save', error)
+      // Không hiện toast error liên tục khi auto-save thất bại để tránh làm phiền
+    } finally {
+      setIsSavingExternal(false)
+    }
+  }
+
   const handleSaveDraft = async () => {
     if (!submissionContent.trim()) {
       toast.error('Vui lòng nhập nội dung trước khi lưu.')
@@ -141,7 +163,6 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
       setSubmissionStatus('DRAFT')
       const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
       setLastSavedExternal(new Date(dateStr))
-      localStorage.removeItem(`assignment_draft_${assignmentId}`)
       toast.success('Đã lưu nháp thành công')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
@@ -161,7 +182,6 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
       setSubmissionStatus('SUBMITTED')
       const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
       setLastSavedExternal(new Date(dateStr))
-      localStorage.removeItem(`assignment_draft_${assignmentId}`)
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
@@ -298,6 +318,7 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
                   readOnly={isReadOnly}
                   isSavingExternal={isSavingExternal}
                   lastSavedExternal={lastSavedExternal}
+                  onAutoSave={handleAutoSaveDraft}
                 />
               </Panel>
             </>

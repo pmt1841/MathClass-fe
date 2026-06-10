@@ -17,6 +17,7 @@ export default function CreateAssignmentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [currentAssignmentData, setCurrentAssignmentData] = useState<AssignmentFormValues | null>(null)
+  const [createdAssignmentId, setCreatedAssignmentId] = useState<number | null>(null)
 
   useEffect(() => {
     // Check role
@@ -44,8 +45,11 @@ export default function CreateAssignmentPage() {
   const handleDraft = async (data: AssignmentFormValues) => {
     try {
       setIsSubmitting(true)
-      await api.post('/assignments/create', data)
-      localStorage.removeItem('assignment_form_draft_new')
+      if (createdAssignmentId) {
+        await api.put(`/assignments/${createdAssignmentId}`, data)
+      } else {
+        await api.post('/assignments/create', data)
+      }
       toast.success('Đã lưu nháp bài tập thành công!')
       router.push('/assignments')
     } catch (err: any) {
@@ -54,6 +58,19 @@ export default function CreateAssignmentPage() {
       toast.error(typeof msg === 'string' ? msg : 'Không thể lưu nháp bài tập')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleAutoSave = async (data: AssignmentFormValues) => {
+    if (createdAssignmentId) {
+      await api.put(`/assignments/${createdAssignmentId}`, data)
+    } else {
+      const createResponse = await api.post('/assignments/create', data)
+      const newId = createResponse.data?.id
+      if (newId) {
+        setCreatedAssignmentId(newId)
+        window.history.replaceState(null, '', `/assignments/${newId}/edit`)
+      }
     }
   }
 
@@ -68,9 +85,7 @@ export default function CreateAssignmentPage() {
     try {
       setIsSubmitting(true)
 
-      // Step 1: Create the assignment (Draft)
-      const createResponse = await api.post('/assignments/create', currentAssignmentData)
-      const assignmentId = createResponse.data?.id
+      const assignmentId = createdAssignmentId || createResponse.data?.id
 
       if (!assignmentId) {
         throw new Error('Không lấy được ID bài tập sau khi tạo.')
@@ -84,7 +99,6 @@ export default function CreateAssignmentPage() {
         })),
       })
 
-      localStorage.removeItem('assignment_form_draft_new')
       toast.success('Đã đăng bài tập thành công!')
       setPublishModalOpen(false)
       router.push('/assignments')
@@ -114,6 +128,7 @@ export default function CreateAssignmentPage() {
         isSubmitting={isSubmitting}
         onSubmitDraft={handleDraft}
         onPublishClick={handleOpenPublishModal}
+        onAutoSave={handleAutoSave}
       />
 
       {/* Publish Modal */}
