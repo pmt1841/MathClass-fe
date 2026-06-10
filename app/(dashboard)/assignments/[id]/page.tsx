@@ -51,7 +51,6 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = ''
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -87,7 +86,10 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
             if (sub) {
               setSubmissionContent(sub.content || '')
               setSubmissionStatus(sub.status)
-              if (sub.updatedAt) setLastSavedExternal(new Date(sub.updatedAt))
+              if (sub.updatedAt) {
+                const dateStr = sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt;
+                setLastSavedExternal(new Date(dateStr))
+              }
             }
           } catch (err: any) {
              if (err.response?.status !== 404 && err.response?.status !== 400) {
@@ -137,7 +139,9 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
       setIsSavingExternal(true)
       const res = await submissionApi.saveSubmission(assignmentId, submissionContent, 'DRAFT')
       setSubmissionStatus('DRAFT')
-      setLastSavedExternal(new Date(res.updatedAt))
+      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
+      setLastSavedExternal(new Date(dateStr))
+      localStorage.removeItem(`assignment_draft_${assignmentId}`)
       toast.success('Đã lưu nháp thành công')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
@@ -155,7 +159,9 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
       setIsSavingExternal(true)
       const res = await submissionApi.saveSubmission(assignmentId, submissionContent, 'SUBMITTED')
       setSubmissionStatus('SUBMITTED')
-      setLastSavedExternal(new Date(res.updatedAt))
+      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
+      setLastSavedExternal(new Date(dateStr))
+      localStorage.removeItem(`assignment_draft_${assignmentId}`)
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
@@ -320,7 +326,7 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
                          </span>
                       </div>
                       <p className="text-xs text-slate-500">
-                        Cập nhật: {new Date(sub.updatedAt).toLocaleString('vi-VN')}
+                        Cập nhật: {new Date(sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt).toLocaleString('vi-VN')}
                       </p>
                       {/* Có thể thêm nút "Xem bài" ở Phase 2 */}
                    </div>

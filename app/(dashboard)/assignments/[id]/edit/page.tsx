@@ -77,6 +77,7 @@ export default function EditAssignmentPage() {
     try {
       setIsSubmitting(true)
       await api.put(`/assignments/${id}`, data)
+      localStorage.removeItem(`assignment_form_draft_${id}`)
       toast.success('Đã cập nhật bài tập thành công!')
       router.push(backHref)
     } catch (err: any) {
@@ -98,6 +99,7 @@ export default function EditAssignmentPage() {
 
   return (
     <AssignmentForm
+      assignmentId={id}
       pageTitle="Sửa bài tập"
       backHref={backHref}
       backText={returnUrl ? 'Quay lại lớp học' : 'Quay lại danh sách'}
