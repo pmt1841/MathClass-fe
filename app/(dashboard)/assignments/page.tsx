@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, BookMarked, Search, Edit, Trash2, Send, Clock, BookOpen, Layers } from 'lucide-react'
+import { Plus, BookMarked, Search, Edit, Trash2, Send, Clock, BookOpen, Layers, CheckCircle, AlertCircle } from 'lucide-react'
 import api from '@/lib/axios'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { PublishAssignmentModal } from '@/components/dashboard/publish-assignment-modal'
-import { DeleteAssignmentModal } from '@/components/dashboard/delete-assignment-modal'
+import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
+import { DeleteAssignmentModal } from '@/components/assignments/delete-assignment-modal'
 
 interface Assignment {
   id: number
@@ -20,13 +20,14 @@ interface Assignment {
   classCode: string
   className: string
   hasSubmissions?: boolean
+  submissionStatus?: 'DRAFT' | 'SUBMITTED' | null
 }
 
 export default function AssignmentsPage() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string>('STUDENT')
   const [isRoleLoaded, setIsRoleLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState<'DRAFT' | 'ARCHIVED'>('DRAFT')
+  const [activeTab, setActiveTab] = useState<string>('DRAFT')
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [searchInput, setSearchInput] = useState('')
@@ -49,8 +50,14 @@ export default function AssignmentsPage() {
     if (stored) {
       try {
         const info = JSON.parse(stored)
-        setUserRole(info.role || info.userRole || 'STUDENT')
+        const role = info.role || info.userRole || 'STUDENT'
+        setUserRole(role)
+        if (role === 'STUDENT') {
+          setActiveTab('PENDING')
+        }
       } catch { }
+    } else {
+      setActiveTab('PENDING')
     }
     setIsRoleLoaded(true)
   }, [])
@@ -148,6 +155,21 @@ export default function AssignmentsPage() {
     router.push(`/assignments/${id}/edit`)
   }
 
+  const displayAssignments = assignments.filter(assignment => {
+    if (userRole === 'TEACHER') return true
+    
+    const isSubmitted = assignment.submissionStatus === 'SUBMITTED'
+    if (activeTab === 'SUBMITTED') return isSubmitted
+    
+    // Nếu đã nộp rồi thì không hiện ở "Chưa nộp" hay "Quá hạn" nữa
+    if (isSubmitted) return false
+
+    const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date()
+    if (activeTab === 'PENDING') return !isOverdue
+    if (activeTab === 'OVERDUE') return isOverdue
+    return true
+  })
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       <div className="border-b border-border bg-white py-6">
@@ -186,33 +208,66 @@ export default function AssignmentsPage() {
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
 
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Tabs for TEACHER */}
-            {userRole === 'TEACHER' ? (
-              <div className="flex bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto">
-                <button
-                  onClick={() => setActiveTab('DRAFT')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  <Edit className="h-4 w-4" />
-                  Bản nháp
-                </button>
-                <button
-                  onClick={() => setActiveTab('ARCHIVED')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  <Layers className="h-4 w-4" />
-                  Kho lưu trữ
-                </button>
-              </div>
-            ) : (
-              <div /> // Empty div to push search to right
-            )}
+            {/* Tabs */}
+            <div className="flex bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto">
+              {userRole === 'TEACHER' ? (
+                <>
+                  <button
+                    onClick={() => setActiveTab('DRAFT')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Bản nháp
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('ARCHIVED')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <Layers className="h-4 w-4" />
+                    Kho lưu trữ
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setActiveTab('PENDING')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <Clock className="h-4 w-4" />
+                    Chưa nộp
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('SUBMITTED')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED'
+                        ? 'bg-white text-emerald-600 shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Đã nộp
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('OVERDUE')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE'
+                        ? 'bg-white text-rose-600 shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Quá hạn
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* Search and Filter */}
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -257,26 +312,31 @@ export default function AssignmentsPage() {
                 </div>
               ))}
             </div>
-          ) : assignments.length === 0 ? (
+          ) : displayAssignments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 bg-white border border-border rounded-2xl text-center space-y-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/5 text-primary">
                 <BookOpen className="h-8 w-8" />
               </div>
               <h3 className="text-lg font-bold text-foreground">Không tìm thấy bài tập nào</h3>
               <p className="text-sm text-muted-foreground">
-                {activeTab === 'DRAFT'
-                  ? 'Bạn chưa tạo bản nháp nào. Hãy bắt đầu bằng cách tạo bài tập mới.'
-                  : activeTab === 'ARCHIVED'
-                    ? 'Kho lưu trữ của bạn đang trống.'
-                    : 'Chưa có bài tập nào được giao cho bạn.'}
+                {userRole === 'TEACHER'
+                  ? activeTab === 'DRAFT'
+                    ? 'Bạn chưa tạo bản nháp nào. Hãy bắt đầu bằng cách tạo bài tập mới.'
+                    : 'Kho lưu trữ của bạn đang trống.'
+                  : activeTab === 'PENDING'
+                    ? 'Tuyệt vời! Bạn không có bài tập nào cần làm lúc này.'
+                    : activeTab === 'SUBMITTED'
+                      ? 'Bạn chưa nộp bài tập nào.'
+                      : 'Bạn không có bài tập nào quá hạn.'}
               </p>
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {assignments.map((assignment) => (
+              {displayAssignments.map((assignment, index) => (
                 <div
                   key={assignment.id}
-                  className="group flex flex-col justify-between rounded-2xl border border-border bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                  className="group flex flex-col justify-between rounded-2xl border border-border bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+                  style={{ animationFillMode: 'both', animationDuration: '500ms', animationDelay: `${index * 50}ms` }}
                 >
                   <div className={`h-1.5 w-full ${userRole === 'TEACHER' && activeTab === 'ARCHIVED'
                       ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
@@ -358,9 +418,22 @@ export default function AssignmentsPage() {
                     <div className="p-4 border-t border-slate-100 bg-slate-50/50">
                       <Link
                         href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
-                        className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold shadow-sm hover:bg-primary/95 transition-all active:scale-95"
+                        className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${
+                          assignment.deadline && new Date(assignment.deadline) < new Date()
+                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            : 'bg-primary text-primary-foreground hover:bg-primary/95'
+                        }`}
                       >
-                        Vào làm bài
+                        {(() => {
+                          const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date();
+                          const isSubmitted = assignment.submissionStatus === 'SUBMITTED';
+                          
+                          if (isSubmitted) {
+                            return isOverdue ? 'Xem bài nộp' : 'Sửa bài nộp';
+                          } else {
+                            return isOverdue ? 'Xem đề bài' : 'Vào làm bài';
+                          }
+                        })()}
                       </Link>
                     </div>
                   )}

@@ -14,7 +14,7 @@ export default function EditAssignmentPage() {
   const id = params.id as string
   const searchParams = useSearchParams()
   const returnUrl = searchParams.get('returnUrl')
-  
+
   const backHref = returnUrl || '/assignments'
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
@@ -53,7 +53,7 @@ export default function EditAssignmentPage() {
         setIsFetching(true)
         const res = await api.get(`/assignments/${id}`)
         const data = res.data
-        
+
         // We only allow editing DRAFT, ARCHIVED, or PUBLISHED (handled by backend logic).
         // But if it's already published and has submissions, the backend will throw an error when saving.
         setAssignmentData({
@@ -71,7 +71,7 @@ export default function EditAssignmentPage() {
     }
 
     fetchAssignment()
-  }, [id, isCheckingAuth, router])
+  }, [id, isCheckingAuth, router, backHref])
 
   const handleUpdate = async (data: AssignmentFormValues) => {
     try {
@@ -97,39 +97,14 @@ export default function EditAssignmentPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50/50">
-      <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        
-        {/* Header Navigation */}
-        <div>
-          <Link
-            href={backHref}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {returnUrl ? 'Quay lại lớp học' : 'Quay lại danh sách'}
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Edit className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Sửa bài tập</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Chỉnh sửa nội dung bài tập. Chú ý: nếu bài đã có người nộp, bạn có thể không sửa được nội dung.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Form */}
-        <AssignmentForm
-          isSubmitting={isSubmitting}
-          onSubmitDraft={handleUpdate}
-          defaultValues={assignmentData || undefined}
-          submitDraftText="Lưu thay đổi"
-        />
-      </div>
-    </div>
+    <AssignmentForm
+      pageTitle="Sửa bài tập"
+      backHref={backHref}
+      backText={returnUrl ? 'Quay lại lớp học' : 'Quay lại danh sách'}
+      isSubmitting={isSubmitting}
+      onSubmitDraft={handleUpdate}
+      defaultValues={assignmentData || undefined}
+      submitDraftText="Lưu thay đổi"
+    />
   )
 }

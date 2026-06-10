@@ -47,7 +47,7 @@ export function DashboardHeader() {
     localStorage.removeItem('user_info')
     sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('user_info')
-    router.push('/login')
+    router.push('/')
   }
 
   const role = userInfo?.userRole

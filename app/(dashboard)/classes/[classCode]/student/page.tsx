@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   ArrowLeft,
   Clock,
@@ -362,10 +363,13 @@ export default function StudentClassDetailPage({ params }: PageProps) {
                           </span>
                         </div>
                       </div>
-                      <button className="flex-shrink-0 self-end sm:self-auto flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 active:scale-[.98]">
+                      <Link 
+                        href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
+                        className="flex-shrink-0 self-end sm:self-auto flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 active:scale-[.98]"
+                      >
                         Làm bài ngay
                         <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
+                      </Link>
                     </div>
                   ))}
                 </div>

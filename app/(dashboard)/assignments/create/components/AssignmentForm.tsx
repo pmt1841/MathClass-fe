@@ -8,7 +8,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, Image as ImageIcon } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { useRouter } from 'next/navigation'
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
@@ -19,6 +21,9 @@ const assignmentSchema = z.object({
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
 
 interface AssignmentFormProps {
+  pageTitle: string
+  backHref: string
+  backText: string
   onSubmitDraft: (data: AssignmentFormValues) => void
   onPublishClick?: (data: AssignmentFormValues) => void
   isSubmitting?: boolean
@@ -26,15 +31,25 @@ interface AssignmentFormProps {
   submitDraftText?: string
 }
 
-export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, defaultValues, submitDraftText = 'Lưu nháp' }: AssignmentFormProps) {
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
+export function AssignmentForm({
+  pageTitle,
+  backHref,
+  backText,
+  onSubmitDraft,
+  onPublishClick,
+  isSubmitting,
+  defaultValues,
+  submitDraftText = 'Lưu nháp'
+}: AssignmentFormProps) {
+  const router = useRouter()
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
-    formState: { errors, isValid }
+    formState: { errors }
   } = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
     defaultValues: defaultValues || {
@@ -63,126 +78,188 @@ export function AssignmentForm({ onSubmitDraft, onPublishClick, isSubmitting, de
     }
   }
 
+  const handleBackClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowLeaveModal(true)
+  }
+
+  const handleLeaveConfirm = () => {
+    setShowLeaveModal(false)
+    router.push(backHref)
+  }
+
+  // Handle Before Unload for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
+
   return (
-    <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-6">
-      <div className="space-y-4">
-        {/* Title Input */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">
-            Tiêu đề bài tập <span className="text-destructive">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('title')}
-            placeholder="Nhập tiêu đề (VD: Bài tập giải tích cuối kỳ)"
-            className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${
-              errors.title ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
-            }`}
-          />
-          {errors.title && (
-            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.title.message}</p>
-          )}
-        </div>
+    <div className="fixed inset-0 z-[100] bg-slate-100 flex flex-col overflow-hidden">
+      {/* TOOLBAR */}
+      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10">
+        {/* Left: Back & Breadcrumb */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleBackClick}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 hover:shadow-sm hover:text-slate-900 transition-all"
+            title={backText}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-        {/* Simple Description Input */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">
-            Mô tả bài tập <span className="text-destructive">*</span>
-          </label>
-          <textarea
-            {...register('description')}
-            placeholder="Nhập mô tả ngắn gọn cho bài tập"
-            className={`w-full min-h-[80px] p-4 rounded-xl border bg-slate-50/50 text-sm outline-none resize-y transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${
-              errors.description ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
-            }`}
-          />
-          {errors.description && (
-            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.description.message}</p>
-          )}
-        </div>
-
-        {/* Content Editor */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-semibold text-foreground">
-              Nội dung bài tập <span className="text-destructive">*</span>
-            </label>
-            <div className="flex bg-slate-100/80 p-1 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setActiveTab('edit')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeTab === 'edit'
-                    ? 'bg-white text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('preview')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeTab === 'preview'
-                    ? 'bg-white text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" /> Xem trước
-              </button>
-            </div>
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <button onClick={handleBackClick} className="hover:text-slate-800 transition-colors">
+              {backText}
+            </button>
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+            <span className="text-slate-900 truncate max-w-[300px]">
+              {pageTitle}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Hỗ trợ Markdown và công thức Toán học LaTeX. Đặt công thức trong ký hiệu <code className="bg-slate-100 px-1 rounded text-primary">$...$</code> hoặc <code className="bg-slate-100 px-1 rounded text-primary">$$...$$</code>.
-          </p>
-
-          <div className="border border-border rounded-xl overflow-hidden bg-slate-50/50 focus-within:border-primary focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/15 transition-all">
-            <textarea
-              {...register('content')}
-              placeholder="Nhập nội dung bài tập, có thể sử dụng công thức LaTeX..."
-              className={`w-full min-h-[300px] p-4 text-sm bg-transparent outline-none resize-y ${activeTab === 'edit' ? 'block' : 'hidden'}`}
-            />
-            <div className={`w-full min-h-[300px] p-4 bg-white prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-100 prose-pre:text-slate-800 ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
-              {contentValue ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                >
-                  {contentValue}
-                </ReactMarkdown>
-              ) : (
-                <p className="text-muted-foreground italic text-sm">Chưa có nội dung...</p>
-              )}
-            </div>
-          </div>
-          {errors.content && (
-            <p className="text-xs text-destructive mt-1.5 font-medium">{errors.content.message}</p>
-          )}
         </div>
-      </div>
 
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-        <button
-          type="button"
-          disabled={!isValid || isSubmitting}
-          onClick={handleSubmit(handleDraft)}
-          className="flex items-center gap-2 h-10 px-4 rounded-xl border border-border bg-white text-sm font-semibold text-foreground hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {submitDraftText}
-        </button>
-        {onPublishClick && (
+        {/* Right: Submit Buttons */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={!isValid || isSubmitting}
-            onClick={handleSubmit(handlePublish)}
-            className="flex items-center gap-2 h-10 px-5 rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+            onClick={handleSubmit(handleDraft)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
           >
-            <Send className="w-4 h-4" />
-            Đăng bài
+            <Save className="w-4 h-4" />
+            {submitDraftText}
           </button>
-        )}
+
+          {onPublishClick && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSubmit(handlePublish)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              Giao bài
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* MAIN CONTENT */}
+      <div className="flex-1 min-h-0 flex flex-col p-2 sm:p-4 gap-4">
+
+        {/* ROW 1: Title and Description */}
+        <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl border border-border shadow-sm shrink-0">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              {...register('title')}
+              placeholder="Nhập tiêu đề (VD: Bài tập giải tích)..."
+              className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-base font-semibold outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${errors.title ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
+                }`}
+            />
+            {errors.title && (
+              <span className="absolute -bottom-5 left-2 text-[10px] text-destructive font-medium">{errors.title.message}</span>
+            )}
+          </div>
+
+          <div className="flex-1 md:flex-[2] relative">
+            <input
+              type="text"
+              {...register('description')}
+              placeholder="Nhập mô tả ngắn gọn cho bài tập..."
+              className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${errors.description ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
+                }`}
+            />
+            {errors.description && (
+              <span className="absolute -bottom-5 left-2 text-[10px] text-destructive font-medium">{errors.description.message}</span>
+            )}
+          </div>
+        </div>
+
+        {/* ROW 2: Editor and Preview Split */}
+        <div className="flex-1 min-h-0 relative">
+          {errors.content && (
+            <div className="absolute top-0 right-4 -translate-y-full pb-1 z-10">
+              <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded text-[11px] font-medium border border-destructive/20">{errors.content.message}</span>
+            </div>
+          )}
+          <PanelGroup direction="horizontal" className="h-full w-full">
+            {/* EDITOR */}
+            <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${errors.content ? 'border-destructive focus-within:border-destructive' : 'border-border focus-within:border-primary'}`}>
+              <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-3.5 h-3.5" /> Soạn thảo Markdown & LaTeX
+                </div>
+              </div>
+              <textarea
+                {...register('content')}
+                placeholder="Nhập nội dung bài tập...&#10;Hỗ trợ LaTeX: $$ x = \frac{-b \pm \sqrt{\Delta}}{2a} $$"
+                className="flex-1 w-full p-4 text-sm bg-transparent outline-none resize-none font-mono leading-relaxed"
+              />
+            </Panel>
+
+            {/* RESIZER */}
+            <PanelResizeHandle className="w-2 mx-1 rounded-full bg-slate-200 hover:bg-primary/50 transition-colors cursor-col-resize flex flex-col items-center justify-center gap-1">
+              <div className="w-1 h-1 rounded-full bg-slate-400" />
+              <div className="w-1 h-1 rounded-full bg-slate-400" />
+              <div className="w-1 h-1 rounded-full bg-slate-400" />
+            </PanelResizeHandle>
+
+            {/* PREVIEW */}
+            <Panel defaultSize={50} minSize={20} className="bg-white rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden ml-2">
+              <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center gap-2 shrink-0">
+                <Eye className="w-3.5 h-3.5" /> Xem trước
+              </div>
+              <div className="flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto">
+                {contentValue ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {contentValue}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
+                )}
+              </div>
+            </Panel>
+          </PanelGroup>
+        </div>
+
+      </div>
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Hủy bỏ các thay đổi?</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Bạn có chắc chắn muốn quay lại không? Các thông tin bạn vừa nhập có thể bị mất.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+              >
+                Tiếp tục ở lại
+              </button>
+              <button
+                onClick={handleLeaveConfirm}
+                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
+              >
+                Vẫn quay lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

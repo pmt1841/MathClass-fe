@@ -31,6 +31,8 @@ interface PublishAssignmentModalProps {
   defaultClassCode?: string
   onClose: () => void
   onSuccess: () => void
+  onSubmit?: (targets: { classCode: string; deadline: string }[]) => void
+  isSubmitting?: boolean
 }
 
 export function PublishAssignmentModal({
@@ -40,6 +42,8 @@ export function PublishAssignmentModal({
   defaultClassCode = '',
   onClose,
   onSuccess,
+  onSubmit,
+  isSubmitting = false,
 }: PublishAssignmentModalProps) {
   const [myClasses, setMyClasses] = useState<MyClassroom[]>([])
   const [loadingClasses, setLoadingClasses] = useState(true)
@@ -103,7 +107,7 @@ export function PublishAssignmentModal({
   const selectedTargets = targets.filter((t) => t.selected)
 
   const handlePublish = async () => {
-    if (!assignmentId) return
+    if (!assignmentId && !onSubmit) return
     
     const missing = selectedTargets.filter((t) => !t.deadline)
     if (missing.length > 0) {
@@ -112,6 +116,11 @@ export function PublishAssignmentModal({
     }
     if (selectedTargets.length === 0) {
       toast.error('Vui lòng chọn ít nhất một lớp để giao bài')
+      return
+    }
+
+    if (onSubmit) {
+      onSubmit(selectedTargets.map((t) => ({ classCode: t.classCode, deadline: t.deadline })))
       return
     }
 
@@ -134,7 +143,7 @@ export function PublishAssignmentModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col !z-[9999]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
@@ -240,7 +249,7 @@ export function PublishAssignmentModal({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={publishing}
+                disabled={publishing || isSubmitting}
                 className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Hủy
@@ -249,10 +258,10 @@ export function PublishAssignmentModal({
                 id="confirm-publish-btn"
                 type="button"
                 onClick={handlePublish}
-                disabled={publishing || selectedTargets.length === 0}
+                disabled={publishing || isSubmitting || selectedTargets.length === 0}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
               >
-                {publishing ? (
+                {publishing || isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
