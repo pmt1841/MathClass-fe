@@ -7,29 +7,48 @@ export interface SubmissionResponse {
   studentName: string
   content: string
   status: 'DRAFT' | 'SUBMITTED'
+  score: number | null
   submittedAt: string | null
   updatedAt: string
 }
 
 export const submissionApi = {
-  // Nộp bài hoặc Lưu nháp (dùng PUT để create/update chung)
-  saveSubmission: async (assignmentId: number, content: string, status: 'DRAFT' | 'SUBMITTED') => {
-    const response = await api.put<SubmissionResponse>(`/assignments/${assignmentId}/submissions/my-submission`, {
+  createSubmission: async (assignmentId: number, content: string, status: 'DRAFT' | 'SUBMITTED') => {
+    const response = await api.post<SubmissionResponse>(`/submissions`, {
+      assignmentId,
       content,
       status
     })
     return response.data
   },
 
-  // Lấy bài nộp của user hiện tại (Học sinh)
-  getMySubmission: async (assignmentId: number) => {
-    const response = await api.get<SubmissionResponse>(`/assignments/${assignmentId}/submissions/my-submission`)
+  updateSubmission: async (submissionId: number, content: string, status: 'DRAFT' | 'SUBMITTED') => {
+    const response = await api.put<SubmissionResponse>(`/submissions/${submissionId}`, {
+      content,
+      status
+    })
     return response.data
   },
 
-  // Lấy danh sách tất cả bài nộp (Giáo viên)
+  unsubmit: async (submissionId: number) => {
+    const response = await api.put<SubmissionResponse>(`/submissions/${submissionId}/unsubmit`)
+    return response.data
+  },
+
+  gradeSubmission: async (submissionId: number, score: number) => {
+    const response = await api.put<SubmissionResponse>(`/submissions/${submissionId}/grade`, {
+      score
+    })
+    return response.data
+  },
+
+  getMySubmission: async (assignmentId: number) => {
+    const response = await api.get<SubmissionResponse>(`/submissions/my-submission?assignmentId=${assignmentId}`)
+    return response.data
+  },
+
   getSubmissionsByAssignment: async (assignmentId: number) => {
-    const response = await api.get<SubmissionResponse[]>(`/assignments/${assignmentId}/submissions`)
+    const response = await api.get<SubmissionResponse[]>(`/submissions?assignmentId=${assignmentId}`)
     return response.data
   }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ChevronRight, Send, Save, Users } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Send, Save, Users, XCircle, CheckCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
@@ -39,14 +39,21 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [showUnsubmitModal, setShowUnsubmitModal] = useState(false)
   const [userRole, setUserRole] = useState<string>('STUDENT')
 
   // Submission states
+  const [submissionId, setSubmissionId] = useState<number | null>(null)
   const [submissionContent, setSubmissionContent] = useState('')
   const [submissionStatus, setSubmissionStatus] = useState<'DRAFT' | 'SUBMITTED' | null>(null)
+  const [submissionScore, setSubmissionScore] = useState<number | null>(null)
   const [isSavingExternal, setIsSavingExternal] = useState(false)
   const [lastSavedExternal, setLastSavedExternal] = useState<Date | null>(null)
   const [teacherSubmissions, setTeacherSubmissions] = useState<any[]>([])
+
+  // Teacher grade states
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<number | null>(null)
+  const [gradingScore, setGradingScore] = useState<string>('')
 
   const isSavingExternalRef = useRef(isSavingExternal)
   useEffect(() => {
@@ -91,15 +98,17 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
           try {
             const sub = await submissionApi.getMySubmission(assignmentId)
             if (sub) {
+              setSubmissionId(sub.id)
               setSubmissionContent(sub.content || '')
               setSubmissionStatus(sub.status)
+              setSubmissionScore(sub.score)
               if (sub.updatedAt) {
                 const dateStr = sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt;
                 setLastSavedExternal(new Date(dateStr))
               }
             }
           } catch (err: any) {
-             if (err.response?.status !== 404 && err.response?.status !== 400) {
+             if (err.response?.status !== 404 && err.response?.status !== 400 && err.response?.status !== 204) {
                console.error('Lỗi khi lấy bài nộp:', err)
              }
           }
@@ -137,16 +146,25 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
+  const saveOrUpdateSubmission = async (content: string, status: 'DRAFT' | 'SUBMITTED') => {
+    if (submissionId) {
+      return await submissionApi.updateSubmission(submissionId, content, status)
+    } else {
+      return await submissionApi.createSubmission(assignmentId, content, status)
+    }
+  }
+
   const handleAutoSaveDraft = async (content: string) => {
+    if (submissionScore !== null) return;
     try {
       setIsSavingExternal(true)
-      const res = await submissionApi.saveSubmission(assignmentId, content, 'DRAFT')
+      const res = await saveOrUpdateSubmission(content, 'DRAFT')
+      if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
       const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
       setLastSavedExternal(new Date(dateStr))
     } catch (error: any) {
       console.error('Lỗi auto-save', error)
-      // Không hiện toast error liên tục khi auto-save thất bại để tránh làm phiền
     } finally {
       setIsSavingExternal(false)
     }
@@ -159,13 +177,14 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
     }
     try {
       setIsSavingExternal(true)
-      const res = await submissionApi.saveSubmission(assignmentId, submissionContent, 'DRAFT')
+      const res = await saveOrUpdateSubmission(submissionContent, 'DRAFT')
+      if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
       const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
       setLastSavedExternal(new Date(dateStr))
       toast.success('Đã lưu nháp thành công')
     } catch (error: any) {
-      toast.error(error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
+      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
     } finally {
       setIsSavingExternal(false)
     }
@@ -178,15 +197,51 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
     }
     try {
       setIsSavingExternal(true)
-      const res = await submissionApi.saveSubmission(assignmentId, submissionContent, 'SUBMITTED')
+      const res = await saveOrUpdateSubmission(submissionContent, 'SUBMITTED')
+      if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('SUBMITTED')
       const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
       setLastSavedExternal(new Date(dateStr))
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
-      toast.error(error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
+      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
     } finally {
       setIsSavingExternal(false)
+    }
+  }
+
+  const handleUnsubmitConfirm = async () => {
+    if (!submissionId) return;
+    try {
+      setIsSavingExternal(true)
+      const res = await submissionApi.unsubmit(submissionId)
+      setSubmissionStatus('DRAFT')
+      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
+      setLastSavedExternal(new Date(dateStr))
+      toast.success('Đã hủy nộp bài. Bạn có thể sửa và nộp lại.')
+      setShowUnsubmitModal(false)
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi hủy nộp bài.')
+    } finally {
+      setIsSavingExternal(false)
+    }
+  }
+
+  const handleGradeSubmission = async (subId: number) => {
+    const scoreVal = parseFloat(gradingScore)
+    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
+      toast.error('Điểm số không hợp lệ. Vui lòng nhập từ 0 đến 10.')
+      return
+    }
+    try {
+      const res = await submissionApi.gradeSubmission(subId, scoreVal)
+      toast.success('Đã chấm điểm thành công!')
+      setGradingSubmissionId(null)
+      setGradingScore('')
+      // Update local list
+      setTeacherSubmissions(prev => prev.map(s => s.id === subId ? { ...s, score: res.score, updatedAt: res.updatedAt } : s))
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi chấm điểm.')
     }
   }
 
@@ -204,7 +259,8 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
   if (!assignment) return null
 
   const isPastDeadline = assignment.deadline ? new Date() > new Date(assignment.deadline) : false
-  const isReadOnly = isPastDeadline || userRole !== 'STUDENT'
+  const isGraded = submissionScore !== null
+  const isReadOnly = isPastDeadline || userRole !== 'STUDENT' || isGraded || submissionStatus === 'SUBMITTED'
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">
@@ -241,29 +297,45 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
-          {userRole === 'STUDENT' && !isPastDeadline && (
+          {userRole === 'STUDENT' && isGraded && (
+            <span className="text-sm font-semibold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200">
+              Điểm của bạn: {submissionScore}
+            </span>
+          )}
+          {userRole === 'STUDENT' && !isPastDeadline && !isGraded && (
             <>
-              {submissionStatus !== 'SUBMITTED' && (
+              {submissionStatus !== 'SUBMITTED' ? (
+                <>
+                  <button 
+                    onClick={handleSaveDraft}
+                    disabled={isSavingExternal}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
+                  >
+                    <Save className="h-4 w-4" />
+                    Lưu nháp
+                  </button>
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={isSavingExternal}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                    Nộp bài
+                  </button>
+                </>
+              ) : (
                 <button 
-                  onClick={handleSaveDraft}
+                  onClick={() => setShowUnsubmitModal(true)}
                   disabled={isSavingExternal}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  Lưu nháp
+                  <XCircle className="h-4 w-4" />
+                  Hủy nộp bài
                 </button>
               )}
-              <button 
-                onClick={handleSubmit}
-                disabled={isSavingExternal}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                {submissionStatus === 'SUBMITTED' ? 'Nộp lại' : 'Nộp bài'}
-              </button>
             </>
           )}
-          {userRole === 'STUDENT' && isPastDeadline && (
+          {userRole === 'STUDENT' && isPastDeadline && !isGraded && (
             <span className="text-sm font-medium text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
               Đã hết hạn nộp bài
             </span>
@@ -327,9 +399,9 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
         </PanelGroup>
       </div>
 
-      {/* TEACHER VIEW: Danh sách nộp bài (Hiển thị đè lên dạng danh sách bên dưới hoặc thay thế hoàn toàn) */}
+      {/* TEACHER VIEW: Danh sách nộp bài */}
       {userRole === 'TEACHER' && (
-        <div className="fixed top-14 right-0 bottom-0 w-1/3 bg-white border-l border-border shadow-2xl flex flex-col z-20">
+        <div className="fixed top-14 right-0 bottom-0 w-[400px] bg-white border-l border-border shadow-2xl flex flex-col z-20">
             <div className="p-4 border-b border-border bg-slate-50 flex items-center gap-2 font-semibold text-slate-800">
               <Users className="w-5 h-5 text-primary" />
               Danh sách nộp bài ({teacherSubmissions.length})
@@ -339,7 +411,7 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
                  <p className="text-sm text-slate-500 text-center mt-10 italic">Chưa có học sinh nào nộp bài.</p>
                ) : (
                  teacherSubmissions.map((sub) => (
-                   <div key={sub.id} className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col gap-1">
+                   <div key={sub.id} className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                          <p className="font-semibold text-slate-800">{sub.studentName || 'Học sinh'}</p>
                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sub.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -347,9 +419,53 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
                          </span>
                       </div>
                       <p className="text-xs text-slate-500">
-                        Cập nhật: {new Date(sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt).toLocaleString('vi-VN')}
+                        Nộp lúc: {sub.submittedAt ? new Date(sub.submittedAt.includes('T') && !sub.submittedAt.endsWith('Z') && !sub.submittedAt.includes('+') ? `${sub.submittedAt}Z` : sub.submittedAt).toLocaleString('vi-VN') : 'Chưa nộp'}
                       </p>
-                      {/* Có thể thêm nút "Xem bài" ở Phase 2 */}
+                      
+                      <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                        {sub.score !== null ? (
+                          <div className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
+                            <CheckCircle className="w-4 h-4" /> Điểm: {sub.score}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 w-full">
+                            {gradingSubmissionId === sub.id ? (
+                              <>
+                                <input 
+                                  type="number" 
+                                  min="0" max="10" step="0.5"
+                                  value={gradingScore}
+                                  onChange={(e) => setGradingScore(e.target.value)}
+                                  className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-1 outline-none focus:border-primary"
+                                  placeholder="Điểm"
+                                />
+                                <button 
+                                  onClick={() => handleGradeSubmission(sub.id)}
+                                  className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                                >
+                                  Lưu
+                                </button>
+                                <button 
+                                  onClick={() => setGradingSubmissionId(null)}
+                                  className="text-xs text-slate-500 hover:text-slate-700 underline"
+                                >
+                                  Hủy
+                                </button>
+                              </>
+                            ) : (
+                              <button 
+                                onClick={() => {
+                                  setGradingSubmissionId(sub.id)
+                                  setGradingScore('')
+                                }}
+                                className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors w-full text-center"
+                              >
+                                Chấm điểm
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                    </div>
                  ))
                )}
@@ -379,6 +495,38 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
               >
                 Vẫn rời đi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsubmit Confirmation Modal */}
+      {showUnsubmitModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+                <XCircle className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận hủy nộp bài</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Bạn có chắc chắn muốn hủy nộp bài không? Bài làm của bạn sẽ chuyển về trạng thái Lưu nháp và bạn có thể tiếp tục chỉnh sửa.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+              <button
+                onClick={() => setShowUnsubmitModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+              >
+                Không, quay lại
+              </button>
+              <button
+                onClick={handleUnsubmitConfirm}
+                disabled={isSavingExternal}
+                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+              >
+                Đồng ý hủy nộp
               </button>
             </div>
           </div>
