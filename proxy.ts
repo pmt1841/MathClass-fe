@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const protectedRoutes = ['/teacher', '/student', '/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile']
-const teacherOnlyRoutes = ['/teacher', '/classes/create', '/students', '/reports']
-const studentOnlyRoutes = ['/student', '/assignments/submit']
+const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile']
+const teacherOnlyRoutes = ['/classes/create', '/students', '/reports']
+const studentOnlyRoutes = ['/assignments/submit']
 const publicRoutes = ['/', '/login', '/signup', '/verify']
 
 // Hàm tiện ích để kiểm tra chính xác đường dẫn tránh bị nuốt từ (ví dụ /students bắt đầu bằng /student)
@@ -32,16 +32,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 2. Redirect authenticated users from public/home to their respective dashboards
-  if (token && (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/home')) {
-    if (userRole === 'TEACHER') {
-      return NextResponse.redirect(new URL('/teacher', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/student', request.url))
-    }
+  // 2. Redirect authenticated users from public to their respective dashboards
+  if (token && (pathname === '/' || pathname === '/login' || pathname === '/signup')) {
+    return NextResponse.redirect(new URL('/home', request.url))
   }
 
-  const fallbackUrl = userRole === 'TEACHER' ? '/teacher' : '/student'
+  const fallbackUrl = '/home'
 
   // 3. Role-based access: teacher-only routes
   if (isTeacherRoute && token && userRole !== 'TEACHER') {

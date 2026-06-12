@@ -1,6 +1,6 @@
 import React from 'react'
 import { Mail, Trash2, Loader2 } from 'lucide-react'
-import { Student } from '../types'
+import { Student } from '@/types'
 
 export function StudentRow({
   student,

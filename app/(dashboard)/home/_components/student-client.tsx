@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Clock, Trophy, Flame, Target, BookOpen, Star, ArrowRight, Bell } from 'lucide-react'
 import Link from 'next/link'
 
-export default function StudentDashboard() {
+export function StudentDashboardClient() {
   const [countdown, setCountdown] = useState('23:59:59')
 
   // Mock countdown effect

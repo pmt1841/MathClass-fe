@@ -23,7 +23,7 @@ const weakStudentsData = [
   { name: 'Trần Thị B', class: '11B1', score: 3.8, issue: 'Điểm trung bình thấp' },
 ]
 
-export default function TeacherDashboard() {
+export function TeacherDashboardClient() {
   return (
     <div className="flex-1 space-y-6 px-8 pb-8 pt-3">
       <div className="flex items-center justify-between space-y-2">
