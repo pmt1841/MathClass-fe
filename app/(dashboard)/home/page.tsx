@@ -1,4 +1,4 @@
-import HomePageContent from './_components/home-content'
+import { HomeClient } from './_components/home-client'
 
 export const metadata = {
   title: 'Trang chủ – Math Class',
@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function HomePage() {
-  return <HomePageContent />
+  return <HomeClient />
 }

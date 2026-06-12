@@ -6,6 +6,20 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/student',
+        destination: '/home',
+        permanent: true,
+      },
+      {
+        source: '/teacher',
+        destination: '/home',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig

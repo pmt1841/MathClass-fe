@@ -31,7 +31,7 @@ export default function DashboardLayout({
         open={createClassOpen}
         onClose={() => setCreateClassOpen(false)}
         onSuccess={(data) => {
-          console.log('Class created from layout:', data)
+
           setCreateClassOpen(false)
         }}
       /> */}
