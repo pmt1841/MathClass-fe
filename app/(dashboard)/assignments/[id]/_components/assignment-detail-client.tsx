@@ -10,8 +10,8 @@ import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import api from '@/lib/axios'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import { CountdownTimer } from '@/components/assignments/countdown-timer'
-import { SubmissionEditor } from '@/components/assignments/submission-editor'
+import { CountdownTimer } from './countdown-timer'
+import { SubmissionEditor } from './submission-editor'
 import { submissionApi } from '@/lib/api/submission'
 
 interface AssignmentDetail {

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import api from '@/lib/axios'
 import { toast } from 'sonner'
-import { Assignment } from '../types'
+import { Assignment } from '@/types'
 import { AssignmentRow } from './assignment-row'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 

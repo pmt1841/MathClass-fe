@@ -10,8 +10,8 @@ import {
 } from 'lucide-react'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 import { StatCard, StatCardProps } from '@/components/dashboard/stat-card'
-import { RecentActivity, RecentActivityList } from '@/components/dashboard/recent-activity-list'
-import { QuickActions } from '@/components/dashboard/quick-actions'
+import { RecentActivity, RecentActivityList } from './recent-activity-list'
+import { QuickActions } from './quick-actions'
 
 interface UserInfo {
   fullName?: string

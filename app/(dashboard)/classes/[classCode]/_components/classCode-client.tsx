@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ClassroomDetail, TabType } from '../types'
+import { ClassroomDetail, TabType } from '@/types'
 import { TabButton } from './tab-button'
 import { StudentsTab } from './students-tab'
 import { AssignmentsTab } from './assignments-tab'

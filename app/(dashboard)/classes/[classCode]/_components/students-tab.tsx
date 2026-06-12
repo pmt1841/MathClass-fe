@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ClassroomDetail, Student } from '../types'
+import { ClassroomDetail, Student } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
 

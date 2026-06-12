@@ -7,7 +7,7 @@ import api from '@/lib/axios'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
-import { DeleteAssignmentModal } from '@/components/assignments/delete-assignment-modal'
+import { DeleteAssignmentModal } from './delete-assignment-modal'
 
 interface Assignment {
   id: number

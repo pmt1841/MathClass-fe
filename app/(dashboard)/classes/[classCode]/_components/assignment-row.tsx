@@ -1,7 +1,7 @@
 import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ClipboardList, Clock, Pencil, Send } from 'lucide-react'
-import { Assignment } from '../types'
+import { Assignment } from '@/types'
 
 export function AssignmentRow({
   assignment,

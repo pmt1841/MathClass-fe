@@ -1,4 +1,4 @@
-import HomePageContent from '@/components/dashboard/home-content'
+import HomePageContent from './_components/home-content'
 
 export const metadata = {
   title: 'Trang chủ – Math Class',
