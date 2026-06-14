@@ -6,14 +6,36 @@ export interface SubmissionResponse {
   studentId: number
   studentName: string
   content: string
-  status: 'DRAFT' | 'SUBMITTED'
+  status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE'
   score: number | null
   submittedAt: string | null
   updatedAt: string
 }
 
+export interface PageResponse<T> {
+  content: T[]
+  pageable: any
+  last: boolean
+  totalPages: number
+  totalElements: number
+  size: number
+  number: number
+  sort: any
+  first: boolean
+  numberOfElements: number
+  empty: boolean
+}
+
+export interface GetSubmissionsParams {
+  assignmentId: number
+  page?: number
+  size?: number
+  status?: string
+  keyword?: string
+}
+
 export const submissionApi = {
-  createSubmission: async (assignmentId: number, content: string, status: 'DRAFT' | 'SUBMITTED') => {
+  createSubmission: async (assignmentId: number, content: string, status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE') => {
     const response = await api.post<SubmissionResponse>(`/submissions`, {
       assignmentId,
       content,
@@ -22,7 +44,7 @@ export const submissionApi = {
     return response.data
   },
 
-  updateSubmission: async (submissionId: number, content: string, status: 'DRAFT' | 'SUBMITTED') => {
+  updateSubmission: async (submissionId: number, content: string, status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE') => {
     const response = await api.put<SubmissionResponse>(`/submissions/${submissionId}`, {
       content,
       status
@@ -47,8 +69,8 @@ export const submissionApi = {
     return response.data
   },
 
-  getSubmissionsByAssignment: async (assignmentId: number) => {
-    const response = await api.get<SubmissionResponse[]>(`/submissions?assignmentId=${assignmentId}`)
+  getSubmissionsByAssignment: async (params: GetSubmissionsParams) => {
+    const response = await api.get<PageResponse<SubmissionResponse>>('/submissions', { params })
     return response.data
   }
 }
