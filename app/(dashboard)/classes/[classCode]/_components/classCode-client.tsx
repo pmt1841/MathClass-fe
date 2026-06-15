@@ -112,7 +112,7 @@ export function ClassDetailPageClient() {
           <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.back()}
+                onClick={() => router.push('/classes')}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
                 title="Quay lại"
               >
