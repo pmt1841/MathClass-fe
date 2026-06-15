@@ -6,6 +6,7 @@ export interface SubmissionResponse {
   studentId: number
   studentName: string
   content: string
+  teacherFeedback?: string
   status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE'
   score: number | null
   submittedAt: string | null
@@ -71,6 +72,11 @@ export const submissionApi = {
 
   getSubmissionsByAssignment: async (params: GetSubmissionsParams) => {
     const response = await api.get<PageResponse<SubmissionResponse>>('/submissions', { params })
+    return response.data
+  },
+
+  getSubmissionById: async (submissionId: number) => {
+    const response = await api.get<SubmissionResponse>(`/submissions/${submissionId}`)
     return response.data
   }
 }
