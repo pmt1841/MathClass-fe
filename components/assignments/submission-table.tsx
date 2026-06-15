@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { submissionApi } from '@/lib/api/submission'
 import { Input } from '@/components/ui/input'
@@ -140,9 +141,11 @@ export function SubmissionTable({ assignmentId }: SubmissionTableProps) {
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>{sub.score !== null ? sub.score : '-'}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                      Xem chi tiết
-                    </Button>
+                    <Link href={`/assignments/${assignmentId}/submissions/${sub.id}`}>
+                      <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700">
+                        Xem chi tiết
+                      </Button>
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))
