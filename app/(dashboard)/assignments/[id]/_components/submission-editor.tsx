@@ -7,6 +7,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { Save, Check, Type, Eye } from 'lucide-react'
 import 'katex/dist/katex.min.css'
+import { LatexToolbar } from '@/components/ui/latex-toolbar'
 
 interface SubmissionEditorProps {
   assignmentId: number
@@ -30,8 +31,10 @@ export function SubmissionEditor({
   teacherFeedback
 }: SubmissionEditorProps) {
   const [content, setContent] = useState(initialContent)
+  const [debouncedContent, setDebouncedContent] = useState(initialContent)
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const isDirtyRef = useRef(false)
   const onChangeRef = useRef(onChange)
@@ -49,8 +52,17 @@ export function SubmissionEditor({
   useEffect(() => {
     if (initialContent !== undefined && !isDirtyRef.current) {
       setContent(initialContent)
+      setDebouncedContent(initialContent)
     }
   }, [initialContent])
+
+  // Debounce for preview
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContent(content)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [content])
 
   // Auto-save logic (Database)
   useEffect(() => {
@@ -79,6 +91,65 @@ export function SubmissionEditor({
     if (onChangeRef.current) {
       onChangeRef.current(val)
     }
+  }
+
+  const handleInsertLatex = (latexCommand: string) => {
+    if (readOnly || !textareaRef.current) return
+
+    const textarea = textareaRef.current
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const currentVal = textarea.value
+
+    const before = currentVal.substring(0, start)
+    const after = currentVal.substring(end)
+    const selectedText = currentVal.substring(start, end)
+    
+    // Check if we are already inside a math block ($$ or $)
+    const countDoubleDollar = (before.match(/\$\$/g) || []).length
+    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
+    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
+
+    // Replace { } with {selectedText} if user highlighted text
+    let cmd = latexCommand
+    if (selectedText && cmd.includes('{ }')) {
+      cmd = cmd.replace('{ }', `{${selectedText}}`)
+    }
+
+    const isMathBlock = cmd.includes('\\begin')
+    let insertText = cmd
+    
+    if (!isInsideMath) {
+      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
+    }
+
+    const newVal = before + insertText + after
+    
+    isDirtyRef.current = true
+    setContent(newVal)
+    if (onChangeRef.current) {
+      onChangeRef.current(newVal)
+    }
+
+    // Move cursor inside the brackets or to end
+    setTimeout(() => {
+      textarea.focus()
+      let newCursorPos = start + insertText.length
+      
+      const emptyBrackets = insertText.indexOf('{ }')
+      if (emptyBrackets !== -1) {
+        newCursorPos = start + emptyBrackets + 1 // inside { }
+      } else if (isMathBlock) {
+        const slashIndex = insertText.indexOf('\\\\')
+        if (slashIndex !== -1) {
+          newCursorPos = start + slashIndex
+        }
+      } else if (!isInsideMath && !selectedText) {
+        newCursorPos = start + insertText.length - 3 // inside $$ $$
+      }
+
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
   }
 
   const isSaving = isSavingExternal
@@ -122,13 +193,15 @@ export function SubmissionEditor({
 
       <div className="flex-1 min-h-0">
         <PanelGroup direction="vertical">
-          <Panel defaultSize={50} minSize={20}>
+          <Panel defaultSize={50} minSize={20} className="flex flex-col">
+            {!readOnly && <LatexToolbar onInsert={handleInsertLatex} />}
             <textarea
+              ref={textareaRef}
               value={content}
               onChange={handleChange}
               readOnly={readOnly}
               placeholder={readOnly ? "Bài nộp đã khóa." : "Nhập bài làm của bạn tại đây... Hỗ trợ Markdown và công thức toán học LaTeX (ví dụ: $$x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$$)"}
-              className={`w-full h-full p-4 resize-none outline-none text-slate-700 leading-relaxed font-mono text-sm bg-transparent ${readOnly ? 'cursor-not-allowed bg-slate-50/50' : ''}`}
+              className={`w-full h-full flex-1 p-4 resize-none outline-none text-slate-700 leading-relaxed font-mono text-sm bg-transparent ${readOnly ? 'cursor-not-allowed bg-slate-50/50' : ''}`}
             />
           </Panel>
           
@@ -143,12 +216,12 @@ export function SubmissionEditor({
                 Xem trước (Preview)
               </div>
               <div className="flex-1 p-4 overflow-y-auto prose prose-slate max-w-none prose-sm">
-                {content ? (
+                {debouncedContent ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkMath]}
                     rehypePlugins={[rehypeKatex]}
                   >
-                    {content}
+                    {debouncedContent}
                   </ReactMarkdown>
                 ) : (
                   <p className="text-slate-400 italic mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>

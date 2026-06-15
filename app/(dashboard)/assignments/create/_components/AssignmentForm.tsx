@@ -11,6 +11,7 @@ import 'katex/dist/katex.min.css'
 import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check } from 'lucide-react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useRouter } from 'next/navigation'
+import { LatexToolbar } from '@/components/ui/latex-toolbar'
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
@@ -58,6 +59,7 @@ export function AssignmentForm({
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
@@ -106,6 +108,15 @@ export function AssignmentForm({
   }, [formValues, onAutoSave])
 
   const contentValue = watch('content')
+  const [debouncedContentValue, setDebouncedContentValue] = useState(contentValue)
+
+  // Debounce for preview
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContentValue(contentValue)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [contentValue])
 
   const handleDraft = (data: AssignmentFormValues) => {
     onSubmitDraft(data)
@@ -142,6 +153,63 @@ export function AssignmentForm({
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
+
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null)
+  const { ref: formContentRef, ...formContentRest } = register('content')
+
+  const handleInsertLatex = (latexCommand: string) => {
+    if (!textareaRef.current) return
+
+    const textarea = textareaRef.current
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const currentVal = formValues.content || ''
+
+    const before = currentVal.substring(0, start)
+    const after = currentVal.substring(end)
+    const selectedText = currentVal.substring(start, end)
+    
+    // Check if we are already inside a math block ($$ or $)
+    const countDoubleDollar = (before.match(/\$\$/g) || []).length
+    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
+    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
+
+    // Replace { } with {selectedText} if user highlighted text
+    let cmd = latexCommand
+    if (selectedText && cmd.includes('{ }')) {
+      cmd = cmd.replace('{ }', `{${selectedText}}`)
+    }
+
+    const isMathBlock = cmd.includes('\\begin')
+    let insertText = cmd
+    
+    if (!isInsideMath) {
+      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
+    }
+
+    const newVal = before + insertText + after
+    
+    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+
+    setTimeout(() => {
+      textarea.focus()
+      let newCursorPos = start + insertText.length
+      
+      const emptyBrackets = insertText.indexOf('{ }')
+      if (emptyBrackets !== -1) {
+        newCursorPos = start + emptyBrackets + 1
+      } else if (isMathBlock) {
+        const slashIndex = insertText.indexOf('\\\\')
+        if (slashIndex !== -1) {
+          newCursorPos = start + slashIndex
+        }
+      } else if (!isInsideMath && !selectedText) {
+        newCursorPos = start + insertText.length - 3
+      }
+
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
+  }
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-100 flex flex-col overflow-hidden">
@@ -253,8 +321,13 @@ export function AssignmentForm({
                   <Edit3 className="w-3.5 h-3.5" /> Soạn thảo Markdown & LaTeX
                 </div>
               </div>
+              <LatexToolbar onInsert={handleInsertLatex} />
               <textarea
-                {...register('content')}
+                {...formContentRest}
+                ref={(e) => {
+                  formContentRef(e)
+                  textareaRef.current = e
+                }}
                 placeholder="Nhập nội dung bài tập...&#10;Hỗ trợ LaTeX: $$ x = \frac{-b \pm \sqrt{\Delta}}{2a} $$"
                 className="flex-1 w-full p-4 text-sm bg-transparent outline-none resize-none font-mono leading-relaxed"
               />
@@ -273,12 +346,12 @@ export function AssignmentForm({
                 <Eye className="w-3.5 h-3.5" /> Xem trước
               </div>
               <div className="flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto">
-                {contentValue ? (
+                {debouncedContentValue ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkMath]}
                     rehypePlugins={[rehypeKatex]}
                   >
-                    {contentValue}
+                    {debouncedContentValue}
                   </ReactMarkdown>
                 ) : (
                   <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
