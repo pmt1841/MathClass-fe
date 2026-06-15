@@ -5,18 +5,21 @@ import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 
 interface PageProps {
-  params: Promise<{ assignmentId: string }>
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ classCode?: string }>
 }
 
-export default async function SubmissionsPage({ params }: PageProps) {
-  const { assignmentId } = await params
-  const parsedAssignmentId = parseInt(assignmentId, 10)
+export default async function SubmissionsPage({ params, searchParams }: PageProps) {
+  const { id } = await params
+  const sParams = await searchParams
+  const classCode = sParams.classCode
+  const parsedAssignmentId = parseInt(id, 10)
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center space-x-2">
-        <Link href="/assignments">
-          <Button variant="ghost" size="icon">
+        <Link href={classCode ? `/classes/${classCode}` : "/assignments"}>
+          <Button variant="ghost" size="icon" className="hover:bg-blue-50 hover:text-blue-600">
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>

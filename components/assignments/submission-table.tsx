@@ -140,7 +140,7 @@ export function SubmissionTable({ assignmentId }: SubmissionTableProps) {
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>{sub.score !== null ? sub.score : '-'}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700">
                       Xem chi tiết
                     </Button>
                   </TableCell>

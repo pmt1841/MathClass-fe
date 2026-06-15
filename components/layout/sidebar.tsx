@@ -96,6 +96,11 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
       return pathname === href;
     }
 
+    if (pathname.includes('/submissions')) {
+      if (href === '/classes') return true;
+      if (href === '/assignments') return false;
+    }
+
     // Với các trang khác, chỉ active nếu pathname khớp hoàn toàn 
     // HOẶC pathname là trang con của href (ví dụ /assignments/123 là con của /assignments)
     // nhưng phải đảm bảo không bị nhận diện nhầm sang các nhánh khác
