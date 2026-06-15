@@ -45,8 +45,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   // Submission states
   const [submissionId, setSubmissionId] = useState<number | null>(null)
   const [submissionContent, setSubmissionContent] = useState('')
-  const [submissionStatus, setSubmissionStatus] = useState<'DRAFT' | 'SUBMITTED' | null>(null)
+  const [submissionStatus, setSubmissionStatus] = useState<'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE' | null>(null)
   const [submissionScore, setSubmissionScore] = useState<number | null>(null)
+  const [submissionTeacherFeedback, setSubmissionTeacherFeedback] = useState<string>('')
   const [isSavingExternal, setIsSavingExternal] = useState(false)
   const [lastSavedExternal, setLastSavedExternal] = useState<Date | null>(null)
   const [teacherSubmissions, setTeacherSubmissions] = useState<any[]>([])
@@ -102,6 +103,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
               setSubmissionContent(sub.content || '')
               setSubmissionStatus(sub.status)
               setSubmissionScore(sub.score)
+              setSubmissionTeacherFeedback(sub.teacherFeedback || '')
               if (sub.updatedAt) {
                 const dateStr = sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt;
                 setLastSavedExternal(new Date(dateStr))
@@ -115,8 +117,8 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
         } else if (currentRole === 'TEACHER') {
           // Lấy danh sách bài nộp của lớp
           try {
-            const subs = await submissionApi.getSubmissionsByAssignment(assignmentId)
-            setTeacherSubmissions(subs)
+            const subs = await submissionApi.getSubmissionsByAssignment({ assignmentId, size: 100 })
+            setTeacherSubmissions(subs.content || [])
           } catch (err) {
             console.error('Lỗi lấy danh sách bài nộp:', err)
           }
@@ -391,6 +393,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   isSavingExternal={isSavingExternal}
                   lastSavedExternal={lastSavedExternal}
                   onAutoSave={handleAutoSaveDraft}
+                  teacherFeedback={submissionTeacherFeedback}
                 />
               </Panel>
             </>

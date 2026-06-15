@@ -120,7 +120,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         <div className="relative z-10 mx-auto max-w-screen-xl px-6 py-6">
           {/* Back button */}
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push('/classes')}
             className="mb-4 flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

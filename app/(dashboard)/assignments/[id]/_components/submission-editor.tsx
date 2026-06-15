@@ -16,6 +16,7 @@ interface SubmissionEditorProps {
   isSavingExternal?: boolean
   lastSavedExternal?: Date | null
   onAutoSave?: (content: string) => Promise<void>
+  teacherFeedback?: string
 }
 
 export function SubmissionEditor({ 
@@ -25,7 +26,8 @@ export function SubmissionEditor({
   readOnly = false,
   isSavingExternal,
   lastSavedExternal,
-  onAutoSave
+  onAutoSave,
+  teacherFeedback
 }: SubmissionEditorProps) {
   const [content, setContent] = useState(initialContent)
   
@@ -84,7 +86,20 @@ export function SubmissionEditor({
 
   return (
     <div className={`h-full w-full flex flex-col bg-white rounded-2xl border border-border overflow-hidden shadow-sm ${readOnly ? 'opacity-90' : ''}`}>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50">
+      {teacherFeedback && (
+        <div className="bg-sky-50 border-b border-sky-200 p-4 shrink-0">
+          <h4 className="text-sky-800 font-semibold mb-2 flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-sky-200 flex items-center justify-center text-sky-800 text-xs">i</span>
+            Nhận xét từ giáo viên
+          </h4>
+          <div className="prose prose-slate prose-sm max-w-none text-sky-900">
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {teacherFeedback}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50 shrink-0">
         <h3 className="font-semibold text-slate-800 flex items-center gap-2">
           <Type className="h-4 w-4 text-primary" />
           Khu vực làm bài {readOnly && <span className="text-xs text-rose-500 font-normal bg-rose-50 px-2 py-0.5 rounded-full ml-2 border border-rose-100">Chỉ xem</span>}

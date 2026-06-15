@@ -20,7 +20,7 @@ interface Assignment {
   classCode: string
   className: string
   hasSubmissions?: boolean
-  submissionStatus?: 'DRAFT' | 'SUBMITTED' | null
+  submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | null
 }
 
 export function AssignmentsPageClient() {
@@ -157,16 +157,15 @@ export function AssignmentsPageClient() {
 
   const displayAssignments = assignments.filter(assignment => {
     if (userRole === 'TEACHER') return true
-    
-    const isSubmitted = assignment.submissionStatus === 'SUBMITTED'
-    if (activeTab === 'SUBMITTED') return isSubmitted
-    
-    // Nếu đã nộp rồi thì không hiện ở "Chưa nộp" hay "Quá hạn" nữa
-    if (isSubmitted) return false
 
+    const status = assignment.submissionStatus
     const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date()
-    if (activeTab === 'PENDING') return !isOverdue
-    if (activeTab === 'OVERDUE') return isOverdue
+
+    if (activeTab === 'PENDING') return (status === null || status === 'DRAFT') && !isOverdue
+    if (activeTab === 'SUBMITTED') return status === 'SUBMITTED'
+    if (activeTab === 'GRADED') return status === 'GRADED'
+    if (activeTab === 'OVERDUE') return (status === null || status === 'DRAFT') && isOverdue
+
     return true
   })
 
@@ -215,8 +214,8 @@ export function AssignmentsPageClient() {
                   <button
                     onClick={() => setActiveTab('DRAFT')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT'
-                        ? 'bg-white text-primary shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <Edit className="h-4 w-4" />
@@ -225,8 +224,8 @@ export function AssignmentsPageClient() {
                   <button
                     onClick={() => setActiveTab('ARCHIVED')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED'
-                        ? 'bg-white text-primary shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <Layers className="h-4 w-4" />
@@ -238,8 +237,8 @@ export function AssignmentsPageClient() {
                   <button
                     onClick={() => setActiveTab('PENDING')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING'
-                        ? 'bg-white text-primary shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <Clock className="h-4 w-4" />
@@ -248,18 +247,28 @@ export function AssignmentsPageClient() {
                   <button
                     onClick={() => setActiveTab('SUBMITTED')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED'
-                        ? 'bg-white text-emerald-600 shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-emerald-600 shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <CheckCircle className="h-4 w-4" />
                     Đã nộp
                   </button>
                   <button
+                    onClick={() => setActiveTab('GRADED')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Đã chấm điểm
+                  </button>
+                  <button
                     onClick={() => setActiveTab('OVERDUE')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE'
-                        ? 'bg-white text-rose-600 shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-rose-600 shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <AlertCircle className="h-4 w-4" />
@@ -327,7 +336,9 @@ export function AssignmentsPageClient() {
                     ? 'Tuyệt vời! Bạn không có bài tập nào cần làm lúc này.'
                     : activeTab === 'SUBMITTED'
                       ? 'Bạn chưa nộp bài tập nào.'
-                      : 'Bạn không có bài tập nào quá hạn.'}
+                      : activeTab === 'GRADED'
+                        ? 'Bạn chưa có bài tập nào được chấm điểm.'
+                        : 'Bạn không có bài tập nào quá hạn.'}
               </p>
             </div>
           ) : (
@@ -339,8 +350,8 @@ export function AssignmentsPageClient() {
                   style={{ animationFillMode: 'both', animationDuration: '500ms', animationDelay: `${index * 50}ms` }}
                 >
                   <div className={`h-1.5 w-full ${userRole === 'TEACHER' && activeTab === 'ARCHIVED'
-                      ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
-                      : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                    ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-600'
                     }`} />
 
                   <div className="p-5 flex-1 flex flex-col">
@@ -382,8 +393,8 @@ export function AssignmentsPageClient() {
                           onClick={() => handleEditClick(assignment.id, assignment.hasSubmissions)}
                           disabled={assignment.hasSubmissions}
                           className={`p-2 rounded-lg transition-all relative group/editbtn ${assignment.hasSubmissions
-                              ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                              : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
+                            ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
+                            : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
                             }`}
                           title={assignment.hasSubmissions ? "" : "Sửa nội dung"}
                         >
@@ -406,8 +417,8 @@ export function AssignmentsPageClient() {
                       <button
                         onClick={() => handlePublishClick(assignment.id)}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
-                            ? 'bg-primary text-primary-foreground hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
-                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
+                          : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
                           }`}
                       >
                         <Send className="h-4 w-4" />
@@ -418,17 +429,18 @@ export function AssignmentsPageClient() {
                     <div className="p-4 border-t border-slate-100 bg-slate-50/50">
                       <Link
                         href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
-                        className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${
-                          assignment.deadline && new Date(assignment.deadline) < new Date()
+                        className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${assignment.deadline && new Date(assignment.deadline) < new Date()
                             ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             : 'bg-primary text-primary-foreground hover:bg-primary/95'
-                        }`}
+                          }`}
                       >
                         {(() => {
                           const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date();
-                          const isSubmitted = assignment.submissionStatus === 'SUBMITTED';
-                          
-                          if (isSubmitted) {
+                          const status = assignment.submissionStatus;
+
+                          if (status === 'GRADED') {
+                            return 'Xem điểm';
+                          } else if (status === 'SUBMITTED') {
                             return isOverdue ? 'Xem bài nộp' : 'Sửa bài nộp';
                           } else {
                             return isOverdue ? 'Xem đề bài' : 'Vào làm bài';
