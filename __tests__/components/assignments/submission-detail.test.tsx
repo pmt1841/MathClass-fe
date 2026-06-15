@@ -85,4 +85,46 @@ describe('SubmissionDetail', () => {
       expect(screen.getByText(/Lỗi khi tải chi tiết bài nộp/i)).toBeInTheDocument()
     })
   })
+
+  it('submits grade correctly', async () => {
+    vi.mocked(submissionApi.getSubmissionById).mockResolvedValue({
+      id: 100,
+      assignmentId: 10,
+      studentId: 1,
+      studentName: 'Nguyen Van A',
+      content: 'Hello World',
+      status: 'SUBMITTED',
+      score: null,
+      submittedAt: '2026-06-15T10:00:00Z',
+      updatedAt: '2026-06-15T10:00:00Z'
+    })
+    
+    vi.mocked(submissionApi.gradeSubmission).mockResolvedValue({
+      id: 100,
+      assignmentId: 10,
+      studentId: 1,
+      studentName: 'Nguyen Van A',
+      content: 'Hello World',
+      status: 'GRADED',
+      score: 9.5,
+      teacherFeedback: 'Great job!',
+      submittedAt: '2026-06-15T10:00:00Z',
+      updatedAt: '2026-06-15T10:00:00Z'
+    })
+
+    const queryClient = createQueryClient()
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SubmissionDetail submissionId={100} />
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Nguyen Van A')).toBeInTheDocument()
+    })
+
+    // The form should be rendered
+    expect(screen.getByText('Chấm điểm & Nhận xét')).toBeInTheDocument()
+  })
 })

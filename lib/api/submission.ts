@@ -58,9 +58,10 @@ export const submissionApi = {
     return response.data
   },
 
-  gradeSubmission: async (submissionId: number, score: number) => {
+  gradeSubmission: async (submissionId: number, score: number, teacherFeedback?: string) => {
     const response = await api.put<SubmissionResponse>(`/submissions/${submissionId}/grade`, {
-      score
+      score,
+      teacherFeedback
     })
     return response.data
   },
