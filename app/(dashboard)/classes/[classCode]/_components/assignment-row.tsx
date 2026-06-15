@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ClipboardList, Clock, Pencil, Send } from 'lucide-react'
+import { ClipboardList, Clock, Pencil, Send, ListChecks } from 'lucide-react'
 import { Assignment } from '@/types'
 
 export function AssignmentRow({
@@ -73,6 +73,23 @@ export function AssignmentRow({
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        {assignment.status !== 'DRAFT' && (
+          <button
+            id={`view-submissions-${assignment.id}`}
+            onClick={() => {
+              const url = classCode 
+                ? `/assignments/${assignment.id}/submissions?classCode=${classCode}` 
+                : `/assignments/${assignment.id}/submissions`
+              router.push(url)
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+            title="Xem bài nộp"
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            Bài nộp
+          </button>
+        )}
+
         <button
           id={`edit-assignment-${assignment.id}`}
           onClick={() => {
