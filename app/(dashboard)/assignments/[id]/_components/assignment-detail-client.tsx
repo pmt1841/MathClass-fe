@@ -13,6 +13,25 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { SubmissionEditor } from './submission-editor'
 import { submissionApi } from '@/lib/api/submission'
+import dynamic from 'next/dynamic'
+
+const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
+
+export const extractDrawings = (content: string) => {
+  if (!content) return { content: '', extractedDrawings: [] }
+  let extractedDrawings: any[] = []
+  let newContent = content
+  const match = content.match(/<!-- DRAWINGS_DATA_START\n([\s\S]*?)\nDRAWINGS_DATA_END -->/)
+  if (match) {
+    try {
+      extractedDrawings = JSON.parse(match[1])
+      newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
+    } catch (e) {
+      console.error("Failed to parse drawings", e)
+    }
+  }
+  return { content: newContent, extractedDrawings }
+}
 
 interface AssignmentDetail {
   id: number
@@ -364,12 +383,30 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
             
             <div className="flex-1 overflow-y-auto p-5 md:p-8">
               <div className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-blue-600">
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                >
-                  {assignment.content || "Không có nội dung chi tiết."}
-                </ReactMarkdown>
+                {(() => {
+                  if (!assignment.content) return "Không có nội dung chi tiết."
+                  const { content, extractedDrawings } = extractDrawings(assignment.content)
+                  const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
+                  return parts.map((part, index) => {
+                    const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
+                    if (match) {
+                      const shapeCode = match[1]
+                      const drawing = extractedDrawings.find(d => d.shapeCode === shapeCode)
+                      if (drawing) {
+                        return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+                      }
+                    }
+                    return (
+                      <ReactMarkdown
+                        key={index}
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >
+                        {part}
+                      </ReactMarkdown>
+                    )
+                  })
+                })()}
               </div>
             </div>
           </Panel>

@@ -8,15 +8,43 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot } from 'lucide-react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useRouter } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import dynamic from 'next/dynamic'
+
+export const embedDrawings = (content: string, drawings: any[]) => {
+  if (!drawings || drawings.length === 0) return content
+  let newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
+  newContent += `\n\n<!-- DRAWINGS_DATA_START\n${JSON.stringify(drawings)}\nDRAWINGS_DATA_END -->`
+  return newContent
+}
+
+export const extractDrawings = (content: string) => {
+  if (!content) return { content: '', extractedDrawings: [] }
+  let extractedDrawings: any[] = []
+  let newContent = content
+  const match = content.match(/<!-- DRAWINGS_DATA_START\n([\s\S]*?)\nDRAWINGS_DATA_END -->/)
+  if (match) {
+    try {
+      extractedDrawings = JSON.parse(match[1])
+      newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
+    } catch (e) {
+      console.error("Failed to parse drawings", e)
+    }
+  }
+  return { content: newContent, extractedDrawings }
+}
+
+const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
+const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
   description: z.string().min(1, 'Mô tả bài tập không được để trống'),
-  content: z.string().min(1, 'Nội dung bài tập không được để trống')
+  content: z.string().min(1, 'Nội dung bài tập không được để trống'),
+  drawings: z.array(z.any()).optional()
 })
 
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
@@ -54,6 +82,10 @@ export function AssignmentForm({
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   const isFormLoadedRef = React.useRef(false)
 
+  // JSXGraph State
+  const [showJsxGraphModal, setShowJsxGraphModal] = useState(false)
+  const [drawings, setDrawings] = useState<any[]>(defaultValues?.drawings || [])
+
   const {
     register,
     handleSubmit,
@@ -66,14 +98,25 @@ export function AssignmentForm({
     defaultValues: defaultValues || {
       title: '',
       description: '',
-      content: ''
+      content: '',
+      drawings: []
     },
     mode: 'onChange'
   })
 
   useEffect(() => {
-    const mergedValues = defaultValues || { title: '', description: '', content: '' }
+    let mergedValues = defaultValues || { title: '', description: '', content: '', drawings: [] }
+    if (mergedValues.content) {
+      const { content, extractedDrawings } = extractDrawings(mergedValues.content)
+      mergedValues = { ...mergedValues, content }
+      if (!mergedValues.drawings || mergedValues.drawings.length === 0) {
+        mergedValues.drawings = extractedDrawings
+      }
+    }
     reset(mergedValues)
+    if (mergedValues.drawings) {
+      setDrawings(mergedValues.drawings)
+    }
     
     // Allow a small delay before enabling auto-save to avoid saving empty/initial values immediately
     setTimeout(() => {
@@ -93,7 +136,7 @@ export function AssignmentForm({
     saveTimeoutRef.current = setTimeout(async () => {
       setIsAutoSaving(true)
       try {
-        await onAutoSave(formValues)
+        await onAutoSave({ ...formValues, content: embedDrawings(formValues.content, drawings) })
         setLastSavedTime(new Date())
       } catch (err) {
         console.error('Lỗi autosave', err)
@@ -119,12 +162,12 @@ export function AssignmentForm({
   }, [contentValue])
 
   const handleDraft = (data: AssignmentFormValues) => {
-    onSubmitDraft(data)
+    onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings })
   }
 
   const handlePublish = (data: AssignmentFormValues) => {
     if (onPublishClick) {
-      onPublishClick(data)
+      onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings })
     }
   }
 
@@ -209,6 +252,68 @@ export function AssignmentForm({
 
       textarea.setSelectionRange(newCursorPos, newCursorPos)
     }, 0)
+  }
+
+  const handleConfirmJsxGraph = (jsxGraphData: any) => {
+    const nextIndex = drawings.length + 1
+    const shapeCode = `SHAPE_${nextIndex}`
+    
+    // Add to drawings array
+    const newDrawing = { shapeCode, jsxGraphData }
+    setDrawings(prev => [...prev, newDrawing])
+    
+    // Insert into textarea
+    if (textareaRef.current) {
+      const textarea = textareaRef.current
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const currentVal = formValues.content || ''
+      const before = currentVal.substring(0, start)
+      const after = currentVal.substring(end)
+      
+      const insertText = `[${shapeCode}]`
+      const newVal = before + insertText + after
+      setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+      
+      setTimeout(() => {
+        textarea.focus()
+        const newCursorPos = start + insertText.length
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }, 0)
+    }
+    
+    setShowJsxGraphModal(false)
+  }
+
+  // Render function for Content with JSXGraph replacing
+  const renderContentWithDrawings = (content: string) => {
+    if (!content) return null
+    
+    // Split content by [SHAPE_XXX] pattern
+    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
+    
+    return parts.map((part, index) => {
+      // Check if it's a shape placeholder
+      const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
+      if (match) {
+        const shapeCode = match[1]
+        const drawing = drawings.find(d => d.shapeCode === shapeCode)
+        if (drawing) {
+          return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+        }
+      }
+      
+      // Regular markdown parsing
+      return (
+        <ReactMarkdown
+          key={index}
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
+          {part}
+        </ReactMarkdown>
+      )
+    })
   }
 
   return (
@@ -320,6 +425,17 @@ export function AssignmentForm({
                 <div className="flex items-center gap-2">
                   <Edit3 className="w-3.5 h-3.5" /> Soạn thảo Markdown & LaTeX
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowJsxGraphModal(true);
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
+                >
+                  <CircleDot className="w-3.5 h-3.5" />
+                  Thêm hình vẽ JSXGraph
+                </button>
               </div>
               <LatexToolbar onInsert={handleInsertLatex} />
               <textarea
@@ -347,12 +463,7 @@ export function AssignmentForm({
               </div>
               <div className="flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto">
                 {debouncedContentValue ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {debouncedContentValue}
-                  </ReactMarkdown>
+                  renderContentWithDrawings(debouncedContentValue)
                 ) : (
                   <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
                 )}
@@ -390,6 +501,13 @@ export function AssignmentForm({
           </div>
         </div>
       )}
+
+      {/* JSXGraph Editor Modal */}
+      <JsxGraphEditorModal
+        open={showJsxGraphModal}
+        onClose={() => setShowJsxGraphModal(false)}
+        onConfirm={handleConfirmJsxGraph}
+      />
     </div>
   )
 }
