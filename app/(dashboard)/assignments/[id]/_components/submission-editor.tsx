@@ -185,7 +185,7 @@ export function SubmissionEditor({
           ) : lastSaved ? (
             <span className="flex items-center gap-1.5 text-emerald-600">
               <Check className="h-3 w-3" />
-              Đã lưu ({lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})
+              Đã lưu ({`${lastSaved.getHours().toString().padStart(2, '0')}:${lastSaved.getMinutes().toString().padStart(2, '0')}:${lastSaved.getSeconds().toString().padStart(2, '0')} ${lastSaved.getDate().toString().padStart(2, '0')}/${(lastSaved.getMonth() + 1).toString().padStart(2, '0')}/${lastSaved.getFullYear()}`})
             </span>
           ) : null}
         </div>

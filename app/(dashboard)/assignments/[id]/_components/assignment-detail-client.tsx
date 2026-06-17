@@ -182,8 +182,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       const res = await saveOrUpdateSubmission(content, 'DRAFT')
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
-      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
-      setLastSavedExternal(new Date(dateStr))
+      setLastSavedExternal(new Date())
     } catch (error: any) {
       console.error('Lỗi auto-save', error)
     } finally {
@@ -201,8 +200,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       const res = await saveOrUpdateSubmission(submissionContent, 'DRAFT')
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
-      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
-      setLastSavedExternal(new Date(dateStr))
+      setLastSavedExternal(new Date())
       toast.success('Đã lưu nháp thành công')
     } catch (error: any) {
       toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
@@ -221,8 +219,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       const res = await saveOrUpdateSubmission(submissionContent, 'SUBMITTED')
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('SUBMITTED')
-      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
-      setLastSavedExternal(new Date(dateStr))
+      setLastSavedExternal(new Date())
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
       toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
@@ -237,8 +234,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       setIsSavingExternal(true)
       const res = await submissionApi.unsubmit(submissionId)
       setSubmissionStatus('DRAFT')
-      const dateStr = res.updatedAt.includes('T') && !res.updatedAt.endsWith('Z') && !res.updatedAt.includes('+') ? `${res.updatedAt}Z` : res.updatedAt;
-      setLastSavedExternal(new Date(dateStr))
+      setLastSavedExternal(new Date())
       toast.success('Đã hủy nộp bài. Bạn có thể sửa và nộp lại.')
       setShowUnsubmitModal(false)
     } catch (error: any) {

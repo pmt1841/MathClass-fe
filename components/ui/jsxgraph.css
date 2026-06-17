@@ -72,6 +72,11 @@
     border-style: none;
     border-width: 0;
     border-color: black;
+    font-weight: 700 !important;
+    fill: #0f172a !important;
+    color: #0f172a !important;
+    font-size: 14px !important;
+    text-shadow: 1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff;
 }
 
 /* CSS attributes will (permantely) overwrite attributes set in JSXGraph */
