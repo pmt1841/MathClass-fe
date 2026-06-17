@@ -163,6 +163,7 @@ export function AssignmentForm({
 
   const handleDraft = (data: AssignmentFormValues) => {
     onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings })
+    setLastSavedTime(new Date())
   }
 
   const handlePublish = (data: AssignmentFormValues) => {
@@ -351,7 +352,7 @@ export function AssignmentForm({
           ) : lastSavedTime ? (
             <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
               <Check className="h-3 w-3" />
-              Đã lưu ({lastSavedTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})
+              Đã lưu ({`${lastSavedTime.getHours().toString().padStart(2, '0')}:${lastSavedTime.getMinutes().toString().padStart(2, '0')}:${lastSavedTime.getSeconds().toString().padStart(2, '0')} ${lastSavedTime.getDate().toString().padStart(2, '0')}/${(lastSavedTime.getMonth() + 1).toString().padStart(2, '0')}/${lastSavedTime.getFullYear()}`})
             </span>
           ) : null}
 

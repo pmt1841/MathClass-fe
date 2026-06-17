@@ -333,7 +333,7 @@ export function AssignmentsPageClient() {
                     ? 'Bạn chưa tạo bản nháp nào. Hãy bắt đầu bằng cách tạo bài tập mới.'
                     : 'Kho lưu trữ của bạn đang trống.'
                   : activeTab === 'PENDING'
-                    ? 'Tuyệt vời! Bạn không có bài tập nào cần làm lúc này.'
+                    ? 'Bạn không có bài tập nào cần làm lúc này.'
                     : activeTab === 'SUBMITTED'
                       ? 'Bạn chưa nộp bài tập nào.'
                       : activeTab === 'GRADED'
@@ -430,8 +430,8 @@ export function AssignmentsPageClient() {
                       <Link
                         href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
                         className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${assignment.deadline && new Date(assignment.deadline) < new Date()
-                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            : 'bg-primary text-primary-foreground hover:bg-primary/95'
+                          ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/95'
                           }`}
                       >
                         {(() => {

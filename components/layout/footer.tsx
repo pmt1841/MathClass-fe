@@ -14,7 +14,7 @@ export function DashboardFooter() {
             <span className="text-sm font-semibold text-foreground">Math Class</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © 2024 Math Class. Tất cả quyền được bảo lưu.
+            © 2026 Math Class. Tất cả quyền được bảo lưu.
           </p>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <a href="#" className="hover:text-primary transition-colors">Hỗ trợ</a>

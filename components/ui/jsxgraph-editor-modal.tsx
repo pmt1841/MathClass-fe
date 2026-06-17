@@ -15,6 +15,7 @@ type ToolType = 'select' | 'point' | 'line' | 'circle'
 
 export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditorModalProps) {
   const boardRef = useRef<HTMLDivElement>(null)
+  const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
   const [board, setBoard] = useState<any>(null)
   const [activeTool, setActiveTool] = useState<ToolType>('point')
   
@@ -35,6 +36,9 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
   // Init Board
   useEffect(() => {
     if (!open) {
+      if (contextMenuHandlerRef.current) {
+        document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
+      }
       if (board) {
         JXG.JSXGraph.freeBoard(board)
         setBoard(null)
@@ -55,6 +59,9 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
     }, 100)
 
     return () => {
+      if (contextMenuHandlerRef.current) {
+        document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
+      }
       if (board) {
         JXG.JSXGraph.freeBoard(board)
       }
@@ -62,6 +69,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
   }, [open])
 
   const initBoardWithState = (state: HistoryState) => {
+    if (contextMenuHandlerRef.current) {
+      document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
+    }
+
     if (board) {
       JXG.JSXGraph.freeBoard(board)
     }
@@ -75,12 +86,88 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
       keepaspectratio: true,
       showNavigation: true,
       showCopyright: false,
+      showInfobox: true,
+      pan: { enabled: true, needShift: true, needTwoFingers: false },
+      zoom: { wheel: true, needShift: false }
     })
+
+    // Custom right-click panning
+    let isPanning = false;
+    let lastX = 0, lastY = 0;
+    
+    b.on('down', (e: any) => {
+      if (e.button === 2) {
+        isPanning = true;
+        lastX = e.clientX || e.touches?.[0]?.clientX || 0;
+        lastY = e.clientY || e.touches?.[0]?.clientY || 0;
+      }
+    });
+    
+    b.on('move', (e: any) => {
+      if (isPanning) {
+        const cx = e.clientX || e.touches?.[0]?.clientX || 0;
+        const cy = e.clientY || e.touches?.[0]?.clientY || 0;
+        const dx = cx - lastX;
+        const dy = cy - lastY;
+        lastX = cx;
+        lastY = cy;
+        
+        b.moveOrigin(b.origin.scrCoords[1] + dx, b.origin.scrCoords[2] + dy);
+      }
+    });
+    
+    b.on('up', (e: any) => {
+      if (e.button === 2) {
+        isPanning = false;
+      }
+    });
+
+    // Prevent context menu aggressively using capture phase on document
+    const preventContext = (e: Event) => {
+      const mouseEvent = e as MouseEvent;
+      if (boardRef.current && mouseEvent.clientX !== undefined) {
+        const rect = boardRef.current.getBoundingClientRect();
+        if (
+          mouseEvent.clientX >= rect.left &&
+          mouseEvent.clientX <= rect.right &&
+          mouseEvent.clientY >= rect.top &&
+          mouseEvent.clientY <= rect.bottom
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    document.addEventListener('contextmenu', preventContext, true);
+    contextMenuHandlerRef.current = preventContext;
+
+    // Add Vietnamese tooltips to navigation buttons
+    setTimeout(() => {
+      if (boardRef.current) {
+        const tooltips: Record<string, string> = {
+          'in': 'Phóng to',
+          'out': 'Thu nhỏ',
+          '100': 'Mặc định',
+          'left': 'Sang trái',
+          'right': 'Sang phải',
+          'up': 'Lên trên',
+          'down': 'Xuống dưới',
+          'fullscreen': 'Toàn màn hình',
+          'reload': 'Tải lại',
+          'screenshot': 'Chụp ảnh màn hình',
+          'cleartraces': 'Xóa dấu vết'
+        }
+        Object.entries(tooltips).forEach(([key, text]) => {
+          const el = boardRef.current?.querySelector(`.JXG_navigation_button_${key}`)
+          if (el) el.setAttribute('title', text)
+        })
+      }
+    }, 50)
 
     const newPointMap: any = {}
     state.elements.forEach(el => {
       if (el.type === 'point') {
-        const p = b.create('point', el.parents, { size: 4, name: '', withLabel: false, id: el.id })
+        const p = b.create('point', el.parents, { size: 4, name: '', withLabel: false, id: el.id, showInfobox: true, highlight: true })
         newPointMap[el.id] = p
       } else if (el.type === 'segment') {
         if (newPointMap[el.parents[0]] && newPointMap[el.parents[1]]) {
@@ -158,7 +245,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
       const currentElements = history[historyIndex].elements
 
       if (activeTool === 'point') {
-        const attrs = { size: 4, name: '', withLabel: false }
+        const attrs = { size: 4, name: '', withLabel: false, showInfobox: true, highlight: true }
         const p = board.create('point', [x, y], attrs)
         saveHistory([...currentElements, { type: 'point', parents: [x, y], id: p.id, attributes: attrs }])
       } else if (activeTool === 'line' || activeTool === 'circle') {
@@ -171,7 +258,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
         }
 
         let addedNewPoint = false
-        const pointAttrs = { size: 4, name: '', withLabel: false }
+        const pointAttrs = { size: 4, name: '', withLabel: false, showInfobox: true, highlight: true }
         if (!clickedPoint) {
           clickedPoint = board.create('point', [x, y], pointAttrs)
           addedNewPoint = true
@@ -385,44 +472,50 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
               id="jxgbox-editor" 
               ref={boardRef} 
               className="jxgbox w-full h-full rounded-lg border border-slate-200" 
+              onContextMenu={e => e.preventDefault()}
             />
 
             {/* Edit Point Modal */}
             {editingPoint && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl border border-border p-4 w-64 animate-in zoom-in-95">
-                <h4 className="font-semibold text-slate-800 mb-3 text-sm flex items-center justify-between">
-                  Chỉnh sửa tọa độ
-                  <button onClick={() => setEditingPoint(null)} className="text-slate-400 hover:text-slate-600">
-                    <X className="w-4 h-4" />
-                  </button>
-                </h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">Trục X</label>
-                    <input 
-                      type="number" 
-                      step="any"
-                      value={editingPoint.x} 
-                      onChange={e => setEditingPoint({ ...editingPoint, x: e.target.value })}
-                      className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
+              <div 
+                className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]"
+                onContextMenu={e => e.preventDefault()}
+              >
+                <div className="bg-white rounded-xl shadow-2xl border border-border p-4 w-64 animate-in zoom-in-95">
+                  <h4 className="font-semibold text-slate-800 mb-3 text-sm flex items-center justify-between">
+                    Chỉnh sửa tọa độ
+                    <button onClick={() => setEditingPoint(null)} className="text-slate-400 hover:text-slate-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">Trục X</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        value={editingPoint.x} 
+                        onChange={e => setEditingPoint({ ...editingPoint, x: e.target.value })}
+                        className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">Trục Y</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        value={editingPoint.y} 
+                        onChange={e => setEditingPoint({ ...editingPoint, y: e.target.value })}
+                        className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <button 
+                      onClick={handleEditCoordinateSave}
+                      className="w-full mt-2 bg-primary text-white font-medium text-sm py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      Lưu thay đổi
+                    </button>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">Trục Y</label>
-                    <input 
-                      type="number" 
-                      step="any"
-                      value={editingPoint.y} 
-                      onChange={e => setEditingPoint({ ...editingPoint, y: e.target.value })}
-                      className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <button 
-                    onClick={handleEditCoordinateSave}
-                    className="w-full mt-2 bg-primary text-white font-medium text-sm py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    Lưu thay đổi
-                  </button>
                 </div>
               </div>
             )}
