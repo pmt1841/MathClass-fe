@@ -9,11 +9,12 @@ interface JsxGraphEditorModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (jsxGraphData: any) => void
+  initialData?: any
 }
 
 type ToolType = 'select' | 'point' | 'line' | 'circle'
 
-export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditorModalProps) {
+export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: JsxGraphEditorModalProps) {
   const boardRef = useRef<HTMLDivElement>(null)
   const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
   const [board, setBoard] = useState<any>(null)
@@ -53,7 +54,13 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
 
     setTimeout(() => {
       if (boardRef.current) {
-        initBoardWithState({ elements: [], selectedPointIds: [] })
+        if (initialData && initialData.elements) {
+          const startingState = { elements: initialData.elements, selectedPointIds: [] };
+          setHistory([startingState]);
+          initBoardWithState(startingState);
+        } else {
+          initBoardWithState({ elements: [], selectedPointIds: [] })
+        }
         isReadyRef.current = true
       }
     }, 100)
@@ -66,7 +73,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm }: JsxGraphEditor
         JXG.JSXGraph.freeBoard(board)
       }
     }
-  }, [open])
+  }, [open, initialData])
 
   const initBoardWithState = (state: HistoryState) => {
     if (contextMenuHandlerRef.current) {
