@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 import api from '@/lib/axios'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
-import { SubmissionEditor } from './submission-editor'
+import { StudentAssignmentLayout } from './student-assignment-layout'
 import { submissionApi } from '@/lib/api/submission'
 import dynamic from 'next/dynamic'
 
@@ -50,7 +50,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const searchParams = useSearchParams()
   const classCode = searchParams.get('classCode')
   const from = searchParams.get('from')
-  
+
   const resolvedParams = use(params)
   const id = resolvedParams.id
   const assignmentId = parseInt(id)
@@ -98,7 +98,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       try {
         const userInfo = JSON.parse(stored)
         if (userInfo.userRole) currentRole = userInfo.userRole
-      } catch {}
+      } catch { }
     }
     setUserRole(currentRole)
 
@@ -129,9 +129,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
               }
             }
           } catch (err: any) {
-             if (err.response?.status !== 404 && err.response?.status !== 400 && err.response?.status !== 204) {
-               console.error('Lỗi khi lấy bài nộp:', err)
-             }
+            if (err.response?.status !== 404 && err.response?.status !== 400 && err.response?.status !== 204) {
+              console.error('Lỗi khi lấy bài nộp:', err)
+            }
           }
         } else if (currentRole === 'TEACHER') {
           // Lấy danh sách bài nộp của lớp
@@ -279,21 +279,101 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const isGraded = submissionScore !== null
   const isReadOnly = isPastDeadline || userRole !== 'STUDENT' || isGraded || submissionStatus === 'SUBMITTED'
 
+  if (userRole === 'STUDENT') {
+    return (
+      <>
+        <StudentAssignmentLayout
+          assignment={assignment}
+          submissionContent={submissionContent}
+          setSubmissionContent={setSubmissionContent}
+          isReadOnly={isReadOnly}
+          isSavingExternal={isSavingExternal}
+          lastSavedExternal={lastSavedExternal}
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleSubmit}
+          onUnsubmit={() => setShowUnsubmitModal(true)}
+          submissionStatus={submissionStatus}
+          submissionScore={submissionScore}
+          teacherFeedback={submissionTeacherFeedback}
+          onBack={handleBackClick}
+          fromText={from === 'class' ? `Lớp ${assignment.className}` : 'Kho bài tập'}
+          onAutoSave={handleAutoSaveDraft}
+        />
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Rời khỏi trang?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Bạn có chắc chắn muốn rời khỏi trang này không? Những thay đổi chưa được lưu tự động có thể bị mất.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+                <button
+                  onClick={() => setShowLeaveModal(false)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleLeaveConfirm}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
+                >
+                  Vẫn rời đi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showUnsubmitModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+                  <XCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận hủy nộp bài</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Bạn có chắc chắn muốn hủy nộp bài không? Bài làm của bạn sẽ chuyển về trạng thái Lưu nháp và bạn có thể tiếp tục chỉnh sửa.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+                <button
+                  onClick={() => setShowUnsubmitModal(false)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                >
+                  Không, quay lại
+                </button>
+                <button
+                  onClick={handleUnsubmitConfirm}
+                  disabled={isSavingExternal}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+                >
+                  Đồng ý hủy nộp
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">
       {/* TOOLBAR */}
       <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10">
-        
+
         {/* Left: Back & Breadcrumb */}
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={handleBackClick}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 hover:shadow-sm hover:text-slate-900 transition-all"
             title="Quay lại"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          
+
           <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 font-medium">
             <span className="hover:text-slate-800 transition-colors cursor-pointer" onClick={handleBackClick}>
               {from === 'class' ? `Lớp ${assignment.className}` : 'Kho bài tập'}
@@ -323,7 +403,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
             <>
               {submissionStatus !== 'SUBMITTED' ? (
                 <>
-                  <button 
+                  <button
                     onClick={handleSaveDraft}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
@@ -331,7 +411,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                     <Save className="h-4 w-4" />
                     Lưu nháp
                   </button>
-                  <button 
+                  <button
                     onClick={handleSubmit}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
@@ -341,7 +421,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   </button>
                 </>
               ) : (
-                <button 
+                <button
                   onClick={() => setShowUnsubmitModal(true)}
                   disabled={isSavingExternal}
                   className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
@@ -363,7 +443,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       {/* MAIN CONTENT */}
       <div className="flex-1 min-h-0 overflow-hidden p-2 sm:p-4">
         <PanelGroup direction="horizontal" className="h-full w-full">
-          
+
           {/* PANEL TRÁI: ĐỀ BÀI */}
           <Panel defaultSize={userRole === 'STUDENT' ? 40 : 100} minSize={25} className={`bg-white rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden ${userRole === 'STUDENT' ? 'mr-2' : ''}`}>
             <div className="p-5 border-b border-border bg-slate-50/50 shrink-0">
@@ -376,7 +456,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                 </p>
               )}
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-5 md:p-8">
               <div className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-blue-600">
                 {(() => {
@@ -406,31 +486,8 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
               </div>
             </div>
           </Panel>
-          
-          {userRole === 'STUDENT' && (
-            <>
-              {/* RESIZE HANDLE */}
-              <PanelResizeHandle className="w-2 mx-1 rounded-full bg-slate-200 hover:bg-primary/50 transition-colors cursor-col-resize flex flex-col items-center justify-center gap-1">
-                <div className="w-1 h-1 rounded-full bg-slate-400" />
-                <div className="w-1 h-1 rounded-full bg-slate-400" />
-                <div className="w-1 h-1 rounded-full bg-slate-400" />
-              </PanelResizeHandle>
-              
-              {/* PANEL PHẢI: KHU VỰC LÀM BÀI */}
-              <Panel defaultSize={60} minSize={30} className="ml-2">
-                <SubmissionEditor 
-                  assignmentId={assignmentId} 
-                  initialContent={submissionContent}
-                  onChange={setSubmissionContent}
-                  readOnly={isReadOnly}
-                  isSavingExternal={isSavingExternal}
-                  lastSavedExternal={lastSavedExternal}
-                  onAutoSave={handleAutoSaveDraft}
-                  teacherFeedback={submissionTeacherFeedback}
-                />
-              </Panel>
-            </>
-          )}
+
+          {/* RESIZE HANDLE is handled differently now, but we just don't render right side for teacher */}
 
         </PanelGroup>
       </div>
@@ -438,74 +495,74 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       {/* TEACHER VIEW: Danh sách nộp bài */}
       {userRole === 'TEACHER' && (
         <div className="fixed top-14 right-0 bottom-0 w-[400px] bg-white border-l border-border shadow-2xl flex flex-col z-20">
-            <div className="p-4 border-b border-border bg-slate-50 flex items-center gap-2 font-semibold text-slate-800">
-              <Users className="w-5 h-5 text-primary" />
-              Danh sách nộp bài ({teacherSubmissions.length})
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50/50">
-               {teacherSubmissions.length === 0 ? (
-                 <p className="text-sm text-slate-500 text-center mt-10 italic">Chưa có học sinh nào nộp bài.</p>
-               ) : (
-                 teacherSubmissions.map((sub) => (
-                   <div key={sub.id} className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                         <p className="font-semibold text-slate-800">{sub.studentName || 'Học sinh'}</p>
-                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sub.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                           {sub.status === 'SUBMITTED' ? 'Đã nộp' : 'Lưu nháp'}
-                         </span>
+          <div className="p-4 border-b border-border bg-slate-50 flex items-center gap-2 font-semibold text-slate-800">
+            <Users className="w-5 h-5 text-primary" />
+            Danh sách nộp bài ({teacherSubmissions.length})
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50/50">
+            {teacherSubmissions.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center mt-10 italic">Chưa có học sinh nào nộp bài.</p>
+            ) : (
+              teacherSubmissions.map((sub) => (
+                <div key={sub.id} className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-slate-800">{sub.studentName || 'Học sinh'}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sub.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {sub.status === 'SUBMITTED' ? 'Đã nộp' : 'Lưu nháp'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Nộp lúc: {sub.submittedAt ? new Date(sub.submittedAt.includes('T') && !sub.submittedAt.endsWith('Z') && !sub.submittedAt.includes('+') ? `${sub.submittedAt}Z` : sub.submittedAt).toLocaleString('vi-VN') : 'Chưa nộp'}
+                  </p>
+
+                  <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                    {sub.score !== null ? (
+                      <div className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" /> Điểm: {sub.score}
                       </div>
-                      <p className="text-xs text-slate-500">
-                        Nộp lúc: {sub.submittedAt ? new Date(sub.submittedAt.includes('T') && !sub.submittedAt.endsWith('Z') && !sub.submittedAt.includes('+') ? `${sub.submittedAt}Z` : sub.submittedAt).toLocaleString('vi-VN') : 'Chưa nộp'}
-                      </p>
-                      
-                      <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                        {sub.score !== null ? (
-                          <div className="text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
-                            <CheckCircle className="w-4 h-4" /> Điểm: {sub.score}
-                          </div>
+                    ) : (
+                      <div className="flex items-center gap-2 w-full">
+                        {gradingSubmissionId === sub.id ? (
+                          <>
+                            <input
+                              type="number"
+                              min="0" max="10" step="0.5"
+                              value={gradingScore}
+                              onChange={(e) => setGradingScore(e.target.value)}
+                              className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-1 outline-none focus:border-primary"
+                              placeholder="Điểm"
+                            />
+                            <button
+                              onClick={() => handleGradeSubmission(sub.id)}
+                              className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                              Lưu
+                            </button>
+                            <button
+                              onClick={() => setGradingSubmissionId(null)}
+                              className="text-xs text-slate-500 hover:text-slate-700 underline"
+                            >
+                              Hủy
+                            </button>
+                          </>
                         ) : (
-                          <div className="flex items-center gap-2 w-full">
-                            {gradingSubmissionId === sub.id ? (
-                              <>
-                                <input 
-                                  type="number" 
-                                  min="0" max="10" step="0.5"
-                                  value={gradingScore}
-                                  onChange={(e) => setGradingScore(e.target.value)}
-                                  className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-1 outline-none focus:border-primary"
-                                  placeholder="Điểm"
-                                />
-                                <button 
-                                  onClick={() => handleGradeSubmission(sub.id)}
-                                  className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
-                                >
-                                  Lưu
-                                </button>
-                                <button 
-                                  onClick={() => setGradingSubmissionId(null)}
-                                  className="text-xs text-slate-500 hover:text-slate-700 underline"
-                                >
-                                  Hủy
-                                </button>
-                              </>
-                            ) : (
-                              <button 
-                                onClick={() => {
-                                  setGradingSubmissionId(sub.id)
-                                  setGradingScore('')
-                                }}
-                                className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors w-full text-center"
-                              >
-                                Chấm điểm
-                              </button>
-                            )}
-                          </div>
+                          <button
+                            onClick={() => {
+                              setGradingSubmissionId(sub.id)
+                              setGradingScore('')
+                            }}
+                            className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors w-full text-center"
+                          >
+                            Chấm điểm
+                          </button>
                         )}
                       </div>
-                   </div>
-                 ))
-               )}
-            </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 

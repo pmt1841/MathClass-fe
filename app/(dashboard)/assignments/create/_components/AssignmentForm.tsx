@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X } from 'lucide-react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useRouter } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
@@ -76,7 +76,7 @@ export function AssignmentForm({
 }: AssignmentFormProps) {
   const router = useRouter()
   const [showLeaveModal, setShowLeaveModal] = useState(false)
-  
+
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
@@ -85,6 +85,7 @@ export function AssignmentForm({
   // JSXGraph State
   const [showJsxGraphModal, setShowJsxGraphModal] = useState(false)
   const [drawings, setDrawings] = useState<any[]>(defaultValues?.drawings || [])
+  const [editingShape, setEditingShape] = useState<{ shapeCode: string, jsxGraphData: any } | null>(null)
 
   const {
     register,
@@ -117,7 +118,7 @@ export function AssignmentForm({
     if (mergedValues.drawings) {
       setDrawings(mergedValues.drawings)
     }
-    
+
     // Allow a small delay before enabling auto-save to avoid saving empty/initial values immediately
     setTimeout(() => {
       isFormLoadedRef.current = true
@@ -212,7 +213,7 @@ export function AssignmentForm({
     const before = currentVal.substring(0, start)
     const after = currentVal.substring(end)
     const selectedText = currentVal.substring(start, end)
-    
+
     // Check if we are already inside a math block ($$ or $)
     const countDoubleDollar = (before.match(/\$\$/g) || []).length
     const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
@@ -226,19 +227,19 @@ export function AssignmentForm({
 
     const isMathBlock = cmd.includes('\\begin')
     let insertText = cmd
-    
+
     if (!isInsideMath) {
       insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
     }
 
     const newVal = before + insertText + after
-    
+
     setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
 
     setTimeout(() => {
       textarea.focus()
       let newCursorPos = start + insertText.length
-      
+
       const emptyBrackets = insertText.indexOf('{ }')
       if (emptyBrackets !== -1) {
         newCursorPos = start + emptyBrackets + 1
@@ -256,14 +257,77 @@ export function AssignmentForm({
   }
 
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
-    const nextIndex = drawings.length + 1
-    const shapeCode = `SHAPE_${nextIndex}`
-    
-    // Add to drawings array
-    const newDrawing = { shapeCode, jsxGraphData }
-    setDrawings(prev => [...prev, newDrawing])
-    
-    // Insert into textarea
+    if (editingShape) {
+      // Cập nhật hình cũ
+      const updatedDrawings = drawings.map(d => 
+        d.shapeCode === editingShape.shapeCode 
+          ? { ...d, jsxGraphData } 
+          : d
+      )
+      setDrawings(updatedDrawings)
+      
+      // Kích hoạt auto-save bằng cách set lại content
+      const currentVal = formValues.content || ''
+      setValue('content', currentVal, { shouldValidate: true, shouldDirty: true })
+    } else {
+      // Thuật toán lấp khoảng trống ID: Tìm số nguyên dương nhỏ nhất chưa được sử dụng
+      const existingIndices = drawings
+        .map(d => parseInt(d.shapeCode.replace('SHAPE_', '')))
+        .filter(n => !isNaN(n))
+      
+      let nextIndex = 1
+      while (existingIndices.includes(nextIndex)) {
+        nextIndex++
+      }
+      
+      const shapeCode = `SHAPE_${nextIndex}`
+      const newDrawing = { shapeCode, jsxGraphData }
+      setDrawings(prev => [...prev, newDrawing])
+
+      // Chèn vào văn bản tại con trỏ
+      if (textareaRef.current) {
+        const textarea = textareaRef.current
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const currentVal = formValues.content || ''
+        const before = currentVal.substring(0, start)
+        const after = currentVal.substring(end)
+
+        const insertText = `[${shapeCode}]`
+        const newVal = before + insertText + after
+        setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+
+        setTimeout(() => {
+          textarea.focus()
+          const newCursorPos = start + insertText.length
+          textarea.setSelectionRange(newCursorPos, newCursorPos)
+        }, 0)
+      } else {
+        const currentVal = formValues.content || ''
+        setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: true, shouldDirty: true })
+      }
+    }
+
+    setShowJsxGraphModal(false)
+    setEditingShape(null)
+  }
+
+  const handleEditDrawing = (shapeCode: string) => {
+    const drawing = drawings.find(d => d.shapeCode === shapeCode)
+    if (drawing) {
+      setEditingShape({ shapeCode: drawing.shapeCode, jsxGraphData: drawing.jsxGraphData })
+      setShowJsxGraphModal(true)
+    }
+  }
+
+  const handleDeleteDrawing = (shapeCode: string) => {
+    setDrawings(prev => prev.filter(d => d.shapeCode !== shapeCode))
+    const currentVal = formValues.content || ''
+    const newVal = currentVal.replace(new RegExp(`\\[${shapeCode}\\]`, 'g'), '')
+    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+  }
+
+  const handleInsertDrawing = (shapeCode: string) => {
     if (textareaRef.current) {
       const textarea = textareaRef.current
       const start = textarea.selectionStart
@@ -271,28 +335,29 @@ export function AssignmentForm({
       const currentVal = formValues.content || ''
       const before = currentVal.substring(0, start)
       const after = currentVal.substring(end)
-      
+
       const insertText = `[${shapeCode}]`
       const newVal = before + insertText + after
       setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
-      
+
       setTimeout(() => {
         textarea.focus()
         const newCursorPos = start + insertText.length
         textarea.setSelectionRange(newCursorPos, newCursorPos)
       }, 0)
+    } else {
+      const currentVal = formValues.content || ''
+      setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: true, shouldDirty: true })
     }
-    
-    setShowJsxGraphModal(false)
   }
 
   // Render function for Content with JSXGraph replacing
   const renderContentWithDrawings = (content: string) => {
     if (!content) return null
-    
+
     // Split content by [SHAPE_XXX] pattern
     const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
-    
+
     return parts.map((part, index) => {
       // Check if it's a shape placeholder
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
@@ -303,7 +368,7 @@ export function AssignmentForm({
           return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
         }
       }
-      
+
       // Regular markdown parsing
       return (
         <ReactMarkdown
@@ -424,12 +489,13 @@ export function AssignmentForm({
             <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${errors.content ? 'border-destructive focus-within:border-destructive' : 'border-border focus-within:border-primary'}`}>
               <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <Edit3 className="w-3.5 h-3.5" /> Soạn thảo Markdown & LaTeX
+                  <Edit3 className="w-3.5 h-3.5" /> Soạn thảo bài tập
                 </div>
                 <button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
+                    setEditingShape(null);
                     setShowJsxGraphModal(true);
                   }}
                   className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
@@ -439,6 +505,42 @@ export function AssignmentForm({
                 </button>
               </div>
               <LatexToolbar onInsert={handleInsertLatex} />
+              
+              {/* Danh sách hình vẽ */}
+              {drawings.length > 0 && (
+                <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
+                  <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ:</span>
+                  {drawings.map(d => (
+                    <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
+                      <button 
+                        type="button"
+                        onClick={() => handleInsertDrawing(d.shapeCode)}
+                        className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        title={`Chèn ${d.shapeCode} vào văn bản`}
+                      >
+                        {d.shapeCode}
+                      </button>
+                      <div className="w-px h-4 bg-slate-200"></div>
+                      <button 
+                        type="button"
+                        onClick={() => handleEditDrawing(d.shapeCode)}
+                        className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Sửa hình vẽ"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteDrawing(d.shapeCode)}
+                        className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Xoá hình vẽ"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <textarea
                 {...formContentRest}
                 ref={(e) => {
@@ -506,8 +608,12 @@ export function AssignmentForm({
       {/* JSXGraph Editor Modal */}
       <JsxGraphEditorModal
         open={showJsxGraphModal}
-        onClose={() => setShowJsxGraphModal(false)}
+        onClose={() => {
+          setShowJsxGraphModal(false)
+          setEditingShape(null)
+        }}
         onConfirm={handleConfirmJsxGraph}
+        initialData={editingShape?.jsxGraphData}
       />
     </div>
   )

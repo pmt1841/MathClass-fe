@@ -46,8 +46,8 @@ const latexItems: LatexItem[] = [
   { id: 'vector', label: 'Vector', tex: '\\vec{v}', insert: '\\vec{ }' },
 
   // Cấu trúc phức tạp
-  { id: 'cases', label: 'Hệ phương trình', tex: '\\begin{cases} x \\\\ y \\end{cases}', insert: '\\begin{cases}\n  x = 0 \\\\\n  y = 0\n\\end{cases}\n' },
-  { id: 'matrix', label: 'Ma trận', tex: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', insert: '\\begin{pmatrix}\n  a & b \\\\\n  c & d\n\\end{pmatrix}\n' },
+  { id: 'cases', label: 'Hệ phương trình', tex: '\\tiny \\begin{cases} x \\\\ y \\end{cases}', insert: '\\begin{cases}\n  x = 0 \\\\\n  y = 0\n\\end{cases}\n' },
+  { id: 'matrix', label: 'Ma trận', tex: '\\scriptsize \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', insert: '\\begin{pmatrix}\n  a & b \\\\\n  c & d\n\\end{pmatrix}\n' },
 ]
 
 interface LatexToolbarProps {
