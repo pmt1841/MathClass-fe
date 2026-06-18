@@ -87,10 +87,15 @@ export function StudentAssignmentLayout({
   // Extract student drawings ONLY on first load if we have submissionContent
   const isLoaded = useRef(false)
   useEffect(() => {
-    if (!isLoaded.current && submissionContent) {
-      const { content, extractedDrawings } = extractDrawings(submissionContent)
-      setStudentDrawings(extractedDrawings || [])
-      setDebouncedContent(content)
+    if (!isLoaded.current) {
+      if (submissionContent) {
+        const { content, extractedDrawings } = extractDrawings(submissionContent)
+        setStudentDrawings(extractedDrawings || [])
+        setDebouncedContent(content)
+      } else {
+        setStudentDrawings([])
+        setDebouncedContent('')
+      }
       isLoaded.current = true
     }
   }, [submissionContent])
@@ -98,15 +103,7 @@ export function StudentAssignmentLayout({
   // Content without drawings appended
   const [pureContent, setPureContent] = useState(() => extractDrawings(submissionContent).content)
 
-  // Auto update pureContent when parent changes submissionContent from outside
-  useEffect(() => {
-    if (isLoaded.current) {
-      const { content } = extractDrawings(submissionContent)
-      if (content !== pureContent) {
-        setPureContent(content)
-      }
-    }
-  }, [submissionContent])
+
 
   // Debounce for preview
   useEffect(() => {
