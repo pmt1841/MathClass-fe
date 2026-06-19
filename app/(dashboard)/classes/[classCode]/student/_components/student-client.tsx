@@ -57,22 +57,7 @@ const MOCK_ANNOUNCEMENTS = [
   },
 ]
 
-const MOCK_DONE = [
-  {
-    id: 3,
-    title: 'Kiểm tra 15 phút: Tổ hợp - Xác suất',
-    submittedAt: 'Đã nộp lúc 10:45 - 20/05/2026',
-    score: '9.0/10',
-    status: 'graded',
-  },
-  {
-    id: 4,
-    title: 'Bài tập ôn tập: Lượng giác',
-    submittedAt: 'Đã nộp bài tự luận',
-    score: null,
-    status: 'pending',
-  },
-]
+
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 export function StudentClassDetailPageClient({ params }: PageProps) {
@@ -81,7 +66,9 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const [activeTab, setActiveTab] = React.useState<'stream' | 'classwork'>('stream')
 
   const [classroom, setClassroom] = useState<any>(null)
-  const [assignments, setAssignments] = useState<any[]>([])
+  const [assignedTasks, setAssignedTasks] = useState<any[]>([])
+  const [completedTasks, setCompletedTasks] = useState<any[]>([])
+  const [overdueTasks, setOverdueTasks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -94,8 +81,41 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         ])
         setClassroom(classRes.data)
         const allAssignments = assignRes.data?.content || assignRes.data || []
-        // Chỉ hiện bài tập đã giao
-        setAssignments(allAssignments.filter((a: any) => a.status === 'PUBLISHED'))
+        const publishedAssignments = allAssignments.filter((a: any) => a.status === 'PUBLISHED')
+
+        const tasksWithSubs = await Promise.all(
+          publishedAssignments.map(async (task: any) => {
+            try {
+              const subRes = await api.get(`/submissions/my-submission?assignmentId=${task.id}`);
+              return { ...task, submission: subRes.data || null };
+            } catch (error) {
+              return { ...task, submission: null };
+            }
+          })
+        );
+
+        const now = new Date();
+        const assigned: any[] = [];
+        const completed: any[] = [];
+        const overdue: any[] = [];
+
+        tasksWithSubs.forEach(task => {
+          const subStatus = task.submission?.status;
+          const isDone = subStatus === 'SUBMITTED' || subStatus === 'GRADED' || subStatus === 'LATE';
+          const isPastDeadline = task.deadline ? new Date(task.deadline) < now : false;
+
+          if (isDone) {
+            completed.push(task);
+          } else if (isPastDeadline) {
+            overdue.push(task);
+          } else {
+            assigned.push(task);
+          }
+        });
+
+        setAssignedTasks(assigned);
+        setCompletedTasks(completed);
+        setOverdueTasks(overdue);
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu lớp học', error)
       } finally {
@@ -112,16 +132,12 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
 
       {/* ── Hero Banner ── */}
-      <div className={`relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 text-white`}>
-        {/* Decorative blobs */}
-        <div className="absolute -top-10 -right-10 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute -bottom-16 -left-10 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
-
+      <div className={`relative overflow-hidden text-slate-900 border-b border-border bg-white`}>
         <div className="relative z-10 mx-auto max-w-screen-xl px-6 py-6">
           {/* Back button */}
           <button
             onClick={() => router.push('/classes')}
-            className="mb-4 flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium transition-colors"
+            className="mb-4 flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Quay lại danh sách lớp
@@ -131,11 +147,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             <div className="space-y-2">
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
                   <BookOpen className="h-3 w-3" />
                   Mã lớp: {classCode}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
                   <Users className="h-3 w-3" />
                   {classroom?.studentCount || 0}/{classroom?.maxStudents || 0} học sinh
                 </span>
@@ -147,19 +163,19 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
               {/* Teacher */}
               <div className="flex items-center gap-3 pt-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold backdrop-blur-sm border border-white/20">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-sm font-bold border border-slate-200">
                   {teacherInitials}
                 </div>
                 <div>
-                  <p className="text-[11px] text-white/60 font-medium uppercase tracking-wide">Giáo viên phụ trách</p>
+                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Giáo viên phụ trách</p>
                   <p className="text-sm font-semibold">{teacherName}</p>
                 </div>
               </div>
             </div>
 
             {/* Decorative icon */}
-            <div className="hidden sm:flex h-24 w-24 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10">
-              <GraduationCap className="h-12 w-12 text-white/40" />
+            <div className="hidden sm:flex h-24 w-24 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100">
+              <GraduationCap className="h-12 w-12 text-slate-300" />
             </div>
           </div>
 
@@ -168,14 +184,14 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             {MOCK_STATS.map((s) => (
               <div
                 key={s.label}
-                className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3"
+                className="flex items-center gap-3 rounded-xl bg-white border border-border shadow-sm px-4 py-3"
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/15">
-                  <s.icon className="h-4 w-4 text-white" />
+                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${s.bg}`}>
+                  <s.icon className={`h-4 w-4 ${s.color}`} />
                 </div>
                 <div>
                   <p className="text-lg font-extrabold leading-none">{s.value}</p>
-                  <p className="text-[11px] text-white/60 mt-0.5">{s.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -184,15 +200,15 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
         {/* Tab nav sits at the bottom of the hero */}
         <div className="relative z-10 mx-auto max-w-screen-xl px-6">
-          <div className="flex gap-1 border-b border-white/20">
+          <div className="flex gap-1 border-b border-border mt-2">
             {(['stream', 'classwork'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-5 py-3 text-sm font-semibold transition-all border-b-2 -mb-px ${
                   activeTab === tab
-                    ? 'border-white text-white'
-                    : 'border-transparent text-white/50 hover:text-white/80'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab === 'stream' ? '📌 Bảng tin' : '📝 Bài tập'}
@@ -323,13 +339,13 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
               {/* ── To-do ── */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100">
-                    <Clock className="h-4 w-4 text-orange-600" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100">
+                    <Clock className="h-4 w-4 text-blue-600" />
                   </div>
                   <h3 className="text-base font-bold text-foreground">
                     Bài tập được giao
-                    <span className="ml-2 rounded-full bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5">
-                      {assignments.length}
+                    <span className="ml-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5">
+                      {assignedTasks.length}
                     </span>
                   </h3>
                 </div>
@@ -337,27 +353,21 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 <div className="grid gap-3">
                   {loading ? (
                     <div className="text-sm text-muted-foreground">Đang tải...</div>
-                  ) : assignments.length === 0 ? (
+                  ) : assignedTasks.length === 0 ? (
                     <div className="text-sm text-muted-foreground">Chưa có bài tập nào được giao.</div>
-                  ) : assignments.map((task) => (
+                  ) : assignedTasks.map((task) => (
                     <div
                       key={task.id}
                       className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500`}
                     >
                       <div className="flex items-start gap-4">
-                        <div
-                          className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100`}
-                        >
-                          <FileText
-                            className={`h-5 w-5 text-blue-600`}
-                          />
+                        <div className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100`}>
+                          <FileText className={`h-5 w-5 text-blue-600`} />
                         </div>
                         <div>
                           <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
                           <p className="text-xs text-muted-foreground mt-1">{task.description || 'Không có mô tả'}</p>
-                          <span
-                            className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-blue-50 text-blue-600`}
-                          >
+                          <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-blue-50 text-blue-600`}>
                             <Clock className="h-3 w-3" />
                             Hết hạn: {task.deadline ? new Date(task.deadline).toLocaleString('vi-VN') : 'Không có thời hạn'}
                           </span>
@@ -375,6 +385,55 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 </div>
               </section>
 
+              {/* ── Overdue ── */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground">
+                    Đã quá hạn
+                    <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
+                      {overdueTasks.length}
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="grid gap-3">
+                  {loading ? (
+                    <div className="text-sm text-muted-foreground">Đang tải...</div>
+                  ) : overdueTasks.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Không có bài tập quá hạn.</div>
+                  ) : overdueTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-red-500`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-red-100`}>
+                          <FileText className={`h-5 w-5 text-red-600`} />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{task.description || 'Không có mô tả'}</p>
+                          <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-red-50 text-red-600`}>
+                            <AlertCircle className="h-3 w-3" />
+                            Đã hết hạn lúc: {task.deadline ? new Date(task.deadline).toLocaleString('vi-VN') : 'Không có thời hạn'}
+                          </span>
+                        </div>
+                      </div>
+                      <Link 
+                        href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
+                        className="flex-shrink-0 self-end sm:self-auto flex items-center gap-2 rounded-xl bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold hover:bg-red-100 transition-all active:scale-[.98]"
+                      >
+                        Vẫn nộp bài
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               {/* ── Done ── */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -384,52 +443,64 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                   <h3 className="text-base font-bold text-foreground">
                     Đã hoàn thành
                     <span className="ml-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5">
-                      {MOCK_DONE.length}
+                      {completedTasks.length}
                     </span>
                   </h3>
                 </div>
 
                 <div className="grid gap-3">
-                  {MOCK_DONE.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 opacity-80 hover:opacity-100 border-l-4 ${
-                        task.status === 'graded' ? 'border-l-emerald-500' : 'border-l-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div
-                          className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl ${
-                            task.status === 'graded' ? 'bg-emerald-100' : 'bg-slate-100'
-                          }`}
-                        >
-                          <FileText
-                            className={`h-5 w-5 ${
-                              task.status === 'graded' ? 'text-emerald-600' : 'text-slate-500'
+                  {loading ? (
+                    <div className="text-sm text-muted-foreground">Đang tải...</div>
+                  ) : completedTasks.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Chưa có bài tập hoàn thành.</div>
+                  ) : completedTasks.map((task) => {
+                    const isGraded = task.submission?.status === 'GRADED';
+                    const submittedAt = task.submission?.submittedAt ? new Date(task.submission.submittedAt).toLocaleString('vi-VN') : 'Chưa có thông tin';
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 opacity-90 hover:opacity-100 border-l-4 ${
+                          isGraded ? 'border-l-emerald-500' : 'border-l-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl ${
+                              isGraded ? 'bg-emerald-100' : 'bg-slate-100'
                             }`}
-                          />
+                          >
+                            <FileText
+                              className={`h-5 w-5 ${
+                                isGraded ? 'text-emerald-600' : 'text-slate-500'
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">Nộp lúc: {submittedAt}</p>
+                            {isGraded ? (
+                              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                                <Award className="h-3 w-3" />
+                                Điểm: {task.submission?.score}/10
+                              </span>
+                            ) : (
+                              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                <Clock className="h-3 w-3" />
+                                Đang chờ chấm
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{task.submittedAt}</p>
-                          {task.score ? (
-                            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                              <Award className="h-3 w-3" />
-                              Điểm: {task.score}
-                            </span>
-                          ) : (
-                            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                              <Clock className="h-3 w-3" />
-                              Đang chờ chấm
-                            </span>
-                          )}
-                        </div>
+                        <Link 
+                          href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
+                          className="flex-shrink-0 self-end sm:self-auto rounded-xl border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-colors"
+                        >
+                          {isGraded ? 'Xem lời phê & Đáp án' : 'Xem bài đã nộp'}
+                        </Link>
                       </div>
-                      <button className="flex-shrink-0 self-end sm:self-auto rounded-xl border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-colors">
-                        {task.status === 'graded' ? 'Xem lời phê & Đáp án' : 'Xem bài đã nộp'}
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
 
