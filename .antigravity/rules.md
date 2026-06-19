@@ -20,7 +20,7 @@
 ## 3. Coding Conventions & Standards
 - Stack chính: React 19, Next.js 16.2.6 (App Router), TypeScript, Tailwind CSS v4, Lucide React, Radix UI.
 - Quản lý State/Fetching: Axios & TanStack React Query v5.
-- Quản lý Form & Validation: React Hook Form / Formik kết hợp Zod / Yup.
+- Quản lý Form & Validation: React Hook Form kết hợp Zod.
 - Hiển thị công thức Toán: Sử dụng KaTeX (`katex`, `react-markdown`, `remark-math`, `rehype-katex`).
 - Naming:
   - Component files & folders (trong components/): PascalCase (ví dụ: `AssignmentCard.tsx`).

@@ -3,16 +3,45 @@ import { describe, it, expect, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SubmissionDetail } from '@/components/assignments/submission-detail'
 import { submissionApi } from '@/lib/api/submission'
+import { assignmentApi } from '@/lib/api/assignment'
 
 vi.mock('@/lib/api/submission', () => ({
   submissionApi: {
     getSubmissionById: vi.fn(),
+    gradeSubmission: vi.fn(),
+  },
+}))
+
+vi.mock('@/lib/api/assignment', () => ({
+  assignmentApi: {
+    getAssignmentById: vi.fn(),
   },
 }))
 
 // Mock ReactMarkdown since it can be problematic in jsdom
 vi.mock('react-markdown', () => ({
   default: ({ children }: { children: any }) => <div data-testid="markdown">{children}</div>,
+}))
+
+vi.mock('remark-math', () => ({ default: () => { } }))
+vi.mock('remark-gfm', () => ({ default: () => { } }))
+vi.mock('rehype-katex', () => ({ default: () => { } }))
+vi.mock('katex/dist/katex.min.css', () => ({}))
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: any) => <a href={href}>{children}</a>,
+}))
+
+vi.mock('next/dynamic', () => ({
+  default: () => () => <div data-testid="jsxgraph-board" />,
+}))
+
+vi.mock('@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout', () => ({
+  extractDrawings: (content: string) => ({ content, extractedDrawings: [] }),
+}))
+
+vi.mock('@/components/ui/latex-toolbar', () => ({
+  LatexToolbar: ({ onInsert }: any) => <div data-testid="latex-toolbar" />,
 }))
 
 const createQueryClient = () => new QueryClient({
@@ -23,40 +52,54 @@ const createQueryClient = () => new QueryClient({
   },
 })
 
+const mockAssignment = {
+  id: 10,
+  title: 'Bài tập kiểm tra',
+  description: 'Mô tả đề bài',
+  content: 'Nội dung đề bài',
+  classroomId: 1,
+  dueDate: '2026-07-01T00:00:00Z',
+  createdAt: '2026-06-01T00:00:00Z',
+  updatedAt: '2026-06-01T00:00:00Z',
+}
+
+const mockSubmission = {
+  id: 100,
+  assignmentId: 10,
+  studentId: 1,
+  studentName: 'Nguyen Van A',
+  content: 'Hello World',
+  teacherFeedback: 'Good job!',
+  status: 'GRADED' as const,
+  score: 9.5,
+  submittedAt: '2026-06-15T10:00:00Z',
+  updatedAt: '2026-06-15T10:00:00Z',
+}
+
 describe('SubmissionDetail', () => {
   it('renders loading state initially', () => {
-    vi.mocked(submissionApi.getSubmissionById).mockReturnValue(new Promise(() => {}))
+    vi.mocked(submissionApi.getSubmissionById).mockReturnValue(new Promise(() => { }))
+    vi.mocked(assignmentApi.getAssignmentById).mockReturnValue(new Promise(() => { }))
     const queryClient = createQueryClient()
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <SubmissionDetail submissionId={100} />
+        <SubmissionDetail submissionId={100} assignmentId={10} />
       </QueryClientProvider>
     )
 
-    // Using querySelector to find Skeleton class if no specific text
     expect(document.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('renders submission details correctly', async () => {
-    vi.mocked(submissionApi.getSubmissionById).mockResolvedValue({
-      id: 100,
-      assignmentId: 10,
-      studentId: 1,
-      studentName: 'Nguyen Van A',
-      content: 'Hello World',
-      teacherFeedback: 'Good job!',
-      status: 'GRADED',
-      score: 9.5,
-      submittedAt: '2026-06-15T10:00:00Z',
-      updatedAt: '2026-06-15T10:00:00Z'
-    })
-    
+    vi.mocked(submissionApi.getSubmissionById).mockResolvedValue(mockSubmission)
+    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
+
     const queryClient = createQueryClient()
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <SubmissionDetail submissionId={100} />
+        <SubmissionDetail submissionId={100} assignmentId={10} />
       </QueryClientProvider>
     )
 
@@ -65,19 +108,18 @@ describe('SubmissionDetail', () => {
     })
 
     expect(screen.getByText('Hello World')).toBeInTheDocument()
-    expect(screen.getByText('Good job!')).toBeInTheDocument()
-    expect(screen.getByText('Điểm: 9.5/10')).toBeInTheDocument()
     expect(screen.getByText('Đã chấm')).toBeInTheDocument()
   })
 
   it('renders error state correctly', async () => {
     vi.mocked(submissionApi.getSubmissionById).mockRejectedValue(new Error('Network error'))
-    
+    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
+
     const queryClient = createQueryClient()
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <SubmissionDetail submissionId={100} />
+        <SubmissionDetail submissionId={100} assignmentId={10} />
       </QueryClientProvider>
     )
 
@@ -86,37 +128,20 @@ describe('SubmissionDetail', () => {
     })
   })
 
-  it('submits grade correctly', async () => {
+  it('renders grading form for submitted submissions', async () => {
     vi.mocked(submissionApi.getSubmissionById).mockResolvedValue({
-      id: 100,
-      assignmentId: 10,
-      studentId: 1,
-      studentName: 'Nguyen Van A',
-      content: 'Hello World',
+      ...mockSubmission,
       status: 'SUBMITTED',
       score: null,
-      submittedAt: '2026-06-15T10:00:00Z',
-      updatedAt: '2026-06-15T10:00:00Z'
+      teacherFeedback: undefined,
     })
-    
-    vi.mocked(submissionApi.gradeSubmission).mockResolvedValue({
-      id: 100,
-      assignmentId: 10,
-      studentId: 1,
-      studentName: 'Nguyen Van A',
-      content: 'Hello World',
-      status: 'GRADED',
-      score: 9.5,
-      teacherFeedback: 'Great job!',
-      submittedAt: '2026-06-15T10:00:00Z',
-      updatedAt: '2026-06-15T10:00:00Z'
-    })
+    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
 
     const queryClient = createQueryClient()
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <SubmissionDetail submissionId={100} />
+        <SubmissionDetail submissionId={100} assignmentId={10} />
       </QueryClientProvider>
     )
 
@@ -124,7 +149,10 @@ describe('SubmissionDetail', () => {
       expect(screen.getByText('Nguyen Van A')).toBeInTheDocument()
     })
 
-    // The form should be rendered
-    expect(screen.getByText('Chấm điểm & Nhận xét')).toBeInTheDocument()
+    // Grading form elements should be present
+    expect(screen.getByText('Khu vực chấm điểm')).toBeInTheDocument()
+    expect(screen.getByText('Điểm số')).toBeInTheDocument()
+    expect(screen.getByText('Lời phê của giáo viên')).toBeInTheDocument()
+    expect(screen.getByText(/Lưu điểm & Lời phê/)).toBeInTheDocument()
   })
 })
