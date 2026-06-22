@@ -43,6 +43,7 @@ interface StudentAssignmentLayoutProps {
     description: string
     content: string
     deadline: string
+    images?: any[]
   }
   submissionContent: string
   setSubmissionContent: (val: string) => void
@@ -83,7 +84,7 @@ export function StudentAssignmentLayout({
   const [editingShape, setEditingShape] = useState<{ shapeCode: string, jsxGraphData: any } | null>(null)
   const [showJsxGraphModal, setShowJsxGraphModal] = useState(false)
   const [debouncedContent, setDebouncedContent] = useState(submissionContent)
-  
+
   // Extract student drawings ONLY on first load if we have submissionContent
   const isLoaded = useRef(false)
   useEffect(() => {
@@ -122,7 +123,7 @@ export function StudentAssignmentLayout({
     if (isLoaded.current && isDirtyRef.current) {
       const newFullContent = embedDrawings(pureContent, studentDrawings)
       setSubmissionContent(newFullContent)
-      
+
       // Auto save after typing
       if (!isReadOnly && onAutoSave) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
@@ -195,7 +196,7 @@ export function StudentAssignmentLayout({
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
     isDirtyRef.current = true
     if (editingShape) {
-      const updatedDrawings = studentDrawings.map(d => 
+      const updatedDrawings = studentDrawings.map(d =>
         d.shapeCode === editingShape.shapeCode ? { ...d, jsxGraphData } : d
       )
       setStudentDrawings(updatedDrawings)
@@ -203,12 +204,12 @@ export function StudentAssignmentLayout({
       const existingIndices = studentDrawings
         .map(d => parseInt(d.shapeCode.replace('SHAPE_', '')))
         .filter(n => !isNaN(n))
-      
+
       let nextIndex = 1
       while (existingIndices.includes(nextIndex)) {
         nextIndex++
       }
-      
+
       const shapeCode = `SHAPE_${nextIndex}`
       const newDrawing = { shapeCode, jsxGraphData }
       setStudentDrawings(prev => [...prev, newDrawing])
@@ -279,10 +280,10 @@ export function StudentAssignmentLayout({
 
   const renderContentWithDrawings = (rawContent: string, drawingList: any[]) => {
     if (!rawContent) return null
-    
+
     // We already passed pureContent, so it shouldn't have JSON embedded. 
     // Just replace tags.
-    const parts = rawContent.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
+    const parts = rawContent.split(/(\[SHAPE_[a-zA-Z0-9_]+\]|\[IMAGE_[a-zA-Z0-9_]+\])/g)
 
     return parts.map((part, index) => {
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
@@ -291,6 +292,16 @@ export function StudentAssignmentLayout({
         const drawing = drawingList.find(d => d.shapeCode === shapeCode)
         if (drawing) {
           return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+        }
+      }
+
+      const imageMatch = part.match(/^(\[IMAGE_[a-zA-Z0-9_]+\])$/)
+      if (imageMatch) {
+        const imageCode = imageMatch[1]
+        const image = assignment.images?.find((img: any) => img.imageCode === imageCode)
+        if (image) {
+          // eslint-disable-next-line @next/next/no-img-element
+          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full h-auto rounded-lg my-4 shadow-sm border border-slate-200" />
         }
       }
 
@@ -363,8 +374,8 @@ export function StudentAssignmentLayout({
                 <>
                   <button
                     onClick={() => {
-                       isDirtyRef.current = true; // force save
-                       onSaveDraft();
+                      isDirtyRef.current = true; // force save
+                      onSaveDraft();
                     }}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
@@ -414,24 +425,24 @@ export function StudentAssignmentLayout({
             </p>
           )}
           {teacherFeedback && (
-             <div className="mt-2 bg-sky-50 border border-sky-200 p-3 rounded-lg">
-               <h4 className="text-sky-800 font-semibold mb-1 flex items-center gap-2 text-sm">
-                 <span className="w-4 h-4 rounded-full bg-sky-200 flex items-center justify-center text-sky-800 text-[10px]">i</span>
-                 Nhận xét từ giáo viên
-               </h4>
-               <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                   {teacherFeedback}
-                 </ReactMarkdown>
-               </div>
-             </div>
+            <div className="mt-2 bg-sky-50 border border-sky-200 p-3 rounded-lg">
+              <h4 className="text-sky-800 font-semibold mb-1 flex items-center gap-2 text-sm">
+                <span className="w-4 h-4 rounded-full bg-sky-200 flex items-center justify-center text-sky-800 text-[10px]">i</span>
+                Nhận xét từ giáo viên
+              </h4>
+              <div className="prose prose-slate prose-sm max-w-none text-sky-900">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {teacherFeedback}
+                </ReactMarkdown>
+              </div>
+            </div>
           )}
         </div>
 
         {/* ROW 2: Editor and Preview Split */}
         <div className="flex-1 min-h-0 relative">
           <PanelGroup direction="horizontal" className="h-full w-full">
-            
+
             {/* EDITOR */}
             <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${isReadOnly ? 'bg-slate-50 opacity-90 border-slate-200' : 'border-border focus-within:border-primary'}`}>
               <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
@@ -455,14 +466,14 @@ export function StudentAssignmentLayout({
               </div>
 
               {!isReadOnly && <LatexToolbar onInsert={handleInsertLatex} />}
-              
+
               {/* Danh sách hình vẽ của học sinh */}
               {studentDrawings.length > 0 && (
                 <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
                   <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ của bạn:</span>
                   {studentDrawings.map(d => (
                     <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleInsertDrawing(d.shapeCode)}
                         className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
@@ -474,7 +485,7 @@ export function StudentAssignmentLayout({
                       {!isReadOnly && (
                         <>
                           <div className="w-px h-4 bg-slate-200"></div>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleEditDrawing(d.shapeCode)}
                             className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
@@ -482,7 +493,7 @@ export function StudentAssignmentLayout({
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleDeleteDrawing(d.shapeCode)}
                             className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
@@ -517,21 +528,19 @@ export function StudentAssignmentLayout({
               <div className="flex items-center border-b border-border bg-slate-50 shrink-0">
                 <button
                   onClick={() => setActiveTab('ASSIGNMENT')}
-                  className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold transition-colors border-b-2 ${
-                    activeTab === 'ASSIGNMENT' 
-                      ? 'border-primary text-primary bg-white' 
+                  className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold transition-colors border-b-2 ${activeTab === 'ASSIGNMENT'
+                      ? 'border-primary text-primary bg-white'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
-                  }`}
+                    }`}
                 >
                   <FileText className="w-3.5 h-3.5" /> ĐỀ BÀI
                 </button>
                 <button
                   onClick={() => setActiveTab('PREVIEW')}
-                  className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold transition-colors border-b-2 ${
-                    activeTab === 'PREVIEW' 
-                      ? 'border-primary text-primary bg-white' 
+                  className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold transition-colors border-b-2 ${activeTab === 'PREVIEW'
+                      ? 'border-primary text-primary bg-white'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
-                  }`}
+                    }`}
                 >
                   <Eye className="w-3.5 h-3.5" /> XEM TRƯỚC BÀI LÀM
                 </button>

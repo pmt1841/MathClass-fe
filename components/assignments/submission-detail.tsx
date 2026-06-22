@@ -200,7 +200,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
   const renderContentWithDrawings = (rawContent: string) => {
     if (!rawContent) return null
     const { content: cleanContent, extractedDrawings } = extractDrawings(rawContent)
-    const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
+    const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+\]|\[IMAGE_[a-zA-Z0-9_]+\])/g)
 
     return parts.map((part, index) => {
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
@@ -211,6 +211,17 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
           return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
         }
       }
+
+      const imageMatch = part.match(/^(\[IMAGE_[a-zA-Z0-9_]+\])$/)
+      if (imageMatch) {
+        const imageCode = imageMatch[1]
+        const image = assignment?.images?.find((img: any) => img.imageCode === imageCode)
+        if (image) {
+          // eslint-disable-next-line @next/next/no-img-element
+          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full h-auto rounded-lg my-4 shadow-sm border border-slate-200" />
+        }
+      }
+
       return (
         <ReactMarkdown
           key={index}

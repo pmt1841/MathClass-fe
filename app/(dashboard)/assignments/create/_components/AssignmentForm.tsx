@@ -8,11 +8,13 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus } from 'lucide-react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useRouter } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import dynamic from 'next/dynamic'
+import api from '@/lib/axios'
+import { toast } from 'sonner'
 
 export const embedDrawings = (content: string, drawings: any[]) => {
   if (!drawings || drawings.length === 0) return content
@@ -44,7 +46,8 @@ const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
   description: z.string().min(1, 'Mô tả bài tập không được để trống'),
   content: z.string().min(1, 'Nội dung bài tập không được để trống'),
-  drawings: z.array(z.any()).optional()
+  drawings: z.array(z.any()).optional(),
+  images: z.array(z.any()).optional()
 })
 
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
@@ -87,6 +90,11 @@ export function AssignmentForm({
   const [drawings, setDrawings] = useState<any[]>(defaultValues?.drawings || [])
   const [editingShape, setEditingShape] = useState<{ shapeCode: string, jsxGraphData: any } | null>(null)
 
+  // Images State
+  const [images, setImages] = useState<any[]>(defaultValues?.images || [])
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -100,7 +108,8 @@ export function AssignmentForm({
       title: '',
       description: '',
       content: '',
-      drawings: []
+      drawings: [],
+      images: []
     },
     mode: 'onChange'
   })
@@ -117,6 +126,9 @@ export function AssignmentForm({
     reset(mergedValues)
     if (mergedValues.drawings) {
       setDrawings(mergedValues.drawings)
+    }
+    if (mergedValues.images) {
+      setImages(mergedValues.images)
     }
 
     // Allow a small delay before enabling auto-save to avoid saving empty/initial values immediately
@@ -137,7 +149,7 @@ export function AssignmentForm({
     saveTimeoutRef.current = setTimeout(async () => {
       setIsAutoSaving(true)
       try {
-        await onAutoSave({ ...formValues, content: embedDrawings(formValues.content, drawings) })
+        await onAutoSave({ ...formValues, content: embedDrawings(formValues.content, drawings), drawings, images })
         setLastSavedTime(new Date())
       } catch (err) {
         console.error('Lỗi autosave', err)
@@ -163,13 +175,13 @@ export function AssignmentForm({
   }, [contentValue])
 
   const handleDraft = (data: AssignmentFormValues) => {
-    onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings })
+    onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     setLastSavedTime(new Date())
   }
 
   const handlePublish = (data: AssignmentFormValues) => {
     if (onPublishClick) {
-      onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings })
+      onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     }
   }
 
@@ -259,13 +271,13 @@ export function AssignmentForm({
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
     if (editingShape) {
       // Cập nhật hình cũ
-      const updatedDrawings = drawings.map(d => 
-        d.shapeCode === editingShape.shapeCode 
-          ? { ...d, jsxGraphData } 
+      const updatedDrawings = drawings.map(d =>
+        d.shapeCode === editingShape.shapeCode
+          ? { ...d, jsxGraphData }
           : d
       )
       setDrawings(updatedDrawings)
-      
+
       // Kích hoạt auto-save bằng cách set lại content
       const currentVal = formValues.content || ''
       setValue('content', currentVal, { shouldValidate: true, shouldDirty: true })
@@ -274,12 +286,12 @@ export function AssignmentForm({
       const existingIndices = drawings
         .map(d => parseInt(d.shapeCode.replace('SHAPE_', '')))
         .filter(n => !isNaN(n))
-      
+
       let nextIndex = 1
       while (existingIndices.includes(nextIndex)) {
         nextIndex++
       }
-      
+
       const shapeCode = `SHAPE_${nextIndex}`
       const newDrawing = { shapeCode, jsxGraphData }
       setDrawings(prev => [...prev, newDrawing])
@@ -351,21 +363,105 @@ export function AssignmentForm({
     }
   }
 
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (images.length >= 10) {
+      toast.error('Chỉ được phép tải lên tối đa 10 ảnh.')
+      return
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh vượt quá 3MB.')
+      return
+    }
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Định dạng ảnh không hợp lệ. Vui lòng chọn .jpg, .png, .webp')
+      return
+    }
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await api.post('/api/assignments/images/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      const { imageCode, imageUrl } = response.data
+      setImages(prev => [...prev, { imageCode, imageUrl }])
+
+      // Insert into markdown
+      if (textareaRef.current) {
+        const textarea = textareaRef.current
+        const start = textarea.selectionStart
+        const currentVal = formValues.content || ''
+        const before = currentVal.substring(0, start)
+        const after = currentVal.substring(start)
+
+        const insertText = imageCode
+        const newVal = before + insertText + after
+        setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+
+        setTimeout(() => {
+          textarea.focus()
+          const newCursorPos = start + insertText.length
+          textarea.setSelectionRange(newCursorPos, newCursorPos)
+        }, 0)
+      } else {
+        const currentVal = formValues.content || ''
+        setValue('content', currentVal + `\n${imageCode}`, { shouldValidate: true, shouldDirty: true })
+      }
+      toast.success('Tải ảnh lên thành công')
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Có lỗi xảy ra khi tải ảnh lên')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleDeleteImage = (imageCode: string) => {
+    setImages(prev => prev.filter(img => img.imageCode !== imageCode))
+    const currentVal = formValues.content || ''
+    const newVal = currentVal.replace(new RegExp(imageCode.replace(/\[/g, '\\[').replace(/\]/g, '\\]'), 'g'), '')
+    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+  }
+
   // Render function for Content with JSXGraph replacing
   const renderContentWithDrawings = (content: string) => {
     if (!content) return null
 
-    // Split content by [SHAPE_XXX] pattern
-    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\])/g)
+    // Split content by [SHAPE_XXX] or [IMAGE_XXX] pattern
+    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\]|\[IMAGE_[a-zA-Z0-9_]+\])/g)
 
     return parts.map((part, index) => {
       // Check if it's a shape placeholder
-      const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
-      if (match) {
-        const shapeCode = match[1]
+      const shapeMatch = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
+      if (shapeMatch) {
+        const shapeCode = shapeMatch[1]
         const drawing = drawings.find(d => d.shapeCode === shapeCode)
         if (drawing) {
           return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+        }
+      }
+
+      // Check if it's an image placeholder
+      const imageMatch = part.match(/^(\[IMAGE_[a-zA-Z0-9_]+\])$/)
+      if (imageMatch) {
+        const imageCode = imageMatch[1]
+        const image = images.find(img => img.imageCode === imageCode)
+        if (image) {
+          // eslint-disable-next-line @next/next/no-img-element
+          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full h-auto rounded-lg my-4 shadow-sm border border-slate-200" />
         }
       }
 
@@ -491,45 +587,65 @@ export function AssignmentForm({
                 <div className="flex items-center gap-2">
                   <Edit3 className="w-3.5 h-3.5" /> Soạn thảo bài tập
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setEditingShape(null);
-                    setShowJsxGraphModal(true);
-                  }}
-                  className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
-                >
-                  <CircleDot className="w-3.5 h-3.5" />
-                  Thêm hình vẽ JSXGraph
-                </button>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="file" 
+                    accept=".jpg,.jpeg,.png,.webp"
+                    className="hidden" 
+                    ref={fileInputRef} 
+                    onChange={handleUploadImage} 
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded flex items-center gap-1.5 hover:bg-emerald-100 transition-colors shadow-sm border border-emerald-200 disabled:opacity-50"
+                  >
+                    <ImagePlus className="w-3.5 h-3.5" />
+                    {isUploading ? 'Đang tải...' : 'Thêm ảnh'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setEditingShape(null);
+                      setShowJsxGraphModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
+                  >
+                    <CircleDot className="w-3.5 h-3.5" />
+                    Thêm hình vẽ JSXGraph
+                  </button>
+                </div>
               </div>
               <LatexToolbar onInsert={handleInsertLatex} />
-              
-              {/* Danh sách hình vẽ */}
-              {drawings.length > 0 && (
+
+              {/* Danh sách hình vẽ & Ảnh */}
+              {(drawings.length > 0 || images.length > 0) && (
                 <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
-                  <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ:</span>
-                  {drawings.map(d => (
+                  {drawings.length > 0 && (
+                    <>
+                      <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ:</span>
+                      {drawings.map(d => (
                     <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleInsertDrawing(d.shapeCode)}
                         className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                        title={`Chèn ${d.shapeCode} vào văn bản`}
+                        title="Chèn vào văn bản"
                       >
                         {d.shapeCode}
                       </button>
                       <div className="w-px h-4 bg-slate-200"></div>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleEditDrawing(d.shapeCode)}
                         className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Sửa hình vẽ"
+                        title="Chỉnh sửa"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleDeleteDrawing(d.shapeCode)}
                         className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
@@ -539,6 +655,46 @@ export function AssignmentForm({
                       </button>
                     </div>
                   ))}
+                    </>
+                  )}
+                  {images.length > 0 && (
+                    <>
+                      {drawings.length > 0 && <div className="w-px h-4 bg-slate-300 mx-2"></div>}
+                      <span className="text-xs font-semibold text-slate-500 mr-1">Ảnh:</span>
+                      {images.map(img => (
+                        <div key={img.imageCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const textarea = textareaRef.current
+                              if (!textarea) return
+                              const start = textarea.selectionStart
+                              const currentVal = formValues.content || ''
+                              const newVal = currentVal.substring(0, start) + img.imageCode + currentVal.substring(start)
+                              setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+                              setTimeout(() => {
+                                textarea.focus()
+                                textarea.setSelectionRange(start + img.imageCode.length, start + img.imageCode.length)
+                              }, 0)
+                            }}
+                            className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                            title={`Chèn ${img.imageCode} vào văn bản`}
+                          >
+                            {img.imageCode}
+                          </button>
+                          <div className="w-px h-4 bg-slate-200"></div>
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteImage(img.imageCode)}
+                            className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Xoá ảnh"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
               <textarea
