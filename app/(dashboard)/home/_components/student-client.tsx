@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Trophy, Flame, Target, BookOpen, Star, ArrowRight, Bell } from 'lucide-react'
+import { Clock, Trophy, Flame, Target, BookOpen, Star, ArrowRight, Bell, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 export function StudentDashboardClient() {
@@ -78,33 +78,36 @@ export function StudentDashboardClient() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Urgent Tasks */}
-        <Card className="col-span-4 border-red-200 shadow-sm dark:border-red-900/50">
-          <CardHeader className="bg-red-50/50 dark:bg-red-950/20 border-b border-red-100 dark:border-red-900/30">
-            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
-              <Clock className="h-5 w-5" /> Nhiệm vụ cần làm gấp
-            </CardTitle>
-            <CardDescription>Các bài tập sẽ hết hạn trong 24h tới.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
-                <div className="space-y-1">
-                  <p className="font-semibold text-base">Bài tập: Đạo hàm cơ bản</p>
-                  <p className="text-sm text-muted-foreground">Toán Đại Số nâng cao - 11A1</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
-                      Còn lại: {countdown}
-                    </Badge>
+        <div className="col-span-4 space-y-4">
+
+          {/* Urgent Tasks */}
+          <Card className="border-red-200 shadow-sm dark:border-red-900/50">
+            <CardHeader className="bg-red-50/50 dark:bg-red-950/20 border-b border-red-100 dark:border-red-900/30">
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                <Clock className="h-5 w-5" /> Nhiệm vụ cần làm gấp
+              </CardTitle>
+              <CardDescription>Các bài tập sẽ hết hạn trong 24h tới.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-base">Bài tập: Đạo hàm cơ bản</p>
+                    <p className="text-sm text-muted-foreground">Toán Đại Số nâng cao - 11A1</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+                        Còn lại: {countdown}
+                      </Badge>
+                    </div>
                   </div>
+                  <Link href="/classes/CLASS123/student">
+                    <Button className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white">Làm bài ngay</Button>
+                  </Link>
                 </div>
-                <Link href="/classes/CLASS123/student">
-                  <Button className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white">Làm bài ngay</Button>
-                </Link>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Recent Updates */}
         <Card className="col-span-3">

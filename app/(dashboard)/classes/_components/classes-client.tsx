@@ -17,7 +17,13 @@ import {
 import Link from 'next/link'
 import api from '@/lib/axios'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
+import { JoinClassModal } from '@/components/dashboard/join-class-modal'
+import { joinRequestsApi } from '@/lib/api/join-requests'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Clock } from 'lucide-react'
 
 interface Classroom {
   id: number
@@ -36,6 +42,7 @@ export function ClassesClient() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'code-asc'>('name-asc')
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [userRole, setUserRole] = useState<string>('STUDENT')
 
@@ -47,6 +54,15 @@ export function ClassesClient() {
     'from-emerald-400 to-teal-600',
     'from-rose-500 to-pink-600',
   ]
+
+  // Fetch join requests for student
+  const { data: joinRequests, refetch: refetchRequests } = useQuery({
+    queryKey: ['my-join-requests'],
+    queryFn: joinRequestsApi.getMyJoinRequests,
+    enabled: userRole === 'STUDENT',
+  })
+
+  const pendingRequests = joinRequests?.filter(req => req.status === 'PENDING') || []
 
   const fetchClasses = async (showToast = false) => {
     try {
@@ -142,6 +158,15 @@ export function ClassesClient() {
                 Tạo lớp học mới
               </button>
             )}
+            {userRole === 'STUDENT' && (
+              <button
+                onClick={() => setJoinModalOpen(true)}
+                className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+              >
+                <Plus className="h-4.5 w-4.5" />
+                Xin vào lớp
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -177,6 +202,32 @@ export function ClassesClient() {
               </select>
             </div>
           </div>
+
+          {/* Pending Requests for Student */}
+          {userRole === 'STUDENT' && pendingRequests.length > 0 && (
+            <Card className="border-orange-200 shadow-sm dark:border-orange-900/50">
+              <CardHeader className="bg-orange-50/50 dark:bg-orange-950/20 border-b border-orange-100 dark:border-orange-900/30 py-3">
+                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400 text-base">
+                  <Clock className="h-5 w-5" /> Yêu cầu xin vào lớp đang chờ duyệt
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-border">
+                  {pendingRequests.map(req => (
+                    <div key={req.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+                      <div className="space-y-1">
+                        <p className="font-semibold text-base text-foreground">Lớp: {req.className} ({req.classCode})</p>
+                        <p className="text-sm text-muted-foreground">Đã gửi lúc: {new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
+                      </div>
+                      <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+                        Đang chờ giáo viên duyệt
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Cards Grid / States */}
           {loading ? (
@@ -352,6 +403,17 @@ export function ClassesClient() {
         onSuccess={() => {
           fetchClasses(false)
           setCreateModalOpen(false)
+        }}
+      />
+
+      <JoinClassModal
+        open={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+        onSuccess={() => {
+          setJoinModalOpen(false)
+          if (userRole === 'STUDENT') {
+            refetchRequests()
+          }
         }}
       />
     </div>
