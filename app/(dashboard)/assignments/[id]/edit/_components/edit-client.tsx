@@ -57,7 +57,9 @@ export function EditAssignmentPageClient() {
         setAssignmentData({
           title: data.title || '',
           description: data.description || '',
-          content: data.content || ''
+          content: data.content || '',
+          drawings: data.drawings || [],
+          images: data.images || []
         })
       } catch (err: any) {
         console.error('Error fetching assignment:', err)

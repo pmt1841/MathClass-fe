@@ -388,14 +388,16 @@ export function AssignmentForm({
     formData.append('file', file)
 
     try {
-      const response = await api.post('/api/assignments/images/upload', formData, {
+      const response = await api.post('/assignments/images/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
       
       const { imageCode, imageUrl } = response.data
-      setImages(prev => [...prev, { imageCode, imageUrl }])
+      const newImages = [...images, { imageCode, imageUrl }]
+      setImages(newImages)
+      setValue('images', newImages, { shouldValidate: true, shouldDirty: true })
 
       // Insert into markdown
       if (textareaRef.current) {
@@ -430,7 +432,9 @@ export function AssignmentForm({
   }
 
   const handleDeleteImage = (imageCode: string) => {
-    setImages(prev => prev.filter(img => img.imageCode !== imageCode))
+    const updatedImages = images.filter(img => img.imageCode !== imageCode)
+    setImages(updatedImages)
+    setValue('images', updatedImages, { shouldValidate: true, shouldDirty: true })
     const currentVal = formValues.content || ''
     const newVal = currentVal.replace(new RegExp(imageCode.replace(/\[/g, '\\[').replace(/\]/g, '\\]'), 'g'), '')
     setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
