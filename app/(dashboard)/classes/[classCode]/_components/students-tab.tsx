@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
-import { Users, UserPlus, Search, Loader2, RefreshCw, UserX, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, UserPlus, Search, Loader2, RefreshCw, UserX, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import api from '@/lib/axios'
 import { toast } from 'sonner'
 import {
@@ -17,6 +17,8 @@ import {
 import { ClassroomDetail, Student } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { joinRequestsApi } from '@/lib/api/join-requests'
 
 export function StudentsTab({
   classCode,
@@ -29,6 +31,7 @@ export function StudentsTab({
   loadingClass: boolean
   onClassroomUpdate: () => void
 }) {
+  const queryClient = useQueryClient()
   const [students, setStudents] = useState<Student[]>([])
   const [loadingStudents, setLoadingStudents] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -43,6 +46,30 @@ export function StudentsTab({
   const [studentToRemove, setStudentToRemove] = useState<{ id: number; name: string } | null>(null)
 
   const isFull = classroom ? (classroom.studentCount ?? 0) >= (classroom.maxStudents ?? Infinity) : false
+
+  const { data: pendingRequests, isLoading: isLoadingRequests } = useQuery({
+    queryKey: ['pending-requests', classCode],
+    queryFn: () => joinRequestsApi.getPendingRequests(classCode),
+    enabled: !!classCode,
+  })
+
+  const processRequestMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number, status: 'APPROVED' | 'REJECTED' }) => 
+      joinRequestsApi.processJoinRequest(id, { status }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-requests', classCode] })
+      if (variables.status === 'APPROVED') {
+        toast.success('Đã duyệt yêu cầu tham gia')
+        fetchStudents(false)
+        onClassroomUpdate()
+      } else {
+        toast.success('Đã từ chối yêu cầu tham gia')
+      }
+    },
+    onError: () => {
+      toast.error('Xử lý yêu cầu thất bại')
+    }
+  })
 
   const fetchStudents = useCallback(
     async (showToast = false) => {
@@ -192,8 +219,49 @@ export function StudentsTab({
         </div>
       )}
 
+      {/* Pending Requests Panel */}
+      {pendingRequests && pendingRequests.length > 0 && (
+        <div className="rounded-2xl border border-orange-200 bg-white shadow-sm overflow-hidden mt-4">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-orange-100 bg-orange-50/50">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100">
+              <UserPlus className="h-4.5 w-4.5 text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-orange-800">Yêu cầu xin vào lớp</h2>
+              <p className="text-xs text-orange-600/80">Có {pendingRequests.length} yêu cầu đang chờ duyệt</p>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {pendingRequests.map(req => (
+              <div key={req.id} className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors">
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-foreground">{req.studentName}</span>
+                  <span className="text-xs text-muted-foreground">{req.studentEmail}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => processRequestMutation.mutate({ id: req.id, status: 'APPROVED' })}
+                    disabled={processRequestMutation.isPending || isFull}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50 text-xs font-semibold"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Duyệt
+                  </button>
+                  <button
+                    onClick={() => processRequestMutation.mutate({ id: req.id, status: 'REJECTED' })}
+                    disabled={processRequestMutation.isPending}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50 text-xs font-semibold"
+                  >
+                    <X className="h-3.5 w-3.5" /> Từ chối
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Student list panel */}
-      <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden mt-4">
         {/* Panel header */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-slate-50 to-transparent">
           <div className="flex items-center gap-3">
@@ -214,7 +282,7 @@ export function StudentsTab({
               className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
               title="Sắp xếp theo tên"
             >
-              <Users className="h-3.5 w-3.5" /> {/* Replaced ArrowUpDown with Users for simplicity or you can use other lucide icon */}
+              <Users className="h-3.5 w-3.5" />
               {sortAsc ? 'A-Z' : 'Z-A'}
             </button>
 
