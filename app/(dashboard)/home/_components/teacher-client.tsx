@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Users, BookOpen, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { dashboardApi } from '@/lib/api/dashboard'
 
 // Mock Data for Charts
 const classPerformanceData = [
@@ -24,6 +26,11 @@ const weakStudentsData = [
 ]
 
 export function TeacherDashboardClient() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['teacher-stats'],
+    queryFn: dashboardApi.getTeacherStats,
+  })
+
   return (
     <div className="flex-1 space-y-6 px-8 pb-8 pt-3">
       <div className="flex items-center justify-between space-y-2">
@@ -38,8 +45,10 @@ export function TeacherDashboardClient() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Tăng 1 lớp so với kỳ trước</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? '-' : stats?.teachingClasses ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Đang hoạt động</p>
           </CardContent>
         </Card>
         <Card>
@@ -48,8 +57,10 @@ export function TeacherDashboardClient() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">185</div>
-            <p className="text-xs text-muted-foreground">Tăng 12 học sinh</p>
+            <div className="text-2xl font-bold">
+              {isLoading ? '-' : stats?.managedStudents ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Học sinh tham gia lớp</p>
           </CardContent>
         </Card>
         <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-900">
@@ -58,8 +69,10 @@ export function TeacherDashboardClient() {
             <CheckCircle className="h-4 w-4 text-orange-600 dark:text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">15</div>
-            <p className="text-xs text-orange-600/80 dark:text-orange-500/80">Bài toán Hình học 11B1</p>
+            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+              {isLoading ? '-' : stats?.assignmentsToGrade ?? 0}
+            </div>
+            <p className="text-xs text-orange-600/80 dark:text-orange-500/80 mt-1">Bài nộp đang chờ</p>
           </CardContent>
         </Card>
         <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
@@ -68,8 +81,10 @@ export function TeacherDashboardClient() {
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-400">3</div>
-            <p className="text-xs text-red-600/80 dark:text-red-500/80">Học sinh đang chờ</p>
+            <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+              {isLoading ? '-' : stats?.pendingJoinRequests ?? 0}
+            </div>
+            <p className="text-xs text-red-600/80 dark:text-red-500/80 mt-1">Học sinh đang chờ</p>
           </CardContent>
         </Card>
       </div>
