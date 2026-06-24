@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ClassesClient } from '@/app/(dashboard)/classes/_components/classes-client'
 import api from '@/lib/axios'
 
@@ -21,12 +22,24 @@ describe('ClassesClient Feature', () => {
     window.sessionStorage.clear()
   })
 
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+
   it('renders loading skeleton initially', () => {
     // API chưa trả về
     vi.mocked(api.get).mockImplementation(() => new Promise(() => {}))
     window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
 
-    render(<ClassesClient />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ClassesClient />
+      </QueryClientProvider>
+    )
     
     // Tìm các thẻ Skeleton bằng test id nếu có, hoặc dựa vào class
     const skeletons = document.querySelectorAll('.animate-pulse')
@@ -42,7 +55,11 @@ describe('ClassesClient Feature', () => {
     })
     window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
 
-    render(<ClassesClient />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ClassesClient />
+      </QueryClientProvider>
+    )
 
     // Đợi API trả về và giao diện render ra
     await waitFor(() => {
