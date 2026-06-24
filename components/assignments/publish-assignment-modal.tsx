@@ -129,7 +129,7 @@ export function PublishAssignmentModal({
       await api.put(`/assignments/${assignmentId}/publish`, {
         targets: selectedTargets.map((t) => ({
           classCode: t.classCode,
-          deadline: new Date(t.deadline).toISOString(),
+          deadline: t.deadline,
         })),
       })
       toast.success(assignmentTitle ? `Đã giao bài tập "${assignmentTitle}" thành công!` : 'Đã giao bài tập thành công!')

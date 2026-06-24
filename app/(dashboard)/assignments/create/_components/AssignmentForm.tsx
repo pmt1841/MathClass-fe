@@ -372,8 +372,8 @@ export function AssignmentForm({
       return
     }
 
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error('Dung lượng ảnh vượt quá 3MB.')
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh vượt quá 5MB.')
       return
     }
 
@@ -393,7 +393,7 @@ export function AssignmentForm({
           'Content-Type': 'multipart/form-data'
         }
       })
-      
+
       const { imageCode, imageUrl } = response.data
       const newImages = [...images, { imageCode, imageUrl }]
       setImages(newImages)
@@ -592,12 +592,12 @@ export function AssignmentForm({
                   <Edit3 className="w-3.5 h-3.5" /> Soạn thảo bài tập
                 </div>
                 <div className="flex items-center gap-2">
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     accept=".jpg,.jpeg,.png,.webp"
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleUploadImage} 
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleUploadImage}
                   />
                   <button
                     type="button"
@@ -631,34 +631,34 @@ export function AssignmentForm({
                     <>
                       <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ:</span>
                       {drawings.map(d => (
-                    <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                      <button
-                        type="button"
-                        onClick={() => handleInsertDrawing(d.shapeCode)}
-                        className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                        title="Chèn vào văn bản"
-                      >
-                        {d.shapeCode}
-                      </button>
-                      <div className="w-px h-4 bg-slate-200"></div>
-                      <button
-                        type="button"
-                        onClick={() => handleEditDrawing(d.shapeCode)}
-                        className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Chỉnh sửa"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteDrawing(d.shapeCode)}
-                        className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Xoá hình vẽ"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                        <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
+                          <button
+                            type="button"
+                            onClick={() => handleInsertDrawing(d.shapeCode)}
+                            className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Chèn vào văn bản"
+                          >
+                            {d.shapeCode}
+                          </button>
+                          <div className="w-px h-4 bg-slate-200"></div>
+                          <button
+                            type="button"
+                            onClick={() => handleEditDrawing(d.shapeCode)}
+                            className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDrawing(d.shapeCode)}
+                            className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Xoá hình vẽ"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
                     </>
                   )}
                   {images.length > 0 && (
@@ -667,7 +667,7 @@ export function AssignmentForm({
                       <span className="text-xs font-semibold text-slate-500 mr-1">Ảnh:</span>
                       {images.map(img => (
                         <div key={img.imageCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => {
                               const textarea = textareaRef.current
@@ -687,7 +687,7 @@ export function AssignmentForm({
                             {img.imageCode}
                           </button>
                           <div className="w-px h-4 bg-slate-200"></div>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleDeleteImage(img.imageCode)}
                             className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"

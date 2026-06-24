@@ -21,6 +21,8 @@ interface Assignment {
   className: string
   hasSubmissions?: boolean
   submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | null
+  submissionCreatedAt?: string
+  submissionUpdatedAt?: string
 }
 
 export function AssignmentsPageClient() {
@@ -373,10 +375,28 @@ export function AssignmentsPageClient() {
                             Lớp: {assignment.className}
                           </div>
                         )}
-                        {assignment.deadline && (
+                        {assignment.submissionStatus === 'GRADED' && assignment.submissionUpdatedAt ? (
+                          <div className="flex items-center gap-2 text-xs font-medium text-blue-600">
+                            <Clock className="h-3.5 w-3.5" />
+                            Chấm điểm: {new Date(assignment.submissionUpdatedAt).toLocaleString('vi-VN', {
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                        ) : assignment.deadline ? (
                           <div className="flex items-center gap-2 text-xs font-medium text-rose-600">
                             <Clock className="h-3.5 w-3.5" />
                             Hạn nộp: {new Date(assignment.deadline).toLocaleString('vi-VN', {
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                        ) : null}
+                        
+                        {assignment.submissionStatus === 'SUBMITTED' && assignment.submissionCreatedAt && (
+                          <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Thời gian nộp: {new Date(assignment.submissionCreatedAt).toLocaleString('vi-VN', {
                               day: '2-digit', month: '2-digit', year: 'numeric',
                               hour: '2-digit', minute: '2-digit'
                             })}

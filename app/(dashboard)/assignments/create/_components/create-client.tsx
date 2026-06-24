@@ -85,7 +85,15 @@ export function CreateAssignmentPageClient() {
     try {
       setIsSubmitting(true)
 
-      const assignmentId = createdAssignmentId || createResponse.data?.id
+      let assignmentId = createdAssignmentId
+
+      if (!assignmentId) {
+        const createRes = await api.post('/assignments/create', currentAssignmentData)
+        assignmentId = createRes.data?.id
+        if (assignmentId) {
+          setCreatedAssignmentId(assignmentId)
+        }
+      }
 
       if (!assignmentId) {
         throw new Error('Không lấy được ID bài tập sau khi tạo.')
@@ -95,7 +103,7 @@ export function CreateAssignmentPageClient() {
       await api.put(`/assignments/${assignmentId}/publish`, {
         targets: targets.map(t => ({
           classCode: t.classCode,
-          deadline: new Date(t.deadline).toISOString(),
+          deadline: t.deadline,
         })),
       })
 

@@ -344,7 +344,7 @@ export function StudentAssignmentLayout({
         </div>
 
         <div className="flex-1 flex justify-center">
-          {assignment.deadline && (
+          {assignment.deadline && !isGraded && (
             <CountdownTimer deadline={assignment.deadline} />
           )}
         </div>
