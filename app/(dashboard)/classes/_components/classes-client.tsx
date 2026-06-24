@@ -282,7 +282,9 @@ export function ClassesClient() {
                 <p className="text-sm text-muted-foreground">
                   {searchQuery
                     ? 'Thử thay đổi từ khóa tìm kiếm của bạn hoặc kiểm tra chính xác mã lớp.'
-                    : 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học đầu tiên.'}
+                    : userRole === 'TEACHER'
+                      ? 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học đầu tiên.'
+                      : 'Bắt đầu hành trình học tập của bạn bằng việc tham gia vào một lớp học.'}
                 </p>
               </div>
               {!searchQuery && userRole === 'TEACHER' && (

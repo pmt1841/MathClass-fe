@@ -70,9 +70,6 @@ export function StudentDashboardClient() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">4</div>
-            <Link href="/classes">
-              <p className="text-xs text-primary hover:underline mt-1 cursor-pointer">Xem tất cả lớp học</p>
-            </Link>
           </CardContent>
         </Card>
       </div>

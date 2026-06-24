@@ -35,3 +35,25 @@ export interface MyClassroom {
 }
 
 export type TabType = 'students' | 'assignments'
+
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
+
+export interface UserResponse {
+  id: number
+  fullName: string
+  email: string
+  phoneNumber: string
+  role: 'TEACHER' | 'STUDENT'
+  isActive: boolean
+  avatarUrl?: string
+  dateOfBirth?: string
+  gender?: Gender
+}
+
+export interface UpdateProfileRequest {
+  fullName: string
+  phoneNumber: string
+  dateOfBirth?: string
+  gender?: Gender
+  avatarUrl?: string
+}

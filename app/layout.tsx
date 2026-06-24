@@ -12,6 +12,8 @@ export const metadata: Metadata = {
     'Learn mathematics at your own pace with Math Class. Interactive lessons, practice problems, and personalized guidance to help you master every concept.',
 }
 
+import { Toaster } from '@/components/ui/sonner'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,6 +24,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <QueryProvider>
           {children}
+          <Toaster position="top-right" richColors />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </QueryProvider>
       </body>
