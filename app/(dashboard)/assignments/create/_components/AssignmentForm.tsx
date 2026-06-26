@@ -554,7 +554,7 @@ export function AssignmentForm({
             <input
               type="text"
               {...register('title')}
-              placeholder="Nhập tiêu đề (VD: Bài tập giải tích)..."
+              placeholder="Nhập tiêu đề..."
               className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-base font-semibold outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${errors.title ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
                 }`}
             />
@@ -618,7 +618,7 @@ export function AssignmentForm({
                     className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
                   >
                     <CircleDot className="w-3.5 h-3.5" />
-                    Thêm hình vẽ JSXGraph
+                    Thêm hình vẽ và đồ thị
                   </button>
                 </div>
               </div>
@@ -707,7 +707,7 @@ export function AssignmentForm({
                   formContentRef(e)
                   textareaRef.current = e
                 }}
-                placeholder="Nhập nội dung bài tập...&#10;Hỗ trợ LaTeX: $$ x = \frac{-b \pm \sqrt{\Delta}}{2a} $$"
+                placeholder="Nhập nội dung bài tập..."
                 className="flex-1 w-full p-4 text-sm bg-transparent outline-none resize-none font-mono leading-relaxed"
               />
             </Panel>

@@ -54,10 +54,11 @@ export function StudentsTab({
   })
 
   const processRequestMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number, status: 'APPROVED' | 'REJECTED' }) => 
+    mutationFn: ({ id, status }: { id: number, status: 'APPROVED' | 'REJECTED' }) =>
       joinRequestsApi.processJoinRequest(id, { status }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pending-requests', classCode] })
+      queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
       if (variables.status === 'APPROVED') {
         toast.success('Đã duyệt yêu cầu tham gia')
         fetchStudents(false)
@@ -112,6 +113,7 @@ export function StudentsTab({
         await api.post(`/classrooms/${classCode}/students/add`, { studentEmail: values.email })
         setAddSuccess(`Đã thêm học sinh với email: ${values.email}`)
         resetForm()
+        queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
         await Promise.all([fetchStudents(), onClassroomUpdate()])
         toast.success(`Thêm thành công: ${values.email}`)
       } catch (err: any) {
@@ -135,6 +137,7 @@ export function StudentsTab({
     try {
       await api.delete(`/classrooms/${classCode}/students/${studentId}`)
       setStudents((prev) => prev.filter((s) => s.id !== studentId))
+      queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
       onClassroomUpdate()
       toast.success(`Đã xóa học sinh: ${studentName}`)
     } catch {
