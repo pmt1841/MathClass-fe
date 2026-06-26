@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { NotificationPopover } from './NotificationPopover'
 
 interface UserInfo {
   fullName?: string
@@ -70,10 +71,7 @@ export function DashboardHeader() {
           {/* Right: User menu */}
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-primary-foreground/80 hover:bg-primary-foreground/10 transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
-            </button>
+            <NotificationPopover />
 
             {/* User dropdown */}
             <div className="relative">

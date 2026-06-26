@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-alert-dialog": "1.1.15",
     "@radix-ui/react-aspect-ratio": "1.1.8",
@@ -53,6 +54,7 @@
     "jsxgraph": "^1.12.2",
     "katex": "^0.17.0",
     "lucide-react": "^0.564.0",
+    "mathlive": "^0.110.0",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
     "react": "^19",
