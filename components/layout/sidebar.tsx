@@ -5,16 +5,14 @@ import {
   BookOpen,
   ClipboardList,
   BarChart3,
-  Settings,
   Users,
-  PlusCircle,
-  FileText,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 
 interface NavItem {
   icon: React.ElementType
@@ -40,12 +38,6 @@ const navItems: NavItem[] = [
     label: 'Kho bài tập',
     href: '/assignments',
   },
-  // {
-  //   icon: FileText,
-  //   label: 'Nộp bài',
-  //   href: '/assignments/submit',
-  //   roles: ['STUDENT'],
-  // },
   {
     icon: Users,
     label: 'Quản lý học sinh',
@@ -60,33 +52,18 @@ const navItems: NavItem[] = [
   },
 ]
 
-interface SidebarProps {
-  onCreateClass?: () => void
-}
-
-export function Sidebar({ onCreateClass }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-  const [userRole, setUserRole] = useState<string>('')
-
-  useEffect(() => {
-    const stored =
-      sessionStorage.getItem('user_info') ||
-      localStorage.getItem('user_info')
-    if (stored) {
-      try {
-        const info = JSON.parse(stored)
-        setUserRole(info.role || info.userRole || 'STUDENT')
-      } catch { }
-    }
-  }, [])
+  const { user } = useAuth()
+  
+  const userRole = user?.role || 'STUDENT'
 
   const visibleItems = navItems.filter(
     (item) => !item.roles || item.roles.includes(userRole as 'TEACHER' | 'STUDENT')
   )
 
   const isActive = (href: string) => {
-    // Nếu là trang chủ, bắt buộc pathname phải giống hệt href (khớp tuyệt đối)
     if (href === '/' || href === '/home') {
       return pathname === href;
     }
@@ -96,9 +73,6 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
       if (href === '/assignments') return false;
     }
 
-    // Với các trang khác, chỉ active nếu pathname khớp hoàn toàn 
-    // HOẶC pathname là trang con của href (ví dụ /assignments/123 là con của /assignments)
-    // nhưng phải đảm bảo không bị nhận diện nhầm sang các nhánh khác
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -107,7 +81,6 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
       className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'
         }`}
     >
-      {/* Toggle button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors"

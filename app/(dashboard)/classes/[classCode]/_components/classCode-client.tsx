@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
@@ -17,7 +17,6 @@ import {
   ClipboardList,
   Trash2,
 } from 'lucide-react'
-import api from '@/lib/axios'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -27,58 +26,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ClassroomDetail, TabType } from '@/types'
+import { TabType } from '@/types'
 import { TabButton } from './tab-button'
 import { StudentsTab } from './students-tab'
 import { AssignmentsTab } from './assignments-tab'
+import { useClassDetail, useUpdateClassroom, useDeleteClassroom } from '@/hooks/useClassDetail'
 
 export function ClassDetailPageClient() {
   const params = useParams()
   const router = useRouter()
   const classCode = params?.classCode as string
 
-  const [classroom, setClassroom] = useState<ClassroomDetail | null>(null)
-  const [loadingClass, setLoadingClass] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('students')
 
-  const fetchClassroom = useCallback(async () => {
-    try {
-      setLoadingClass(true)
-      const res = await api.get(`/classrooms/${classCode}`)
-      setClassroom(res.data)
-    } catch (err: any) {
-      toast.error('Không thể tải thông tin lớp học')
-      console.error(err)
-    } finally {
-      setLoadingClass(false)
-    }
-  }, [classCode])
+  const { data: classroom, isLoading: loadingClass } = useClassDetail(classCode)
+  const updateMutation = useUpdateClassroom(classCode)
+  const deleteMutation = useDeleteClassroom()
 
-  useEffect(() => {
-    fetchClassroom()
-  }, [fetchClassroom])
-
-  // ── Edit classroom modal ──
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
-
-  // ── Delete classroom ──
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDeleteClassroom = async () => {
-    try {
-      setIsDeleting(true)
-      await api.delete(`/classrooms/${classCode}`)
-      toast.success('Đã xóa lớp học thành công')
-      setIsDeleteDialogOpen(false)
-      setIsEditModalOpen(false)
-      router.push('/classes')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Không thể xóa lớp học')
-    } finally {
-      setIsDeleting(false)
-    }
+  const handleDeleteClassroom = () => {
+    deleteMutation.mutate(classCode, {
+      onSuccess: () => {
+        toast.success('Đã xóa lớp học thành công')
+        setIsDeleteDialogOpen(false)
+        setIsEditModalOpen(false)
+        router.push('/classes')
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Không thể xóa lớp học')
+      }
+    })
   }
 
   const handleCopyCode = () => {
@@ -106,28 +86,24 @@ export function ClassDetailPageClient() {
         ),
       description: yup.string().nullable(),
     }),
-    onSubmit: async (values, { setSubmitting }) => {
-      try {
-        await api.put(`/classrooms/${classCode}`, {
-          className: values.className,
-          description: values.description,
-          maxStudents: values.maxStudents,
-        })
-        toast.success('Đã cập nhật thông tin lớp học')
-        setIsEditModalOpen(false)
-        fetchClassroom()
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || 'Không thể cập nhật lớp học')
-      } finally {
-        setSubmitting(false)
-      }
+    onSubmit: (values, { setSubmitting }) => {
+      updateMutation.mutate(values, {
+        onSuccess: () => {
+          toast.success('Đã cập nhật thông tin lớp học')
+          setIsEditModalOpen(false)
+          setSubmitting(false)
+        },
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.message || 'Không thể cập nhật lớp học')
+          setSubmitting(false)
+        }
+      })
     },
   })
 
   return (
     <div>
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
-        {/* Header */}
         <div className="border-b border-border bg-white py-5">
           <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -177,7 +153,6 @@ export function ClassDetailPageClient() {
               </div>
             </div>
 
-            {/* Class code badge + refresh */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyCode}
@@ -194,7 +169,6 @@ export function ClassDetailPageClient() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
         <div className="bg-white border-b border-border">
           <div className="mx-auto max-w-screen-xl px-6">
             <div className="flex gap-1">
@@ -216,11 +190,10 @@ export function ClassDetailPageClient() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
             {activeTab === 'students' ? (
-              <StudentsTab classCode={classCode} classroom={classroom} loadingClass={loadingClass} onClassroomUpdate={fetchClassroom} />
+              <StudentsTab classCode={classCode} classroom={classroom || null} loadingClass={loadingClass} />
             ) : (
               <AssignmentsTab classCode={classCode} />
             )}
@@ -228,7 +201,6 @@ export function ClassDetailPageClient() {
         </div>
       </div>
 
-      {/* Edit Classroom Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -316,7 +288,6 @@ export function ClassDetailPageClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Classroom Confirmation Modal */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -332,17 +303,17 @@ export function ClassDetailPageClient() {
             <button
               type="button"
               onClick={() => setIsDeleteDialogOpen(false)}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
               className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
             >
               Hủy
             </button>
             <button
               onClick={handleDeleteClassroom}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
               className="px-4 py-2 rounded-lg bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Xác nhận xóa
             </button>
           </DialogFooter>
