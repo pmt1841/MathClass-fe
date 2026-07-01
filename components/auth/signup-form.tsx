@@ -6,7 +6,7 @@ import * as z from 'zod'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Mail, User, Phone, Briefcase } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/axios'
 
 import {
@@ -50,9 +50,6 @@ const formSchema = z.object({
     .min(1, 'Số điện thoại là bắt buộc'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
   confirmPassword: z.string(),
-  role: z.enum(['STUDENT', 'TEACHER'], {
-    required_error: 'Vui lòng chọn chức vụ hợp lệ',
-  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Mật khẩu nhập lại không khớp",
   path: ["confirmPassword"],
@@ -69,6 +66,16 @@ export default function SignupForm() {
     isSuccess: false
   })
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [queryRole, setQueryRole] = useState('STUDENT')
+
+  useEffect(() => {
+    const savedRole = searchParams.get('role') || sessionStorage.getItem('selectedRole') || 'STUDENT'
+    setQueryRole(savedRole === 'TEACHER' ? 'TEACHER' : 'STUDENT')
+  }, [searchParams])
+
+  const roleText = queryRole === 'TEACHER' ? ' Giáo viên' : ' Học sinh'
+  const subtitleText = queryRole === 'TEACHER' ? 'Tạo tài khoản để giao bài và chấm điểm' : 'Tạo tài khoản để tham gia lớp học'
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,7 +85,6 @@ export default function SignupForm() {
       phoneNumber: '',
       password: '',
       confirmPassword: '',
-      role: 'STUDENT',
     },
   })
 
@@ -90,7 +96,7 @@ export default function SignupForm() {
         email: values.email,
         phoneNumber: values.phoneNumber,
         password: values.password,
-        role: values.role,
+        role: queryRole,
       })
 
       const data = response.data
@@ -129,10 +135,10 @@ export default function SignupForm() {
         {/* Header */}
         <div className="space-y-2 text-center">
           <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            Đăng ký
+            Đăng ký{roleText}
           </h1>
           <p className="text-muted-foreground text-base">
-            Tạo tài khoản để tham gia lớp học
+            {subtitleText}
           </p>
         </div>
 
@@ -189,32 +195,6 @@ export default function SignupForm() {
                       <Input placeholder="0912345678" className="pl-10" {...field} />
                     </div>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Role Field */}
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Chức vụ</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <div className="relative">
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
-                        <SelectTrigger className="pl-10">
-                          <SelectValue placeholder="Chọn chức vụ" />
-                        </SelectTrigger>
-                      </div>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="STUDENT">Học sinh</SelectItem>
-                      <SelectItem value="TEACHER">Giáo viên</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -281,7 +261,8 @@ export default function SignupForm() {
           <p className="text-muted-foreground">
             Đã có tài khoản?{' '}
             <Link
-              href="/"
+              href="/login"
+              onClick={() => sessionStorage.setItem('selectedRole', queryRole)}
               className="font-semibold text-primary hover:text-primary/80 transition-colors"
             >
               Đăng nhập ngay
