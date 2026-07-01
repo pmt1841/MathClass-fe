@@ -13,6 +13,26 @@ export interface SubmissionResponse {
   updatedAt: string
 }
 
+export interface SubmissionCommentResponse {
+  id: number
+  submissionId: number
+  teacherId: number
+  teacherName: string
+  quoteText: string | null
+  occurrenceIndex: number | null
+  imageCode: string | null
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SubmissionCommentRequest {
+  quoteText?: string | null
+  occurrenceIndex?: number | null
+  imageCode?: string | null
+  content: string
+}
+
 export interface PageResponse<T> {
   content: T[]
   pageable: any
@@ -79,5 +99,19 @@ export const submissionApi = {
   getSubmissionById: async (submissionId: number) => {
     const response = await api.get<SubmissionResponse>(`/submissions/${submissionId}`)
     return response.data
+  },
+
+  getComments: async (submissionId: number) => {
+    const response = await api.get<SubmissionCommentResponse[]>(`/submissions/${submissionId}/comments`)
+    return response.data
+  },
+
+  addComment: async (submissionId: number, data: SubmissionCommentRequest) => {
+    const response = await api.post<SubmissionCommentResponse>(`/submissions/${submissionId}/comments`, data)
+    return response.data
+  },
+
+  deleteComment: async (submissionId: number, commentId: number) => {
+    await api.delete(`/submissions/${submissionId}/comments/${commentId}`)
   }
 }
