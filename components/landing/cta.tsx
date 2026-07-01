@@ -1,37 +1,31 @@
- 'use client'
+import { Button } from "@/components/ui/button"
+import { ArrowRight } from "lucide-react"
+import Link from "next/link"
 
- import { ArrowRight } from 'lucide-react'
-
- export function CTA() {
-   return (
-     <section className="px-6 py-20 md:py-32">
-       <div className="mx-auto max-w-4xl">
-         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-12 md:p-16 text-center">
-           {/* Decorative background elements */}
-           <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-accent/20 blur-3xl" />
-           <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl" />
-
-           <div className="relative space-y-6">
-             <h2 className="text-4xl font-bold text-primary-foreground md:text-5xl">
-               Sẵn sàng thay đổi kỹ năng toán học của bạn?
-             </h2>
-             <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-               Tham gia hàng ngàn học sinh đã cải thiện điểm số và xây dựng sự tự tin bền vững trong toán học
-             </p>
-
-             <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-center">
-               <button className="flex items-center justify-center gap-2 rounded-lg bg-accent text-accent-foreground px-8 py-3 font-semibold hover:opacity-90 transition-opacity">
-                 Bắt đầu ngay
-                 <ArrowRight className="h-5 w-5" />
-               </button>
-               <button className="rounded-lg border-2 border-primary-foreground text-primary-foreground px-8 py-3 font-semibold hover:bg-white/10 transition-colors">
-                 Lên lịch demo
-               </button>
-             </div>
-           </div>
-         </div>
-       </div>
-     </section>
-   )
- }
-
+export function CTA() {
+  return (
+    <section className="py-24 bg-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/40 via-transparent to-transparent" />
+      <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl mb-6">
+          Sẵn sàng thay đổi cách học Toán?
+        </h2>
+        <p className="text-lg text-blue-100/80 mb-10 max-w-2xl mx-auto leading-relaxed">
+          Đăng ký miễn phí ngay hôm nay để trải nghiệm toàn bộ tính năng soạn thảo toán học, vẽ hình và tương tác hai chiều thông minh.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link href="/auth/register">
+            <Button size="lg" className="w-full sm:w-auto h-14 px-10 text-base bg-blue-600 hover:bg-blue-500 text-white border-0 shadow-xl shadow-blue-900/50">
+              Bắt đầu miễn phí <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+          <Link href="/about">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-10 text-base border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent">
+              Tìm hiểu thêm
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}

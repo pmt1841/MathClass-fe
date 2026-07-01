@@ -1,18 +1,20 @@
 import { Header } from '@/components/landing/header'
+import { Footer } from '@/components/landing/footer'
 import { Hero } from '@/components/landing/hero'
 import { Features } from '@/components/landing/features'
-import { Pricing } from '@/components/landing/pricing'
+import { Experience } from '@/components/landing/experience'
 import { CTA } from '@/components/landing/cta'
-import { Footer } from '@/components/landing/footer'
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
       <Header />
-      <Hero />
-      <Features />
-      <Pricing />
-      <CTA />
+      <div className="flex-1">
+        <Hero />
+        <Features />
+        <Experience />
+        <CTA />
+      </div>
       <Footer />
     </main>
   )
