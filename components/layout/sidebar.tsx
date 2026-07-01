@@ -58,11 +58,6 @@ const navItems: NavItem[] = [
     href: '/reports',
     roles: ['TEACHER'],
   },
-  {
-    icon: Settings,
-    label: 'Cài đặt',
-    href: '/settings',
-  },
 ]
 
 interface SidebarProps {
@@ -152,24 +147,6 @@ export function Sidebar({ onCreateClass }: SidebarProps) {
           )
         })}
       </div>
-
-      {/* Role indicator at bottom
-      {!collapsed && (
-        <div className="p-3 border-t border-border">
-          <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
-            userRole === 'TEACHER' ? 'bg-accent/10' : 'bg-primary/10'
-          }`}>
-            <div className={`h-2 w-2 rounded-full ${
-              userRole === 'TEACHER' ? 'bg-accent' : 'bg-primary'
-            }`} />
-            <span className={`text-xs font-semibold ${
-              userRole === 'TEACHER' ? 'text-accent' : 'text-primary'
-            }`}>
-              {userRole === 'TEACHER' ? 'Giáo viên' : 'Học sinh'}
-            </span>
-          </div>
-        </div>
-      )} */}
     </aside>
   )
 }

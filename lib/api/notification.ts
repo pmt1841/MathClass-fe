@@ -2,19 +2,19 @@ import api from '../axios'
 import { NotificationResponse } from '@/types/notification'
 
 export const getNotifications = async (page = 0, size = 10) => {
-  const { data } = await api.get<{ content: NotificationResponse[], totalElements: number, totalPages: number }>(`/api/notifications?page=${page}&size=${size}`)
+  const { data } = await api.get<{ content: NotificationResponse[], totalElements: number, totalPages: number }>(`/notifications?page=${page}&size=${size}`)
   return data
 }
 
 export const getUnreadCount = async () => {
-  const { data } = await api.get<{ count: number }>('/api/notifications/unread-count')
+  const { data } = await api.get<{ count: number }>('/notifications/unread-count')
   return data
 }
 
 export const markAllAsRead = async () => {
-  await api.put('/api/notifications/read-all')
+  await api.put('/notifications/read-all')
 }
 
 export const markAsRead = async (id: number) => {
-  await api.put(`/api/notifications/${id}/read`)
+  await api.put(`/notifications/${id}/read`)
 }
