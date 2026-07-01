@@ -168,7 +168,7 @@ export function StudentsTab({
 
           {/* Add Student Quick Form */}
           <div className="rounded-2xl border border-border bg-white shadow-sm flex items-center gap-4 p-4 overflow-hidden relative">
-            <div className={`absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b ${isFull ? 'from-rose-500 to-pink-600' : 'from-emerald-400 to-teal-500'}`} />
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${isFull ? 'from-rose-500 to-pink-600' : 'from-emerald-400 to-teal-500'}`} />
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100">
               <UserPlus className="h-5 w-5 text-slate-500" />
             </div>
