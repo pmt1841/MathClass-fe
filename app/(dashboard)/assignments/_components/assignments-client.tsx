@@ -1,128 +1,56 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, BookMarked, Search, Edit, Trash2, Send, Clock, BookOpen, Layers, CheckCircle, AlertCircle } from 'lucide-react'
-import api from '@/lib/axios'
+import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 import { DeleteAssignmentModal } from './delete-assignment-modal'
-
-interface Assignment {
-  id: number
-  title: string
-  description: string
-  deadline: string
-  status: string
-  isOpen: boolean
-  teacherName: string
-  classCode: string
-  className: string
-  hasSubmissions?: boolean
-  submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | null
-  submissionCreatedAt?: string
-  submissionUpdatedAt?: string
-}
+import { useAuth } from '@/hooks/useAuth'
+import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
+import { useMyClassrooms } from '@/hooks/useClassrooms'
+import { AssignmentCard } from './assignment-card'
 
 export function AssignmentsPageClient() {
   const router = useRouter()
-  const [userRole, setUserRole] = useState<string>('STUDENT')
-  const [isRoleLoaded, setIsRoleLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>('DRAFT')
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const userRole = user?.role || 'STUDENT'
+  
+  const [activeTab, setActiveTab] = useState<string>('PENDING')
+  
+  useEffect(() => {
+    if (user?.role === 'TEACHER' && activeTab === 'PENDING') {
+      setActiveTab('DRAFT')
+    }
+  }, [user, activeTab])
+
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [myClasses, setMyClasses] = useState<{ id: number, classCode: string, className: string }[]>([])
   const [selectedClassCode, setSelectedClassCode] = useState<string>('')
 
-  // Publish Modal State
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null)
 
-  // Delete Confirm Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [deleteTargetTitle, setDeleteTargetTitle] = useState<string>('')
-  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
-    if (stored) {
-      try {
-        const info = JSON.parse(stored)
-        const role = info.role || info.userRole || 'STUDENT'
-        setUserRole(role)
-        if (role === 'STUDENT') {
-          setActiveTab('PENDING')
-        }
-      } catch { }
-    } else {
-      setActiveTab('PENDING')
-    }
-    setIsRoleLoaded(true)
-  }, [])
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchQuery(searchInput)
-    }, 500)
+    const timer = setTimeout(() => setSearchQuery(searchInput), 500)
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  useEffect(() => {
-    if (userRole === 'STUDENT') {
-      const fetchClasses = async () => {
-        try {
-          const res = await api.get('/classrooms/my-classroom')
-          if (Array.isArray(res.data)) {
-            setMyClasses(res.data)
-          }
-        } catch (error) {
-          console.error('Error fetching classes:', error)
-        }
-      }
-      fetchClasses()
-    }
-  }, [userRole])
+  const { data: myClasses = [] } = useMyClassrooms()
+  
+  const { data: assignments = [], isLoading: loading } = useAssignments({
+    userRole,
+    activeTab,
+    searchQuery,
+    selectedClassCode
+  })
 
-  const fetchAssignments = useCallback(async () => {
-    if (!isRoleLoaded) return
-
-    try {
-      setLoading(true)
-      let url = '/assignments?'
-      if (userRole === 'TEACHER') {
-        url += `status=${activeTab}`
-      } else {
-        url += `status=PUBLISHED`
-        if (selectedClassCode) {
-          url += `&classCode=${selectedClassCode}`
-        }
-      }
-      if (searchQuery) {
-        url += `&keyword=${encodeURIComponent(searchQuery)}`
-      }
-
-      const response = await api.get(url)
-      if (response.data && response.data.content) {
-        setAssignments(response.data.content)
-      } else {
-        setAssignments([])
-      }
-    } catch (error) {
-      console.error('Error fetching assignments:', error)
-      toast.error('Lỗi khi tải danh sách bài tập')
-    } finally {
-      setLoading(false)
-    }
-  }, [activeTab, userRole, searchQuery, isRoleLoaded, selectedClassCode])
-
-  useEffect(() => {
-    fetchAssignments()
-  }, [fetchAssignments])
+  const deleteMutation = useDeleteAssignment()
 
   const handleDeleteClick = (id: number, title: string) => {
     setDeleteTargetId(id)
@@ -130,21 +58,16 @@ export function AssignmentsPageClient() {
     setDeleteModalOpen(true)
   }
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (deleteTargetId === null) return
-    try {
-      setIsDeleting(true)
-      await api.delete(`/assignments/${deleteTargetId}`)
-      toast.success('Đã xóa bài tập thành công')
-      setDeleteModalOpen(false)
-      setDeleteTargetId(null)
-      fetchAssignments()
-    } catch (error) {
-      console.error('Error deleting assignment:', error)
-      toast.error('Xóa bài tập thất bại. Vui lòng thử lại.')
-    } finally {
-      setIsDeleting(false)
-    }
+    deleteMutation.mutate(deleteTargetId, {
+      onSuccess: () => {
+        toast.success('Đã xóa bài tập thành công')
+        setDeleteModalOpen(false)
+        setDeleteTargetId(null)
+      },
+      onError: () => toast.error('Xóa bài tập thất bại. Vui lòng thử lại.')
+    })
   }
 
   const handlePublishClick = (id: number) => {
@@ -209,78 +132,34 @@ export function AssignmentsPageClient() {
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
 
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Tabs */}
             <div className="flex bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto">
               {userRole === 'TEACHER' ? (
                 <>
-                  <button
-                    onClick={() => setActiveTab('DRAFT')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Bản nháp
+                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Edit className="h-4 w-4" /> Bản nháp
                   </button>
-                  <button
-                    onClick={() => setActiveTab('ARCHIVED')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <Layers className="h-4 w-4" />
-                    Kho lưu trữ
+                  <button onClick={() => setActiveTab('ARCHIVED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Layers className="h-4 w-4" /> Kho lưu trữ
                   </button>
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => setActiveTab('PENDING')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Chưa nộp
+                  <button onClick={() => setActiveTab('PENDING')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Clock className="h-4 w-4" /> Chưa nộp
                   </button>
-                  <button
-                    onClick={() => setActiveTab('SUBMITTED')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED'
-                      ? 'bg-white text-emerald-600 shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Đã nộp
+                  <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <CheckCircle className="h-4 w-4" /> Đã nộp
                   </button>
-                  <button
-                    onClick={() => setActiveTab('GRADED')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Đã chấm điểm
+                  <button onClick={() => setActiveTab('GRADED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <BookOpen className="h-4 w-4" /> Đã chấm điểm
                   </button>
-                  <button
-                    onClick={() => setActiveTab('OVERDUE')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE'
-                      ? 'bg-white text-rose-600 shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Quá hạn
+                  <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <AlertCircle className="h-4 w-4" /> Quá hạn
                   </button>
                 </>
               )}
             </div>
 
-            {/* Search and Filter */}
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
               {userRole === 'STUDENT' && (
                 <select
@@ -291,9 +170,7 @@ export function AssignmentsPageClient() {
                 >
                   <option value="">Tất cả lớp học</option>
                   {myClasses.map((c) => (
-                    <option key={c.classCode} value={c.classCode}>
-                      {c.className}
-                    </option>
+                    <option key={c.classCode} value={c.classCode}>{c.className}</option>
                   ))}
                 </select>
               )}
@@ -310,7 +187,6 @@ export function AssignmentsPageClient() {
             </div>
           </div>
 
-          {/* Assignments Grid */}
           {loading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
@@ -346,130 +222,16 @@ export function AssignmentsPageClient() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {displayAssignments.map((assignment, index) => (
-                <div
-                  key={assignment.id}
-                  className="group flex flex-col justify-between rounded-2xl border border-border bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
-                  style={{ animationFillMode: 'both', animationDuration: '500ms', animationDelay: `${index * 50}ms` }}
-                >
-                  <div className={`h-1.5 w-full ${userRole === 'TEACHER' && activeTab === 'ARCHIVED'
-                    ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-600'
-                    }`} />
-
-                  <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h3 className="font-bold text-foreground text-lg line-clamp-2 leading-tight">
-                        {assignment.title}
-                      </h3>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
-                      {assignment.description || 'Không có mô tả'}
-                    </p>
-
-                    {assignment.status !== 'DRAFT' && userRole !== "TEACHER" && (
-                      <div className="bg-slate-50 rounded-xl p-3 mb-4 space-y-2 border border-slate-100">
-                        {assignment.className && (
-                          <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            Lớp: {assignment.className}
-                          </div>
-                        )}
-                        {assignment.submissionStatus === 'GRADED' && assignment.submissionUpdatedAt ? (
-                          <div className="flex items-center gap-2 text-xs font-medium text-blue-600">
-                            <Clock className="h-3.5 w-3.5" />
-                            Chấm điểm: {new Date(assignment.submissionUpdatedAt).toLocaleString('vi-VN', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
-                            })}
-                          </div>
-                        ) : assignment.deadline ? (
-                          <div className="flex items-center gap-2 text-xs font-medium text-rose-600">
-                            <Clock className="h-3.5 w-3.5" />
-                            Hạn nộp: {new Date(assignment.deadline).toLocaleString('vi-VN', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
-                            })}
-                          </div>
-                        ) : null}
-                        
-                        {assignment.submissionStatus === 'SUBMITTED' && assignment.submissionCreatedAt && (
-                          <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Thời gian nộp: {new Date(assignment.submissionCreatedAt).toLocaleString('vi-VN', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {userRole === 'TEACHER' ? (
-                    <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditClick(assignment.id, assignment.hasSubmissions)}
-                          disabled={assignment.hasSubmissions}
-                          className={`p-2 rounded-lg transition-all relative group/editbtn ${assignment.hasSubmissions
-                            ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                            : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
-                            }`}
-                          title={assignment.hasSubmissions ? "" : "Sửa nội dung"}
-                        >
-                          <Edit className="h-4 w-4" />
-                          {assignment.hasSubmissions && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover/editbtn:opacity-100 transition-opacity pointer-events-none z-10">
-                              Không thể sửa đề bài do đã có học sinh nộp bài làm
-                            </div>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(assignment.id, assignment.title)}
-                          className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all"
-                          title="Xóa bài tập"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => handlePublishClick(assignment.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
-                          : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                          }`}
-                      >
-                        <Send className="h-4 w-4" />
-                        {activeTab === 'DRAFT' ? 'Giao bài' : 'Giao lại'}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-                      <Link
-                        href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
-                        className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${assignment.deadline && new Date(assignment.deadline) < new Date()
-                          ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                          : 'bg-primary text-primary-foreground hover:bg-primary/95'
-                          }`}
-                      >
-                        {(() => {
-                          const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date();
-                          const status = assignment.submissionStatus;
-
-                          if (status === 'GRADED') {
-                            return 'Xem điểm';
-                          } else if (status === 'SUBMITTED') {
-                            return isOverdue ? 'Xem bài nộp' : 'Sửa bài nộp';
-                          } else {
-                            return isOverdue ? 'Xem đề bài' : 'Vào làm bài';
-                          }
-                        })()}
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                <AssignmentCard 
+                  key={assignment.id} 
+                  assignment={assignment} 
+                  userRole={userRole}
+                  activeTab={activeTab}
+                  index={index}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                  onPublish={handlePublishClick}
+                />
               ))}
             </div>
           )}
@@ -481,7 +243,6 @@ export function AssignmentsPageClient() {
         onClose={() => setPublishModalOpen(false)}
         onSuccess={() => {
           setPublishModalOpen(false)
-          fetchAssignments()
         }}
         assignmentId={selectedAssignmentId}
       />
@@ -490,7 +251,7 @@ export function AssignmentsPageClient() {
         open={deleteModalOpen}
         assignmentTitle={deleteTargetTitle}
         isDraft={activeTab === 'DRAFT'}
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
       />

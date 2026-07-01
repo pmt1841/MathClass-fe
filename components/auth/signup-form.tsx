@@ -4,10 +4,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import Link from 'next/link'
-import { useState } from 'react'
-import { Mail, User, Phone, Briefcase } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Mail, User, Phone } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import api from '@/lib/axios'
 
 import {
   Form,
@@ -20,13 +19,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogContent,
@@ -35,6 +27,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { SocialLoginButton } from './social-login-button'
+
+import { useSignup } from '@/hooks/useSignup'
+import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
+import { handleApiError } from '@/lib/utils/error-handler'
 
 const formSchema = z.object({
   fullName: z
@@ -58,24 +55,26 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function SignupForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, isSuccess: boolean }>({
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  const [alertConfig, setAlertConfig] = useState({
     isOpen: false,
     title: '',
     message: '',
     isSuccess: false
   })
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [queryRole, setQueryRole] = useState('STUDENT')
+  
+  const [queryRole, setQueryRole] = useState<string>(ROLES.STUDENT)
+  const signupMutation = useSignup()
 
   useEffect(() => {
-    const savedRole = searchParams.get('role') || sessionStorage.getItem('selectedRole') || 'STUDENT'
-    setQueryRole(savedRole === 'TEACHER' ? 'TEACHER' : 'STUDENT')
+    const savedRole = searchParams.get('role') || sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE) || ROLES.STUDENT
+    setQueryRole(savedRole === ROLES.TEACHER ? ROLES.TEACHER : ROLES.STUDENT)
   }, [searchParams])
 
-  const roleText = queryRole === 'TEACHER' ? ' Giáo viên' : ' Học sinh'
-  const subtitleText = queryRole === 'TEACHER' ? 'Tạo tài khoản để giao bài và chấm điểm' : 'Tạo tài khoản để tham gia lớp học'
+  const roleText = queryRole === ROLES.TEACHER ? ' Giáo viên' : ' Học sinh'
+  const subtitleText = queryRole === ROLES.TEACHER ? 'Tạo tài khoản để giao bài và chấm điểm' : 'Tạo tài khoản để tham gia lớp học'
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -88,45 +87,34 @@ export default function SignupForm() {
     },
   })
 
-  const onSubmit = async (values: FormValues) => {
-    setIsLoading(true)
-    try {
-      const response = await api.post('/auth/register', {
-        fullName: values.fullName.normalize('NFC'),
+  const onSubmit = (values: FormValues) => {
+    signupMutation.mutate(
+      {
+        fullName: values.fullName,
         email: values.email,
         phoneNumber: values.phoneNumber,
         password: values.password,
         role: queryRole,
-      })
-
-      const data = response.data
-      setAlertConfig({
-        isOpen: true,
-        title: 'Thành công',
-        message: data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.',
-        isSuccess: true
-      })
-    } catch (error: any) {
-      console.error('Signup error:', error)
-      if (error.response) {
-        const data = error.response.data
-        setAlertConfig({
-          isOpen: true,
-          title: 'Đăng ký thất bại',
-          message: data?.message || 'Vui lòng kiểm tra lại thông tin.',
-          isSuccess: false
-        })
-      } else {
-        setAlertConfig({
-          isOpen: true,
-          title: 'Lỗi',
-          message: 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.',
-          isSuccess: false
-        })
+      },
+      {
+        onSuccess: (data) => {
+          setAlertConfig({
+            isOpen: true,
+            title: 'Thành công',
+            message: data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.',
+            isSuccess: true
+          })
+        },
+        onError: (error) => {
+          setAlertConfig({
+            isOpen: true,
+            title: 'Đăng ký thất bại',
+            message: handleApiError(error, 'Vui lòng kiểm tra lại thông tin.'),
+            isSuccess: false
+          })
+        }
       }
-    } finally {
-      setIsLoading(false)
-    }
+    )
   }
 
   return (
@@ -145,7 +133,6 @@ export default function SignupForm() {
         {/* Form */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
             {/* Full Name Field */}
             <FormField
               control={form.control}
@@ -156,7 +143,7 @@ export default function SignupForm() {
                   <FormControl>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="Nguyễn Văn A" className="pl-10" {...field} />
+                      <Input placeholder="Nguyễn Văn A" className="pl-10 py-5" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -174,7 +161,7 @@ export default function SignupForm() {
                   <FormControl>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="you@example.com" type="email" className="pl-10" {...field} />
+                      <Input placeholder="you@example.com" type="email" className="pl-10 py-5" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -192,7 +179,7 @@ export default function SignupForm() {
                   <FormControl>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="0912345678" className="pl-10" {...field} />
+                      <Input placeholder="0912345678" className="pl-10 py-5" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -208,7 +195,7 @@ export default function SignupForm() {
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
-                    <PasswordInput placeholder="••••••••" {...field} />
+                    <PasswordInput placeholder="••••••••" className="py-5 pl-3" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -223,7 +210,7 @@ export default function SignupForm() {
                 <FormItem>
                   <FormLabel>Nhập lại mật khẩu</FormLabel>
                   <FormControl>
-                    <PasswordInput placeholder="••••••••" {...field} />
+                    <PasswordInput placeholder="••••••••" className="py-5 pl-3" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -234,7 +221,7 @@ export default function SignupForm() {
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={signupMutation.isPending}
                 className="
                   w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-lg
                   transition-all duration-200
@@ -243,7 +230,7 @@ export default function SignupForm() {
                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100
                 "
               >
-                {isLoading ? (
+                {signupMutation.isPending ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     Đang xử lý...
@@ -262,12 +249,29 @@ export default function SignupForm() {
             Đã có tài khoản?{' '}
             <Link
               href="/login"
-              onClick={() => sessionStorage.setItem('selectedRole', queryRole)}
+              onClick={() => sessionStorage.setItem(AUTH_KEYS.SELECTED_ROLE, queryRole)}
               className="font-semibold text-primary hover:text-primary/80 transition-colors"
             >
               Đăng nhập ngay
             </Link>
           </p>
+        </div>
+        
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-background text-muted-foreground">
+              hoặc tiếp tục với
+            </span>
+          </div>
+        </div>
+
+        {/* Social Login */}
+        <div className="w-full">
+          <SocialLoginButton provider="google" label="Đăng ký bằng Google" />
         </div>
       </div>
 
@@ -283,7 +287,7 @@ export default function SignupForm() {
             <AlertDialogAction onClick={() => {
               setAlertConfig(prev => ({ ...prev, isOpen: false }))
               if (alertConfig.isSuccess) {
-                router.push('/')
+                router.push('/login') // Redirect to login after successful signup
               }
             }}>
               Đồng ý

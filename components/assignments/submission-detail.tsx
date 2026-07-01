@@ -8,10 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { ChevronLeft, ChevronRight, Save, ArrowLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
@@ -21,7 +19,6 @@ import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
-import { useForm } from 'react-hook-form'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
 import { InlineCommentPopover } from './inline-comment-popover'
 import rehypeMarkComments from '@/lib/rehype-mark-comments'
@@ -29,29 +26,11 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAuth } from '@/hooks/useAuth'
 
+import { useTextSelection } from '@/hooks/useTextSelection'
+import { SubmissionGradeForm, GradeFormValues } from './submission-grade-form'
+import { handleApiError } from '@/lib/utils/error-handler'
+
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-
-const gradeSchema = z.object({
-  score: z
-    .string()
-    .min(1, 'Vui lòng nhập điểm số')
-    .refine((val) => !isNaN(Number(val)), { message: 'Điểm phải là một số hợp lệ' })
-    .refine((val) => Number(val) >= 0, { message: 'Điểm tối thiểu là 0' })
-    .refine((val) => Number(val) <= 10, { message: 'Điểm tối đa là 10' })
-    .refine(
-      (val) => {
-        const num = Number(val)
-        return Math.round(num * 10) / 10 === num
-      },
-      { message: 'Điểm chỉ được lẻ tối đa 1 chữ số thập phân (ví dụ: 8.5)' }
-    )
-    .transform((val) => Number(val)),
-  teacherFeedback: z.string().optional(),
-})
-
-type GradeFormValues = z.infer<typeof gradeSchema>
 
 interface SubmissionDetailProps {
   submissionId: number
@@ -63,7 +42,6 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
   const queryClient = useQueryClient()
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
-  const [selectionData, setSelectionData] = useState<{ quoteText: string; occurrenceIndex: number; position: { top: number; left: number } } | null>(null)
   const { user } = useAuth()
   const isTeacher = user?.role === 'TEACHER'
 
@@ -74,6 +52,8 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
     deleteComment,
     isDeleting
   } = useSubmissionComments(submissionId)
+
+  const { selectionData, handleMouseUp, clearSelection } = useTextSelection(contentContainerRef)
 
   const { data: submission, isLoading: isSubLoading, isError: isSubError } = useQuery({
     queryKey: ['submission', submissionId],
@@ -87,21 +67,9 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
     enabled: !!assignmentId,
   })
 
-  const form = useForm<GradeFormValues>({
-    resolver: zodResolver(gradeSchema),
-    defaultValues: {
-      score: 0,
-      teacherFeedback: '',
-    },
-    values: submission ? {
-      score: submission.score ?? 0,
-      teacherFeedback: submission.teacherFeedback ?? '',
-    } : undefined
-  })
-
   const gradeMutation = useMutation({
     mutationFn: (values: GradeFormValues) =>
-      submissionApi.gradeSubmission(submissionId, values.score, values.teacherFeedback),
+      submissionApi.gradeSubmission(submissionId, values.score, values.teacherFeedback || ''),
     onSuccess: () => {
       toast({
         title: 'Thành công',
@@ -109,56 +77,17 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
       })
       queryClient.invalidateQueries({ queryKey: ['submission', submissionId] })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({
         title: 'Lỗi',
-        description: err?.response?.data?.message || 'Có lỗi xảy ra khi lưu điểm.',
+        description: handleApiError(err, 'Có lỗi xảy ra khi lưu điểm.'),
         variant: 'destructive',
       })
     }
   })
 
-  const onSubmit = (data: any) => {
-    gradeMutation.mutate(data as GradeFormValues)
-  }
-
-  const handleMouseUp = () => {
-    const selection = window.getSelection()
-    if (!selection || selection.isCollapsed) return
-    const text = selection.toString().trim()
-    if (!text) return
-
-    const container = contentContainerRef.current
-    if (!container || !container.contains(selection.anchorNode)) return
-
-    try {
-      const range = selection.getRangeAt(0)
-      const preSelectionRange = range.cloneRange()
-      preSelectionRange.selectNodeContents(container)
-      preSelectionRange.setEnd(range.startContainer, range.startOffset)
-      const preSelectionText = preSelectionRange.toString()
-
-      let occurrenceIndex = 0
-      let index = preSelectionText.indexOf(text)
-      while (index !== -1) {
-        occurrenceIndex++
-        index = preSelectionText.indexOf(text, index + 1)
-      }
-
-      const rect = range.getBoundingClientRect()
-      const containerRect = container.getBoundingClientRect()
-
-      setSelectionData({
-        quoteText: text,
-        occurrenceIndex,
-        position: {
-          top: rect.bottom - containerRect.top + container.scrollTop + 8,
-          left: rect.left - containerRect.left + (rect.width / 2) - 16
-        }
-      })
-    } catch (e) {
-      console.error("Lỗi khi xử lý text selection", e)
-    }
+  const handleGradeSubmit = (values: GradeFormValues) => {
+    gradeMutation.mutate(values)
   }
 
   const handleAddInlineComment = async (content: string) => {
@@ -170,12 +99,11 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
         content
       })
       toast({ title: 'Thành công', description: 'Đã thêm nhận xét.' })
-      setSelectionData(null)
-      window.getSelection()?.removeAllRanges()
-    } catch (err: any) {
+      clearSelection()
+    } catch (err) {
       toast({
         title: 'Lỗi',
-        description: err?.response?.data?.message || 'Có lỗi xảy ra khi thêm nhận xét.',
+        description: handleApiError(err, 'Có lỗi xảy ra khi thêm nhận xét.'),
         variant: 'destructive',
       })
     }
@@ -186,10 +114,10 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
     try {
       await deleteComment(commentId)
       toast({ title: 'Thành công', description: 'Đã xóa nhận xét.' })
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: 'Lỗi',
-        description: 'Có lỗi xảy ra khi xóa.',
+        description: handleApiError(err, 'Có lỗi xảy ra khi xóa.'),
         variant: 'destructive'
       })
     }
@@ -197,9 +125,10 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
 
   const memoizedComponents = useMemo(() => ({
     mark: ({ node, ...props }: any) => {
-      const id = Number((props as any)['data-comment-id'])
+      const id = Number(props['data-comment-id'])
       const comment = comments.find((c: any) => c.id === id)
       if (!comment) return <mark {...props} />
+      
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -323,30 +252,13 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
           </div>
 
           {isTeacher && (
-            <Form {...form}>
-              <form id="grade-form" noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                <span className="text-sm font-semibold text-slate-600">Điểm:</span>
-                <FormField
-                  control={form.control}
-                  name="score"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-y-0 relative">
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="10"
-                          className="w-20 h-8 text-center font-bold bg-white focus-visible:ring-blue-500"
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <span className="text-sm text-slate-400 font-medium">/ 10</span>
-              </form>
-            </Form>
+            <SubmissionGradeForm 
+              initialScore={submission.score ?? 0}
+              initialFeedback={submission.teacherFeedback ?? ''}
+              isSubmitting={gradeMutation.isPending}
+              isDraft={submission.status === 'DRAFT'}
+              onSubmit={handleGradeSubmit}
+            />
           )}
         </div>
 
@@ -360,16 +272,6 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-
-          <Button
-            form="grade-form"
-            type="submit"
-            disabled={gradeMutation.isPending || submission.status === 'DRAFT'}
-            className="bg-blue-600 hover:bg-blue-700 h-9 px-6 font-semibold"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {gradeMutation.isPending ? 'Đang lưu...' : 'Lưu điểm'}
-          </Button>
         </div>
       </div>
 
@@ -398,10 +300,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
                   position={selectionData?.position || null}
                   isAdding={isAdding}
                   onAddComment={handleAddInlineComment}
-                  onClose={() => {
-                    setSelectionData(null)
-                    window.getSelection()?.removeAllRanges()
-                  }}
+                  onClose={clearSelection}
                 />
                 {submission.content
                   ? renderContentWithDrawings(submission.content)

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Send, Check, Clock, X, CalendarDays, Loader2 } from 'lucide-react'
-import api from '@/lib/axios'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -10,12 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-
-interface MyClassroom {
-  id: number
-  classCode: string
-  className: string
-}
+import { useMyClassrooms } from '@/hooks/useClassrooms'
+import { usePublishAssignment } from '@/hooks/usePublishAssignment'
+import { handleApiError } from '@/lib/utils/error-handler'
 
 interface TargetClassEntry {
   classCode: string
@@ -45,37 +41,24 @@ export function PublishAssignmentModal({
   onSubmit,
   isSubmitting = false,
 }: PublishAssignmentModalProps) {
-  const [myClasses, setMyClasses] = useState<MyClassroom[]>([])
-  const [loadingClasses, setLoadingClasses] = useState(true)
-  const [publishing, setPublishing] = useState(false)
+  const { data: myClasses = [], isLoading: loadingClasses } = useMyClassrooms()
+  const publishMutation = usePublishAssignment(assignmentId)
+  
   const [targets, setTargets] = useState<TargetClassEntry[]>([])
 
   useEffect(() => {
-    if (!open) return
-    const load = async () => {
-      try {
-        setLoadingClasses(true)
-        const res = await api.get('/classrooms/my-classroom')
-        const list: MyClassroom[] = Array.isArray(res.data) ? res.data : []
-        setMyClasses(list)
-        
-        const defaultDeadline = getDefaultDeadline()
-        setTargets(
-          list.map((c) => ({
-            classCode: c.classCode,
-            className: c.className,
-            deadline: c.classCode === defaultClassCode ? defaultDeadline : '',
-            selected: c.classCode === defaultClassCode,
-          }))
-        )
-      } catch {
-        toast.error('Không thể tải danh sách lớp học')
-      } finally {
-        setLoadingClasses(false)
-      }
-    }
-    load()
-  }, [open, defaultClassCode])
+    if (!open || loadingClasses) return
+    
+    const defaultDeadline = getDefaultDeadline()
+    setTargets(
+      myClasses.map((c) => ({
+        classCode: c.classCode,
+        className: c.className,
+        deadline: c.classCode === defaultClassCode ? defaultDeadline : '',
+        selected: c.classCode === defaultClassCode,
+      }))
+    )
+  }, [open, defaultClassCode, myClasses, loadingClasses])
 
   const getDefaultDeadline = () => {
     const d = new Date()
@@ -106,7 +89,7 @@ export function PublishAssignmentModal({
 
   const selectedTargets = targets.filter((t) => t.selected)
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
     if (!assignmentId && !onSubmit) return
     
     const missing = selectedTargets.filter((t) => !t.deadline)
@@ -119,27 +102,28 @@ export function PublishAssignmentModal({
       return
     }
 
+    const payloadTargets = selectedTargets.map((t) => ({ classCode: t.classCode, deadline: t.deadline }))
+
     if (onSubmit) {
-      onSubmit(selectedTargets.map((t) => ({ classCode: t.classCode, deadline: t.deadline })))
+      onSubmit(payloadTargets)
       return
     }
 
-    try {
-      setPublishing(true)
-      await api.put(`/assignments/${assignmentId}/publish`, {
-        targets: selectedTargets.map((t) => ({
-          classCode: t.classCode,
-          deadline: t.deadline,
-        })),
-      })
-      toast.success(assignmentTitle ? `Đã giao bài tập "${assignmentTitle}" thành công!` : 'Đã giao bài tập thành công!')
-      onSuccess()
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.response?.data || 'Không thể giao bài tập')
-    } finally {
-      setPublishing(false)
-    }
+    publishMutation.mutate(
+      { targets: payloadTargets },
+      {
+        onSuccess: () => {
+          toast.success(assignmentTitle ? `Đã giao bài tập "${assignmentTitle}" thành công!` : 'Đã giao bài tập thành công!')
+          onSuccess()
+        },
+        onError: (err) => {
+          toast.error(handleApiError(err, 'Không thể giao bài tập'))
+        }
+      }
+    )
   }
+
+  const isPublishing = publishMutation.isPending || isSubmitting
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -170,7 +154,7 @@ export function PublishAssignmentModal({
                   <p className="text-xs text-muted-foreground px-1">Không có lớp học nào.</p>
                 ) : (
                   targets.map((t) => (
-                    <button
+                     <button
                       key={t.classCode}
                       id={`publish-class-${t.classCode}`}
                       onClick={() => toggleClass(t.classCode)}
@@ -249,7 +233,7 @@ export function PublishAssignmentModal({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={publishing || isSubmitting}
+                disabled={isPublishing}
                 className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Hủy
@@ -258,10 +242,10 @@ export function PublishAssignmentModal({
                 id="confirm-publish-btn"
                 type="button"
                 onClick={handlePublish}
-                disabled={publishing || isSubmitting || selectedTargets.length === 0}
+                disabled={isPublishing || selectedTargets.length === 0}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
               >
-                {publishing || isSubmitting ? (
+                {isPublishing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />

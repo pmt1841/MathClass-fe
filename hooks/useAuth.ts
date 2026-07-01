@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export interface UserInfo {
   id?: number
@@ -13,6 +14,7 @@ export interface UserInfo {
 
 export function useAuth() {
   const [user, setUser] = useState<UserInfo | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const stored =
@@ -33,5 +35,19 @@ export function useAuth() {
     }
   }, [])
 
-  return { user }
+  const logout = () => {
+    // Clear cookies
+    document.cookie = 'auth_token=; path=/; max-age=0'
+    document.cookie = 'user_role=; path=/; max-age=0'
+    // Clear storage
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user_info')
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('user_info')
+    
+    setUser(null)
+    router.push('/')
+  }
+
+  return { user, logout }
 }

@@ -1,9 +1,8 @@
 'use client'
 
-import { Calculator, Bell, LogOut, User, ChevronDown, Settings } from 'lucide-react'
+import { Calculator, LogOut, User, ChevronDown, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,45 +14,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { NotificationPopover } from './NotificationPopover'
-
-interface UserInfo {
-  fullName?: string
-  email?: string
-  userRole?: string
-  avatarUrl?: string
-}
+import { useAuth } from '@/hooks/useAuth'
 
 export function DashboardHeader() {
-  const router = useRouter()
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const { user, logout } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
-  useEffect(() => {
-    const stored =
-      sessionStorage.getItem('user_info') ||
-      localStorage.getItem('user_info')
-    if (stored) {
-      try {
-        setUserInfo(JSON.parse(stored))
-      } catch { }
-    }
-  }, [])
-
-  const handleLogout = () => {
-    // Clear cookies
-    document.cookie = 'auth_token=; path=/; max-age=0'
-    document.cookie = 'user_role=; path=/; max-age=0'
-    // Clear storage
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user_info')
-    sessionStorage.removeItem('auth_token')
-    sessionStorage.removeItem('user_info')
-    router.push('/')
-  }
-
-  const role = userInfo?.userRole
-  const displayName = userInfo?.fullName || userInfo?.email || 'Người dùng'
+  const role = user?.role
+  const displayName = user?.fullName || user?.email || 'Người dùng'
   const roleLabel = role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
   const roleColor = role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
 
@@ -61,7 +30,6 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">
       <div className="mx-auto max-w-screen-xl px-6 py-2">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <Link href="/home" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
               <Calculator className="h-5 w-5 text-accent-foreground" />
@@ -69,12 +37,9 @@ export function DashboardHeader() {
             <span className="text-xl font-bold text-primary-foreground">Math Class</span>
           </Link>
 
-          {/* Right: User menu */}
           <div className="flex items-center gap-3">
-            {/* Notification bell */}
             <NotificationPopover />
 
-            {/* User dropdown */}
             <div className="relative">
               <button
                 id="user-menu-btn"
@@ -82,8 +47,8 @@ export function DashboardHeader() {
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-primary-foreground/10 transition-colors"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20 overflow-hidden">
-                  {userInfo?.avatarUrl ? (
-                    <img src={userInfo.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                   ) : (
                     <User className="h-4 w-4 text-primary-foreground" />
                   )}
@@ -97,17 +62,13 @@ export function DashboardHeader() {
                 <ChevronDown className={`h-4 w-4 text-primary-foreground/70 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Dropdown menu */}
               {dropdownOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setDropdownOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                   <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-xl bg-white border border-border shadow-xl overflow-hidden">
                     <div className="px-4 py-3 border-b border-border bg-muted/30">
                       <p className="font-semibold text-foreground text-sm">{displayName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{userInfo?.email}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
                     </div>
                     <div className="p-1.5">
                       <Link
@@ -155,16 +116,10 @@ export function DashboardHeader() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              className="bg-white text-black border border-input hover:bg-neutral-800 hover:text-white transition-colors"
-            >
+            <AlertDialogCancel className="bg-white text-black border border-input hover:bg-neutral-800 hover:text-white transition-colors">
               Hủy
             </AlertDialogCancel>
-
-            <AlertDialogAction
-              onClick={handleLogout}
-              className="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors"
-            >
+            <AlertDialogAction onClick={logout} className="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors">
               Đăng xuất
             </AlertDialogAction>
           </AlertDialogFooter>

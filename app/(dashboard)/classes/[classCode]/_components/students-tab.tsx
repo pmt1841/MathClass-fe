@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
 import { Users, UserPlus, Search, Loader2, RefreshCw, UserX, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
-import api from '@/lib/axios'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -14,40 +13,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ClassroomDetail, Student } from '@/types'
+import { ClassroomDetail } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { joinRequestsApi } from '@/lib/api/join-requests'
+import { useClassStudents, useAddStudent, useRemoveStudent } from '@/hooks/useClassDetail'
 
 export function StudentsTab({
   classCode,
   classroom,
   loadingClass,
-  onClassroomUpdate,
 }: {
   classCode: string
   classroom: ClassroomDetail | null
   loadingClass: boolean
-  onClassroomUpdate: () => void
 }) {
   const queryClient = useQueryClient()
-  const [students, setStudents] = useState<Student[]>([])
-  const [loadingStudents, setLoadingStudents] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
   const [sortAsc, setSortAsc] = useState(true)
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
+  
   const [addError, setAddError] = useState<string | null>(null)
   const [addSuccess, setAddSuccess] = useState<string | null>(null)
-  const [removingId, setRemovingId] = useState<number | null>(null)
+  
   const [studentToRemove, setStudentToRemove] = useState<{ id: number; name: string } | null>(null)
 
   const isFull = classroom ? (classroom.studentCount ?? 0) >= (classroom.maxStudents ?? Infinity) : false
 
-  const { data: pendingRequests, isLoading: isLoadingRequests } = useQuery({
+  const { data: pendingRequests } = useQuery({
     queryKey: ['pending-requests', classCode],
     queryFn: () => joinRequestsApi.getPendingRequests(classCode),
     enabled: !!classCode,
@@ -61,90 +56,63 @@ export function StudentsTab({
       queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
       if (variables.status === 'APPROVED') {
         toast.success('Đã duyệt yêu cầu tham gia')
-        fetchStudents(false)
-        onClassroomUpdate()
+        queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })
+        queryClient.invalidateQueries({ queryKey: ['classroom-students', classCode] })
       } else {
         toast.success('Đã từ chối yêu cầu tham gia')
       }
     },
-    onError: () => {
-      toast.error('Xử lý yêu cầu thất bại')
-    }
+    onError: () => toast.error('Xử lý yêu cầu thất bại')
   })
 
-  const fetchStudents = useCallback(
-    async (showToast = false) => {
-      try {
-        setLoadingStudents(true)
-        const sortParam = `s.fullName,${sortAsc ? 'asc' : 'desc'}`
-        const res = await api.get(`/classrooms/${classCode}/students`, {
-          params: { page, size, sort: sortParam },
-        })
-        if (res.data && res.data.content) {
-          setStudents(res.data.content)
-          setTotalPages(res.data.totalPages)
-          setTotalElements(res.data.totalElements)
-        } else {
-          setStudents(Array.isArray(res.data) ? res.data : [])
-        }
-        if (showToast) toast.success('Đã cập nhật danh sách học sinh')
-      } catch (err: any) {
-        toast.error('Không thể tải danh sách học sinh')
-      } finally {
-        setLoadingStudents(false)
-      }
-    },
-    [classCode, page, size, sortAsc]
-  )
+  const sortParam = `s.fullName,${sortAsc ? 'asc' : 'desc'}`
+  const { data: studentsData, isLoading: loadingStudents, refetch: refetchStudents } = useClassStudents(classCode, page, size, sortParam)
+  
+  const addStudentMutation = useAddStudent(classCode)
+  const removeStudentMutation = useRemoveStudent(classCode)
 
-  useEffect(() => {
-    fetchStudents()
-  }, [fetchStudents])
+  const students = studentsData?.content || []
+  const totalPages = studentsData?.totalPages || 0
+  const totalElements = studentsData?.totalElements || 0
 
   const addStudentForm = useFormik({
     initialValues: { email: '' },
     validationSchema: yup.object({
       email: yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
     }),
-    onSubmit: async (values, { setSubmitting, resetForm }) => {
+    onSubmit: (values, { setSubmitting, resetForm }) => {
       setAddError(null)
       setAddSuccess(null)
-      try {
-        await api.post(`/classrooms/${classCode}/students/add`, { studentEmail: values.email })
-        setAddSuccess(`Đã thêm học sinh với email: ${values.email}`)
-        resetForm()
-        queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
-        await Promise.all([fetchStudents(), onClassroomUpdate()])
-        toast.success(`Thêm thành công: ${values.email}`)
-      } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data ||
-          'Không thể thêm học sinh. Vui lòng kiểm tra email.'
-        setAddError(typeof msg === 'string' ? msg : 'Đã xảy ra lỗi. Vui lòng thử lại.')
-        toast.error('Thêm học sinh thất bại')
-      } finally {
-        setSubmitting(false)
-      }
+      addStudentMutation.mutate(values.email, {
+        onSuccess: () => {
+          setAddSuccess(`Đã thêm học sinh với email: ${values.email}`)
+          resetForm()
+          toast.success(`Thêm thành công: ${values.email}`)
+          setSubmitting(false)
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.message || err?.response?.data || 'Không thể thêm học sinh. Vui lòng kiểm tra email.'
+          setAddError(typeof msg === 'string' ? msg : 'Đã xảy ra lỗi. Vui lòng thử lại.')
+          toast.error('Thêm học sinh thất bại')
+          setSubmitting(false)
+        }
+      })
     },
   })
 
-  const confirmRemoveStudent = async () => {
+  const confirmRemoveStudent = () => {
     if (!studentToRemove) return
     const { id: studentId, name: studentName } = studentToRemove
-    setStudentToRemove(null)
-    setRemovingId(studentId)
-    try {
-      await api.delete(`/classrooms/${classCode}/students/${studentId}`)
-      setStudents((prev) => prev.filter((s) => s.id !== studentId))
-      queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
-      onClassroomUpdate()
-      toast.success(`Đã xóa học sinh: ${studentName}`)
-    } catch {
-      toast.error('Không thể xóa học sinh')
-    } finally {
-      setRemovingId(null)
-    }
+    removeStudentMutation.mutate(studentId, {
+      onSuccess: () => {
+        toast.success(`Đã xóa học sinh: ${studentName}`)
+        setStudentToRemove(null)
+      },
+      onError: () => {
+        toast.error('Không thể xóa học sinh')
+        setStudentToRemove(null)
+      }
+    })
   }
 
   const filteredStudents = students.filter(
@@ -155,7 +123,6 @@ export function StudentsTab({
 
   return (
     <>
-      {/* Stats row */}
       {!loadingClass && classroom && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StatCard
@@ -166,7 +133,6 @@ export function StudentsTab({
             icon={<Users className="h-5 w-5 text-white" />}
           />
 
-          {/* Add Student Quick Form */}
           <div className="rounded-2xl border border-border bg-white shadow-sm flex items-center gap-4 p-4 overflow-hidden relative">
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${isFull ? 'from-rose-500 to-pink-600' : 'from-emerald-400 to-teal-500'}`} />
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100">
@@ -208,7 +174,6 @@ export function StudentsTab({
         </div>
       )}
 
-      {/* Alert messages */}
       {(addSuccess || addError) && (
         <div className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 animate-in slide-in-from-top-2 ${addSuccess ? 'bg-emerald-50 border-emerald-200' : 'bg-destructive/10 border-destructive/20'}`}>
           {addSuccess ? (
@@ -222,7 +187,6 @@ export function StudentsTab({
         </div>
       )}
 
-      {/* Pending Requests Panel */}
       {pendingRequests && pendingRequests.length > 0 && (
         <div className="rounded-2xl border border-orange-200 bg-white shadow-sm overflow-hidden mt-4">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-orange-100 bg-orange-50/50">
@@ -263,9 +227,7 @@ export function StudentsTab({
         </div>
       )}
 
-      {/* Student list panel */}
       <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden mt-4">
-        {/* Panel header */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-slate-50 to-transparent">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
@@ -312,7 +274,7 @@ export function StudentsTab({
             </div>
 
             <button
-              onClick={() => fetchStudents(true)}
+              onClick={() => refetchStudents()}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
               title="Làm mới"
             >
@@ -321,7 +283,6 @@ export function StudentsTab({
           </div>
         </div>
 
-        {/* List body */}
         <div className="flex-1 overflow-y-auto">
           {loadingStudents ? (
             <div className="p-4 space-y-3">
@@ -356,7 +317,7 @@ export function StudentsTab({
                   key={student.id}
                   student={student}
                   index={page * size + idx + 1}
-                  isRemoving={removingId === student.id}
+                  isRemoving={removeStudentMutation.isPending && studentToRemove?.id === student.id}
                   onRemove={() => setStudentToRemove({ id: student.id, name: student.fullName })}
                 />
               ))}
@@ -364,7 +325,6 @@ export function StudentsTab({
           )}
         </div>
 
-        {/* Pagination */}
         {!loadingStudents && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-slate-50">
             <p className="text-xs text-muted-foreground hidden sm:block">
@@ -399,7 +359,6 @@ export function StudentsTab({
         )}
       </div>
 
-      {/* Remove student confirm dialog */}
       <AlertDialog open={!!studentToRemove} onOpenChange={(open) => !open && setStudentToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

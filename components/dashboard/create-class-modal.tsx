@@ -4,22 +4,18 @@ import { useState } from 'react'
 import { X, BookOpen, FileText, Users, Loader2 } from 'lucide-react'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import api from '@/lib/axios'
+import { useCreateClass } from '@/hooks/useCreateClass'
+import { handleApiError } from '@/lib/utils/error-handler'
 
 interface CreateClassModalProps {
   open: boolean
   onClose: () => void
-  onSuccess?: (classData: ClassData) => void
-}
-
-interface ClassData {
-  name: string
-  maxStudents: number | null
-  description: string
+  onSuccess?: (classData: any) => void
 }
 
 export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalProps) {
   const [error, setError] = useState('')
+  const createClassMutation = useCreateClass()
 
   const formik = useFormik({
     initialValues: {
@@ -34,30 +30,27 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
         .transform((value, originalValue) => (String(originalValue).trim() === '' ? null : value))
         .nullable(),
     }),
-    onSubmit: async (values, { setSubmitting }) => {
+    onSubmit: (values, { setSubmitting }) => {
       setError('')
 
-      const payload: ClassData = {
+      const payload = {
         name: values.name.trim(),
         description: values.description.trim(),
         maxStudents: values.maxStudents === '' || values.maxStudents === null ? null : Number(values.maxStudents),
       }
 
-      try {
-        const response = await api.post('/classrooms/create', payload)
-        const data = response.data
-        onSuccess?.(data)
-        handleClose()
-      } catch (err: any) {
-        if (err.response) {
-          const errData = err.response.data
-          setError(errData?.message || 'Không thể tạo lớp. Vui lòng thử lại.')
-        } else {
-          setError('Lỗi kết nối. Vui lòng thử lại.')
+      createClassMutation.mutate(payload, {
+        onSuccess: (data) => {
+          onSuccess?.(data)
+          handleClose()
+        },
+        onError: (err) => {
+          setError(handleApiError(err, 'Không thể tạo lớp. Vui lòng thử lại.'))
+        },
+        onSettled: () => {
+          setSubmitting(false)
         }
-      } finally {
-        setSubmitting(false)
-      }
+      })
     },
   })
 
@@ -190,10 +183,10 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
             <button
               id="submit-create-class"
               type="submit"
-              disabled={formik.isSubmitting}
+              disabled={createClassMutation.isPending}
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {formik.isSubmitting ? (
+              {createClassMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Đang tạo...
