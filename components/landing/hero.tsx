@@ -1,9 +1,17 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, GraduationCap, Presentation } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export function Hero() {
+  const router = useRouter()
+
+  const handleLogin = (role: string) => {
+    sessionStorage.setItem('selectedRole', role)
+    router.push('/login')
+  }
   return (
     <section className="relative flex flex-col items-center justify-center overflow-hidden bg-white px-4 py-24 sm:py-32 text-center">
       {/* Background Gradients */}
@@ -29,18 +37,23 @@ export function Hero() {
         </p>
         
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link href="/login?role=TEACHER">
-            <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all">
-              <Presentation className="mr-2 h-5 w-5" />
-              Dành cho Giáo viên
-            </Button>
-          </Link>
-          <Link href="/login?role=STUDENT">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 text-base text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900">
-              <GraduationCap className="mr-2 h-5 w-5 text-slate-500" />
-              Dành cho Học sinh
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => handleLogin('TEACHER')}
+            size="lg" 
+            className="w-full sm:w-auto h-14 px-8 text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all"
+          >
+            <Presentation className="mr-2 h-5 w-5" />
+            Dành cho Giáo viên
+          </Button>
+          <Button 
+            onClick={() => handleLogin('STUDENT')}
+            size="lg" 
+            variant="outline" 
+            className="w-full sm:w-auto h-14 px-8 text-base text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <GraduationCap className="mr-2 h-5 w-5 text-slate-500" />
+            Dành cho Học sinh
+          </Button>
         </div>
         
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500 font-medium">

@@ -1,6 +1,6 @@
 'use client'
 
-import { Calculator, Bell, LogOut, User, ChevronDown } from 'lucide-react'
+import { Calculator, Bell, LogOut, User, ChevronDown, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -20,6 +20,7 @@ interface UserInfo {
   fullName?: string
   email?: string
   userRole?: string
+  avatarUrl?: string
 }
 
 export function DashboardHeader() {
@@ -80,8 +81,12 @@ export function DashboardHeader() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-primary-foreground/10 transition-colors"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
-                  <User className="h-4 w-4 text-primary-foreground" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20 overflow-hidden">
+                  {userInfo?.avatarUrl ? (
+                    <img src={userInfo.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-4 w-4 text-primary-foreground" />
+                  )}
                 </div>
                 <div className="hidden sm:flex flex-col items-start justify-center text-left">
                   <p className="text-sm font-semibold text-primary-foreground leading-tight">{displayName}</p>
@@ -112,6 +117,14 @@ export function DashboardHeader() {
                       >
                         <User className="h-4 w-4 text-muted-foreground" />
                         Hồ sơ cá nhân
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        Cài đặt
                       </Link>
                       <button
                         id="logout-btn"
