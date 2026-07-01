@@ -15,6 +15,7 @@ import {
   Copy,
   Check,
   ClipboardList,
+  Trash2,
 } from 'lucide-react'
 import api from '@/lib/axios'
 import { toast } from 'sonner'
@@ -60,6 +61,25 @@ export function ClassDetailPageClient() {
   // ── Edit classroom modal ──
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+
+  // ── Delete classroom ──
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteClassroom = async () => {
+    try {
+      setIsDeleting(true)
+      await api.delete(`/classrooms/${classCode}`)
+      toast.success('Đã xóa lớp học thành công')
+      setIsDeleteDialogOpen(false)
+      setIsEditModalOpen(false)
+      router.push('/classes')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Không thể xóa lớp học')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(classCode)
@@ -265,24 +285,67 @@ export function ClassDetailPageClient() {
                 placeholder="Nhập mô tả lớp học..."
               />
             </div>
-            <DialogFooter className="mt-6">
+            <DialogFooter className="mt-6 sm:justify-between">
               <button
                 type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors flex items-center gap-2"
               >
-                Hủy
+                <Trash2 className="h-4 w-4" />
+                Xóa lớp học
               </button>
-              <button
-                type="submit"
-                disabled={editClassroomForm.isSubmitting}
-                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {editClassroomForm.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Lưu thay đổi
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={editClassroomForm.isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {editClassroomForm.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Lưu thay đổi
+                </button>
+              </div>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Classroom Confirmation Modal */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" /> Xóa lớp học
+            </DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa lớp học <strong>{classroom?.className}</strong> không? 
+              Lưu ý: Chỉ có thể xóa lớp khi chưa có học sinh nào. Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <button
+              type="button"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleDeleteClassroom}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-lg bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Xác nhận xóa
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

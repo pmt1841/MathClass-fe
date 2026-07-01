@@ -12,7 +12,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(0)
-  const [size] = useState(10)
+  const [size, setSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
 
@@ -68,44 +68,10 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
 
   return (
     <>
-      {/* Filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-white p-3.5 rounded-2xl border border-border shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            id="assignment-search"
-            type="text"
-            placeholder="Tìm kiếm theo tiêu đề bài tập..."
-            value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            id="assignment-status-filter"
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
-            className="h-11 px-3 rounded-xl border border-border bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 min-w-[160px]"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="DRAFT">Bản nháp</option>
-            <option value="PUBLISHED">Đã giao</option>
-          </select>
-          <button
-            onClick={() => fetchAssignments()}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm flex-shrink-0"
-            title="Làm mới"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
       {/* Assignment list panel */}
       <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
         {/* Panel header */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-slate-50 to-transparent">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border bg-gradient-to-r from-slate-50 to-transparent">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
               <BookOpen className="h-4.5 w-4.5 text-slate-600" />
@@ -116,6 +82,48 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                 {loading ? 'Đang tải...' : `${totalElements} bài tập`}
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
+              className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="DRAFT">Bản nháp</option>
+              <option value="PUBLISHED">Đã giao</option>
+            </select>
+
+            <select
+              value={size}
+              onChange={(e) => { setSize(Number(e.target.value)); setPage(0) }}
+              className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
+            >
+              <option value={5}>5 / trang</option>
+              <option value={10}>10 / trang</option>
+              <option value={15}>15 / trang</option>
+              <option value={20}>20 / trang</option>
+            </select>
+
+            <div className="relative w-48 hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Tìm bài tập..."
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-slate-50/80 text-xs outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+              />
+            </div>
+
+            <button
+              onClick={() => fetchAssignments()}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
+              title="Làm mới"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
