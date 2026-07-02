@@ -60,13 +60,26 @@ export function NotificationPopover() {
         'Authorization': `Bearer ${token}`
       },
       signal: controller.signal,
+      openWhenHidden: true,
+      onopen(response) {
+        if (response.ok) {
+          console.log('SSE connection opened successfully');
+        } else {
+          console.error('SSE connection failed with status:', response.status);
+        }
+        return Promise.resolve();
+      },
       onmessage(ev) {
+        console.log('SSE Message received:', ev.event, ev.data);
         if (ev.event === 'NOTIFICATION') {
           queryClient.invalidateQueries({ queryKey: ['notifications'] })
         }
       },
       onerror(err) {
         console.error('SSE Error:', err)
+      },
+      onclose() {
+        console.log('SSE connection closed');
       }
     })
 
@@ -95,7 +108,7 @@ export function NotificationPopover() {
         <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-primary-foreground/80 hover:bg-primary-foreground/10 transition-colors">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground ring-2 ring-primary">
+            <span className="absolute -top-1 -right-1 flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white ring-2 ring-background">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
