@@ -52,15 +52,15 @@ export function TeacherDashboardClient() {
     },
   })
 
-  const { data: pendingAssignmentsData = [] } = useQuery({
+  const { data: pendingSubmissionData = [] } = useQuery({
     queryKey: ['pending-submissions'],
     queryFn: () => dashboardApi.getPendingSubmissions(20),
   })
 
   // Filter logic
-  const filteredAssignments = selectedClass === 'all' 
-    ? pendingAssignmentsData 
-    : pendingAssignmentsData.filter((a: any) => a.classCode === selectedClass)
+  const filteredAssignments = selectedClass === 'all'
+    ? pendingSubmissionData
+    : pendingSubmissionData.filter((a: any) => a.classCode === selectedClass)
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen">
@@ -145,12 +145,12 @@ export function TeacherDashboardClient() {
 
         {/* Row 2: Main Content */}
         <div className="grid gap-6 lg:grid-cols-12 items-start">
-          
+
           {/* Left Column (65%) */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-slate-900">Danh sách bài chờ chấm</h2>
-              
+
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-full sm:w-[160px] bg-white border-slate-200 shadow-sm focus:ring-blue-500 font-medium h-9 text-sm">
@@ -166,15 +166,15 @@ export function TeacherDashboardClient() {
 
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="search" 
-                    placeholder="Tìm kiếm học sinh, bài tập..." 
+                  <Input
+                    type="search"
+                    placeholder="Tìm kiếm học sinh, bài tập..."
                     className="w-full pl-8 bg-white border-slate-200 focus-visible:ring-blue-500 rounded-md h-9 shadow-sm text-sm"
                   />
                 </div>
               </div>
             </div>
-            
+
             <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <div className="overflow-x-auto">
                 <Table>
@@ -202,7 +202,7 @@ export function TeacherDashboardClient() {
                             {task.submittedAt ? formatDistanceToNow(new Date(task.submittedAt), { addSuffix: true, locale: vi }) : 'Chưa rõ'}
                           </TableCell>
                           <TableCell className="text-right py-4">
-                            <Link href={`/assignments/${task.id}/submissions?classCode=${task.classCode}`}>
+                            <Link href={`/assignments/${task.id}/submissions`}>
                               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow text-white">
                                 Chấm ngay
                               </Button>
@@ -232,10 +232,6 @@ export function TeacherDashboardClient() {
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Danh sách lớp học</h2>
-              <Button size="sm" variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 font-medium shadow-sm">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Tạo bài mới
-              </Button>
             </div>
 
             <div className="space-y-3">

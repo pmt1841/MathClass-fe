@@ -8,8 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus } from 'lucide-react'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import dynamic from 'next/dynamic'
@@ -79,6 +78,7 @@ export function AssignmentForm({
 }: AssignmentFormProps) {
   const router = useRouter()
   const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
 
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
@@ -213,6 +213,42 @@ export function AssignmentForm({
 
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null)
   const { ref: formContentRef, ...formContentRest } = register('content')
+
+  const handleFormatText = (format: 'bold' | 'italic' | 'underline') => {
+    if (!textareaRef.current) return
+
+    const textarea = textareaRef.current
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const currentVal = formValues.content || ''
+
+    const before = currentVal.substring(0, start)
+    const after = currentVal.substring(end)
+    const selectedText = currentVal.substring(start, end)
+
+    let insertText = ''
+    let newCursorPos = start
+
+    if (format === 'bold') {
+      insertText = `**${selectedText}**`
+      newCursorPos = selectedText ? start + insertText.length : start + 2
+    } else if (format === 'italic') {
+      insertText = `*${selectedText}*`
+      newCursorPos = selectedText ? start + insertText.length : start + 1
+    } else if (format === 'underline') {
+      insertText = `<u>${selectedText}</u>`
+      newCursorPos = selectedText ? start + insertText.length : start + 3
+    }
+
+    const newVal = before + insertText + after
+
+    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
+  }
 
   const handleInsertLatex = (latexCommand: string) => {
     if (!textareaRef.current) return
@@ -584,14 +620,62 @@ export function AssignmentForm({
               <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded text-[11px] font-medium border border-destructive/20">{errors.content.message}</span>
             </div>
           )}
-          <PanelGroup direction="horizontal" className="h-full w-full">
-            {/* EDITOR */}
-            <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${errors.content ? 'border-destructive focus-within:border-destructive' : 'border-border focus-within:border-primary'}`}>
-              <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <Edit3 className="w-3.5 h-3.5" /> Soạn thảo bài tập
+          <div className={`h-full w-full bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden focus-within:ring-2 focus-within:ring-primary/15 transition-all ${errors.content ? 'border-destructive focus-within:border-destructive' : 'border-border focus-within:border-primary'}`}>
+            <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex bg-slate-200/50 p-0.5 rounded-lg border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('edit')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
+                      viewMode === 'edit'
+                        ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200 font-semibold'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Soạn thảo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('preview')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
+                      viewMode === 'preview'
+                        ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200 font-semibold'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Xem trước
+                  </button>
                 </div>
+              </div>
+              {viewMode === 'edit' && (
                 <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-slate-200/50 p-0.5 rounded-lg border border-slate-200 mr-2">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); handleFormatText('bold') }}
+                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
+                      title="In đậm"
+                    >
+                      <Bold className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); handleFormatText('italic') }}
+                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
+                      title="In nghiêng"
+                    >
+                      <Italic className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); handleFormatText('underline') }}
+                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
+                      title="Gạch chân"
+                    >
+                      <Underline className="w-4 h-4" />
+                    </button>
+                  </div>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp"
@@ -621,7 +705,11 @@ export function AssignmentForm({
                     Thêm hình vẽ và đồ thị
                   </button>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Editor Area */}
+            <div className={`flex-1 flex-col overflow-hidden ${viewMode === 'edit' ? 'flex' : 'hidden'}`}>
               <LatexToolbar onInsert={handleInsertLatex} />
 
               {/* Danh sách hình vẽ & Ảnh */}
@@ -710,29 +798,17 @@ export function AssignmentForm({
                 placeholder="Nhập nội dung bài tập..."
                 className="flex-1 w-full p-4 text-sm bg-transparent outline-none resize-none font-mono leading-relaxed"
               />
-            </Panel>
+            </div>
 
-            {/* RESIZER */}
-            <PanelResizeHandle className="w-2 mx-1 rounded-full bg-slate-200 hover:bg-primary/50 transition-colors cursor-col-resize flex flex-col items-center justify-center gap-1">
-              <div className="w-1 h-1 rounded-full bg-slate-400" />
-              <div className="w-1 h-1 rounded-full bg-slate-400" />
-              <div className="w-1 h-1 rounded-full bg-slate-400" />
-            </PanelResizeHandle>
-
-            {/* PREVIEW */}
-            <Panel defaultSize={50} minSize={20} className="bg-white rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden ml-2">
-              <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center gap-2 shrink-0">
-                <Eye className="w-3.5 h-3.5" /> Xem trước
-              </div>
-              <div className="flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto">
-                {debouncedContentValue ? (
-                  renderContentWithDrawings(debouncedContentValue)
-                ) : (
-                  <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
-                )}
-              </div>
-            </Panel>
-          </PanelGroup>
+            {/* Preview Area */}
+            <div className={`flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto ${viewMode === 'preview' ? 'block' : 'hidden'}`}>
+              {debouncedContentValue ? (
+                renderContentWithDrawings(debouncedContentValue)
+              ) : (
+                <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
+              )}
+            </div>
+          </div>
         </div>
 
       </div>
