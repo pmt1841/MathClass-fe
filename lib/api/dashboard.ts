@@ -18,6 +18,15 @@ export interface PendingSubmission {
   submittedAt: string
 }
 
+export interface AtRiskStudent {
+  id: number
+  name: string
+  className: string
+  issueType: string
+  detail: string
+  avatar: string
+}
+
 export const dashboardApi = {
   getTeacherStats: async (): Promise<TeacherDashboardStats> => {
     const response = await api.get('/dashboard/teacher-stats')
@@ -37,6 +46,10 @@ export const dashboardApi = {
   },
   getStudentGradedTasks: async (limit = 10) => {
     const response = await api.get(`/dashboard/student-graded-tasks?limit=${limit}`)
+    return response.data
+  },
+  getAtRiskStudents: async (): Promise<AtRiskStudent[]> => {
+    const response = await api.get('/dashboard/at-risk-students')
     return response.data
   }
 }
