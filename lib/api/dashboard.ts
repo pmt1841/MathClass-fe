@@ -10,6 +10,7 @@ export interface TeacherDashboardStats {
 
 export interface PendingSubmission {
   id: number
+  assignmentId: number
   studentName: string
   assignmentTitle: string
   className: string

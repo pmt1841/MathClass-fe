@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Clock, CheckCircle, Edit, Trash2, Send } from 'lucide-react'
 import { Assignment } from '@/hooks/useAssignments'
+import { formatDateTime, parseDateSafe } from '@/lib/utils'
 
 interface AssignmentCardProps {
   assignment: Assignment
@@ -55,28 +56,19 @@ export function AssignmentCard({
             {assignment.submissionStatus === 'GRADED' && assignment.submissionUpdatedAt ? (
               <div className="flex items-center gap-2 text-xs font-medium text-blue-600">
                 <Clock className="h-3.5 w-3.5" />
-                Chấm điểm: {new Date(assignment.submissionUpdatedAt).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+                Chấm điểm: {formatDateTime(assignment.submissionUpdatedAt)}
               </div>
             ) : assignment.deadline ? (
               <div className="flex items-center gap-2 text-xs font-medium text-rose-600">
                 <Clock className="h-3.5 w-3.5" />
-                Hạn nộp: {new Date(assignment.deadline).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+                Hạn nộp: {formatDateTime(assignment.deadline)}
               </div>
             ) : null}
             
             {assignment.submissionStatus === 'SUBMITTED' && assignment.submissionCreatedAt && (
               <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
                 <CheckCircle className="h-3.5 w-3.5" />
-                Thời gian nộp: {new Date(assignment.submissionCreatedAt).toLocaleString('vi-VN', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+                Thời gian nộp: {formatDateTime(assignment.submissionCreatedAt)}
               </div>
             )}
           </div>
@@ -127,13 +119,13 @@ export function AssignmentCard({
           <Link
             href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
             className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${
-              assignment.deadline && new Date(assignment.deadline) < new Date()
+              assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
               ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
               : 'bg-primary text-primary-foreground hover:bg-primary/95'
             }`}
           >
             {(() => {
-              const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date()
+              const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
               const status = assignment.submissionStatus
 
               if (status === 'GRADED') return 'Xem điểm'

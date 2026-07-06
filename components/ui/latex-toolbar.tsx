@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import { Bold, Italic, Underline } from 'lucide-react'
 
 interface LatexItem {
   id: string
@@ -52,9 +53,10 @@ const latexItems: LatexItem[] = [
 
 interface LatexToolbarProps {
   onInsert: (latex: string) => void
+  onFormatText?: (format: 'bold' | 'italic' | 'underline') => void
 }
 
-export function LatexToolbar({ onInsert }: LatexToolbarProps) {
+export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -66,26 +68,56 @@ export function LatexToolbar({ onInsert }: LatexToolbarProps) {
   }
 
   return (
-    <div className="flex flex-wrap gap-1 p-2 bg-slate-50 border-b border-border max-h-32 overflow-y-auto">
-      {latexItems.map((item) => {
-        const html = katex.renderToString(item.tex, {
-          throwOnError: false,
-          displayMode: false,
-        })
-
-        return (
+    <div className="flex flex-col border-b border-border bg-slate-50">
+      {onFormatText && (
+        <div className="flex items-center gap-1 p-2 border-b border-slate-200">
           <button
-            key={item.id}
-            onClick={(e) => {
-              e.preventDefault()
-              onInsert(item.insert)
-            }}
-            title={item.label}
-            className="flex items-center justify-center min-w-[36px] h-9 px-2 rounded-md hover:bg-slate-200 transition-colors text-slate-700 bg-white border border-slate-200 shadow-sm"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        )
-      })}
+            type="button"
+            onClick={(e) => { e.preventDefault(); onFormatText('bold') }}
+            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+            title="In đậm"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onFormatText('italic') }}
+            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+            title="In nghiêng"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onFormatText('underline') }}
+            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+            title="Gạch chân"
+          >
+            <Underline className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1 p-2 max-h-32 overflow-y-auto">
+        {latexItems.map((item) => {
+          const html = katex.renderToString(item.tex, {
+            throwOnError: false,
+            displayMode: false,
+          })
+
+          return (
+            <button
+              key={item.id}
+              onClick={(e) => {
+                e.preventDefault()
+                onInsert(item.insert)
+              }}
+              title={item.label}
+              className="flex items-center justify-center min-w-[36px] h-9 px-2 rounded-md hover:bg-slate-200 transition-colors text-slate-700 bg-white border border-slate-200 shadow-sm"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -5,9 +5,12 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import { Save, Check, Type, Eye } from 'lucide-react'
 import 'katex/dist/katex.min.css'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import { useTextEditor } from '@/hooks/use-text-editor'
+import { formatDateTime } from '@/lib/utils'
 
 interface SubmissionEditorProps {
   assignmentId: number
@@ -64,25 +67,7 @@ export function SubmissionEditor({
     return () => clearTimeout(timer)
   }, [content])
 
-  // Auto-save logic (Database)
-  useEffect(() => {
-    if (readOnly || !isDirtyRef.current || !onAutoSave) return
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      onAutoSave(content)
-      isDirtyRef.current = false
-    }, 5000) // 5 seconds debounce
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-    }
-  }, [content, readOnly, onAutoSave])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
@@ -93,64 +78,17 @@ export function SubmissionEditor({
     }
   }
 
-  const handleInsertLatex = (latexCommand: string) => {
-    if (readOnly || !textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const currentVal = textarea.value
-
-    const before = currentVal.substring(0, start)
-    const after = currentVal.substring(end)
-    const selectedText = currentVal.substring(start, end)
-
-    // Check if we are already inside a math block ($$ or $)
-    const countDoubleDollar = (before.match(/\$\$/g) || []).length
-    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
-    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
-
-    // Replace { } with {selectedText} if user highlighted text
-    let cmd = latexCommand
-    if (selectedText && cmd.includes('{ }')) {
-      cmd = cmd.replace('{ }', `{${selectedText}}`)
-    }
-
-    const isMathBlock = cmd.includes('\\begin')
-    let insertText = cmd
-
-    if (!isInsideMath) {
-      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
-    }
-
-    const newVal = before + insertText + after
-
-    isDirtyRef.current = true
-    setContent(newVal)
-    if (onChangeRef.current) {
-      onChangeRef.current(newVal)
-    }
-
-    // Move cursor inside the brackets or to end
-    setTimeout(() => {
-      textarea.focus()
-      let newCursorPos = start + insertText.length
-
-      const emptyBrackets = insertText.indexOf('{ }')
-      if (emptyBrackets !== -1) {
-        newCursorPos = start + emptyBrackets + 1 // inside { }
-      } else if (isMathBlock) {
-        const slashIndex = insertText.indexOf('\\\\')
-        if (slashIndex !== -1) {
-          newCursorPos = start + slashIndex
-        }
-      } else if (!isInsideMath && !selectedText) {
-        newCursorPos = start + insertText.length - 3 // inside $$ $$
+  const { handleFormatText, handleInsertLatex } = useTextEditor({
+    textareaRef,
+    content,
+    onChange: (newVal) => {
+      isDirtyRef.current = true
+      setContent(newVal)
+      if (onChangeRef.current) {
+        onChangeRef.current(newVal)
       }
-
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }
+    }
+  })
 
   const isSaving = isSavingExternal
   const lastSaved = lastSavedExternal
@@ -164,7 +102,7 @@ export function SubmissionEditor({
             Nhận xét từ giáo viên
           </h4>
           <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
               {teacherFeedback}
             </ReactMarkdown>
           </div>
@@ -185,7 +123,7 @@ export function SubmissionEditor({
           ) : lastSaved ? (
             <span className="flex items-center gap-1.5 text-emerald-600">
               <Check className="h-3 w-3" />
-              Đã lưu ({`${lastSaved.getHours().toString().padStart(2, '0')}:${lastSaved.getMinutes().toString().padStart(2, '0')}:${lastSaved.getSeconds().toString().padStart(2, '0')} ${lastSaved.getDate().toString().padStart(2, '0')}/${(lastSaved.getMonth() + 1).toString().padStart(2, '0')}/${lastSaved.getFullYear()}`})
+              Đã lưu ({formatDateTime(lastSaved)})
             </span>
           ) : null}
         </div>
@@ -194,7 +132,7 @@ export function SubmissionEditor({
       <div className="flex-1 min-h-0">
         <PanelGroup direction="vertical">
           <Panel defaultSize={50} minSize={20} className="flex flex-col">
-            {!readOnly && <LatexToolbar onInsert={handleInsertLatex} />}
+            {!readOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
             <textarea
               ref={textareaRef}
               value={content}
@@ -219,7 +157,7 @@ export function SubmissionEditor({
                 {debouncedContent ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
+                    rehypePlugins={[rehypeKatex, rehypeRaw]}
                   >
                     {debouncedContent}
                   </ReactMarkdown>

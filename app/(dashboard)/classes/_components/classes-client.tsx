@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { ClassCard } from './class-card'
+import { formatDateTime } from '@/lib/utils'
 
 export function ClassesClient() {
   const { user } = useAuth()
@@ -45,7 +46,7 @@ export function ClassesClient() {
   const { data: joinRequests, refetch: refetchRequests } = useQuery({
     queryKey: ['my-join-requests'],
     queryFn: joinRequestsApi.getMyJoinRequests,
-    enabled: userRole === 'STUDENT',
+    enabled: !!user && user.role === 'STUDENT',
   })
 
   const pendingRequests = joinRequests?.filter(req => req.status === 'PENDING') || []
@@ -85,7 +86,9 @@ export function ClassesClient() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Lớp học của tôi</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Xem và quản lý toàn bộ danh sách lớp học toán bạn đang giảng dạy.
+              {userRole === 'TEACHER' 
+                ? 'Xem và quản lý toàn bộ danh sách lớp học bạn đang giảng dạy.' 
+                : 'Xem và truy cập toàn bộ danh sách lớp học bạn đang tham gia.'}
             </p>
           </div>
 
@@ -159,7 +162,7 @@ export function ClassesClient() {
                     <div key={req.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
                       <div className="space-y-1">
                         <p className="font-semibold text-base text-foreground">Lớp: {req.className} ({req.classCode})</p>
-                        <p className="text-sm text-muted-foreground">Đã gửi lúc: {new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
+                        <p className="text-sm text-muted-foreground">Đã gửi lúc: {formatDateTime(req.requestedAt)}</p>
                       </div>
                       <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
                         Đang chờ giáo viên duyệt

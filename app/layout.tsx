@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 
 import { Toaster } from '@/components/ui/sonner'
 
+import { GoogleOAuthProvider } from '@react-oauth/google'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,12 +24,15 @@ export default function RootLayout({
   return (
     <html lang="vi" className="bg-background">
       <body className="font-sans antialiased">
-        <QueryProvider>
-          {children}
-          <Toaster position="top-right" richColors />
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </QueryProvider>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+          <QueryProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+            {process.env.NODE_ENV === 'production' && <Analytics />}
+          </QueryProvider>
+        </GoogleOAuthProvider>
       </body>
+
     </html>
   )
 }

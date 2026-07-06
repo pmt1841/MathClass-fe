@@ -7,11 +7,14 @@ import { z } from 'zod'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import { useTextEditor } from '@/hooks/use-text-editor'
 import dynamic from 'next/dynamic'
+import { formatDateTime } from '@/lib/utils'
 import api from '@/lib/axios'
 import { toast } from 'sonner'
 
@@ -139,29 +142,7 @@ export function AssignmentForm({
 
   const formValues = watch()
 
-  // Auto save to database
-  useEffect(() => {
-    if (!isFormLoadedRef.current || !onAutoSave) return
-    if (!formValues.title && !formValues.description && !formValues.content) return
 
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-
-    saveTimeoutRef.current = setTimeout(async () => {
-      setIsAutoSaving(true)
-      try {
-        await onAutoSave({ ...formValues, content: embedDrawings(formValues.content, drawings), drawings, images })
-        setLastSavedTime(new Date())
-      } catch (err) {
-        console.error('Lỗi autosave', err)
-      } finally {
-        setIsAutoSaving(false)
-      }
-    }, 5000)
-
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    }
-  }, [formValues, onAutoSave])
 
   const contentValue = watch('content')
   const [debouncedContentValue, setDebouncedContentValue] = useState(contentValue)
@@ -214,95 +195,11 @@ export function AssignmentForm({
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null)
   const { ref: formContentRef, ...formContentRest } = register('content')
 
-  const handleFormatText = (format: 'bold' | 'italic' | 'underline') => {
-    if (!textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const currentVal = formValues.content || ''
-
-    const before = currentVal.substring(0, start)
-    const after = currentVal.substring(end)
-    const selectedText = currentVal.substring(start, end)
-
-    let insertText = ''
-    let newCursorPos = start
-
-    if (format === 'bold') {
-      insertText = `**${selectedText}**`
-      newCursorPos = selectedText ? start + insertText.length : start + 2
-    } else if (format === 'italic') {
-      insertText = `*${selectedText}*`
-      newCursorPos = selectedText ? start + insertText.length : start + 1
-    } else if (format === 'underline') {
-      insertText = `<u>${selectedText}</u>`
-      newCursorPos = selectedText ? start + insertText.length : start + 3
-    }
-
-    const newVal = before + insertText + after
-
-    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
-
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }
-
-  const handleInsertLatex = (latexCommand: string) => {
-    if (!textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const currentVal = formValues.content || ''
-
-    const before = currentVal.substring(0, start)
-    const after = currentVal.substring(end)
-    const selectedText = currentVal.substring(start, end)
-
-    // Check if we are already inside a math block ($$ or $)
-    const countDoubleDollar = (before.match(/\$\$/g) || []).length
-    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
-    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
-
-    // Replace { } with {selectedText} if user highlighted text
-    let cmd = latexCommand
-    if (selectedText && cmd.includes('{ }')) {
-      cmd = cmd.replace('{ }', `{${selectedText}}`)
-    }
-
-    const isMathBlock = cmd.includes('\\begin')
-    let insertText = cmd
-
-    if (!isInsideMath) {
-      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
-    }
-
-    const newVal = before + insertText + after
-
-    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
-
-    setTimeout(() => {
-      textarea.focus()
-      let newCursorPos = start + insertText.length
-
-      const emptyBrackets = insertText.indexOf('{ }')
-      if (emptyBrackets !== -1) {
-        newCursorPos = start + emptyBrackets + 1
-      } else if (isMathBlock) {
-        const slashIndex = insertText.indexOf('\\\\')
-        if (slashIndex !== -1) {
-          newCursorPos = start + slashIndex
-        }
-      } else if (!isInsideMath && !selectedText) {
-        newCursorPos = start + insertText.length - 3
-      }
-
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }
+  const { handleFormatText, handleInsertLatex } = useTextEditor({
+    textareaRef,
+    content: formValues.content || '',
+    onChange: (newVal) => setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+  })
 
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
     if (editingShape) {
@@ -510,7 +407,7 @@ export function AssignmentForm({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex]}
+          rehypePlugins={[rehypeKatex, rehypeRaw]}
         >
           {part}
         </ReactMarkdown>
@@ -553,7 +450,7 @@ export function AssignmentForm({
           ) : lastSavedTime ? (
             <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
               <Check className="h-3 w-3" />
-              Đã lưu ({`${lastSavedTime.getHours().toString().padStart(2, '0')}:${lastSavedTime.getMinutes().toString().padStart(2, '0')}:${lastSavedTime.getSeconds().toString().padStart(2, '0')} ${lastSavedTime.getDate().toString().padStart(2, '0')}/${(lastSavedTime.getMonth() + 1).toString().padStart(2, '0')}/${lastSavedTime.getFullYear()}`})
+              Đã lưu ({formatDateTime(lastSavedTime)})
             </span>
           ) : null}
 
@@ -650,32 +547,6 @@ export function AssignmentForm({
               </div>
               {viewMode === 'edit' && (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-slate-200/50 p-0.5 rounded-lg border border-slate-200 mr-2">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); handleFormatText('bold') }}
-                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
-                      title="In đậm"
-                    >
-                      <Bold className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); handleFormatText('italic') }}
-                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
-                      title="In nghiêng"
-                    >
-                      <Italic className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); handleFormatText('underline') }}
-                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
-                      title="Gạch chân"
-                    >
-                      <Underline className="w-4 h-4" />
-                    </button>
-                  </div>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp"
@@ -710,7 +581,7 @@ export function AssignmentForm({
 
             {/* Editor Area */}
             <div className={`flex-1 flex-col overflow-hidden ${viewMode === 'edit' ? 'flex' : 'hidden'}`}>
-              <LatexToolbar onInsert={handleInsertLatex} />
+              <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
 
               {/* Danh sách hình vẽ & Ảnh */}
               {(drawings.length > 0 || images.length > 0) && (

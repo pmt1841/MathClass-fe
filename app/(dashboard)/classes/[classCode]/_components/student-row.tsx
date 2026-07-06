@@ -1,6 +1,7 @@
 import React from 'react'
 import { Mail, Trash2, Loader2 } from 'lucide-react'
 import { Student } from '@/types'
+import { formatDate } from '@/lib/utils'
 
 export function StudentRow({
   student,
@@ -41,7 +42,7 @@ export function StudentRow({
       </div>
       {student.joinedAt && (
         <span className="hidden sm:block text-[11px] text-muted-foreground/70 flex-shrink-0">
-          {new Date(student.joinedAt).toLocaleDateString('vi-VN')}
+          {formatDate(student.joinedAt)}
         </span>
       )}
       <button

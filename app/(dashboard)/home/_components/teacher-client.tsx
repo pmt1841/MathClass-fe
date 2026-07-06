@@ -20,24 +20,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Users, BookOpen, CheckCircle, FileText, ArrowRight, LayoutDashboard } from 'lucide-react'
+import { Search, Users, BookOpen, CheckCircle, FileText, LayoutDashboard, AlertTriangle, TrendingDown, Bell } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '@/lib/api/dashboard'
 import api from '@/lib/axios'
 import Link from 'next/link'
-import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { formatDistanceToNowSafe } from '@/lib/utils'
 
-const gradients = [
-  'bg-blue-500',
-  'bg-purple-500',
-  'bg-indigo-500',
-  'bg-emerald-500',
-  'bg-rose-500'
-]
+// Dữ liệu giả cho danh sách học sinh cần chú ý
+const MOCK_AT_RISK_STUDENTS = [
+  { id: 1, name: 'Nguyễn Văn A', className: 'Toán 10A1', issueType: 'low_score', detail: 'Điểm TB: 4.5', avatar: 'A' },
+  { id: 2, name: 'Trần Thị B', className: 'Toán 10A2', issueType: 'missing_assignments', detail: 'Thiếu 3 bài tập', avatar: 'B' },
+  { id: 3, name: 'Lê Hoàng C', className: 'Toán 11B', issueType: 'low_score', detail: 'Điểm TB: 5.0', avatar: 'C' },
+  { id: 4, name: 'Phạm Văn D', className: 'Toán 12C', issueType: 'missing_assignments', detail: 'Thiếu 2 bài tập', avatar: 'D' },
+];
 
 export function TeacherDashboardClient() {
   const [selectedClass, setSelectedClass] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['teacher-stats'],
@@ -54,29 +54,46 @@ export function TeacherDashboardClient() {
 
   const { data: pendingSubmissionData = [] } = useQuery({
     queryKey: ['pending-submissions'],
-    queryFn: () => dashboardApi.getPendingSubmissions(20),
+    queryFn: () => dashboardApi.getPendingSubmissions(10),
   })
 
   // Filter logic
-  const filteredAssignments = selectedClass === 'all'
-    ? pendingSubmissionData
-    : pendingSubmissionData.filter((a: any) => a.classCode === selectedClass)
+  const filteredAssignments = pendingSubmissionData.filter((a: any) => {
+    const matchesClass = selectedClass === 'all' || a.classCode === selectedClass
+    const matchesSearch = searchQuery === '' ||
+      a.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.assignmentTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesClass && matchesSearch
+  })
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-border bg-white py-6">
+      <div className="border-b border-border bg-white py-6 shadow-sm">
         <div className="mx-auto max-w-screen-2xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <LayoutDashboard className="h-5.5 w-5.5 text-primary" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-500/20">
+                <LayoutDashboard className="h-5.5 w-5.5 text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Tổng quan</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tổng quan</h1>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-slate-500 mt-1 font-medium">
               {selectedClass === 'all' ? 'Hiển thị dữ liệu của tất cả các lớp.' : `Hiển thị dữ liệu của ${classesData.find((c: any) => c.classCode === selectedClass)?.className || 'lớp'}.`}
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-[200px] bg-white border-slate-200 shadow-sm focus:ring-blue-500 font-medium h-10 text-sm">
+                <SelectValue placeholder="Chọn lớp học..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="font-medium text-slate-700">Tất cả các lớp</SelectItem>
+                {classesData.map((cls: any) => (
+                  <SelectItem key={cls.classCode} value={cls.classCode} className="font-medium">{cls.className}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -84,59 +101,62 @@ export function TeacherDashboardClient() {
       <main className="p-6 space-y-8 max-w-screen-2xl mx-auto">
 
         {/* Row 1: KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Tổng học sinh</CardTitle>
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Users className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tổng học sinh</CardTitle>
+              <div className="p-2.5 bg-blue-50 rounded-xl">
+                <Users className="h-5 w-5 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">
+              <div className="text-3xl font-extrabold text-slate-800">
                 {isLoading ? '-' : stats?.managedStudents ?? 125}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Lớp đang quản lý</CardTitle>
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <BookOpen className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Lớp quản lý</CardTitle>
+              <div className="p-2.5 bg-purple-50 rounded-xl">
+                <BookOpen className="h-5 w-5 text-purple-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">
+              <div className="text-3xl font-extrabold text-slate-800">
                 {isLoading ? '-' : stats?.teachingClasses ?? 3}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Bài tập đang mở</CardTitle>
-              <div className="p-2 bg-emerald-50 rounded-lg">
-                <FileText className="h-4 w-4 text-emerald-600" />
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Bài đang mở</CardTitle>
+              <div className="p-2.5 bg-emerald-50 rounded-xl">
+                <FileText className="h-5 w-5 text-emerald-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">
+              <div className="text-3xl font-extrabold text-slate-800">
                 {isLoading ? '-' : stats?.openAssignments ?? 0}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-orange-200 border-2 bg-orange-50/50 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-200 to-orange-100 rounded-full blur-2xl opacity-60 -mr-8 -mt-8 group-hover:opacity-80 transition-opacity" />
+          <Card className="border-0 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-xl transition-all hover:-translate-y-1 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl opacity-60 -mr-10 -mt-10 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-bold text-orange-800">Bài chờ chấm</CardTitle>
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <CheckCircle className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-sm font-bold text-orange-50 uppercase tracking-wider">Bài chờ chấm</CardTitle>
+              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+                <CheckCircle className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black text-orange-600">
+              <div className="text-3xl font-extrabold text-white">
                 {isLoading ? '-' : stats?.assignmentsToGrade ?? 14}
               </div>
             </CardContent>
@@ -149,61 +169,61 @@ export function TeacherDashboardClient() {
           {/* Left Column (65%) */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-slate-900">Danh sách bài chờ chấm</h2>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                Bài nộp chờ chấm
+                <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full">
+                  {filteredAssignments.length}
+                </Badge>
+              </h2>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="w-full sm:w-[160px] bg-white border-slate-200 shadow-sm focus:ring-blue-500 font-medium h-9 text-sm">
-                    <SelectValue placeholder="Chọn lớp" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-medium text-slate-700">Tất cả các lớp</SelectItem>
-                    {classesData.map((cls: any) => (
-                      <SelectItem key={cls.classCode} value={cls.classCode} className="font-medium">{cls.className}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    type="search"
-                    placeholder="Tìm kiếm học sinh, bài tập..."
-                    className="w-full pl-8 bg-white border-slate-200 focus-visible:ring-blue-500 rounded-md h-9 shadow-sm text-sm"
-                  />
-                </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="search"
+                  placeholder="Tìm kiếm học sinh, bài tập..."
+                  className="w-full pl-9 bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg h-10 text-sm transition-shadow"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
             </div>
 
-            <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
+            <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/90 backdrop-blur-md overflow-hidden rounded-xl">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-slate-50/80 border-b border-slate-100">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-semibold text-slate-600 py-4">Học sinh</TableHead>
-                      <TableHead className="font-semibold text-slate-600 py-4">Tên bài tập</TableHead>
-                      <TableHead className="font-semibold text-slate-600 py-4">Lớp</TableHead>
-                      <TableHead className="font-semibold text-slate-600 py-4">Thời gian nộp</TableHead>
+                    <TableRow className="hover:bg-transparent border-none">
+                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Học sinh</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Tên bài tập</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Lớp</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
                       <TableHead className="text-right py-4"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAssignments.length > 0 ? (
                       filteredAssignments.map((task: any) => (
-                        <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors border-slate-100">
-                          <TableCell className="font-medium text-slate-900 py-4">{task.studentName}</TableCell>
-                          <TableCell className="text-slate-600 py-4">{task.assignmentTitle}</TableCell>
+                        <TableRow key={task.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100/50 group">
                           <TableCell className="py-4">
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 font-semibold shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold text-sm shadow-inner">
+                                {task.studentName.charAt(0)}
+                              </div>
+                              <span className="font-semibold text-slate-800">{task.studentName}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-600 py-4 font-medium">{task.assignmentTitle}</TableCell>
+                          <TableCell className="py-4">
+                            <Badge variant="outline" className="border-blue-200 text-blue-700 font-semibold bg-blue-50/50">
                               {task.className}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-slate-500 text-sm py-4">
-                            {task.submittedAt ? formatDistanceToNow(new Date(task.submittedAt), { addSuffix: true, locale: vi }) : 'Chưa rõ'}
+                          <TableCell className="text-slate-500 text-sm py-4 font-medium">
+                            {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
                           </TableCell>
                           <TableCell className="text-right py-4">
-                            <Link href={`/assignments/${task.id}/submissions`}>
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow text-white">
+                            <Link href={`/assignments/${task.assignmentId}/submissions/${task.id}`}>
+                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all opacity-90 group-hover:opacity-100 rounded-lg font-medium px-4">
                                 Chấm ngay
                               </Button>
                             </Link>
@@ -212,12 +232,15 @@ export function TeacherDashboardClient() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-12 text-slate-500">
-                          <div className="flex flex-col items-center justify-center space-y-3">
-                            <div className="p-3 bg-slate-100 rounded-full">
-                              <CheckCircle className="h-6 w-6 text-slate-400" />
+                        <TableCell colSpan={5} className="text-center py-16 text-slate-500">
+                          <div className="flex flex-col items-center justify-center space-y-4">
+                            <div className="p-4 bg-emerald-50 rounded-full">
+                              <CheckCircle className="h-8 w-8 text-emerald-500" />
                             </div>
-                            <p>Không có bài tập nào chờ chấm trong lớp này.</p>
+                            <div>
+                              <p className="font-semibold text-slate-800 text-lg">Tuyệt vời!</p>
+                              <p className="text-slate-500 mt-1">Không có bài tập nào chờ chấm trong danh sách.</p>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -228,34 +251,55 @@ export function TeacherDashboardClient() {
             </Card>
           </div>
 
-          {/* Right Column (35%) */}
+          {/* Right Column (35%) - At Risk Students */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Danh sách lớp học</h2>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                Học sinh cần chú ý
+              </h2>
             </div>
 
-            <div className="space-y-3">
-              {classesData.map((cls: any, index: number) => {
-                const color = gradients[index % gradients.length]
+            <div className="space-y-4">
+              {MOCK_AT_RISK_STUDENTS.map((student) => {
+                const isLowScore = student.issueType === 'low_score';
                 return (
-                  <Link href={`/classes/${cls.classCode}`} key={cls.classCode} className="block">
-                    <Card className="border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-2.5 h-12 rounded-full ${color} shadow-sm`} />
-                          <div>
-                            <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-base">{cls.className}</h3>
-                            <p className="text-sm text-slate-500 font-medium mt-0.5">
-                              {cls.studentCount} học sinh <span className="mx-1.5 text-slate-300">•</span> {cls.classCode}
+                  <Card key={student.id} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
+                    <CardContent className="p-0">
+                      <div className="p-4 flex items-start gap-4">
+                        <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0 ${isLowScore
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-orange-100 text-orange-700'
+                          }`}>
+                          {student.avatar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-bold text-slate-900 truncate">{student.name}</h3>
+                            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 shrink-0 text-[10px] px-1.5 py-0">
+                              {student.className}
+                            </Badge>
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            {isLowScore ? (
+                              <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
+                            )}
+                            <p className={`text-sm font-semibold ${isLowScore ? 'text-rose-600' : 'text-orange-600'}`}>
+                              {student.detail}
                             </p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors h-9 w-9">
-                          <ArrowRight className="w-4 h-4" />
+                      </div>
+                      <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
+                        <span className="text-xs font-medium text-slate-500">Cần nhắc nhở kịp thời</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2.5">
+                          <Bell className="w-3.5 h-3.5 mr-1" />
+                          Nhắc nhở
                         </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>

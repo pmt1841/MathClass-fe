@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { AssignmentCard } from './assignment-card'
+import { parseDateSafe } from '@/lib/utils'
 
 export function AssignmentsPageClient() {
   const router = useRouter()
@@ -84,7 +85,7 @@ export function AssignmentsPageClient() {
     if (userRole === 'TEACHER') return true
 
     const status = assignment.submissionStatus
-    const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date()
+    const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
 
     if (activeTab === 'PENDING') return (status === null || status === 'DRAFT') && !isOverdue
     if (activeTab === 'SUBMITTED') return status === 'SUBMITTED'
