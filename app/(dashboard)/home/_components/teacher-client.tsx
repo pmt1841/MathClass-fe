@@ -27,14 +27,6 @@ import api from '@/lib/axios'
 import Link from 'next/link'
 import { formatDistanceToNowSafe } from '@/lib/utils'
 
-// Dữ liệu giả cho danh sách học sinh cần chú ý
-const MOCK_AT_RISK_STUDENTS = [
-  { id: 1, name: 'Nguyễn Văn A', className: 'Toán 10A1', issueType: 'low_score', detail: 'Điểm TB: 4.5', avatar: 'A' },
-  { id: 2, name: 'Trần Thị B', className: 'Toán 10A2', issueType: 'missing_assignments', detail: 'Thiếu 3 bài tập', avatar: 'B' },
-  { id: 3, name: 'Lê Hoàng C', className: 'Toán 11B', issueType: 'low_score', detail: 'Điểm TB: 5.0', avatar: 'C' },
-  { id: 4, name: 'Phạm Văn D', className: 'Toán 12C', issueType: 'missing_assignments', detail: 'Thiếu 2 bài tập', avatar: 'D' },
-];
-
 export function TeacherDashboardClient() {
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,6 +49,11 @@ export function TeacherDashboardClient() {
     queryFn: () => dashboardApi.getPendingSubmissions(10),
   })
 
+  const { data: atRiskStudents = [], isLoading: isLoadingAtRisk } = useQuery({
+    queryKey: ['at-risk-students'],
+    queryFn: dashboardApi.getAtRiskStudents,
+  })
+
   // Filter logic
   const filteredAssignments = pendingSubmissionData.filter((a: any) => {
     const matchesClass = selectedClass === 'all' || a.classCode === selectedClass
@@ -70,7 +67,7 @@ export function TeacherDashboardClient() {
     <div className="flex-1 bg-slate-50/50 min-h-screen">
       {/* Header Bar */}
       <div className="border-b border-border bg-white py-6 shadow-sm">
-        <div className="mx-auto max-w-screen-2xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-500/20">
@@ -82,23 +79,10 @@ export function TeacherDashboardClient() {
               {selectedClass === 'all' ? 'Hiển thị dữ liệu của tất cả các lớp.' : `Hiển thị dữ liệu của ${classesData.find((c: any) => c.classCode === selectedClass)?.className || 'lớp'}.`}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-[200px] bg-white border-slate-200 shadow-sm focus:ring-blue-500 font-medium h-10 text-sm">
-                <SelectValue placeholder="Chọn lớp học..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="font-medium text-slate-700">Tất cả các lớp</SelectItem>
-                {classesData.map((cls: any) => (
-                  <SelectItem key={cls.classCode} value={cls.classCode} className="font-medium">{cls.className}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
 
-      <main className="p-6 space-y-8 max-w-screen-2xl mx-auto">
+      <main className="p-4 sm:p-6 space-y-8 max-w-screen-2xl mx-auto w-full">
 
         {/* Row 1: KPI Cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -164,27 +148,38 @@ export function TeacherDashboardClient() {
         </div>
 
         {/* Row 2: Main Content */}
-        <div className="grid gap-6 lg:grid-cols-12 items-start">
+        <div className="grid gap-6 lg:grid-cols-12 items-start w-full">
 
           {/* Left Column (65%) */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="lg:col-span-8 space-y-4 min-w-0">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 Bài nộp chờ chấm
-                <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full">
-                  {filteredAssignments.length}
-                </Badge>
               </h2>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  type="search"
-                  placeholder="Tìm kiếm học sinh, bài tập..."
-                  className="w-full pl-9 bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg h-10 text-sm transition-shadow"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="w-full sm:w-[200px] bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg font-medium h-10 text-sm transition-shadow">
+                    <SelectValue placeholder="Chọn lớp học..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-medium text-slate-700">Tất cả các lớp</SelectItem>
+                    {classesData.map((cls: any) => (
+                      <SelectItem key={cls.classCode} value={cls.classCode} className="font-medium">{cls.className}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    type="search"
+                    placeholder="Tìm kiếm học sinh, bài tập..."
+                    className="w-full pl-9 bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg h-10 text-sm transition-shadow"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -195,8 +190,8 @@ export function TeacherDashboardClient() {
                     <TableRow className="hover:bg-transparent border-none">
                       <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Học sinh</TableHead>
                       <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Tên bài tập</TableHead>
-                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Lớp</TableHead>
-                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
+                      <TableHead className="hidden md:table-cell font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Lớp</TableHead>
+                      <TableHead className="hidden sm:table-cell font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
                       <TableHead className="text-right py-4"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -206,19 +201,29 @@ export function TeacherDashboardClient() {
                         <TableRow key={task.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100/50 group">
                           <TableCell className="py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold text-sm shadow-inner">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex shrink-0 items-center justify-center text-blue-700 font-bold text-sm shadow-inner">
                                 {task.studentName.charAt(0)}
                               </div>
-                              <span className="font-semibold text-slate-800">{task.studentName}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-slate-800 truncate">{task.studentName}</span>
+                                <span className="text-xs text-slate-500 md:hidden mt-0.5 truncate">Lớp: {task.className}</span>
+                              </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-slate-600 py-4 font-medium">{task.assignmentTitle}</TableCell>
-                          <TableCell className="py-4">
+                          <TableCell className="text-slate-600 py-4 font-medium">
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate block">{task.assignmentTitle}</span>
+                              <span className="text-xs text-slate-500 sm:hidden mt-0.5 truncate">
+                                {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell py-4">
                             <Badge variant="outline" className="border-blue-200 text-blue-700 font-semibold bg-blue-50/50">
                               {task.className}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-slate-500 text-sm py-4 font-medium">
+                          <TableCell className="hidden sm:table-cell text-slate-500 text-sm py-4 font-medium">
                             {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
                           </TableCell>
                           <TableCell className="text-right py-4">
@@ -252,7 +257,7 @@ export function TeacherDashboardClient() {
           </div>
 
           {/* Right Column (35%) - At Risk Students */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="lg:col-span-4 space-y-4 min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 Học sinh cần chú ý
@@ -260,48 +265,51 @@ export function TeacherDashboardClient() {
             </div>
 
             <div className="space-y-4">
-              {MOCK_AT_RISK_STUDENTS.map((student) => {
-                const isLowScore = student.issueType === 'low_score';
-                return (
-                  <Card key={student.id} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
-                    <CardContent className="p-0">
-                      <div className="p-4 flex items-start gap-4">
-                        <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0 ${isLowScore
-                          ? 'bg-rose-100 text-rose-700'
-                          : 'bg-orange-100 text-orange-700'
-                          }`}>
-                          {student.avatar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-bold text-slate-900 truncate">{student.name}</h3>
-                            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 shrink-0 text-[10px] px-1.5 py-0">
-                              {student.className}
-                            </Badge>
+              {isLoadingAtRisk ? (
+                <div className="text-center py-8 text-slate-500">Đang tải dữ liệu...</div>
+              ) : atRiskStudents.length > 0 ? (
+                atRiskStudents.map((student: any, index: number) => {
+                  const isLowScore = student.issueType === 'low_score';
+                  return (
+                    <Card key={`${student.id}-${index}`} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
+                      <CardContent className="p-0">
+                        <div className="p-4 flex items-start gap-4">
+                          <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0 ${isLowScore
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-orange-100 text-orange-700'
+                            }`}>
+                            {student.avatar}
                           </div>
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            {isLowScore ? (
-                              <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                            ) : (
-                              <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
-                            )}
-                            <p className={`text-sm font-semibold ${isLowScore ? 'text-rose-600' : 'text-orange-600'}`}>
-                              {student.detail}
-                            </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-bold text-slate-900 truncate">{student.name}</h3>
+                              <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 shrink-0 text-[10px] px-1.5 py-0">
+                                {student.className}
+                              </Badge>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              {isLowScore ? (
+                                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
+                              )}
+                              <p className={`text-sm font-semibold ${isLowScore ? 'text-rose-600' : 'text-orange-600'}`}>
+                                {student.detail}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs font-medium text-slate-500">Cần nhắc nhở kịp thời</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2.5">
-                          <Bell className="w-3.5 h-3.5 mr-1" />
-                          Nhắc nhở
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                        <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })) : (
+                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-sm">
+                  <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <p>Không có học sinh nào cần chú ý</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
