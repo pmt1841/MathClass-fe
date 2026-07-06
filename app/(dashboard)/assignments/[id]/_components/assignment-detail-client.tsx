@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronRight, Send, Save, Users, XCircle, CheckCircle } from
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import api from '@/lib/axios'
@@ -13,6 +14,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { StudentAssignmentLayout } from './student-assignment-layout'
 import { submissionApi } from '@/lib/api/submission'
+import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -124,8 +126,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
               setSubmissionScore(sub.score)
               setSubmissionTeacherFeedback(sub.teacherFeedback || '')
               if (sub.updatedAt) {
-                const dateStr = sub.updatedAt.includes('T') && !sub.updatedAt.endsWith('Z') && !sub.updatedAt.includes('+') ? `${sub.updatedAt}Z` : sub.updatedAt;
-                setLastSavedExternal(new Date(dateStr))
+                setLastSavedExternal(parseDateSafe(sub.updatedAt))
               }
             }
           } catch (err: any) {
@@ -155,7 +156,19 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   }, [id, classCode, router, assignmentId])
 
   const handleBackClick = () => {
-    setShowLeaveModal(true)
+    const pastDeadline = assignment?.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
+    const graded = submissionScore !== null
+    const readOnly = pastDeadline || userRole !== 'STUDENT' || graded || submissionStatus === 'SUBMITTED'
+
+    if (readOnly) {
+      if (window.history.length > 2) {
+        router.back()
+      } else {
+        router.push('/assignments')
+      }
+    } else {
+      setShowLeaveModal(true)
+    }
   }
 
   const handleLeaveConfirm = () => {
@@ -275,7 +288,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   if (!assignment) return null
 
-  const isPastDeadline = assignment.deadline ? new Date() > new Date(assignment.deadline) : false
+  const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
   const isReadOnly = isPastDeadline || userRole !== 'STUDENT' || isGraded || submissionStatus === 'SUBMITTED'
 
@@ -476,7 +489,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                       <ReactMarkdown
                         key={index}
                         remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
+                        rehypePlugins={[rehypeKatex, rehypeRaw]}
                       >
                         {part}
                       </ReactMarkdown>
@@ -512,7 +525,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Nộp lúc: {sub.submittedAt ? new Date(sub.submittedAt.includes('T') && !sub.submittedAt.endsWith('Z') && !sub.submittedAt.includes('+') ? `${sub.submittedAt}Z` : sub.submittedAt).toLocaleString('vi-VN') : 'Chưa nộp'}
+                    Nộp lúc: {sub.submittedAt ? formatDateTime(sub.submittedAt) : 'Chưa nộp'}
                   </p>
 
                   <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">

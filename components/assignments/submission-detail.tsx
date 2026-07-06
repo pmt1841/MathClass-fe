@@ -17,6 +17,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
@@ -152,7 +153,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
               )}
             </div>
             <div className="prose prose-sm prose-slate max-w-none mt-2">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
                 {comment.content}
               </ReactMarkdown>
             </div>
@@ -164,6 +165,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
 
   const memoizedRehypePlugins = useMemo(() => [
     rehypeKatex,
+    rehypeRaw,
     [rehypeMarkComments, { comments, activeCommentId }]
   ], [comments, activeCommentId])
 

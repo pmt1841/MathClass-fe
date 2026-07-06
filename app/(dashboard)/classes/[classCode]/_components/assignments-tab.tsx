@@ -10,7 +10,6 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
@@ -23,9 +22,8 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const fetchAssignments = useCallback(async () => {
     try {
       setLoading(true)
-      const params: Record<string, any> = { page, size }
+      const params: Record<string, any> = { page, size, status: 'PUBLISHED' }
       if (keyword.trim()) params.keyword = keyword.trim()
-      if (statusFilter) params.status = statusFilter
       const res = await api.get(`/classrooms/${classCode}/assignments`, { params })
       if (res.data?.content !== undefined) {
         setAssignments(res.data.content)
@@ -39,7 +37,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
     } finally {
       setLoading(false)
     }
-  }, [classCode, keyword, statusFilter, page, size])
+  }, [classCode, keyword, page, size])
 
   useEffect(() => {
     fetchAssignments()
@@ -85,16 +83,6 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
-              className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="DRAFT">Bản nháp</option>
-              <option value="PUBLISHED">Đã giao</option>
-            </select>
-
             <select
               value={size}
               onChange={(e) => { setSize(Number(e.target.value)); setPage(0) }}
@@ -148,10 +136,10 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                {keyword || statusFilter ? 'Không tìm thấy bài tập phù hợp' : 'Chưa có bài tập nào'}
+                {keyword ? 'Không tìm thấy bài tập phù hợp' : 'Chưa có bài tập nào'}
               </p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                {keyword || statusFilter ? 'Thử thay đổi bộ lọc tìm kiếm.' : 'Tạo bài tập mới và giao cho lớp này.'}
+                {keyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : 'Tạo bài tập mới và giao cho lớp này.'}
               </p>
             </div>
           </div>

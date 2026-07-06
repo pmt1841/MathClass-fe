@@ -6,10 +6,13 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import { useTextEditor } from '@/hooks/use-text-editor'
 import { CountdownTimer } from './countdown-timer'
+import { formatDateTime, parseDateSafe } from '@/lib/utils'
 
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -140,58 +143,14 @@ export function StudentAssignmentLayout({
     setPureContent(e.target.value)
   }
 
-  const handleInsertLatex = (latexCommand: string) => {
-    if (isReadOnly || !textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const currentVal = pureContent
-
-    const before = currentVal.substring(0, start)
-    const after = currentVal.substring(end)
-    const selectedText = currentVal.substring(start, end)
-
-    const countDoubleDollar = (before.match(/\$\$/g) || []).length
-    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
-    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
-
-    let cmd = latexCommand
-    if (selectedText && cmd.includes('{ }')) {
-      cmd = cmd.replace('{ }', `{${selectedText}}`)
+  const { handleFormatText, handleInsertLatex } = useTextEditor({
+    textareaRef,
+    content: pureContent,
+    onChange: (newVal) => {
+      isDirtyRef.current = true
+      setPureContent(newVal)
     }
-
-    const isMathBlock = cmd.includes('\\begin')
-    let insertText = cmd
-
-    if (!isInsideMath) {
-      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
-    }
-
-    const newVal = before + insertText + after
-
-    isDirtyRef.current = true
-    setPureContent(newVal)
-
-    setTimeout(() => {
-      textarea.focus()
-      let newCursorPos = start + insertText.length
-
-      const emptyBrackets = insertText.indexOf('{ }')
-      if (emptyBrackets !== -1) {
-        newCursorPos = start + emptyBrackets + 1
-      } else if (isMathBlock) {
-        const slashIndex = insertText.indexOf('\\\\')
-        if (slashIndex !== -1) {
-          newCursorPos = start + slashIndex
-        }
-      } else if (!isInsideMath && !selectedText) {
-        newCursorPos = start + insertText.length - 3
-      }
-
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }
+  })
 
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
     isDirtyRef.current = true
@@ -309,7 +268,7 @@ export function StudentAssignmentLayout({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex]}
+          rehypePlugins={[rehypeKatex, rehypeRaw]}
         >
           {part}
         </ReactMarkdown>
@@ -317,7 +276,7 @@ export function StudentAssignmentLayout({
     })
   }
 
-  const isPastDeadline = assignment.deadline ? new Date() > new Date(assignment.deadline) : false
+  const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
 
   return (
@@ -358,7 +317,7 @@ export function StudentAssignmentLayout({
           ) : lastSavedExternal ? (
             <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
               <Check className="h-3 w-3" />
-              Đã lưu ({`${lastSavedExternal.getHours().toString().padStart(2, '0')}:${lastSavedExternal.getMinutes().toString().padStart(2, '0')}:${lastSavedExternal.getSeconds().toString().padStart(2, '0')} ${lastSavedExternal.getDate().toString().padStart(2, '0')}/${(lastSavedExternal.getMonth() + 1).toString().padStart(2, '0')}/${lastSavedExternal.getFullYear()}`})
+              Đã lưu ({formatDateTime(lastSavedExternal)})
             </span>
           ) : null}
 
@@ -431,7 +390,7 @@ export function StudentAssignmentLayout({
                 Nhận xét từ giáo viên
               </h4>
               <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
                   {teacherFeedback}
                 </ReactMarkdown>
               </div>
@@ -465,7 +424,7 @@ export function StudentAssignmentLayout({
                 )}
               </div>
 
-              {!isReadOnly && <LatexToolbar onInsert={handleInsertLatex} />}
+              {!isReadOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
 
               {/* Danh sách hình vẽ của học sinh */}
               {studentDrawings.length > 0 && (
@@ -512,7 +471,7 @@ export function StudentAssignmentLayout({
                 value={pureContent}
                 onChange={handleContentChange}
                 readOnly={isReadOnly}
-                placeholder={isReadOnly ? "Bài nộp đã khóa." : "Nhập nội dung bài làm...\\nHỗ trợ LaTeX: $$ x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a} $$"}
+                placeholder={isReadOnly ? "Bài nộp đã khóa." : "Nhập nội dung bài làm..."}
                 className={`flex-1 w-full p-4 text-sm outline-none resize-none font-mono leading-relaxed ${isReadOnly ? 'bg-transparent text-slate-500 cursor-not-allowed' : 'bg-transparent'}`}
               />
             </Panel>

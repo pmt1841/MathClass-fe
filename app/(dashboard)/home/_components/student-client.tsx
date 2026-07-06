@@ -4,22 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Trophy, Flame, BookOpen, Star, ArrowRight, PlayCircle } from 'lucide-react'
+import { Clock, Trophy, Flame, BookOpen, Star, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
-import { Progress } from '@/components/ui/progress'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '@/lib/api/dashboard'
-import api from '@/lib/axios'
-import { formatDistanceToNow, isPast } from 'date-fns'
-import { vi } from 'date-fns/locale'
-
-const gradients = [
-  'bg-blue-500',
-  'bg-purple-500',
-  'bg-emerald-500',
-  'bg-orange-500',
-  'bg-rose-500'
-]
+import { isPast } from 'date-fns'
+import { parseDateSafe, formatDistanceToNowSafe } from '@/lib/utils'
 
 export function StudentDashboardClient() {
   const [greeting, setGreeting] = useState('Chào bạn')
@@ -36,33 +26,46 @@ export function StudentDashboardClient() {
     queryFn: dashboardApi.getStudentStats,
   })
 
-  const { data: classesData = [] } = useQuery({
-    queryKey: ['my-classes'],
-    queryFn: async () => {
-      const res = await api.get('/classrooms/my-classroom')
-      return Array.isArray(res.data) ? res.data : []
-    },
-  })
-
   const { data: pendingTasks = [] } = useQuery({
     queryKey: ['student-pending-tasks'],
-    queryFn: () => dashboardApi.getStudentPendingTasks(10),
+    queryFn: () => dashboardApi.getStudentPendingTasks(5),
   })
 
   const { data: gradedTasks = [] } = useQuery({
     queryKey: ['student-graded-tasks'],
-    queryFn: () => dashboardApi.getStudentGradedTasks(10),
+    queryFn: () => dashboardApi.getStudentGradedTasks(5),
   })
+
+  // Filter and sort pending tasks
+  const sortedPendingTasks = React.useMemo(() => {
+    // 1. Filter out past due tasks
+    const validTasks = pendingTasks.filter((task: any) => {
+      if (!task.deadline) return true;
+      const d = parseDateSafe(task.deadline);
+      return d ? !isPast(d) : true;
+    });
+
+    // 2. Sort by deadline (closest first)
+    return validTasks.sort((a: any, b: any) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1; // Put tasks without deadline at the end
+      if (!b.deadline) return -1;
+      const da = parseDateSafe(a.deadline);
+      const db = parseDateSafe(b.deadline);
+      if (!da || !db) return 0;
+      return da.getTime() - db.getTime();
+    });
+  }, [pendingTasks]);
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen">
       {/* Inline Topbar (Page Header) */}
-      <div className="border-b border-slate-200 bg-white py-6">
+      <div className="border-b border-border bg-white py-6 shadow-sm">
         <div className="mx-auto max-w-screen-2xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{greeting}! 👋</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Hôm nay bạn có <span className="font-semibold text-orange-600">{stats?.pendingTasks ?? 0} bài tập</span> cần hoàn thành. Cố lên nhé!
+            <p className="text-sm text-slate-500 mt-1 font-medium">
+              Hôm nay bạn có <span className="font-bold text-orange-600">{sortedPendingTasks.length} bài tập</span> cần hoàn thành. Cố lên nhé!
             </p>
           </div>
         </div>
@@ -71,80 +74,93 @@ export function StudentDashboardClient() {
       <main className="p-6 space-y-8 max-w-screen-2xl mx-auto">
 
         {/* Row 1: Thống kê cá nhân (3 Cards) */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+        <div className="grid gap-5 sm:grid-cols-3">
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Số lớp đang tham gia</CardTitle>
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <BookOpen className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Số lớp tham gia</CardTitle>
+              <div className="p-2.5 bg-blue-50 rounded-xl">
+                <BookOpen className="h-5 w-5 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-slate-900">{statsLoading ? '-' : stats?.joinedClasses ?? 0}</div>
+              <div className="text-3xl font-extrabold text-slate-800">{statsLoading ? '-' : stats?.joinedClasses ?? 0}</div>
             </CardContent>
           </Card>
 
-          <Card className="border-orange-200 border-2 bg-orange-50/50 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-200 to-orange-100 rounded-full blur-2xl opacity-60 -mr-8 -mt-8 group-hover:opacity-80 transition-opacity" />
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Bài đã chấm xong</CardTitle>
+              <div className="p-2.5 bg-emerald-50 rounded-xl">
+                <Star className="h-5 w-5 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-extrabold text-slate-800">{statsLoading ? '-' : stats?.completedTasks ?? 0}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-xl transition-all hover:-translate-y-1 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl opacity-60 -mr-10 -mt-10 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-bold text-orange-800">Bài tập cần làm</CardTitle>
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Flame className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-sm font-bold text-orange-50 uppercase tracking-wider">Bài tập cần làm</CardTitle>
+              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Flame className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-black text-orange-600">{statsLoading ? '-' : stats?.pendingTasks ?? 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-emerald-200 bg-emerald-50/30 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-emerald-800">Bài đã chấm xong</CardTitle>
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Star className="h-4 w-4 text-emerald-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-emerald-700">{statsLoading ? '-' : stats?.completedTasks ?? 0}</div>
+              <div className="text-3xl font-extrabold text-white">{statsLoading ? '-' : sortedPendingTasks.length}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Row 2: Việc cần làm ngay & Lớp học */}
+        {/* Row 2: Việc cần làm ngay & Kết quả */}
         <div className="grid gap-6 lg:grid-cols-12 items-start">
 
-          {/* Cột trái (65%): Bài tập sắp đến hạn */}
+          {/* Cột trái (65%): Bài tập cần làm */}
           <div className="lg:col-span-8 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-orange-500" /> Bài tập sắp đến hạn
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Clock className="w-6 h-6 text-orange-500" /> Bài tập cần làm
+              <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full ml-1">
+                {sortedPendingTasks.length}
+              </Badge>
             </h2>
-            <div className="space-y-3">
-              {pendingTasks.map((task: any) => {
-                const deadlineDate = task.deadline ? new Date(task.deadline) : null
-                const isUrgent = deadlineDate ? (deadlineDate.getTime() - Date.now() < 24 * 60 * 60 * 1000) && !isPast(deadlineDate) : false
+            <div className="space-y-4">
+              {sortedPendingTasks.map((task: any, index: number) => {
+                const deadlineDate = task.deadline ? parseDateSafe(task.deadline) : null
+                const isUrgent = deadlineDate ? (deadlineDate.getTime() - Date.now() < 24 * 60 * 60 * 1000) : false
+
+                // Highlight the absolute first task if it's urgent
+                const isTopPriority = index === 0 && isUrgent;
 
                 return (
-                  <Card key={task.id} className={`shadow-sm transition-all hover:shadow-md ${isUrgent ? 'border-orange-300 bg-orange-50/30' : 'border-slate-200 bg-white'}`}>
-                    <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1.5 flex-1">
+                  <Card key={task.id} className={`border-0 shadow-md transition-all hover:shadow-lg group overflow-hidden ${isTopPriority ? 'shadow-orange-500/20 bg-gradient-to-r from-orange-50 to-white ring-1 ring-orange-200' : 'shadow-slate-200/50 bg-white'}`}>
+                    {isTopPriority && (
+                      <div className="bg-orange-500 text-white text-xs font-bold uppercase tracking-wider text-center py-1.5 shadow-sm">
+                        Hạn chót đang đến rất gần!
+                      </div>
+                    )}
+                    <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 font-medium">
+                          <Badge variant="outline" className={`${isTopPriority ? 'border-orange-200 text-orange-700 bg-orange-100/50' : 'border-blue-200 text-blue-700 bg-blue-50/50'} font-semibold`}>
                             {task.className}
                           </Badge>
-                          <h3 className="font-semibold text-slate-900 text-base">{task.title}</h3>
+                          <h3 className={`font-bold text-lg ${isTopPriority ? 'text-orange-900' : 'text-slate-800'}`}>{task.title}</h3>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
+                        <div className="flex items-center gap-5 text-sm text-slate-500 font-medium">
                           <span className="flex items-center gap-1.5">
                             <BookOpen className="w-4 h-4 text-slate-400" /> {task.type}
                           </span>
-                          <span className={`flex items-center gap-1.5 ${isUrgent ? 'text-orange-600 font-semibold bg-orange-100/50 px-2 py-0.5 rounded-md' : ''}`}>
-                            <Clock className={`w-4 h-4 ${isUrgent ? 'text-orange-500' : 'text-slate-400'}`} /> {deadlineDate ? (isPast(deadlineDate) ? 'Đã quá hạn' : `Còn ${formatDistanceToNow(deadlineDate, { locale: vi })}`) : 'Không có hạn'}
+                          <span className={`flex items-center gap-1.5 ${isUrgent ? 'text-orange-600 font-semibold bg-orange-100 px-2 py-1 rounded-md shadow-sm' : ''}`}>
+                            <Clock className={`w-4 h-4 ${isUrgent ? 'text-orange-500' : 'text-slate-400'}`} /> {deadlineDate ? `Còn ${formatDistanceToNowSafe(deadlineDate)}` : 'Không có hạn'}
                           </span>
                         </div>
                       </div>
                       <Link href={`/assignments/${task.id}?classCode=${task.classCode}`} className="shrink-0 w-full sm:w-auto">
-                        <Button className={`w-full sm:w-auto shadow-sm ${isUrgent ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
-                          <PlayCircle className="w-4 h-4 mr-1.5" /> Làm bài ngay
+                        <Button className={`w-full sm:w-auto shadow-sm font-medium px-6 py-5 rounded-xl ${isTopPriority ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white opacity-90 hover:opacity-100'}`}>
+                          <PlayCircle className="w-5 h-5 mr-2" /> Làm bài ngay
                         </Button>
                       </Link>
                     </CardContent>
@@ -152,99 +168,71 @@ export function StudentDashboardClient() {
                 )
               })}
 
-              {pendingTasks.length === 0 && (
-                <div className="text-center py-8 text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
-                    <Trophy className="w-6 h-6 text-slate-400" />
+              {sortedPendingTasks.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-500 bg-white/80 backdrop-blur-sm rounded-2xl border-0 shadow-md shadow-slate-200/50">
+                  <div className="p-4 bg-emerald-50 rounded-full mb-4">
+                    <Trophy className="w-10 h-10 text-emerald-500" />
                   </div>
-                  <p>Tuyệt vời! Bạn không có bài tập nào cần làm gấp.</p>
+                  <p className="font-semibold text-slate-800 text-xl">Tuyệt vời!</p>
+                  <p className="text-slate-500 mt-1">Bạn đã hoàn thành mọi bài tập được giao.</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Cột phải (35%): Lớp học của tôi */}
+          {/* Cột phải (35%): Bài tập vừa có điểm */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Các lớp đang tham gia</h2>
-              <Link href="/classes" className="text-sm font-medium text-blue-600 hover:underline">
-                Xem tất cả
-              </Link>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Star className="w-6 h-6 text-emerald-500 fill-emerald-500/20" /> Vừa có điểm
+              </h2>
             </div>
-            <div className="space-y-3">
-              {classesData.map((cls: any, index: number) => {
-                const color = gradients[index % gradients.length]
-                return (
-                  <Link href={`/classes/${cls.classCode}`} key={cls.classCode} className="block group">
-                    <Card className="border-slate-200 shadow-sm bg-white hover:border-slate-300 hover:shadow-md transition-all cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-1.5 h-12 rounded-full ${color} shrink-0 mt-0.5`} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">{cls.className}</h3>
-                            <p className="text-sm text-slate-500 mt-0.5 font-medium">{cls.teacherName}</p>
-                            <div className="mt-4 space-y-1.5">
-                              <div className="flex justify-between text-xs font-medium text-slate-600">
-                                <span>Lớp học mở</span>
-                              </div>
-                              <Progress value={100} className="h-2 bg-slate-100" indicatorClassName={color} />
-                            </div>
-                          </div>
+            <div className="space-y-4">
+              {gradedTasks.map((task: any) => (
+                <Card key={task.id} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                  <CardContent className="p-0">
+                    <div className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] px-1.5 py-0">
+                          {task.className}
+                        </Badge>
+                        <span className="text-[11px] font-medium text-slate-400">
+                          {task.gradedAt ? formatDistanceToNowSafe(task.gradedAt, { addSuffix: true }) : ''}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight pr-12">{task.title}</h3>
+
+                      {/* Score Badge Absolute */}
+                      <div className="absolute top-8 right-4 flex flex-col items-end">
+                        <div className="flex items-baseline gap-0.5">
+                          <span className="text-2xl font-black text-emerald-600">{task.score}</span>
+                          <span className="text-xs font-bold text-emerald-600/50">/{task.maxScore}</span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Row 3: Kết quả gần đây */}
-        <div className="space-y-4 pt-4 border-t border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-emerald-500" /> Bài tập vừa có điểm
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {gradedTasks.map((task: any) => (
-              <Card key={task.id} className="border-slate-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                <CardContent className="p-5 flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-3">
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-medium">
-                      {task.className}
-                    </Badge>
-                    <span className="text-xs font-medium text-slate-400">
-                      {task.gradedAt ? formatDistanceToNow(new Date(task.gradedAt), { addSuffix: true, locale: vi }) : ''}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-slate-900 line-clamp-2 mb-4 leading-tight">{task.title}</h3>
-                  <div className="flex items-end justify-between mt-auto pt-2">
-                    <div>
-                      <p className="text-xs text-slate-500 font-semibold mb-0.5 uppercase tracking-wider">Điểm số</p>
-                      <div className="flex items-baseline gap-0.5">
-                        <span className="text-3xl font-black text-emerald-600">{task.score}</span>
-                        <span className="text-sm font-bold text-slate-400">/{task.maxScore}</span>
                       </div>
                     </div>
-                    <Link href={`/assignments/${task.id}?classCode=${task.classCode}`}>
-                      <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 shadow-sm">
-                        Xem chi tiết <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
 
-            {gradedTasks.length === 0 && (
-              <div className="col-span-full text-center py-8 text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm">
-                <p>Bạn chưa có bài tập nào được chấm điểm.</p>
-              </div>
-            )}
+                    <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Đã hoàn thành</span>
+                      <Link href={`/assignments/${task.id}?classCode=${task.classCode}`}>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2.5">
+                          Chi tiết <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {gradedTasks.length === 0 && (
+                <div className="text-center py-10 text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">
+                  <p className="text-sm font-medium">Chưa có bài tập nào được chấm điểm.</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
+        </div>
       </main>
     </div>
   )

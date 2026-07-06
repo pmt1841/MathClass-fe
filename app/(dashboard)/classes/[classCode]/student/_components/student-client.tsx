@@ -12,64 +12,47 @@ import {
   BookOpen,
   AlertCircle,
   Calendar,
-  GraduationCap,
   Users,
   Bell,
   Pin,
   ChevronRight,
-  Flame,
   TrendingUp,
   Award,
+  ChevronDown,
+  Megaphone
 } from 'lucide-react'
 import api from '@/lib/axios'
+import { formatDateTime, parseDateSafe } from '@/lib/utils'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
 }
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────
-const MOCK_STATS = [
-  { label: 'Bài tập hoàn thành', value: '8/10', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { label: 'Điểm trung bình', value: '8.6', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { label: 'Thứ hạng lớp', value: '#3', icon: Award, color: 'text-amber-500', bg: 'bg-amber-50' },
-]
-
-const MOCK_ANNOUNCEMENTS = [
+// ─── Constants ─────────────────────────────────────────────────────────────
+const DEFAULT_ANNOUNCEMENTS = [
   {
     id: 1,
-    author: 'Thầy Nguyễn Trọng T.',
-    initials: 'NT',
-    time: 'Hôm qua',
+    author: 'Hệ thống',
+    initials: 'HT',
+    time: 'Vừa xong',
     pinned: true,
-    content:
-      'Chào các em, tuần sau chúng ta sẽ có bài kiểm tra 1 tiết về phần Đạo hàm và Ứng dụng. Các em nhớ ôn tập kỹ lý thuyết chương 2 và làm đầy đủ các bài tập tự luyện trên hệ thống nhé. Chúc các em cuối tuần vui vẻ!',
-    comments: 12,
-  },
-  {
-    id: 2,
-    author: 'Thầy Nguyễn Trọng T.',
-    initials: 'NT',
-    time: '2 ngày trước',
-    pinned: false,
-    type: 'assignment',
-    content: 'đã đăng một bài tập mới: Đạo hàm cơ bản',
-    comments: 5,
-  },
+    content: 'Chào mừng bạn đến với lớp học. Hãy thường xuyên kiểm tra bài tập nhé!',
+    comments: 0,
+    type: 'system'
+  }
 ]
 
-
-
-// ─── Page ───────────────────────────────────────────────────────────────────
 export function StudentClassDetailPageClient({ params }: PageProps) {
   const { classCode } = use(params)
   const router = useRouter()
-  const [activeTab, setActiveTab] = React.useState<'stream' | 'classwork'>('stream')
 
   const [classroom, setClassroom] = useState<any>(null)
   const [assignedTasks, setAssignedTasks] = useState<any[]>([])
   const [completedTasks, setCompletedTasks] = useState<any[]>([])
   const [overdueTasks, setOverdueTasks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({ completionRate: '0/0', avgScore: '0.0' })
+  const [announcements, setAnnouncements] = useState<any[]>(DEFAULT_ANNOUNCEMENTS)
 
   useEffect(() => {
     const fetchClassData = async () => {
@@ -102,7 +85,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         tasksWithSubs.forEach(task => {
           const subStatus = task.submission?.status;
           const isDone = subStatus === 'SUBMITTED' || subStatus === 'GRADED' || subStatus === 'LATE';
-          const isPastDeadline = task.deadline ? new Date(task.deadline) < now : false;
+          const isPastDeadline = task.deadline ? (parseDateSafe(task.deadline)?.getTime() ?? Infinity) < now.getTime() : false;
 
           if (isDone) {
             completed.push(task);
@@ -112,6 +95,45 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             assigned.push(task);
           }
         });
+
+        // Tính toán thống kê
+        const totalPublished = publishedAssignments.length;
+        const totalCompleted = completed.length;
+        
+        let totalScore = 0;
+        let gradedCount = 0;
+        completed.forEach(task => {
+          if (task.submission?.status === 'GRADED') {
+            totalScore += task.submission.score;
+            gradedCount++;
+          }
+        });
+        const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 'Chưa có điểm';
+
+        setStats({
+          completionRate: `${totalCompleted}/${totalPublished}`,
+          avgScore: avgScore
+        });
+
+        // Tạo thông báo thật dựa trên bài tập được đăng
+        const generatedAnnouncements = publishedAssignments
+          .map((task: any, index: number) => ({
+            id: task.id + 1000,
+            author: classRes.data?.teacherName || 'Giáo viên',
+            initials: (classRes.data?.teacherName || 'GV').split(' ').pop()?.[0]?.toUpperCase() || 'GV',
+            time: formatDateTime(task.createdAt),
+            pinned: false,
+            type: 'assignment',
+            content: `đã giao một bài tập mới: ${task.title}`,
+            comments: 0,
+            createdAt: task.createdAt
+          }))
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        if (generatedAnnouncements.length > 0) {
+          generatedAnnouncements[0].pinned = true; // Pin the latest announcement
+          setAnnouncements(generatedAnnouncements);
+        }
 
         setAssignedTasks(assigned);
         setCompletedTasks(completed);
@@ -127,385 +149,328 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
   const teacherName = classroom?.teacherName || 'Đang cập nhật...'
   const teacherInitials = teacherName.split(' ').pop()?.[0]?.toUpperCase() || 'GV'
+  const teacherEmail = classroom?.teacherEmail || 'Chưa cập nhật email'
+  const teacherPhone = classroom?.teacherPhone || 'Chưa cập nhật SĐT'
+
+  const latestAnnouncement = announcements[0] || DEFAULT_ANNOUNCEMENTS[0]
+  const oldAnnouncements = announcements.slice(1, 4) // Max 3 old announcements
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
-
-      {/* ── Hero Banner ── */}
-      <div className={`relative overflow-hidden text-slate-900 border-b border-border bg-white`}>
-        <div className="relative z-10 mx-auto max-w-screen-xl px-6 py-6">
-          {/* Back button */}
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+      
+      {/* ── Hero & Banner Section ── */}
+      <div className="relative bg-white border-b border-border shadow-sm">
+        {/* Background gradient/glass effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/30 opacity-70" />
+        
+        <div className="relative z-10 mx-auto max-w-[1600px] px-6 pt-6 pb-8">
           <button
             onClick={() => router.push('/classes')}
-            className="mb-4 flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="mb-4 flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors w-fit"
           >
             <ArrowLeft className="h-4 w-4" />
             Quay lại danh sách lớp
           </button>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="space-y-2">
-              {/* Badges */}
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+            
+            {/* Title & Info */}
+            <div className="flex-1 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
                   <BookOpen className="h-3 w-3" />
                   Mã lớp: {classCode}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
                   <Users className="h-3 w-3" />
                   {classroom?.studentCount || 0}/{classroom?.maxStudents || 0} học sinh
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
                 {classroom?.className || 'Đang tải...'}
               </h1>
+            </div>
 
-              {/* Teacher */}
-              <div className="flex items-center gap-3 pt-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-sm font-bold border border-slate-200">
-                  {teacherInitials}
+            {/* Latest Announcement Banner */}
+            <div className="lg:w-[500px] xl:w-[600px] flex-shrink-0">
+              <div className="bg-amber-50/80 backdrop-blur-md border border-amber-200/60 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2">
+                  <Megaphone className="h-20 w-20 text-amber-500" />
                 </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Giáo viên phụ trách</p>
-                  <p className="text-sm font-semibold">{teacherName}</p>
+                <div className="relative z-10 flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                    <Pin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-full">Tin mới nhất</span>
+                      <span className="text-[11px] text-amber-600/80">{latestAnnouncement.time}</span>
+                    </div>
+                    <p className="text-sm text-amber-950 font-medium leading-snug line-clamp-2 group-hover:line-clamp-none transition-all duration-300">
+                      {latestAnnouncement.content}
+                    </p>
+                    <p className="text-[11px] font-semibold text-amber-700 mt-2">— {latestAnnouncement.author}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Decorative icon */}
-            <div className="hidden sm:flex h-24 w-24 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100">
-              <GraduationCap className="h-12 w-12 text-slate-300" />
-            </div>
-          </div>
-
-          {/* ── Stats row ── */}
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            {MOCK_STATS.map((s) => (
-              <div
-                key={s.label}
-                className="flex items-center gap-3 rounded-xl bg-white border border-border shadow-sm px-4 py-3"
-              >
-                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${s.bg}`}>
-                  <s.icon className={`h-4 w-4 ${s.color}`} />
-                </div>
-                <div>
-                  <p className="text-lg font-extrabold leading-none">{s.value}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab nav sits at the bottom of the hero */}
-        <div className="relative z-10 mx-auto max-w-screen-xl px-6">
-          <div className="flex gap-1 border-b border-border mt-2">
-            {(['stream', 'classwork'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-3 text-sm font-semibold transition-all border-b-2 -mb-px ${
-                  activeTab === tab
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab === 'stream' ? '📌 Bảng tin' : '📝 Bài tập'}
-              </button>
-            ))}
           </div>
         </div>
       </div>
 
-      {/* ── Main Content ── */}
+      {/* ── Main Content Grid ── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-screen-xl px-6 py-8">
-
-          {activeTab === 'stream' && (
-            <div className="grid gap-6 lg:grid-cols-3">
-
-              {/* ── Sidebar ── */}
-              <div className="space-y-4 lg:col-span-1">
-                {/* Upcoming tasks widget */}
-                <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50">
-                      <Flame className="h-4 w-4 text-orange-500" />
-                    </div>
-                    <h2 className="text-sm font-bold text-foreground">Nhiệm vụ tuần này</h2>
+        <div className="mx-auto max-w-[1600px] px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 xl:gap-8">
+            
+            {/* ── Column 1 (Left 25%): Quick Info & Calendar ── */}
+            <div className="space-y-6 lg:col-span-1 hidden lg:block">
+              {/* Teacher Info */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-slate-300 transition-all duration-200">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Giáo viên phụ trách</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-blue-50 text-indigo-700 text-base font-extrabold border border-indigo-200/50 shadow-sm">
+                    {teacherInitials}
                   </div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-start gap-3 rounded-xl border border-red-100 bg-red-50/50 p-3">
-                      <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-bold text-red-700">Sắp hết hạn</p>
-                        <p className="text-sm font-semibold text-foreground mt-0.5">Đạo hàm cơ bản</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          <Clock className="h-3 w-3 inline mr-1" />
-                          23:59 - Chủ Nhật
-                        </p>
-                      </div>
-                    </div>
-                    <button className="w-full flex items-center justify-between rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors">
-                      Xem tất cả bài tập
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Calendar widget */}
-                <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-                      <Calendar className="h-4 w-4 text-blue-500" />
-                    </div>
-                    <h2 className="text-sm font-bold text-foreground">Lịch học</h2>
-                  </div>
-                  <div className="p-4 text-center py-8">
-                    <p className="text-xs text-muted-foreground">Thứ Hai, Thứ Tư, Thứ Sáu</p>
-                    <p className="text-sm font-semibold mt-1">7:30 — 9:00</p>
+                  <div>
+                    <p className="text-base font-bold text-slate-800">{teacherName}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{teacherPhone}</p>
+                    <p className="text-[11px] text-muted-foreground">{teacherEmail}</p>
                   </div>
                 </div>
               </div>
 
-              {/* ── Announcements Feed ── */}
-              <div className="space-y-4 lg:col-span-2">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-muted-foreground" />
-                    Thông báo mới nhất
-                  </h2>
-                </div>
-
-                {MOCK_ANNOUNCEMENTS.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-                  >
-                    {/* Post header */}
-                    <div className="flex items-start gap-3 p-5">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold">
-                        {ann.initials}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-hidden">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1">Kết quả của bạn</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-foreground">{ann.author}</p>
-                          {ann.pinned && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                              <Pin className="h-2.5 w-2.5" />
-                              Đã ghim
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{ann.time}</p>
-                      </div>
+                      <span className="text-sm font-medium text-slate-600">Hoàn thành</span>
                     </div>
-
-                    {/* Content */}
-                    <div className="px-5 pb-4">
-                      {ann.type === 'assignment' ? (
-                        <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                            <FileText className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <p className="text-sm text-foreground">
-                            <span className="text-muted-foreground">{ann.content}</span>
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-foreground leading-relaxed bg-slate-50 rounded-xl p-4">
-                          {ann.content}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center gap-4 border-t border-border px-5 py-3">
-                      <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        {ann.comments} bình luận
-                      </button>
-                    </div>
+                    <span className="text-sm font-bold text-slate-900">{stats.completionRate}</span>
                   </div>
-                ))}
+                  
+                  <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <span className="text-sm font-medium text-slate-600">Điểm trung bình</span>
+                    </div>
+                    <span className="text-sm font-bold text-slate-900">{stats.avgScore}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
 
-          {activeTab === 'classwork' && (
-            <div className="space-y-8">
-
-              {/* ── To-do ── */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100">
-                    <Clock className="h-4 w-4 text-blue-600" />
+            {/* ── Column 2 (Middle 50%): Productivity Focus ── */}
+            <div className="space-y-6 lg:col-span-2">
+              
+              {/* Assignments To Do */}
+              <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
+                {/* Subtle background glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2" />
+                
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm shadow-blue-200">
+                      <Clock className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Bài tập cần làm</h2>
+                      <p className="text-xs text-muted-foreground font-medium mt-0.5">Bạn đang có {assignedTasks.length} nhiệm vụ</p>
+                    </div>
                   </div>
-                  <h3 className="text-base font-bold text-foreground">
-                    Bài tập được giao
-                    <span className="ml-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5">
-                      {assignedTasks.length}
-                    </span>
-                  </h3>
                 </div>
 
-                <div className="grid gap-3">
+                <div className="space-y-4">
                   {loading ? (
-                    <div className="text-sm text-muted-foreground">Đang tải...</div>
+                    <div className="text-sm text-muted-foreground text-center py-8">Đang tải danh sách bài tập...</div>
                   ) : assignedTasks.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Chưa có bài tập nào được giao.</div>
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
+                      <CheckCircle2 className="h-10 w-10 text-emerald-400 mb-3" />
+                      <p className="text-sm font-bold text-slate-700">Thật tuyệt vời!</p>
+                      <p className="text-xs text-muted-foreground mt-1">Bạn đã hoàn thành tất cả bài tập hiện tại.</p>
+                    </div>
                   ) : assignedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500`}
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300"
                     >
                       <div className="flex items-start gap-4">
-                        <div className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100`}>
-                          <FileText className={`h-5 w-5 text-blue-600`} />
+                        <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                          <FileText className="h-5 w-5" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{task.description || 'Không có mô tả'}</p>
-                          <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-blue-50 text-blue-600`}>
-                            <Clock className="h-3 w-3" />
-                            Hết hạn: {task.deadline ? new Date(task.deadline).toLocaleString('vi-VN') : 'Không có thời hạn'}
-                          </span>
+                          <h4 className="font-bold text-base text-slate-900 group-hover:text-blue-700 transition-colors">{task.title}</h4>
+                          <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || 'Không có mô tả chi tiết'}</p>
+                          <div className="flex items-center gap-3 mt-3">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-red-50 text-red-600 border border-red-100">
+                              <Clock className="h-3 w-3" />
+                              Hạn nộp: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <Link 
                         href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
-                        className="flex-shrink-0 self-end sm:self-auto flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 active:scale-[.98]"
+                        className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-600 hover:shadow-md hover:shadow-blue-200 transition-all active:scale-[.98]"
                       >
-                        Làm bài ngay
-                        <ChevronRight className="h-3.5 w-3.5" />
+                        Làm bài
+                        <ChevronRight className="h-4 w-4" />
                       </Link>
                     </div>
                   ))}
                 </div>
               </section>
 
-              {/* ── Overdue ── */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                  </div>
-                  <h3 className="text-base font-bold text-foreground">
-                    Đã quá hạn
-                    <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
-                      {overdueTasks.length}
-                    </span>
-                  </h3>
-                </div>
-
-                <div className="grid gap-3">
-                  {loading ? (
-                    <div className="text-sm text-muted-foreground">Đang tải...</div>
-                  ) : overdueTasks.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Không có bài tập quá hạn.</div>
-                  ) : overdueTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-red-500`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-red-100`}>
-                          <FileText className={`h-5 w-5 text-red-600`} />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{task.description || 'Không có mô tả'}</p>
-                          <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-red-50 text-red-600`}>
+              {/* Overdue Tasks (Accordion) */}
+              {overdueTasks.length > 0 && (
+                <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex items-center justify-between p-5 cursor-pointer bg-red-50/30 hover:bg-red-50/80 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Bài tập quá hạn
+                        <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
+                          {overdueTasks.length}
+                        </span>
+                      </h3>
+                    </div>
+                    <ChevronDown className="h-5 w-5 text-slate-400 group-open:-rotate-180 transition-transform duration-300" />
+                  </summary>
+                  <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
+                    {overdueTasks.map((task) => (
+                      <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex flex-col">
+                          <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
+                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-red-500">
                             <AlertCircle className="h-3 w-3" />
-                            Đã hết hạn lúc: {task.deadline ? new Date(task.deadline).toLocaleString('vi-VN') : 'Không có thời hạn'}
+                            Hết hạn: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
                           </span>
-                        </div>
-                      </div>
-                      <Link 
-                        href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
-                        className="flex-shrink-0 self-end sm:self-auto flex items-center gap-2 rounded-xl bg-red-50 text-red-600 border border-red-200 px-4 py-2 text-xs font-bold hover:bg-red-100 transition-all active:scale-[.98]"
-                      >
-                        Vẫn nộp bài
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* ── Done ── */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <h3 className="text-base font-bold text-foreground">
-                    Đã hoàn thành
-                    <span className="ml-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5">
-                      {completedTasks.length}
-                    </span>
-                  </h3>
-                </div>
-
-                <div className="grid gap-3">
-                  {loading ? (
-                    <div className="text-sm text-muted-foreground">Đang tải...</div>
-                  ) : completedTasks.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Chưa có bài tập hoàn thành.</div>
-                  ) : completedTasks.map((task) => {
-                    const isGraded = task.submission?.status === 'GRADED';
-                    const submittedAt = task.submission?.submittedAt ? new Date(task.submission.submittedAt).toLocaleString('vi-VN') : 'Chưa có thông tin';
-
-                    return (
-                      <div
-                        key={task.id}
-                        className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200 opacity-90 hover:opacity-100 border-l-4 ${
-                          isGraded ? 'border-l-emerald-500' : 'border-l-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div
-                            className={`flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl ${
-                              isGraded ? 'bg-emerald-100' : 'bg-slate-100'
-                            }`}
-                          >
-                            <FileText
-                              className={`h-5 w-5 ${
-                                isGraded ? 'text-emerald-600' : 'text-slate-500'
-                              }`}
-                            />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-sm text-foreground">{task.title}</h4>
-                            <p className="text-xs text-muted-foreground mt-1">Nộp lúc: {submittedAt}</p>
-                            {isGraded ? (
-                              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                                <Award className="h-3 w-3" />
-                                Điểm: {task.submission?.score}/10
-                              </span>
-                            ) : (
-                              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                <Clock className="h-3 w-3" />
-                                Đang chờ chấm
-                              </span>
-                            )}
-                          </div>
                         </div>
                         <Link 
                           href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
-                          className="flex-shrink-0 self-end sm:self-auto rounded-xl border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-colors"
+                          className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100"
                         >
-                          {isGraded ? 'Xem lời phê & Đáp án' : 'Xem bài đã nộp'}
+                          Vẫn nộp bài
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {/* Completed Tasks (Accordion) */}
+              <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Đã hoàn thành
+                      <span className="ml-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5">
+                        {completedTasks.length}
+                      </span>
+                    </h3>
+                  </div>
+                  <ChevronDown className="h-5 w-5 text-slate-400 group-open:-rotate-180 transition-transform duration-300" />
+                </summary>
+                <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
+                  {completedTasks.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">Bạn chưa hoàn thành bài tập nào.</p>
+                  ) : completedTasks.map((task) => {
+                    const isGraded = task.submission?.status === 'GRADED';
+                    const submittedAt = task.submission?.submittedAt ? formatDateTime(task.submission.submittedAt) : 'Chưa có thông tin';
+
+                    return (
+                      <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
+                            {isGraded ? (
+                               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
+                                 {task.submission?.score}/10 điểm
+                               </span>
+                             ) : (
+                               <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                 Chờ chấm
+                               </span>
+                             )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {submittedAt}</p>
+                        </div>
+                        <Link 
+                          href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
+                          className="flex-shrink-0 self-start sm:self-center text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
+                        >
+                          Xem lại bài
                         </Link>
                       </div>
                     )
                   })}
                 </div>
-              </section>
+              </details>
 
             </div>
-          )}
+
+            {/* ── Column 3 (Right 25%): Announcements Sidebar ── */}
+            <div className="space-y-6 lg:col-span-1">
+              
+              {/* Old Announcements */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100">
+                      <Bell className="h-3.5 w-3.5 text-indigo-600" />
+                    </div>
+                    <h2 className="text-sm font-bold text-slate-800">Thông báo khác</h2>
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-slate-100">
+                  {oldAnnouncements.map((ann) => (
+                    <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                          {ann.initials}
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">{ann.author}</p>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all duration-300">
+                        {ann.type === 'assignment' ? (
+                          <span className="flex items-center gap-1 text-blue-600 font-medium">
+                            <FileText className="h-3 w-3" /> {ann.content}
+                          </span>
+                        ) : (
+                          ann.content
+                        )}
+                      </p>
+                      <div className="flex items-center justify-between mt-3">
+                        <p className="text-[10px] text-slate-400">{ann.time}</p>
+
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+                  <button className="w-full text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors py-1.5">
+                    Xem tất cả thông báo
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ClipboardList, Clock, Pencil, Send, ListChecks } from 'lucide-react'
 import { Assignment } from '@/types'
+import { formatDateTime } from '@/lib/utils'
 
 export function AssignmentRow({
   assignment,
@@ -48,13 +49,7 @@ export function AssignmentRow({
           {assignment.deadline && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
-              {new Date(assignment.deadline).toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatDateTime(assignment.deadline)}
             </span>
           )}
           {assignment.className && (

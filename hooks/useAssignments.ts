@@ -43,7 +43,8 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
 
       const response = await api.get(url)
       return (response.data?.content || []) as Assignment[]
-    }
+    },
+    enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })
 }
 

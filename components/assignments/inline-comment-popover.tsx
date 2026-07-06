@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { MessageSquarePlus } from 'lucide-react'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import { useTextEditor } from '@/hooks/use-text-editor'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 
 interface InlineCommentPopoverProps {
@@ -41,47 +43,11 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
     onClose()
   }
 
-  const handleInsertLatex = (latexCommand: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const before = content.substring(0, start)
-    const after = content.substring(end)
-    const selectedText = content.substring(start, end)
-
-    const countDoubleDollar = (before.match(/\$\$/g) || []).length
-    const countSingleDollar = (before.replace(/\$\$/g, '').match(/\$/g) || []).length
-    const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
-
-    let cmd = latexCommand
-    if (selectedText && cmd.includes('{ }')) {
-      cmd = cmd.replace('{ }', `{${selectedText}}`)
-    }
-
-    const isMathBlock = cmd.includes('\\begin')
-    let insertText = cmd
-
-    if (!isInsideMath) {
-      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
-    }
-
-    const newVal = before + insertText + after
-    setContent(newVal)
-
-    setTimeout(() => {
-      textarea.focus()
-      let newCursorPos = start + insertText.length
-      const emptyBrackets = insertText.indexOf('{ }')
-      if (emptyBrackets !== -1) {
-        newCursorPos = start + emptyBrackets + 1
-      } else if (!isInsideMath && !selectedText) {
-        newCursorPos = isMathBlock ? start + insertText.length - 4 : start + insertText.length - 3
-      }
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }
+  const { handleFormatText, handleInsertLatex } = useTextEditor({
+    textareaRef,
+    content,
+    onChange: setContent
+  })
 
   if (!position) return null
 
@@ -103,7 +69,7 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
           <div className="space-y-3 w-full">
             <h4 className="font-semibold text-sm text-slate-800">Thêm nhận xét</h4>
             <div className="border border-slate-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
-              <LatexToolbar onInsert={handleInsertLatex} />
+              <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
               <Textarea
                 ref={textareaRef}
                 placeholder="Nhập nội dung nhận xét... Có thể dùng LaTeX"
@@ -116,7 +82,7 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
               <div className="p-2 bg-slate-50 rounded border border-slate-100 text-sm max-h-[100px] overflow-y-auto">
                 <ReactMarkdown
                   remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
+                  rehypePlugins={[rehypeKatex, rehypeRaw]}
                 >
                   {content}
                 </ReactMarkdown>

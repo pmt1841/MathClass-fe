@@ -32,38 +32,38 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hồ sơ cá nhân</h1>
           <p className="text-muted-foreground mt-2">
-            Quản lý thông tin cá nhân và cài đặt tài khoản của bạn.
+            Quản lý thông tin cá nhân của bạn.
           </p>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card className="md:col-span-1 h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
-            <CardDescription>
-              Cập nhật ảnh đại diện mới cho tài khoản của bạn.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pb-8">
-            <AvatarUpload 
-              currentAvatarUrl={profile.avatarUrl} 
-              fullName={profile.fullName} 
-            />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="md:col-span-1 h-fit">
+            <CardHeader>
+              <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
+              <CardDescription>
+                Cập nhật ảnh đại diện mới cho tài khoản của bạn.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center pb-8">
+              <AvatarUpload
+                currentAvatarUrl={profile.avatarUrl}
+                fullName={profile.fullName}
+              />
+            </CardContent>
+          </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
-            <CardDescription>
-              Thông tin này sẽ được hiển thị trên hệ thống giáo dục.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfileForm initialData={profile} />
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
+              <CardDescription>
+                Thông tin này sẽ được hiển thị trên hệ thống giáo dục.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProfileForm initialData={profile} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -45,4 +45,26 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Prevent intercepting login requests which naturally return 401 on wrong credentials
+      const isLoginApi = error.config && error.config.url && error.config.url.includes('/auth/login');
+      
+      if (!isLoginApi && typeof window !== 'undefined') {
+        const isAlreadyLoginPage = window.location.pathname.includes('/login');
+        
+        if (!isAlreadyLoginPage) {
+          localStorage.removeItem('auth_token');
+          sessionStorage.removeItem('auth_token');
+          document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          window.location.href = '/login?expired=true';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
