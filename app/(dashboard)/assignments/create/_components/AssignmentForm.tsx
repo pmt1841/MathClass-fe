@@ -104,7 +104,7 @@ export function AssignmentForm({
     watch,
     reset,
     setValue,
-    formState: { errors }
+    formState: { errors, isSubmitted }
   } = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
     defaultValues: defaultValues || {
@@ -113,8 +113,7 @@ export function AssignmentForm({
       content: '',
       drawings: [],
       images: []
-    },
-    mode: 'onChange'
+    }
   })
 
   useEffect(() => {
@@ -198,7 +197,7 @@ export function AssignmentForm({
   const { handleFormatText, handleInsertLatex } = useTextEditor({
     textareaRef,
     content: formValues.content || '',
-    onChange: (newVal) => setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+    onChange: (newVal) => setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
   })
 
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
@@ -213,7 +212,7 @@ export function AssignmentForm({
 
       // Kích hoạt auto-save bằng cách set lại content
       const currentVal = formValues.content || ''
-      setValue('content', currentVal, { shouldValidate: true, shouldDirty: true })
+      setValue('content', currentVal, { shouldValidate: isSubmitted, shouldDirty: true })
     } else {
       // Thuật toán lấp khoảng trống ID: Tìm số nguyên dương nhỏ nhất chưa được sử dụng
       const existingIndices = drawings
@@ -240,7 +239,7 @@ export function AssignmentForm({
 
         const insertText = `[${shapeCode}]`
         const newVal = before + insertText + after
-        setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+        setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
 
         setTimeout(() => {
           textarea.focus()
@@ -249,7 +248,7 @@ export function AssignmentForm({
         }, 0)
       } else {
         const currentVal = formValues.content || ''
-        setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: true, shouldDirty: true })
+        setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: isSubmitted, shouldDirty: true })
       }
     }
 
@@ -269,7 +268,7 @@ export function AssignmentForm({
     setDrawings(prev => prev.filter(d => d.shapeCode !== shapeCode))
     const currentVal = formValues.content || ''
     const newVal = currentVal.replace(new RegExp(`\\[${shapeCode}\\]`, 'g'), '')
-    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+    setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
   }
 
   const handleInsertDrawing = (shapeCode: string) => {
@@ -283,7 +282,7 @@ export function AssignmentForm({
 
       const insertText = `[${shapeCode}]`
       const newVal = before + insertText + after
-      setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+      setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
 
       setTimeout(() => {
         textarea.focus()
@@ -292,7 +291,7 @@ export function AssignmentForm({
       }, 0)
     } else {
       const currentVal = formValues.content || ''
-      setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: true, shouldDirty: true })
+      setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: isSubmitted, shouldDirty: true })
     }
   }
 
@@ -330,7 +329,7 @@ export function AssignmentForm({
       const { imageCode, imageUrl } = response.data
       const newImages = [...images, { imageCode, imageUrl }]
       setImages(newImages)
-      setValue('images', newImages, { shouldValidate: true, shouldDirty: true })
+      setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })
 
       // Insert into markdown
       if (textareaRef.current) {
@@ -342,7 +341,7 @@ export function AssignmentForm({
 
         const insertText = imageCode
         const newVal = before + insertText + after
-        setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+        setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
 
         setTimeout(() => {
           textarea.focus()
@@ -351,7 +350,7 @@ export function AssignmentForm({
         }, 0)
       } else {
         const currentVal = formValues.content || ''
-        setValue('content', currentVal + `\n${imageCode}`, { shouldValidate: true, shouldDirty: true })
+        setValue('content', currentVal + `\n${imageCode}`, { shouldValidate: isSubmitted, shouldDirty: true })
       }
       toast.success('Tải ảnh lên thành công')
     } catch (error: any) {
@@ -367,10 +366,10 @@ export function AssignmentForm({
   const handleDeleteImage = (imageCode: string) => {
     const updatedImages = images.filter(img => img.imageCode !== imageCode)
     setImages(updatedImages)
-    setValue('images', updatedImages, { shouldValidate: true, shouldDirty: true })
+    setValue('images', updatedImages, { shouldValidate: isSubmitted, shouldDirty: true })
     const currentVal = formValues.content || ''
     const newVal = currentVal.replace(new RegExp(imageCode.replace(/\[/g, '\\[').replace(/\]/g, '\\]'), 'g'), '')
-    setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+    setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
   }
 
   // Render function for Content with JSXGraph replacing
@@ -634,7 +633,7 @@ export function AssignmentForm({
                               const start = textarea.selectionStart
                               const currentVal = formValues.content || ''
                               const newVal = currentVal.substring(0, start) + img.imageCode + currentVal.substring(start)
-                              setValue('content', newVal, { shouldValidate: true, shouldDirty: true })
+                              setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
                               setTimeout(() => {
                                 textarea.focus()
                                 textarea.setSelectionRange(start + img.imageCode.length, start + img.imageCode.length)

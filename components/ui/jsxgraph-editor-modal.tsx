@@ -53,6 +53,9 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
   const [funcInput, setFuncInput] = useState<string>('')
   const [editingFunctionId, setEditingFunctionId] = useState<string | null>(null)
   const mfRef = useRef<any>(null)
+  const [errorModal, setErrorModal] = useState<string | null>(null)
+
+
 
   // Ghost Intersection Point State
   const [selectedGhostPoint, setSelectedGhostPoint] = useState<{ x: number, y: number, scrX: number, scrY: number } | null>(null)
@@ -161,7 +164,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         const obj = b.objects[el.id];
         if (obj) {
           if (el.isVertical) {
-            vLines.push(parseFloat(el.parsedFunc));
+            const num = parseFloat(el.parsedFunc);
+            if (!isNaN(num) && num.toString() === el.parsedFunc.trim()) {
+              vLines.push(num);
+            }
           } else {
             funcGraphs.push(obj);
           }
@@ -237,7 +243,9 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
       showCopyright: false,
       showInfobox: true,
       pan: { enabled: true, needShift: true, needTwoFingers: false },
-      zoom: { wheel: true, needShift: false }
+      zoom: { wheel: true, needShift: false },
+      // @ts-expect-error: keyboard is not typed in @types/jsxgraph but exists in JSXGraph
+      keyboard: { enabled: false }
     })
 
     // Custom right-click panning
@@ -338,7 +346,23 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         
         if (el.isVertical) {
           const num = parseFloat(el.parsedFunc);
-          fg = b.create('line', [[num, 0], [num, 1]], attrs);
+          if (!isNaN(num) && num.toString() === el.parsedFunc.trim()) {
+            fg = b.create('line', [[num, 0], [num, 1]], attrs);
+          } else {
+            let fn: any;
+            if (b.jc) {
+              fn = b.jc.snippet(el.parsedFunc, true, 'y');
+            } else {
+              const safeFuncStr = el.parsedFunc.replace(/\^/g, '**');
+              fn = new Function('y', `return ${safeFuncStr}`);
+            }
+            fg = b.create('curve', [
+              (y: number) => fn(y),
+              (y: number) => y,
+              () => b.getBoundingBox()[3],
+              () => b.getBoundingBox()[1]
+            ], attrs);
+          }
         } else {
           fg = b.create('functiongraph', [el.parsedFunc || el.func], attrs);
         }
@@ -627,6 +651,14 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
   }
 
   const handleToolClick = (tool: ToolType) => {
+    if (activeTool === 'function' && tool !== 'function') {
+      if (mfRef.current) {
+        mfRef.current.blur();
+      }
+      if ((window as any).mathVirtualKeyboard) {
+        (window as any).mathVirtualKeyboard.hide();
+      }
+    }
     setActiveTool(tool)
     selectedPointsRef.current = [] // reset selection when changing tool
   }
@@ -684,8 +716,23 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         let fg;
         if (isVertical) {
           const num = parseFloat(parsedFunc);
-          if (isNaN(num)) throw new Error("Invalid vertical line");
-          fg = board.create('line', [[num, 0], [num, 1]], attrs);
+          if (!isNaN(num) && num.toString() === parsedFunc.trim()) {
+            fg = board.create('line', [[num, 0], [num, 1]], attrs);
+          } else {
+            let fn: any;
+            if (board.jc) {
+              fn = board.jc.snippet(parsedFunc, true, 'y');
+            } else {
+              const safeFuncStr = parsedFunc.replace(/\^/g, '**');
+              fn = new Function('y', `return ${safeFuncStr}`);
+            }
+            fg = board.create('curve', [
+              (y: number) => fn(y),
+              (y: number) => y,
+              () => board.getBoundingBox()[3],
+              () => board.getBoundingBox()[1]
+            ], attrs);
+          }
         } else {
           fg = board.create('functiongraph', [parsedFunc], attrs);
         }
@@ -698,7 +745,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
       }
     } catch (err) {
       console.warn("Invalid function syntax:", err);
-      alert("Công thức không hợp lệ. Vui lòng nhập hàm số theo biến x (VD: y=x^2) hoặc đường thẳng dọc (VD: x=2).");
+      setErrorModal("Công thức không hợp lệ. Vui lòng nhập hàm số theo biến x (VD: y=x^2) hoặc đường thẳng dọc (VD: x=2).");
     }
   }
 
@@ -821,19 +868,39 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
           </div>
 
           {/* Function Tool Panel */}
-          {activeTool === 'function' && (
-            <div className="w-80 bg-white rounded-xl border border-border shadow-sm flex flex-col p-3 shrink-0 animate-in slide-in-from-left-4">
-              <div className="text-sm font-semibold text-slate-700 mb-3 px-1">Nhập hàm số</div>
+          <div className={`w-80 bg-white rounded-xl border border-border shadow-sm flex-col p-3 shrink-0 animate-in slide-in-from-left-4 ${activeTool === 'function' ? 'flex' : 'hidden'}`}>
+            <div className="text-sm font-semibold text-slate-700 mb-3 px-1">Nhập hàm số</div>
               <style>{`
                 math-field::part(menu-toggle) {
                   display: none !important;
                 }
+                math-field::part(virtual-keyboard-toggle) {
+                  display: none !important;
+                }
               `}</style>
               <div className="flex flex-col gap-2">
-                <div className="flex-1 min-w-0" style={{ fontSize: '1.2rem' }}>
+                <div 
+                  className="flex-1 min-w-0" 
+                  style={{ fontSize: '1.2rem' }} 
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onFocus={() => {
+                    if ((window as any).mathVirtualKeyboard) {
+                      (window as any).mathVirtualKeyboard.show();
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.relatedTarget && (e.relatedTarget as HTMLElement).closest && (e.relatedTarget as HTMLElement).closest('math-virtual-keyboard')) {
+                      return;
+                    }
+                    if ((window as any).mathVirtualKeyboard) {
+                      (window as any).mathVirtualKeyboard.hide();
+                    }
+                  }}
+                >
                   <math-field
                     ref={mfRef}
                     onInput={(e: any) => setFuncInput(e.target.value)}
+                    math-virtual-keyboard-policy="manual"
                     style={{ width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '0.5rem', outline: 'none' }}
                   />
                 </div>
@@ -889,7 +956,6 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
                 </div>
               )}
             </div>
-          )}
 
           {/* Canvas */}
           <div className="flex-1 bg-white rounded-xl border border-border shadow-sm flex items-center justify-center p-4 relative min-w-0">
@@ -992,6 +1058,24 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
             )}
           </div>
         </div>
+
+        {/* Error Modal */}
+        {errorModal && (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onContextMenu={e => e.preventDefault()}>
+            <div className="bg-white rounded-xl shadow-2xl border border-border p-5 w-80 animate-in zoom-in-95 flex flex-col gap-3">
+              <h4 className="font-semibold text-rose-600 text-base">Lỗi cú pháp</h4>
+              <p className="text-sm text-slate-600 leading-relaxed">{errorModal}</p>
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() => setErrorModal(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-slate-50">
