@@ -106,19 +106,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={() => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input value={initialData.email} disabled className="bg-slate-50" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-2 mt-2">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Email
+            </label>
+            <Input value={initialData.email} disabled className="bg-slate-50" />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
