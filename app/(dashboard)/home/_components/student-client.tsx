@@ -189,25 +189,27 @@ export function StudentDashboardClient() {
             </div>
             <div className="space-y-4">
               {gradedTasks.map((task: any) => (
-                <Card key={task.id} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                <Card key={task.id} className="relative border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 z-10"></div>
                   <CardContent className="p-0">
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] px-1.5 py-0">
-                          {task.className}
-                        </Badge>
-                        <span className="text-[11px] font-medium text-slate-400">
+                    <div className="p-4 flex gap-3 items-center">
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-2">
+                          <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] px-1.5 py-0">
+                            {task.className}
+                          </Badge>
+                        </div>
+                        <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight mb-1">{task.title}</h3>
+                        <span className="text-[11px] font-medium text-slate-400 block">
                           {task.gradedAt ? formatDistanceToNowSafe(task.gradedAt, { addSuffix: true }) : ''}
                         </span>
                       </div>
-                      <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight pr-12">{task.title}</h3>
 
-                      {/* Score Badge Absolute */}
-                      <div className="absolute top-8 right-4 flex flex-col items-end">
+                      {/* Score Badge */}
+                      <div className="flex-shrink-0 flex flex-col items-end">
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-2xl font-black text-emerald-600">{task.score}</span>
-                          <span className="text-xs font-bold text-emerald-600/50">/{task.maxScore}</span>
+                          <span className="text-3xl font-black text-emerald-600 leading-none">{task.score}</span>
+                          <span className="text-sm font-bold text-emerald-600/50">/{task.maxScore}</span>
                         </div>
                       </div>
                     </div>
