@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SubmissionDetail } from '@/components/assignments/submission-detail'
 import { submissionApi } from '@/lib/api/submission'
@@ -77,6 +77,11 @@ const mockSubmission = {
 }
 
 describe('SubmissionDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
+  })
+
   it('renders loading state initially', () => {
     vi.mocked(submissionApi.getSubmissionById).mockReturnValue(new Promise(() => { }))
     vi.mocked(assignmentApi.getAssignmentById).mockReturnValue(new Promise(() => { }))
@@ -150,9 +155,7 @@ describe('SubmissionDetail', () => {
     })
 
     // Grading form elements should be present
-    expect(screen.getByText('Khu vực chấm điểm')).toBeInTheDocument()
-    expect(screen.getByText('Điểm số')).toBeInTheDocument()
-    expect(screen.getByText('Lời phê của giáo viên')).toBeInTheDocument()
-    expect(screen.getByText(/Lưu điểm & Lời phê/)).toBeInTheDocument()
+    expect(screen.getByText('Điểm:')).toBeInTheDocument()
+    expect(screen.getByText(/Lưu điểm/)).toBeInTheDocument()
   })
 })

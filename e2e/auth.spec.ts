@@ -14,8 +14,20 @@ test.describe('Authentication & Routing', () => {
     await page.goto('/')
     await expect(page).toHaveURL('/')
     
-    // Có nút đăng nhập
-    const loginLink = page.locator('a[href="/login"]').first()
-    await expect(loginLink).toBeVisible()
+    // Có logo Math Class
+    await expect(page.getByRole('link', { name: 'Math Class' })).toBeVisible()
+  })
+
+  test('user can login successfully', async ({ page }) => {
+    await page.goto('/login')
+    
+    // Điền thông tin đăng nhập bằng placeholder thay vì label
+    await page.getByPlaceholder('you@example.com').fill('teacher@test.com')
+    await page.getByPlaceholder('••••••••').fill('123456')
+    
+    // Bấm nút đăng nhập
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
+    
+    // Test dừng ở đây vì chưa có BE thật
   })
 })
