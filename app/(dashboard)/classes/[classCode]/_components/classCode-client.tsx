@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
 import {
@@ -38,6 +39,14 @@ export function ClassDetailPageClient() {
   const classCode = params?.classCode as string
 
   const [activeTab, setActiveTab] = useState<TabType>('students')
+
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (user?.role === 'STUDENT' || user?.userRole === 'STUDENT') {
+      router.replace(`/classes/${classCode}/student`)
+    }
+  }, [user, classCode, router])
 
   const { data: classroom, isLoading: loadingClass } = useClassDetail(classCode)
   const updateMutation = useUpdateClassroom(classCode)
@@ -295,7 +304,7 @@ export function ClassDetailPageClient() {
               <Trash2 className="h-5 w-5" /> Xóa lớp học
             </DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn xóa lớp học <strong>{classroom?.className}</strong> không? 
+              Bạn có chắc chắn muốn xóa lớp học <strong>{classroom?.className}</strong> không?
               Lưu ý: Chỉ có thể xóa lớp khi chưa có học sinh nào. Hành động này không thể hoàn tác.
             </DialogDescription>
           </DialogHeader>
