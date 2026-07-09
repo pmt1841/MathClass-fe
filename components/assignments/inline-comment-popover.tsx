@@ -36,11 +36,16 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
     }
   }, [position])
 
-  const handleAdd = async () => {
+  const handleAdd = async (e: React.MouseEvent) => {
+    e.preventDefault()
     if (!content.trim()) return
-    await onAddComment(content)
-    setContent('')
-    onClose()
+    try {
+      await onAddComment(content)
+      setContent('')
+      onClose()
+    } catch (err) {
+      // Error handled by parent
+    }
   }
 
   const { handleFormatText, handleInsertLatex } = useTextEditor({
@@ -65,14 +70,23 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
             <MessageSquarePlus className="h-4 w-4 text-white" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[500px] p-4 shadow-xl" align="start" sideOffset={10}>
+        <PopoverContent 
+          className="w-[500px] p-4 shadow-xl" 
+          align="start" 
+          sideOffset={10}
+          onInteractOutside={(e) => {
+            if (isAdding) {
+              e.preventDefault()
+            }
+          }}
+        >
           <div className="space-y-3 w-full">
             <h4 className="font-semibold text-sm text-slate-800">Thêm nhận xét</h4>
             <div className="border border-slate-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
               <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
               <Textarea
                 ref={textareaRef}
-                placeholder="Nhập nội dung nhận xét... Có thể dùng LaTeX"
+                placeholder="Nhập nội dung nhận xét..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[80px] max-h-[140px] overflow-y-auto text-sm border-0 focus-visible:ring-0 rounded-none resize-none p-3"
