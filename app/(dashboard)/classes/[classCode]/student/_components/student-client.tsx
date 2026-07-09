@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import api from '@/lib/axios'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -53,6 +54,14 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ completionRate: '0/0', avgScore: '0.0' })
   const [announcements, setAnnouncements] = useState<any[]>(DEFAULT_ANNOUNCEMENTS)
+
+  const { user } = useAuth()
+  
+  useEffect(() => {
+    if (user?.role === 'TEACHER' || user?.userRole === 'TEACHER') {
+      router.replace(`/classes/${classCode}`)
+    }
+  }, [user, classCode, router])
 
   useEffect(() => {
     const fetchClassData = async () => {
