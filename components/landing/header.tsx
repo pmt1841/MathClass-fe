@@ -19,21 +19,6 @@ export function Header() {
             </div>
             <span className="text-2xl font-bold text-primary-foreground">Math Class</span>
           </Link>
-
-          {/* Navigation */}
-          {!isAuthPage && (
-            <nav className="hidden gap-8 md:flex">
-              <a href="#features" className="text-primary-foreground/90 hover:text-primary-foreground transition-colors">
-                Tính năng
-              </a>
-              <a href="#pricing" className="text-primary-foreground/90 hover:text-primary-foreground transition-colors">
-                Giá cả
-              </a>
-              <a href="#contact" className="text-primary-foreground/90 hover:text-primary-foreground transition-colors">
-                Liên hệ
-              </a>
-            </nav>
-          )}
         </div>
       </div>
     </header>
