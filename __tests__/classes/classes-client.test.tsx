@@ -16,18 +16,19 @@ vi.mock('@/lib/axios', () => {
 })
 
 describe('ClassesClient Feature', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
     window.sessionStorage.clear()
-  })
-
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
       },
-    },
+    })
   })
 
   it('renders loading skeleton initially', () => {

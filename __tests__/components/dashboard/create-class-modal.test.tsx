@@ -1,7 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+  },
+})
 // Tạm thời mock api để không thực sự gửi network request
 vi.mock('@/lib/axios', () => ({
   __esModule: true,
@@ -12,7 +18,11 @@ vi.mock('@/lib/axios', () => ({
 
 describe('CreateClassModal Component', () => {
   it('renders modal when open is true', () => {
-    render(<CreateClassModal open={true} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CreateClassModal open={true} onClose={vi.fn()} onSuccess={vi.fn()} />
+      </QueryClientProvider>
+    )
     
     // Dialog title
     expect(screen.getByText('Tạo lớp học mới')).toBeInTheDocument()
@@ -21,7 +31,11 @@ describe('CreateClassModal Component', () => {
   })
 
   it('shows validation errors if fields are empty and submitted', async () => {
-    render(<CreateClassModal open={true} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CreateClassModal open={true} onClose={vi.fn()} onSuccess={vi.fn()} />
+      </QueryClientProvider>
+    )
     
     // Find the submit button
     const submitBtn = screen.getByRole('button', { name: 'Tạo lớp học' })
