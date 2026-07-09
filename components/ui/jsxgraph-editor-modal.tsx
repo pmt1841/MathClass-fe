@@ -60,8 +60,13 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
   // Ghost Intersection Point State
   const [selectedGhostPoint, setSelectedGhostPoint] = useState<{ x: number, y: number, scrX: number, scrY: number } | null>(null)
 
-  const getNextPointName = (elements: any[]) => {
+  const getNextPointName = (elements: any[], x?: number, y?: number) => {
     const existingNames = elements.filter(el => el.type === 'point' && el.attributes?.name).map(el => el.attributes.name);
+
+    if (x !== undefined && y !== undefined && Math.abs(x) < 0.05 && Math.abs(y) < 0.05 && !existingNames.includes('O')) {
+      return 'O';
+    }
+
     let index = 0;
     while (true) {
       let name = '';
@@ -71,6 +76,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         const letter = String.fromCharCode(65 + (index % 26));
         const num = Math.floor(index / 26);
         name = `${letter}${num}`;
+      }
+      if (name === 'O') {
+        index++;
+        continue;
       }
       if (!existingNames.includes(name)) return name;
       index++;
@@ -157,8 +166,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
     }
 
     const funcGraphs: any[] = [];
-    const vLines: number[] = []; 
-    
+    const vLines: number[] = [];
+
     stateElements.forEach(el => {
       if (el.type === 'functiongraph') {
         const obj = b.objects[el.id];
@@ -237,16 +246,20 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
     const b = JXG.JSXGraph.initBoard(boardRef.current.id, {
       boundingbox: [-5, 5, 5, -5],
       axis: true,
-      grid: true,
+      grid: { gridX: 1, gridY: 1 },
+      defaultAxes: {
+        x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
+        y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
+      },
       keepaspectratio: true,
+      resize: { enabled: true, throttle: 200 },
       showNavigation: true,
       showCopyright: false,
       showInfobox: true,
       pan: { enabled: true, needShift: true, needTwoFingers: false },
       zoom: { wheel: true, needShift: false },
-      // @ts-expect-error: keyboard is not typed in @types/jsxgraph but exists in JSXGraph
       keyboard: { enabled: false }
-    })
+    } as any)
 
     // Custom right-click panning
     let isPanning = false;
@@ -343,7 +356,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         let fg;
         const attrs = { ...(el.attributes || { strokeColor: '#10b981', strokeWidth: 2 }) }
         if (el.id) attrs.id = el.id
-        
+
         if (el.isVertical) {
           const num = parseFloat(el.parsedFunc);
           if (!isNaN(num) && num.toString() === el.parsedFunc.trim()) {
@@ -364,7 +377,14 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
             ], attrs);
           }
         } else {
-          fg = b.create('functiongraph', [el.parsedFunc || el.func], attrs);
+          let fn: any;
+          if (b.jc) {
+            fn = b.jc.snippet(el.parsedFunc || el.func, true, 'x');
+          } else {
+            const safeFuncStr = (el.parsedFunc || el.func).replace(/\^/g, '**');
+            fn = new Function('x', `return ${safeFuncStr}`);
+          }
+          fg = b.create('functiongraph', [fn], attrs);
         }
       }
     })
@@ -385,7 +405,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         highlightFillColor: '#3b82f6',
         highlightStrokeColor: '#3b82f6'
       });
-      
+
       gp.on('down', (e: any) => {
         const scrCoords = b.getMousePosition(e);
         setSelectedGhostPoint({ x: p.x, y: p.y, scrX: scrCoords[0], scrY: scrCoords[1] });
@@ -462,13 +482,15 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         let clickedPoint: any = null
         for (const el in board.objects) {
           if (board.objects[el].elType === 'point' && board.objects[el].hasPoint(scrCoords[0], scrCoords[1])) {
-            clickedPoint = board.objects[el]
-            break
+            if (currentElements.some((ce: any) => ce.id === board.objects[el].id)) {
+              clickedPoint = board.objects[el]
+              break
+            }
           }
         }
-        if (clickedPoint) return // Do not create a new point over an existing one
+        if (clickedPoint) return // Do not create a new point over an existing user point
 
-        const nextName = getNextPointName(currentElements);
+        const nextName = getNextPointName(currentElements, x, y);
         const attrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true }
         const p = board.create('point', [x, y], attrs)
         saveHistory([...currentElements, { type: 'point', parents: [x, y], id: p.id, attributes: attrs }])
@@ -476,15 +498,17 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         let clickedPoint: any = null
         for (const el in board.objects) {
           if (board.objects[el].elType === 'point' && board.objects[el].hasPoint(scrCoords[0], scrCoords[1])) {
-            clickedPoint = board.objects[el]
-            break
+            if (currentElements.some((ce: any) => ce.id === board.objects[el].id)) {
+              clickedPoint = board.objects[el]
+              break
+            }
           }
         }
 
         let addedNewPoint = false
         let pointAttrs: any = null
         if (!clickedPoint) {
-          const nextName = getNextPointName(currentElements);
+          const nextName = getNextPointName(currentElements, x, y);
           pointAttrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true }
           clickedPoint = board.create('point', [x, y], pointAttrs)
           addedNewPoint = true
@@ -598,7 +622,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
   const handleDeletePoint = () => {
     if (!editingPoint) return
     const id = editingPoint.id
-    
+
     const currentElements = history[historyIndex].elements
     const nextElements = currentElements.filter(el => {
       if (el.id === id) return false;
@@ -622,10 +646,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
 
   const handlePinGhostPoint = (x: number, y: number) => {
     const currentElements = history[historyIndex].elements;
-    const nextName = getNextPointName(currentElements);
+    const nextName = getNextPointName(currentElements, x, y);
     const attrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true };
     const nextElements = [...currentElements, { type: 'point', parents: [x, y], id: `p-${Date.now()}`, attributes: attrs }];
-    
+
     const newState: HistoryState = {
       elements: nextElements,
       selectedPointIds: history[historyIndex].selectedPointIds
@@ -663,18 +687,63 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
     selectedPointsRef.current = [] // reset selection when changing tool
   }
 
+  const cleanLatex = (str: string) => {
+    let s = str;
+    // Fix brackets
+    s = s.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
+    s = s.replace(/\\left\[/g, '[').replace(/\\right\]/g, ']');
+    s = s.replace(/\\left|\\right/g, '');
+    
+    // Operators
+    s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\ast/g, '*').replace(/\\star/g, '*');
+    
+    // Math Functions
+    s = s.replace(/\\sin/g, 'sin');
+    s = s.replace(/\\cos/g, 'cos');
+    s = s.replace(/\\tan/g, 'tan');
+    s = s.replace(/\\ln/g, 'log');
+    s = s.replace(/\\log/g, 'log10');
+    
+    // Fractions & Sqrt (loop for simple nesting)
+    let prev = '';
+    while (s !== prev) {
+      prev = s;
+      s = s.replace(/\\frac{([^{}]+)}{([^{}]+)}/g, '($1)/($2)');
+      s = s.replace(/\\sqrt{([^{}]+)}/g, 'sqrt($1)');
+    }
+    s = s.replace(/\\frac(\d)(\d)/g, '($1)/($2)'); // Catch \frac12
+    s = s.replace(/\\frac{(\d)}(\d)/g, '($1)/($2)');
+    s = s.replace(/\\frac(\d){(\d)}/g, '($1)/($2)');
+    
+    // Exponents
+    s = s.replace(/\^{([^{}]+)}/g, '^($1)');
+    
+    // Remove spaces
+    s = s.replace(/\s+/g, '');
+    
+    // Implicit multiplication: number or closing paren followed by letter or opening paren
+    s = s.replace(/(\d|\))([a-zA-Z\(])/g, '$1*$2');
+    
+    // Remove remaining backslashes and curly braces
+    s = s.replace(/\\[a-zA-Z]+/g, '');
+    s = s.replace(/\\/g, '');
+    s = s.replace(/[{}]/g, '');
+    
+    return s;
+  }
+
   const handleAddFunctionGraph = () => {
     if (!board || !mfRef.current) return;
     try {
-      let asciiMath = mfRef.current.getValue('ascii-math');
-      if (!asciiMath) return;
-      
-      let parsedFunc = asciiMath;
+      let latex = mfRef.current.value;
+      if (!latex) return;
+
+      let parsedFunc = cleanLatex(latex);
       let isVertical = false;
 
       // Handle 'y =' or 'x ='
-      if (asciiMath.includes('=')) {
-        const parts = asciiMath.split('=');
+      if (parsedFunc.includes('=')) {
+        const parts = parsedFunc.split('=');
         const left = parts[0].trim();
         const right = parts.slice(1).join('=').trim();
         if (left === 'x') {
@@ -684,33 +753,33 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
           parsedFunc = right;
         }
       }
-      
+
       const attrs = { strokeColor: '#10b981', strokeWidth: 2 };
-      
+
       if (editingFunctionId) {
         // Update existing function graph
         const currentElements = history[historyIndex].elements;
         const nextElements = currentElements.map(el => {
           if (el.id === editingFunctionId) {
-            return { ...el, func: asciiMath, parsedFunc, isVertical };
+            return { ...el, func: latex, parsedFunc, isVertical };
           }
           return el;
         });
-        
+
         setEditingFunctionId(null);
         if (mfRef.current) mfRef.current.value = '';
         setFuncInput('');
-        
+
         const newState: HistoryState = {
           elements: nextElements,
           selectedPointIds: history[historyIndex].selectedPointIds
         }
-        
+
         const newHistory = history.slice(0, historyIndex + 1);
         newHistory.push(newState);
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
-        
+
         initBoardWithState(newState);
       } else {
         let fg;
@@ -734,12 +803,26 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
             ], attrs);
           }
         } else {
-          fg = board.create('functiongraph', [parsedFunc], attrs);
+          let fn: any;
+          if (board.jc) {
+            fn = board.jc.snippet(parsedFunc, true, 'x');
+          } else {
+            const safeFuncStr = parsedFunc.replace(/\^/g, '**');
+            fn = new Function('x', `return ${safeFuncStr}`);
+          }
+          
+          // Test evaluate to check if it's valid
+          const testVal = fn(1);
+          if (typeof testVal !== 'number' || isNaN(testVal)) {
+            throw new Error("Invalid function evaluation");
+          }
+          
+          fg = board.create('functiongraph', [fn], attrs);
         }
-        
+
         const currentElements = history[historyIndex].elements;
-        saveHistory([...currentElements, { type: 'functiongraph', id: fg.id, func: asciiMath, parsedFunc, isVertical, attributes: attrs }]);
-        
+        saveHistory([...currentElements, { type: 'functiongraph', id: fg.id, func: latex, parsedFunc, isVertical, attributes: attrs }]);
+
         if (mfRef.current) mfRef.current.value = '';
         setFuncInput('');
       }
@@ -760,23 +843,23 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
   const handleDeleteFunction = (id: string) => {
     const currentElements = history[historyIndex].elements;
     const nextElements = currentElements.filter(el => el.id !== id);
-    
+
     if (editingFunctionId === id) {
       setEditingFunctionId(null);
       if (mfRef.current) mfRef.current.value = '';
       setFuncInput('');
     }
-    
+
     const newState: HistoryState = {
       elements: nextElements,
       selectedPointIds: history[historyIndex].selectedPointIds
     }
-    
+
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newState);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
-    
+
     initBoardWithState(newState);
   }
 
@@ -870,7 +953,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
           {/* Function Tool Panel */}
           <div className={`w-80 bg-white rounded-xl border border-border shadow-sm flex-col p-3 shrink-0 animate-in slide-in-from-left-4 ${activeTool === 'function' ? 'flex' : 'hidden'}`}>
             <div className="text-sm font-semibold text-slate-700 mb-3 px-1">Nhập hàm số</div>
-              <style>{`
+            <style>{`
                 math-field::part(menu-toggle) {
                   display: none !important;
                 }
@@ -878,84 +961,84 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
                   display: none !important;
                 }
               `}</style>
-              <div className="flex flex-col gap-2">
-                <div 
-                  className="flex-1 min-w-0" 
-                  style={{ fontSize: '1.2rem' }} 
-                  onKeyDown={(e) => e.stopPropagation()}
-                  onFocus={() => {
-                    if ((window as any).mathVirtualKeyboard) {
-                      (window as any).mathVirtualKeyboard.show();
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.relatedTarget && (e.relatedTarget as HTMLElement).closest && (e.relatedTarget as HTMLElement).closest('math-virtual-keyboard')) {
-                      return;
-                    }
-                    if ((window as any).mathVirtualKeyboard) {
-                      (window as any).mathVirtualKeyboard.hide();
-                    }
-                  }}
-                >
-                  <math-field
-                    ref={mfRef}
-                    onInput={(e: any) => setFuncInput(e.target.value)}
-                    math-virtual-keyboard-policy="manual"
-                    style={{ width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '0.5rem', outline: 'none' }}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAddFunctionGraph}
-                    className="flex-1 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 shadow-sm transition-colors"
-                  >
-                    {editingFunctionId ? 'Cập nhật' : 'Vẽ đồ thị'}
-                  </button>
-                  {editingFunctionId && (
-                    <button
-                      onClick={() => {
-                        setEditingFunctionId(null);
-                        if (mfRef.current) mfRef.current.value = '';
-                        setFuncInput('');
-                      }}
-                      className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 shadow-sm transition-colors"
-                    >
-                      Hủy
-                    </button>
-                  )}
-                </div>
+            <div className="flex flex-col gap-2">
+              <div
+                className="flex-1 min-w-0"
+                style={{ fontSize: '1.2rem' }}
+                onKeyDown={(e) => e.stopPropagation()}
+                onFocus={() => {
+                  if ((window as any).mathVirtualKeyboard) {
+                    (window as any).mathVirtualKeyboard.show();
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.relatedTarget && (e.relatedTarget as HTMLElement).closest && (e.relatedTarget as HTMLElement).closest('math-virtual-keyboard')) {
+                    return;
+                  }
+                  if ((window as any).mathVirtualKeyboard) {
+                    (window as any).mathVirtualKeyboard.hide();
+                  }
+                }}
+              >
+                <math-field
+                  ref={mfRef}
+                  onInput={(e: any) => setFuncInput(e.target.value)}
+                  math-virtual-keyboard-policy="manual"
+                  style={{ width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '0.5rem', outline: 'none' }}
+                />
               </div>
-
-              {/* Function List */}
-              {history[historyIndex].elements.some(el => el.type === 'functiongraph') && (
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 overflow-y-auto">
-                  <div className="text-xs font-semibold text-slate-500 mb-1 px-1">Các hàm số đã vẽ</div>
-                  {history[historyIndex].elements.filter(el => el.type === 'functiongraph').map(el => (
-                    <div key={el.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 group">
-                      <div className="flex-1 min-w-0 overflow-hidden pointer-events-none" style={{ fontSize: '1.1rem' }}>
-                        <math-field readonly="true" style={{ width: '100%', outline: 'none', background: 'transparent', border: 'none' }}>
-                          {el.func}
-                        </math-field>
-                      </div>
-                      <button 
-                        onClick={() => handleEditFunction(el)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                        title="Sửa biểu thức"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteFunction(el.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                        title="Xóa biểu thức"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddFunctionGraph}
+                  className="flex-1 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 shadow-sm transition-colors"
+                >
+                  {editingFunctionId ? 'Cập nhật' : 'Vẽ đồ thị'}
+                </button>
+                {editingFunctionId && (
+                  <button
+                    onClick={() => {
+                      setEditingFunctionId(null);
+                      if (mfRef.current) mfRef.current.value = '';
+                      setFuncInput('');
+                    }}
+                    className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 shadow-sm transition-colors"
+                  >
+                    Hủy
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Function List */}
+            {history[historyIndex].elements.some(el => el.type === 'functiongraph') && (
+              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 overflow-y-auto">
+                <div className="text-xs font-semibold text-slate-500 mb-1 px-1">Các hàm số đã vẽ</div>
+                {history[historyIndex].elements.filter(el => el.type === 'functiongraph').map(el => (
+                  <div key={el.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 group">
+                    <div className="flex-1 min-w-0 overflow-hidden pointer-events-none" style={{ fontSize: '1.1rem' }}>
+                      <math-field readonly="true" style={{ width: '100%', outline: 'none', background: 'transparent', border: 'none' }}>
+                        {el.func}
+                      </math-field>
+                    </div>
+                    <button
+                      onClick={() => handleEditFunction(el)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                      title="Sửa biểu thức"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFunction(el.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                      title="Xóa biểu thức"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Canvas */}
           <div className="flex-1 bg-white rounded-xl border border-border shadow-sm flex items-center justify-center p-4 relative min-w-0">
@@ -968,11 +1051,11 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
 
             {/* Ghost Point Popover */}
             {selectedGhostPoint && (
-              <div 
+              <div
                 className="absolute z-[1200] bg-white rounded-lg shadow-xl border border-slate-200 p-2 flex flex-col gap-2 animate-in zoom-in-95 pointer-events-auto"
-                style={{ 
-                  left: boardRef.current ? Math.min(selectedGhostPoint.scrX + 16 + 10, boardRef.current.clientWidth + 16 - 180) : selectedGhostPoint.scrX + 26, 
-                  top: boardRef.current ? Math.max(16, Math.min(selectedGhostPoint.scrY + 16 - 10, boardRef.current.clientHeight + 16 - 150)) : selectedGhostPoint.scrY + 6 
+                style={{
+                  left: boardRef.current ? Math.min(selectedGhostPoint.scrX + 16 + 10, boardRef.current.clientWidth + 16 - 180) : selectedGhostPoint.scrX + 26,
+                  top: boardRef.current ? Math.max(16, Math.min(selectedGhostPoint.scrY + 16 - 10, boardRef.current.clientHeight + 16 - 150)) : selectedGhostPoint.scrY + 6
                 }}
               >
                 <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-1">

@@ -98,7 +98,7 @@ export default function rehypeMarkComments(options: RehypeMarkCommentsOptions) {
             comment.currentOccurrence++
             
             // Return the index offset to continue visiting the remaining nodes
-            return index + newNodes.length
+            return index + newNodes.length - 1
           }
 
           comment.currentOccurrence++

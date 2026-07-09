@@ -32,14 +32,19 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
         board = JXG.JSXGraph.initBoard(boardRef.current.id, {
           boundingbox: boundingbox,
           axis: axis,
-          grid: grid,
+          grid: grid ? { gridX: 1, gridY: 1 } : false,
+          defaultAxes: {
+            x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
+            y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
+          },
           keepaspectratio: true,
+          resize: { enabled: true, throttle: 200 },
           showNavigation: true,
           showCopyright: false,
           showInfobox: true,
           pan: { enabled: true, needShift: true, needTwoFingers: false },
           zoom: { wheel: true, needShift: false }
-        })
+        } as any)
 
         // Add Vietnamese tooltips to navigation buttons
         setTimeout(() => {
