@@ -23,7 +23,7 @@ export function Experience() {
               <GraduationCap className="w-5 h-5 mr-2" /> Góc nhìn Học sinh
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="teacher" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
@@ -33,9 +33,8 @@ export function Experience() {
                 <ul className="space-y-4">
                   {[
                     "Giao bài tập tự luận định dạng chuẩn xác",
-                    "Chấm điểm trực tiếp lên từng dòng bài làm của học sinh",
-                    "Khoanh vùng lỗi sai và để lại nhận xét (Feedback) chi tiết",
-                    "Quản lý tiến độ và phổ điểm của cả lớp dễ dàng"
+                    "Sử dụng công cụ Vẽ Hình/Đồ thị ngay trong soạn bài",
+                    "Nhận xét trực tiếp trên bài làm của học sinh",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
@@ -44,16 +43,43 @@ export function Experience() {
                   ))}
                 </ul>
               </div>
-              <div className="relative aspect-square md:aspect-[4/3] bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-100" />
-                <PenTool className="w-24 h-24 text-blue-200" />
-                <div className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-100 text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Đã chấm xong
+              <div className="relative aspect-square md:aspect-[4/3] bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-xl group">
+                <style>{`
+                  @keyframes auto-slide-teacher {
+                    0%, 45% { opacity: 1; }
+                    50%, 95% { opacity: 0; }
+                    100% { opacity: 1; }
+                  }
+                  .slide-teacher-1 { animation: auto-slide-teacher 6s infinite; }
+                  .slide-teacher-2 { animation: auto-slide-teacher 6s infinite -3s; }
+                `}</style>
+
+                {/* Window Frame (Thanh cửa sổ) */}
+                <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex gap-1.5 z-20 relative shadow-sm">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                 </div>
+
+                {/* Images Area */}
+                <div className="relative w-full h-[calc(100%-28px)] bg-slate-50">
+                  <img
+                    src="/teacher-assignment.png"
+                    alt="Giao diện chấm bài"
+                    className="slide-teacher-1 absolute inset-0 w-full h-full object-cover object-top"
+                  />
+                  <img
+                    src="/teacher-comment.png"
+                    alt="Giao diện nhận xét"
+                    className="slide-teacher-2 absolute inset-0 w-full h-full object-cover object-top"
+                  />
+                </div>
+
+
               </div>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="student" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
@@ -64,8 +90,7 @@ export function Experience() {
                   {[
                     "Trình bày lời giải từng bước rõ ràng, logic",
                     "Sử dụng công cụ Vẽ Hình/Đồ thị ngay trong bài làm",
-                    "Tự động lưu nháp (Auto-save) không lo mất dữ liệu",
-                    "Xem ngay điểm số và lời phê chi tiết sau khi nộp"
+                    "Tính năng lưu nháp không lo mất dữ liệu",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <CheckCircle2 className="w-6 h-6 text-indigo-500 shrink-0 mt-0.5" />
@@ -74,12 +99,39 @@ export function Experience() {
                   ))}
                 </ul>
               </div>
-              <div className="relative aspect-square md:aspect-[4/3] bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-slate-100" />
-                <Calculator className="w-24 h-24 text-indigo-200" />
-                <div className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-100 text-sm font-mono text-slate-600">
-                  f(x) = x² + 2x + 1
+              <div className="relative aspect-square md:aspect-[4/3] bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-xl group">
+                <style>{`
+                  @keyframes auto-slide-student {
+                    0%, 45% { opacity: 1; }
+                    50%, 95% { opacity: 0; }
+                    100% { opacity: 1; }
+                  }
+                  .slide-student-1 { animation: auto-slide-student 6s infinite; }
+                  .slide-student-2 { animation: auto-slide-student 6s infinite -3s; }
+                `}</style>
+
+                {/* Window Frame (Thanh cửa sổ) */}
+                <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex gap-1.5 z-20 relative shadow-sm">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                 </div>
+
+                {/* Images Area */}
+                <div className="relative w-full h-[calc(100%-28px)] bg-slate-50">
+                  <img
+                    src="/student-submission.png"
+                    alt="Giao diện soạn công thức"
+                    className="slide-student-1 absolute inset-0 w-full h-full object-cover object-top"
+                  />
+                  <img
+                    src="/student-drawing.png"
+                    alt="Giao diện vẽ đồ thị"
+                    className="slide-student-2 absolute inset-0 w-full h-full object-cover object-top"
+                  />
+                </div>
+
+
               </div>
             </div>
           </TabsContent>
