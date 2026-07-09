@@ -25,6 +25,17 @@ import { InlineCommentPopover } from './inline-comment-popover'
 import rehypeMarkComments from '@/lib/rehype-mark-comments'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useAuth } from '@/hooks/useAuth'
 
 import { useTextSelection } from '@/hooks/useTextSelection'
@@ -107,11 +118,11 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
         description: handleApiError(err, 'Có lỗi xảy ra khi thêm nhận xét.'),
         variant: 'destructive',
       })
+      throw err
     }
   }
 
   const handleDeleteComment = useCallback(async (commentId: number) => {
-    if (!confirm('Bạn có chắc muốn xóa nhận xét này?')) return
     try {
       await deleteComment(commentId)
       toast({ title: 'Thành công', description: 'Đã xóa nhận xét.' })
@@ -147,9 +158,25 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
                 </div>
               </div>
               {isTeacher && comment.teacherId === user?.id && (
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={() => handleDeleteComment(comment.id)} disabled={isDeleting}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" disabled={isDeleting}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Bạn có chắc chắn muốn xóa nhận xét này không? Hành động này không thể hoàn tác.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteComment(comment.id)} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
             <div className="prose prose-sm prose-slate max-w-none mt-2">
