@@ -12,7 +12,8 @@
 - `components/` → Các React component được tổ chức theo module/feature:
   - `ui/` → Các base UI components (Shadcn UI + Radix UI)
   - `assignments/`, `auth/`, `dashboard/`, `landing/`, `layout/`, `providers/` → Các component theo chức năng
-- `lib/` → Chứa cấu hình Axios API client (`axios.ts`), hàm tiện ích (`utils.ts`), logic gọi API (`api/`, `actions/`)
+- `lib/` → Chứa cấu hình Axios API client (`axios.ts`), hàm tiện ích (`utils.ts`), 
+- `services` -> logic gọi API (`api/`, `actions/`)
 - `hooks/` → Các React custom hooks dùng chung
 - `types/` → Các định nghĩa TypeScript interface/type dùng chung
 - `public/` → Assets tĩnh (hình ảnh, icons, v.v.)
@@ -76,6 +77,16 @@
 - **Toast Notification:** Các thông báo Thành công/Thất bại khi gọi API phải được hiển thị qua hệ thống Toast tích hợp sẵn của dự án (`sonner` hoặc Shadcn Toast `useToast()`). Tuyệt đối không dùng hàm `alert()` mặc định của trình duyệt.
 
 - **Loading States:** Mọi nút bấm thực hiện tác vụ API (ví dụ: Đăng nhập, Tạo bài tập, Nộp bài) phải hiển thị trạng thái loading (spinner/disabled) khi request đang xử lý để ngăn người dùng click nhiều lần (Spam Request).
+
+### 7.5. Performance & Resource Optimization Module
+
+- **Lazy Loading (Dynamic Imports):** Đối với các component giao diện lớn hoặc chứa các thư viện con nặng (như biểu đồ, markdown editor, KaTeX), ưu tiên sử dụng Next.js Dynamic Imports (`next/dynamic`) để code-split và lazy-load khi điều kiện hiển thị thực tế được xác định, nhằm giảm kích thước tải ban đầu (Initial Bundle Size).
+- **Tối ưu hóa INP (Interaction to Next Paint):**
+  - Tránh các tính toán nặng trực tiếp trong render loop của component.
+  - Các logic lọc (filter), sắp xếp (sort), hoặc biến đổi danh sách dữ liệu liên kết trực tiếp với các state nhập liệu (Input Search, Filter Select) bắt buộc phải được bọc trong `useMemo` để ngăn chặn hiện tượng Input Lag khi gõ phím.
+- **Chiến lược Caching & Fetching:**
+  - Cấu hình thuộc tính `staleTime` hợp lý (từ 1 đến 5 phút) cho các truy vấn dữ liệu tổng quan, thống kê hoặc danh sách tĩnh của React Query.
+  - Tránh sử dụng `staleTime: 0` mặc định cho các truy vấn không đòi hỏi dữ liệu thời gian thực (real-time) để giảm tải số lượng API request dư thừa lên máy chủ.
 
 ## 8. Session Management
 
