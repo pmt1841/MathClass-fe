@@ -88,6 +88,12 @@
   - Cấu hình thuộc tính `staleTime` hợp lý (từ 1 đến 5 phút) cho các truy vấn dữ liệu tổng quan, thống kê hoặc danh sách tĩnh của React Query.
   - Tránh sử dụng `staleTime: 0` mặc định cho các truy vấn không đòi hỏi dữ liệu thời gian thực (real-time) để giảm tải số lượng API request dư thừa lên máy chủ.
 
+### 7.6. Security & Vulnerability Prevention Module
+
+- **Phòng chống XSS (HTML Sanitization):** Mọi nội dung HTML hoặc Markdown hiển thị trực tiếp từ đầu vào của người dùng (nhận xét, nội dung bài tập, bài nộp) bắt buộc phải được lọc qua bộ lọc `rehype-sanitize` kết hợp với cấu hình schema an toàn (`sanitizeSchema` của dự án) trước khi render thông qua `ReactMarkdown`.
+- **Lưu trữ Token an toàn:** Cookie lưu trữ JWT token (`auth_token`) ở client-side bắt buộc phải thiết lập thuộc tính `; Secure` trên môi trường HTTPS. Không sử dụng cookie thiếu cờ bảo mật.
+- **Tuân thủ TypeScript khi Build:** Tuyệt đối không cho phép bỏ qua lỗi TypeScript khi build nhằm ngăn chặn lỗi ép kiểu thiếu an toàn. Thuộc tính `ignoreBuildErrors` trong cấu hình `next.config.mjs` bắt buộc phải luôn luôn để là `false`.
+
 ## 8. Session Management
 
 Cuối mỗi session, tự động tạo summary với format:
