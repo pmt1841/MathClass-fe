@@ -16,8 +16,6 @@ import {
 import { ClassroomDetail } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { joinRequestsApi } from '@/lib/api/join-requests'
 import { useClassStudents, useAddStudent, useRemoveStudent } from '@/hooks/useClassDetail'
 
 export function StudentsTab({
@@ -29,41 +27,15 @@ export function StudentsTab({
   classroom: ClassroomDetail | null
   loadingClass: boolean
 }) {
-  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
   const [sortAsc, setSortAsc] = useState(true)
   
-  const [addError, setAddError] = useState<string | null>(null)
-  const [addSuccess, setAddSuccess] = useState<string | null>(null)
-  
   const [studentToRemove, setStudentToRemove] = useState<{ id: number; name: string } | null>(null)
 
   const isFull = classroom ? (classroom.studentCount ?? 0) >= (classroom.maxStudents ?? Infinity) : false
 
-  const { data: pendingRequests } = useQuery({
-    queryKey: ['pending-requests', classCode],
-    queryFn: () => joinRequestsApi.getPendingRequests(classCode),
-    enabled: !!classCode,
-  })
-
-  const processRequestMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number, status: 'APPROVED' | 'REJECTED' }) =>
-      joinRequestsApi.processJoinRequest(id, { status }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pending-requests', classCode] })
-      queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })
-      if (variables.status === 'APPROVED') {
-        toast.success('Đã duyệt yêu cầu tham gia')
-        queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })
-        queryClient.invalidateQueries({ queryKey: ['classroom-students', classCode] })
-      } else {
-        toast.success('Đã từ chối yêu cầu tham gia')
-      }
-    },
-    onError: () => toast.error('Xử lý yêu cầu thất bại')
-  })
 
   const sortParam = `s.fullName,${sortAsc ? 'asc' : 'desc'}`
   const { data: studentsData, isLoading: loadingStudents, refetch: refetchStudents } = useClassStudents(classCode, page, size, sortParam)
@@ -77,23 +49,21 @@ export function StudentsTab({
 
   const addStudentForm = useFormik({
     initialValues: { email: '' },
+    validateOnChange: false,
+    validateOnBlur: false,
     validationSchema: yup.object({
       email: yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
     }),
     onSubmit: (values, { setSubmitting, resetForm }) => {
-      setAddError(null)
-      setAddSuccess(null)
       addStudentMutation.mutate(values.email, {
         onSuccess: () => {
-          setAddSuccess(`Đã thêm học sinh với email: ${values.email}`)
           resetForm()
           toast.success(`Thêm thành công: ${values.email}`)
           setSubmitting(false)
         },
         onError: (err: any) => {
           const msg = err?.response?.data?.message || err?.response?.data || 'Không thể thêm học sinh. Vui lòng kiểm tra email.'
-          setAddError(typeof msg === 'string' ? msg : 'Đã xảy ra lỗi. Vui lòng thử lại.')
-          toast.error('Thêm học sinh thất bại')
+          toast.error(typeof msg === 'string' ? msg : 'Thêm học sinh thất bại')
           setSubmitting(false)
         }
       })
@@ -146,11 +116,7 @@ export function StudentsTab({
                     name="email"
                     type="email"
                     value={addStudentForm.values.email}
-                    onChange={(e) => {
-                      addStudentForm.handleChange(e)
-                      if (addError) setAddError(null)
-                      if (addSuccess) setAddSuccess(null)
-                    }}
+                    onChange={addStudentForm.handleChange}
                     onBlur={addStudentForm.handleBlur}
                     placeholder={isFull ? 'Lớp đã đầy' : 'Email học sinh...'}
                     disabled={addStudentForm.isSubmitting || isFull}
@@ -170,59 +136,6 @@ export function StudentsTab({
                 <p className="text-xs text-destructive mt-1 px-1">{addStudentForm.errors.email as string}</p>
               )}
             </form>
-          </div>
-        </div>
-      )}
-
-      {(addSuccess || addError) && (
-        <div className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 animate-in slide-in-from-top-2 ${addSuccess ? 'bg-emerald-50 border-emerald-200' : 'bg-destructive/10 border-destructive/20'}`}>
-          {addSuccess ? (
-            <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle className="h-4.5 w-4.5 text-destructive flex-shrink-0 mt-0.5" />
-          )}
-          <p className={`text-xs font-medium ${addSuccess ? 'text-emerald-700' : 'text-destructive'}`}>
-            {addSuccess || addError}
-          </p>
-        </div>
-      )}
-
-      {pendingRequests && pendingRequests.length > 0 && (
-        <div className="rounded-2xl border border-orange-200 bg-white shadow-sm overflow-hidden mt-4">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-orange-100 bg-orange-50/50">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100">
-              <UserPlus className="h-4.5 w-4.5 text-orange-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-orange-800">Yêu cầu xin vào lớp</h2>
-              <p className="text-xs text-orange-600/80">Có {pendingRequests.length} yêu cầu đang chờ duyệt</p>
-            </div>
-          </div>
-          <div className="divide-y divide-border">
-            {pendingRequests.map(req => (
-              <div key={req.id} className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors">
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-foreground">{req.studentName}</span>
-                  <span className="text-xs text-muted-foreground">{req.studentEmail}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => processRequestMutation.mutate({ id: req.id, status: 'APPROVED' })}
-                    disabled={processRequestMutation.isPending || isFull}
-                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50 text-xs font-semibold"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Duyệt
-                  </button>
-                  <button
-                    onClick={() => processRequestMutation.mutate({ id: req.id, status: 'REJECTED' })}
-                    disabled={processRequestMutation.isPending}
-                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50 text-xs font-semibold"
-                  >
-                    <X className="h-3.5 w-3.5" /> Từ chối
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
