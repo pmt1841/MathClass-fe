@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authApi, LoginCredentials } from '@/lib/api/auth'
+import { authService, LoginCredentials } from '@/services/authService'
 import { AUTH_KEYS, COOKIE_OPTIONS, ROLES } from '@/lib/constants/auth'
 import { authStorage } from '@/lib/auth-storage'
 import { AxiosError } from 'axios'
@@ -17,7 +17,7 @@ export function useLogin() {
     setLoginError('')
 
     try {
-      const data = await authApi.login(credentials)
+      const data = await authService.login(credentials)
       const token = data.token
       const role = data.role || data.userRole || ROLES.STUDENT
 

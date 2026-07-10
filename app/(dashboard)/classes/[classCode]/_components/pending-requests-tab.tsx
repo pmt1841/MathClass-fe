@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, X, UserPlus, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { joinRequestsApi } from '@/lib/api/join-requests'
+import { joinRequestService } from '@/services/joinRequestService'
 import { ClassroomDetail } from '@/types'
 
 export function PendingRequestsTab({
@@ -22,13 +22,13 @@ export function PendingRequestsTab({
 
   const { data: pendingRequests = [], isLoading } = useQuery({
     queryKey: ['pending-requests', classCode],
-    queryFn: () => joinRequestsApi.getPendingRequests(classCode),
+    queryFn: () => joinRequestService.getPendingRequests(classCode),
     enabled: !!classCode,
   })
 
   const processRequestMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'APPROVED' | 'REJECTED' }) =>
-      joinRequestsApi.processJoinRequest(id, { status }),
+      joinRequestService.processJoinRequest(id, { status }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pending-requests', classCode] })
       queryClient.invalidateQueries({ queryKey: ['teacher-stats'] })

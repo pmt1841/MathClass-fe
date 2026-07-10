@@ -21,7 +21,8 @@ import {
   ChevronDown,
   Megaphone
 } from 'lucide-react'
-import api from '@/lib/axios'
+import { classroomService } from '@/services/classroomService'
+import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -67,19 +68,19 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
     const fetchClassData = async () => {
       try {
         setLoading(true)
-        const [classRes, assignRes] = await Promise.all([
-          api.get(`/classrooms/${classCode}`),
-          api.get(`/classrooms/${classCode}/assignments`, { params: { size: 100 } })
+        const [classData, assignData] = await Promise.all([
+          classroomService.getClassroomDetail(classCode),
+          classroomService.getClassroomAssignments(classCode, { size: 100, page: 0 })
         ])
-        setClassroom(classRes.data)
-        const allAssignments = assignRes.data?.content || assignRes.data || []
+        setClassroom(classData)
+        const allAssignments = assignData?.content || assignData || []
         const publishedAssignments = allAssignments.filter((a: any) => a.status === 'PUBLISHED')
 
         const tasksWithSubs = await Promise.all(
           publishedAssignments.map(async (task: any) => {
             try {
-              const subRes = await api.get(`/submissions/my-submission?assignmentId=${task.id}`);
-              return { ...task, submission: subRes.data || null };
+              const subData = await submissionService.getMySubmission(task.id);
+              return { ...task, submission: subData || null };
             } catch (error) {
               return { ...task, submission: null };
             }
@@ -128,8 +129,8 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         const generatedAnnouncements = publishedAssignments
           .map((task: any, index: number) => ({
             id: task.id + 1000,
-            author: classRes.data?.teacherName || 'Giáo viên',
-            initials: (classRes.data?.teacherName || 'GV').split(' ').pop()?.[0]?.toUpperCase() || 'GV',
+            author: classData?.teacherName || 'Giáo viên',
+            initials: (classData?.teacherName || 'GV').split(' ').pop()?.[0]?.toUpperCase() || 'GV',
             time: formatDateTime(task.createdAt),
             pinned: false,
             type: 'assignment',

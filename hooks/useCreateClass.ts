@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/axios'
+import { classroomService } from '@/services/classroomService'
 
 export interface ClassData {
   name: string
@@ -11,10 +11,7 @@ export function useCreateClass() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: ClassData) => {
-      const response = await api.post('/classrooms/create', payload)
-      return response.data
-    },
+    mutationFn: classroomService.createClassroom,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classrooms'] })
     }

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 import { JoinClassModal } from '@/components/dashboard/join-class-modal'
-import { joinRequestsApi } from '@/lib/api/join-requests'
+import { joinRequestService } from '@/services/joinRequestService'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -45,7 +45,7 @@ export function ClassesClient() {
 
   const { data: joinRequests, refetch: refetchRequests } = useQuery({
     queryKey: ['my-join-requests'],
-    queryFn: joinRequestsApi.getMyJoinRequests,
+    queryFn: joinRequestService.getMyJoinRequests,
     enabled: !!user && user.role === 'STUDENT',
   })
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/axios'
+import { assignmentService } from '@/services/assignmentService'
 
 export interface Assignment {
   id: number
@@ -28,21 +28,21 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
   return useQuery({
     queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode],
     queryFn: async () => {
-      let url = '/assignments?'
+      const params: any = {}
       if (userRole === 'TEACHER') {
-        url += `status=${activeTab}`
+        params.status = activeTab
       } else {
-        url += `status=PUBLISHED`
+        params.status = 'PUBLISHED'
         if (selectedClassCode) {
-          url += `&classCode=${selectedClassCode}`
+          params.classCode = selectedClassCode
         }
       }
       if (searchQuery) {
-        url += `&keyword=${encodeURIComponent(searchQuery)}`
+        params.keyword = searchQuery
       }
 
-      const response = await api.get(url)
-      return (response.data?.content || []) as Assignment[]
+      const data = await assignmentService.getAssignments(params)
+      return (data?.content || []) as Assignment[]
     },
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })
@@ -52,9 +52,7 @@ export function useDeleteAssignment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/assignments/${id}`)
-    },
+    mutationFn: assignmentService.deleteAssignment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
     }

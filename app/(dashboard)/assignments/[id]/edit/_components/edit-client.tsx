@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import api from '@/lib/axios'
+import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from '../../../create/_components/AssignmentForm'
 
 export function EditAssignmentPageClient() {
@@ -49,8 +49,7 @@ export function EditAssignmentPageClient() {
     const fetchAssignment = async () => {
       try {
         setIsFetching(true)
-        const res = await api.get(`/assignments/${id}`)
-        const data = res.data
+        const data = await assignmentService.getAssignmentById(Number(id))
 
         // We only allow editing DRAFT, ARCHIVED, or PUBLISHED (handled by backend logic).
         // But if it's already published and has submissions, the backend will throw an error when saving.
@@ -76,7 +75,7 @@ export function EditAssignmentPageClient() {
   const handleUpdate = async (data: AssignmentFormValues) => {
     try {
       setIsSubmitting(true)
-      await api.put(`/assignments/${id}`, data)
+      await assignmentService.updateAssignment(Number(id), data)
       toast.success('Đã cập nhật bài tập thành công!')
       router.push(backHref)
     } catch (err: any) {
@@ -89,7 +88,7 @@ export function EditAssignmentPageClient() {
   }
 
   const handleAutoSave = async (data: AssignmentFormValues) => {
-    await api.put(`/assignments/${id}`, data)
+    await assignmentService.updateAssignment(Number(id), data)
   }
 
   if (isCheckingAuth || isFetching) {

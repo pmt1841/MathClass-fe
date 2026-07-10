@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { submissionApi } from '@/lib/api/submission'
+import { submissionService } from '@/services/submissionService'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -47,7 +47,7 @@ export function SubmissionTable({ assignmentId }: SubmissionTableProps) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['submissions', assignmentId, page, debouncedKeyword, status],
     queryFn: () =>
-      submissionApi.getSubmissionsByAssignment({
+      submissionService.getSubmissionsByAssignment({
         assignmentId,
         page,
         size: 10,

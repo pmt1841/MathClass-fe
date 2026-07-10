@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 import { Separator } from '@/components/ui/separator'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { settingsApi, NotificationSettings } from '@/lib/api/settings'
+import { settingsService, NotificationSettings } from '@/services/settingsService'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -25,7 +25,7 @@ export default function SettingsPage() {
 
   const { data: serverSettings, isLoading } = useQuery({
     queryKey: ['notificationSettings'],
-    queryFn: settingsApi.getNotificationSettings,
+    queryFn: settingsService.getNotificationSettings,
     enabled: !!user
   })
 
@@ -38,7 +38,7 @@ export default function SettingsPage() {
   }, [serverSettings])
 
   const mutation = useMutation({
-    mutationFn: settingsApi.updateNotificationSettings,
+    mutationFn: settingsService.updateNotificationSettings,
     onSuccess: (data) => {
       queryClient.setQueryData(['notificationSettings'], data)
       toast({

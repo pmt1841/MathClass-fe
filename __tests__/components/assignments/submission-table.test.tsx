@@ -2,10 +2,10 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SubmissionTable } from '@/components/assignments/submission-table'
-import { submissionApi } from '@/lib/api/submission'
+import { submissionService } from '@/services/submissionService'
 
-vi.mock('@/lib/api/submission', () => ({
-  submissionApi: {
+vi.mock('@/services/submissionService', () => ({
+  submissionService: {
     getSubmissionsByAssignment: vi.fn(),
   },
 }))
@@ -20,7 +20,7 @@ const createQueryClient = () => new QueryClient({
 
 describe('SubmissionTable', () => {
   it('renders loading state initially', () => {
-    vi.mocked(submissionApi.getSubmissionsByAssignment).mockReturnValue(new Promise(() => {}))
+    vi.mocked(submissionService.getSubmissionsByAssignment).mockReturnValue(new Promise(() => {}))
     const queryClient = createQueryClient()
     
     render(
@@ -33,7 +33,7 @@ describe('SubmissionTable', () => {
   })
 
   it('renders table headers correctly', () => {
-    vi.mocked(submissionApi.getSubmissionsByAssignment).mockResolvedValue({
+    vi.mocked(submissionService.getSubmissionsByAssignment).mockResolvedValue({
       content: [],
       totalPages: 0,
       totalElements: 0,

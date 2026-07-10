@@ -1,14 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/axios'
+import { classroomService } from '@/services/classroomService'
 import { ClassroomDetail, Student } from '@/types'
 
 export function useClassDetail(classCode: string) {
   return useQuery({
     queryKey: ['classroom', classCode],
-    queryFn: async () => {
-      const res = await api.get(`/classrooms/${classCode}`)
-      return res.data as ClassroomDetail
-    },
+    queryFn: () => classroomService.getClassroomDetail(classCode),
     enabled: !!classCode
   })
 }
@@ -16,9 +13,8 @@ export function useClassDetail(classCode: string) {
 export function useUpdateClassroom(classCode: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data: { className: string; description?: string; maxStudents: number }) => {
-      await api.put(`/classrooms/${classCode}`, data)
-    },
+    mutationFn: (data: { className: string; description?: string; maxStudents: number }) => 
+      classroomService.updateClassroom(classCode, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })
       queryClient.invalidateQueries({ queryKey: ['my-classrooms'] })
@@ -29,9 +25,7 @@ export function useUpdateClassroom(classCode: string) {
 export function useDeleteClassroom() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (classCode: string) => {
-      await api.delete(`/classrooms/${classCode}`)
-    },
+    mutationFn: (classCode: string) => classroomService.deleteClassroom(classCode),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-classrooms'] })
     }
@@ -42,17 +36,15 @@ export function useClassStudents(classCode: string, page: number, size: number, 
   return useQuery({
     queryKey: ['classroom-students', classCode, page, size, sortParam],
     queryFn: async () => {
-      const res = await api.get(`/classrooms/${classCode}/students`, {
-        params: { page, size, sort: sortParam }
-      })
-      if (res.data && res.data.content) {
+      const data = await classroomService.getClassroomStudents(classCode, { page, size, sort: sortParam })
+      if (data && data.content) {
         return {
-          content: res.data.content as Student[],
-          totalPages: res.data.totalPages,
-          totalElements: res.data.totalElements
+          content: data.content as Student[],
+          totalPages: data.totalPages,
+          totalElements: data.totalElements
         }
       }
-      return { content: (Array.isArray(res.data) ? res.data : []) as Student[], totalPages: 0, totalElements: 0 }
+      return { content: (Array.isArray(data) ? data : []) as Student[], totalPages: 0, totalElements: 0 }
     },
     enabled: !!classCode
   })
@@ -61,9 +53,7 @@ export function useClassStudents(classCode: string, page: number, size: number, 
 export function useAddStudent(classCode: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (email: string) => {
-      await api.post(`/classrooms/${classCode}/students/add`, { studentEmail: email })
-    },
+    mutationFn: (email: string) => classroomService.addStudent(classCode, email),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom-students', classCode] })
       queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })
@@ -75,9 +65,7 @@ export function useAddStudent(classCode: string) {
 export function useRemoveStudent(classCode: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (studentId: number) => {
-      await api.delete(`/classrooms/${classCode}/students/${studentId}`)
-    },
+    mutationFn: (studentId: number) => classroomService.removeStudent(classCode, studentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom-students', classCode] })
       queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })

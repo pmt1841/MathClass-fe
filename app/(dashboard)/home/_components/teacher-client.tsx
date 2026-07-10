@@ -22,8 +22,8 @@ import {
 } from '@/components/ui/table'
 import { Search, Users, BookOpen, CheckCircle, FileText, LayoutDashboard, AlertTriangle, TrendingDown, Bell } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { dashboardApi } from '@/lib/api/dashboard'
-import api from '@/lib/axios'
+import { dashboardService } from '@/services/dashboardService'
+import { classroomService } from '@/services/classroomService'
 import Link from 'next/link'
 import { formatDistanceToNowSafe } from '@/lib/utils'
 
@@ -33,28 +33,25 @@ export function TeacherDashboardClient() {
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['teacher-stats'],
-    queryFn: dashboardApi.getTeacherStats,
+    queryFn: dashboardService.getTeacherStats,
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: classesData = [] } = useQuery({
     queryKey: ['my-classes'],
-    queryFn: async () => {
-      const res = await api.get('/classrooms/my-classroom')
-      return Array.isArray(res.data) ? res.data : []
-    },
+    queryFn: classroomService.getMyClassrooms,
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: pendingSubmissionData = [] } = useQuery({
     queryKey: ['pending-submissions'],
-    queryFn: () => dashboardApi.getPendingSubmissions(10),
+    queryFn: () => dashboardService.getPendingSubmissions(10),
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: atRiskStudents = [], isLoading: isLoadingAtRisk } = useQuery({
     queryKey: ['at-risk-students'],
-    queryFn: dashboardApi.getAtRiskStudents,
+    queryFn: dashboardService.getAtRiskStudents,
     staleTime: 2 * 60 * 1000,
   })
 

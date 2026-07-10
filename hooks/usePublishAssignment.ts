@@ -1,9 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/axios'
-
-export interface PublishPayload {
-  targets: { classCode: string; deadline: string }[]
-}
+import { assignmentService, PublishPayload } from '@/services/assignmentService'
 
 export function usePublishAssignment(assignmentId: number | null) {
   const queryClient = useQueryClient()
@@ -11,8 +7,7 @@ export function usePublishAssignment(assignmentId: number | null) {
   return useMutation({
     mutationFn: async (payload: PublishPayload) => {
       if (!assignmentId) throw new Error('Assignment ID is required')
-      const response = await api.put(`/assignments/${assignmentId}/publish`, payload)
-      return response.data
+      return assignmentService.publishAssignment(assignmentId, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId] })

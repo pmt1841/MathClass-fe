@@ -17,7 +17,7 @@ import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import dynamic from 'next/dynamic'
 import { formatDateTime } from '@/lib/utils'
-import api from '@/lib/axios'
+import { assignmentService } from '@/services/assignmentService'
 import { toast } from 'sonner'
 
 export const embedDrawings = (content: string, drawings: any[]) => {
@@ -322,13 +322,8 @@ export function AssignmentForm({
     formData.append('file', file)
 
     try {
-      const response = await api.post('/assignments/images/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      const { imageCode, imageUrl } = response.data
+      const data = await assignmentService.uploadImage(formData)
+      const { imageCode, imageUrl } = data
       const newImages = [...images, { imageCode, imageUrl }]
       setImages(newImages)
       setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { SubmissionCommentResponse } from '@/lib/api/submission'
+import { SubmissionCommentResponse } from '@/services/submissionService'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
