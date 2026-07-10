@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,7 @@ export function TeacherDashboardClient() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['teacher-stats'],
     queryFn: dashboardApi.getTeacherStats,
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: classesData = [] } = useQuery({
@@ -42,26 +43,31 @@ export function TeacherDashboardClient() {
       const res = await api.get('/classrooms/my-classroom')
       return Array.isArray(res.data) ? res.data : []
     },
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: pendingSubmissionData = [] } = useQuery({
     queryKey: ['pending-submissions'],
     queryFn: () => dashboardApi.getPendingSubmissions(10),
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: atRiskStudents = [], isLoading: isLoadingAtRisk } = useQuery({
     queryKey: ['at-risk-students'],
     queryFn: dashboardApi.getAtRiskStudents,
+    staleTime: 2 * 60 * 1000,
   })
 
   // Filter logic
-  const filteredAssignments = pendingSubmissionData.filter((a: any) => {
-    const matchesClass = selectedClass === 'all' || a.classCode === selectedClass
-    const matchesSearch = searchQuery === '' ||
-      a.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.assignmentTitle?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesClass && matchesSearch
-  })
+  const filteredAssignments = useMemo(() => {
+    return pendingSubmissionData.filter((a: any) => {
+      const matchesClass = selectedClass === 'all' || a.classCode === selectedClass
+      const matchesSearch = searchQuery === '' ||
+        a.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.assignmentTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+      return matchesClass && matchesSearch
+    })
+  }, [pendingSubmissionData, selectedClass, searchQuery])
 
   return (
     <div className="flex-1 bg-slate-50/50 min-h-screen">

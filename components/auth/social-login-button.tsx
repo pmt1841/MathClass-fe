@@ -4,6 +4,7 @@ import React from 'react'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 import { AUTH_KEYS } from '@/lib/constants/auth'
+import { authStorage } from '@/lib/auth-storage'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { handleApiError } from '@/lib/utils/error-handler'
@@ -30,19 +31,10 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
           onSuccess: (data) => {
             const role = data.role || data.userRole || 'STUDENT';
             
-            // Set cookies for middleware
-            const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-            const cookieBase = `auth_token=${data.token}; path=/; SameSite=Lax${secureFlag}`;
-            const roleCookieBase = `user_role=${role}; path=/; SameSite=Lax${secureFlag}`;
-            
-            // Google login usually implies remember me or session. We'll use a session cookie or a long-lived one.
-            // Let's set max-age for 30 days
-            const maxAge = 30 * 24 * 60 * 60;
-            document.cookie = `${cookieBase}; max-age=${maxAge}`;
-            document.cookie = `${roleCookieBase}; max-age=${maxAge}`;
-
-            // Save token and info like in useLogin
-            sessionStorage.setItem(AUTH_KEYS.TOKEN, data.token)
+            // Setup cookies and storage using authStorage
+            authStorage.setToken(data.token, role, true)
+ 
+            // Save user info like in useLogin
             sessionStorage.setItem(AUTH_KEYS.USER_INFO, JSON.stringify({
               id: data.id,
               email: data.email,

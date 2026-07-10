@@ -24,16 +24,19 @@ export function StudentDashboardClient() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['student-stats'],
     queryFn: dashboardApi.getStudentStats,
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: pendingTasks = [] } = useQuery({
     queryKey: ['student-pending-tasks'],
     queryFn: () => dashboardApi.getStudentPendingTasks(5),
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: gradedTasks = [] } = useQuery({
     queryKey: ['student-graded-tasks'],
     queryFn: () => dashboardApi.getStudentGradedTasks(5),
+    staleTime: 2 * 60 * 1000,
   })
 
   // Filter and sort pending tasks
