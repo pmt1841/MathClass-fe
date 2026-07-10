@@ -41,12 +41,14 @@ describe('HomeClient', () => {
     expect(screen.queryByTestId('student-dashboard')).not.toBeInTheDocument()
   })
 
-  it('defaults to STUDENT if no role is found', async () => {
+  it('does not render dashboards and shows loading state if no role is found', async () => {
     // Empty local storage
     render(<HomeClient />)
     
     await waitFor(() => {
-      expect(screen.getByTestId('student-dashboard')).toBeInTheDocument()
+      expect(screen.getByText('Đang xác thực thông tin...')).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('student-dashboard')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('teacher-dashboard')).not.toBeInTheDocument()
   })
 })

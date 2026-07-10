@@ -16,12 +16,12 @@ export function HomeClient() {
     if (stored) {
       try {
         const info = JSON.parse(stored)
-        setRole(info.role || info.userRole || 'STUDENT')
+        setRole(info.role || info.userRole || null)
       } catch {
-        setRole('STUDENT')
+        setRole(null)
       }
     } else {
-      setRole('STUDENT') // Fallback
+      setRole(null)
     }
     setIsChecking(false)
   }, [])
@@ -38,5 +38,16 @@ export function HomeClient() {
     return <TeacherDashboardClient />
   }
 
-  return <StudentDashboardClient />
+  if (role === 'STUDENT') {
+    return <StudentDashboardClient />
+  }
+
+  return (
+    <div className="flex-1 flex items-center justify-center bg-slate-50/50">
+      <div className="text-center">
+        <p className="text-slate-500 mb-2 text-sm">Đang xác thực thông tin...</p>
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+      </div>
+    </div>
+  )
 }

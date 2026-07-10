@@ -29,6 +29,7 @@ export function proxy(request: NextRequest) {
   if (isProtectedRoute && !token) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
+    loginUrl.searchParams.set('expired', 'true')
     return NextResponse.redirect(loginUrl)
   }
 

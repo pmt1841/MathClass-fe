@@ -8,6 +8,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -406,7 +408,7 @@ export function AssignmentForm({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex, rehypeRaw]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
         >
           {part}
         </ReactMarkdown>

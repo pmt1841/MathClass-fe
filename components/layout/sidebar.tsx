@@ -52,7 +52,11 @@ const navItems: NavItem[] = [
   },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onCreateClass?: () => void
+}
+
+export function Sidebar({ onCreateClass }: SidebarProps = {}) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const { user } = useAuth()

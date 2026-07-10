@@ -7,6 +7,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
@@ -268,7 +270,7 @@ export function StudentAssignmentLayout({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex, rehypeRaw]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
         >
           {part}
         </ReactMarkdown>
@@ -390,7 +392,7 @@ export function StudentAssignmentLayout({
                 Nhận xét từ giáo viên
               </h4>
               <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
                   {teacherFeedback}
                 </ReactMarkdown>
               </div>

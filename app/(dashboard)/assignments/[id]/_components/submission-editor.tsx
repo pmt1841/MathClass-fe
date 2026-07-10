@@ -6,11 +6,13 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
-import { Save, Check, Type, Eye } from 'lucide-react'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import { formatDateTime } from '@/lib/utils'
+import { Save, Check, Type, Eye } from 'lucide-react'
 
 interface SubmissionEditorProps {
   assignmentId: number
@@ -102,7 +104,7 @@ export function SubmissionEditor({
             Nhận xét từ giáo viên
           </h4>
           <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
               {teacherFeedback}
             </ReactMarkdown>
           </div>
@@ -157,7 +159,7 @@ export function SubmissionEditor({
                 {debouncedContent ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex, rehypeRaw]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
                   >
                     {debouncedContent}
                   </ReactMarkdown>

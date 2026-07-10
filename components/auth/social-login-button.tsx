@@ -31,8 +31,9 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
             const role = data.role || data.userRole || 'STUDENT';
             
             // Set cookies for middleware
-            const cookieBase = `auth_token=${data.token}; path=/; SameSite=Lax`;
-            const roleCookieBase = `user_role=${role}; path=/; SameSite=Lax`;
+            const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+            const cookieBase = `auth_token=${data.token}; path=/; SameSite=Lax${secureFlag}`;
+            const roleCookieBase = `user_role=${role}; path=/; SameSite=Lax${secureFlag}`;
             
             // Google login usually implies remember me or session. We'll use a session cookie or a long-lived one.
             // Let's set max-age for 30 days
