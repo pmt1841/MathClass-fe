@@ -2,8 +2,8 @@
 
 import React, { useRef, useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { submissionApi } from '@/lib/api/submission'
-import { assignmentApi } from '@/lib/api/assignment'
+import { submissionService } from '@/services/submissionService'
+import { assignmentService } from '@/services/assignmentService'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -71,19 +71,19 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
 
   const { data: submission, isLoading: isSubLoading, isError: isSubError } = useQuery({
     queryKey: ['submission', submissionId],
-    queryFn: () => submissionApi.getSubmissionById(submissionId),
+    queryFn: () => submissionService.getSubmissionById(submissionId),
     enabled: !!submissionId,
   })
 
   const { data: assignment, isLoading: isAssignLoading } = useQuery({
     queryKey: ['assignment', assignmentId],
-    queryFn: () => assignmentApi.getAssignmentById(assignmentId),
+    queryFn: () => assignmentService.getAssignmentById(assignmentId),
     enabled: !!assignmentId,
   })
 
   const gradeMutation = useMutation({
     mutationFn: (values: GradeFormValues) =>
-      submissionApi.gradeSubmission(submissionId, values.score, values.teacherFeedback || ''),
+      submissionService.gradeSubmission(submissionId, values.score, values.teacherFeedback || ''),
     onSuccess: () => {
       toast({
         title: 'Thành công',

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { profileApi } from '@/lib/api/profile'
+import { profileService } from '@/services/profileService'
 import { UpdateProfileRequest, UserResponse } from '@/types'
 import { toast } from 'sonner'
 
@@ -8,7 +8,7 @@ export const PROFILE_QUERY_KEY = ['profile']
 export const useProfile = () => {
   return useQuery<UserResponse>({
     queryKey: PROFILE_QUERY_KEY,
-    queryFn: profileApi.getProfile
+    queryFn: profileService.getProfile
   })
 }
 
@@ -16,7 +16,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: UpdateProfileRequest) => profileApi.updateProfile(data),
+    mutationFn: (data: UpdateProfileRequest) => profileService.updateProfile(data),
     onSuccess: (data) => {
       queryClient.setQueryData(PROFILE_QUERY_KEY, data)
       toast.success('Cập nhật hồ sơ thành công')
@@ -32,7 +32,7 @@ export const useUploadAvatar = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (file: File) => profileApi.uploadAvatar(file),
+    mutationFn: (file: File) => profileService.uploadAvatar(file),
     onSuccess: (avatarUrl) => {
       // Optimistically update the avatar in the current profile data
       queryClient.setQueryData<UserResponse | undefined>(PROFILE_QUERY_KEY, (oldData) => {

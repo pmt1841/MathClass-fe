@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
-import api from '@/lib/axios'
+import { authService } from '@/services/authService'
 
 export default function VerifyEmail() {
   const searchParams = useSearchParams()
@@ -25,8 +25,7 @@ export default function VerifyEmail() {
 
     const verifyToken = async () => {
       try {
-        const response = await api.get(`/auth/verify?token=${token}`)
-        const data = response.data
+        const data = await authService.verifyEmail(token)
         setStatus('success')
         setMessage(data?.message || 'Tài khoản đã được kích hoạt thành công!')
       } catch (error: any) {

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Clock, Trophy, Flame, BookOpen, Star, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { dashboardApi } from '@/lib/api/dashboard'
+import { dashboardService } from '@/services/dashboardService'
 import { isPast } from 'date-fns'
 import { parseDateSafe, formatDistanceToNowSafe } from '@/lib/utils'
 
@@ -23,19 +23,19 @@ export function StudentDashboardClient() {
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['student-stats'],
-    queryFn: dashboardApi.getStudentStats,
+    queryFn: dashboardService.getStudentStats,
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: pendingTasks = [] } = useQuery({
     queryKey: ['student-pending-tasks'],
-    queryFn: () => dashboardApi.getStudentPendingTasks(5),
+    queryFn: () => dashboardService.getStudentPendingTasks(5),
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: gradedTasks = [] } = useQuery({
     queryKey: ['student-graded-tasks'],
-    queryFn: () => dashboardApi.getStudentGradedTasks(5),
+    queryFn: () => dashboardService.getStudentGradedTasks(5),
     staleTime: 2 * 60 * 1000,
   })
 

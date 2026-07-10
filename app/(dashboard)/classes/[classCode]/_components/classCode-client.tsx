@@ -35,7 +35,7 @@ import { AssignmentsTab } from './assignments-tab'
 import { PendingRequestsTab } from './pending-requests-tab'
 import { useClassDetail, useUpdateClassroom, useDeleteClassroom } from '@/hooks/useClassDetail'
 import { useQuery } from '@tanstack/react-query'
-import { joinRequestsApi } from '@/lib/api/join-requests'
+import { joinRequestService } from '@/services/joinRequestService'
 
 export function ClassDetailPageClient() {
   const params = useParams()
@@ -58,7 +58,7 @@ export function ClassDetailPageClient() {
 
   const { data: pendingRequests } = useQuery({
     queryKey: ['pending-requests', classCode],
-    queryFn: () => joinRequestsApi.getPendingRequests(classCode),
+    queryFn: () => joinRequestService.getPendingRequests(classCode),
     enabled: !!classCode,
   })
   

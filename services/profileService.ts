@@ -1,7 +1,7 @@
 import api from '@/lib/axios'
 import { UserResponse, UpdateProfileRequest } from '@/types'
 
-export const profileApi = {
+export const profileService = {
   getProfile: async () => {
     const response = await api.get<UserResponse>('/users/profile')
     return response.data

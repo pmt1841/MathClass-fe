@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { submissionApi, SubmissionCommentRequest } from '@/lib/api/submission'
+import { submissionService, SubmissionCommentRequest } from '@/services/submissionService'
 
 export const useSubmissionComments = (submissionId: number) => {
   const queryClient = useQueryClient()
@@ -7,19 +7,19 @@ export const useSubmissionComments = (submissionId: number) => {
 
   const { data: comments, isLoading, error } = useQuery({
     queryKey,
-    queryFn: () => submissionApi.getComments(submissionId),
+    queryFn: () => submissionService.getComments(submissionId),
     enabled: !!submissionId
   })
 
   const addCommentMutation = useMutation({
-    mutationFn: (data: SubmissionCommentRequest) => submissionApi.addComment(submissionId, data),
+    mutationFn: (data: SubmissionCommentRequest) => submissionService.addComment(submissionId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey })
     }
   })
 
   const deleteCommentMutation = useMutation({
-    mutationFn: (commentId: number) => submissionApi.deleteComment(submissionId, commentId),
+    mutationFn: (commentId: number) => submissionService.deleteComment(submissionId, commentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey })
     }

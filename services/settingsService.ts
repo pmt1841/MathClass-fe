@@ -9,7 +9,7 @@ export type NotificationSettings = {
   studentDeadlineReminder: boolean;
 }
 
-export const settingsApi = {
+export const settingsService = {
   getNotificationSettings: async () => {
     const response = await api.get<NotificationSettings>('/settings/notifications')
     return response.data

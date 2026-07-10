@@ -11,11 +11,11 @@ import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
-import api from '@/lib/axios'
+import { classroomService } from '@/services/classroomService'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { StudentAssignmentLayout } from './student-assignment-layout'
-import { submissionApi } from '@/lib/api/submission'
+import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 
@@ -114,13 +114,13 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
     const fetchDetail = async () => {
       try {
-        const response = await api.get(`/classrooms/${classCode}/assignments/${id}/detail`)
-        setAssignment(response.data)
+        const data = await classroomService.getClassroomAssignmentDetail(classCode, Number(id))
+        setAssignment(data)
 
         // Nếu là học sinh, lấy bài nộp của họ
         if (currentRole === 'STUDENT') {
           try {
-            const sub = await submissionApi.getMySubmission(assignmentId)
+            const sub = await submissionService.getMySubmission(assignmentId)
             if (sub) {
               setSubmissionId(sub.id)
               setSubmissionContent(sub.content || '')
@@ -139,7 +139,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
         } else if (currentRole === 'TEACHER') {
           // Lấy danh sách bài nộp của lớp
           try {
-            const subs = await submissionApi.getSubmissionsByAssignment({ assignmentId, size: 100 })
+            const subs = await submissionService.getSubmissionsByAssignment({ assignmentId, size: 100 })
             setTeacherSubmissions(subs.content || [])
           } catch (err) {
             console.error('Lỗi lấy danh sách bài nộp:', err)
@@ -184,9 +184,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   const saveOrUpdateSubmission = async (content: string, status: 'DRAFT' | 'SUBMITTED') => {
     if (submissionId) {
-      return await submissionApi.updateSubmission(submissionId, content, status)
+      return await submissionService.updateSubmission(submissionId, content, status)
     } else {
-      return await submissionApi.createSubmission(assignmentId, content, status)
+      return await submissionService.createSubmission(assignmentId, content, status)
     }
   }
 
@@ -247,7 +247,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     if (!submissionId) return;
     try {
       setIsSavingExternal(true)
-      const res = await submissionApi.unsubmit(submissionId)
+      const res = await submissionService.unsubmit(submissionId)
       setSubmissionStatus('DRAFT')
       setLastSavedExternal(new Date())
       toast.success('Đã hủy nộp bài. Bạn có thể sửa và nộp lại.')
@@ -266,7 +266,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       return
     }
     try {
-      const res = await submissionApi.gradeSubmission(subId, scoreVal)
+      const res = await submissionService.gradeSubmission(subId, scoreVal)
       toast.success('Đã chấm điểm thành công!')
       setGradingSubmissionId(null)
       setGradingScore('')

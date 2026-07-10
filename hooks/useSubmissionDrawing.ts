@@ -1,18 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSubmissionDrawing, saveSubmissionDrawing, SubmissionDrawingRequest } from '../lib/api/submissionDrawingApi';
+import { submissionDrawingService, SubmissionDrawingRequest } from '@/services/submissionDrawingService';
 
 export const useSubmissionDrawing = (submissionId: number) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ['submissionDrawing', submissionId],
-    queryFn: () => getSubmissionDrawing(submissionId),
+    queryFn: () => submissionDrawingService.getSubmissionDrawing(submissionId),
     enabled: !!submissionId,
     retry: false, // Do not retry on 404 (first time user is opening the drawing)
   });
 
   const mutation = useMutation({
-    mutationFn: (payload: SubmissionDrawingRequest) => saveSubmissionDrawing(submissionId, payload),
+    mutationFn: (payload: SubmissionDrawingRequest) => submissionDrawingService.saveSubmissionDrawing(submissionId, payload),
     onSuccess: () => {
       // Invalidate the cache so the next GET fetches the latest data
       queryClient.invalidateQueries({ queryKey: ['submissionDrawing', submissionId] });

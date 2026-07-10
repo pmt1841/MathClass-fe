@@ -27,7 +27,7 @@ export interface AtRiskStudent {
   avatar: string
 }
 
-export const dashboardApi = {
+export const dashboardService = {
   getTeacherStats: async (): Promise<TeacherDashboardStats> => {
     const response = await api.get('/dashboard/teacher-stats')
     return response.data

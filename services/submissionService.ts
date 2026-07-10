@@ -55,7 +55,7 @@ export interface GetSubmissionsParams {
   keyword?: string
 }
 
-export const submissionApi = {
+export const submissionService = {
   createSubmission: async (assignmentId: number, content: string, status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE') => {
     const response = await api.post<SubmissionResponse>(`/submissions`, {
       assignmentId,

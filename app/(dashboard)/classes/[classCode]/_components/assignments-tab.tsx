@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
-import api from '@/lib/axios'
+import { classroomService } from '@/services/classroomService'
 import { toast } from 'sonner'
 import { Assignment } from '@/types'
 import { AssignmentRow } from './assignment-row'
@@ -22,15 +22,19 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const fetchAssignments = useCallback(async () => {
     try {
       setLoading(true)
-      const params: Record<string, any> = { page, size, status: 'PUBLISHED' }
-      if (keyword.trim()) params.keyword = keyword.trim()
-      const res = await api.get(`/classrooms/${classCode}/assignments`, { params })
-      if (res.data?.content !== undefined) {
-        setAssignments(res.data.content)
-        setTotalPages(res.data.totalPages)
-        setTotalElements(res.data.totalElements)
+      const params = { 
+        page, 
+        size, 
+        status: 'PUBLISHED',
+        keyword: keyword.trim() || undefined 
+      }
+      const data = await classroomService.getClassroomAssignments(classCode, params)
+      if (data?.content !== undefined) {
+        setAssignments(data.content)
+        setTotalPages(data.totalPages)
+        setTotalElements(data.totalElements)
       } else {
-        setAssignments(Array.isArray(res.data) ? res.data : [])
+        setAssignments(Array.isArray(data) ? data : [])
       }
     } catch (err: any) {
       toast.error('Không thể tải danh sách bài tập')

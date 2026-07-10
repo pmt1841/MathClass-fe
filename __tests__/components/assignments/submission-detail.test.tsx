@@ -2,18 +2,18 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SubmissionDetail } from '@/components/assignments/submission-detail'
-import { submissionApi } from '@/lib/api/submission'
-import { assignmentApi } from '@/lib/api/assignment'
+import { submissionService } from '@/services/submissionService'
+import { assignmentService } from '@/services/assignmentService'
 
-vi.mock('@/lib/api/submission', () => ({
-  submissionApi: {
+vi.mock('@/services/submissionService', () => ({
+  submissionService: {
     getSubmissionById: vi.fn(),
     gradeSubmission: vi.fn(),
   },
 }))
 
-vi.mock('@/lib/api/assignment', () => ({
-  assignmentApi: {
+vi.mock('@/services/assignmentService', () => ({
+  assignmentService: {
     getAssignmentById: vi.fn(),
   },
 }))
@@ -83,8 +83,8 @@ describe('SubmissionDetail', () => {
   })
 
   it('renders loading state initially', () => {
-    vi.mocked(submissionApi.getSubmissionById).mockReturnValue(new Promise(() => { }))
-    vi.mocked(assignmentApi.getAssignmentById).mockReturnValue(new Promise(() => { }))
+    vi.mocked(submissionService.getSubmissionById).mockReturnValue(new Promise(() => { }))
+    vi.mocked(assignmentService.getAssignmentById).mockReturnValue(new Promise(() => { }))
     const queryClient = createQueryClient()
 
     render(
@@ -97,8 +97,8 @@ describe('SubmissionDetail', () => {
   })
 
   it('renders submission details correctly', async () => {
-    vi.mocked(submissionApi.getSubmissionById).mockResolvedValue(mockSubmission)
-    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
+    vi.mocked(submissionService.getSubmissionById).mockResolvedValue(mockSubmission)
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
 
     const queryClient = createQueryClient()
 
@@ -117,8 +117,8 @@ describe('SubmissionDetail', () => {
   })
 
   it('renders error state correctly', async () => {
-    vi.mocked(submissionApi.getSubmissionById).mockRejectedValue(new Error('Network error'))
-    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
+    vi.mocked(submissionService.getSubmissionById).mockRejectedValue(new Error('Network error'))
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
 
     const queryClient = createQueryClient()
 
@@ -134,13 +134,13 @@ describe('SubmissionDetail', () => {
   })
 
   it('renders grading form for submitted submissions', async () => {
-    vi.mocked(submissionApi.getSubmissionById).mockResolvedValue({
+    vi.mocked(submissionService.getSubmissionById).mockResolvedValue({
       ...mockSubmission,
       status: 'SUBMITTED',
       score: null,
       teacherFeedback: undefined,
     })
-    vi.mocked(assignmentApi.getAssignmentById).mockResolvedValue(mockAssignment)
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
 
     const queryClient = createQueryClient()
 

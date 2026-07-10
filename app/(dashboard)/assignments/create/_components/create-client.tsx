@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BookMarked } from 'lucide-react'
 import { toast } from 'sonner'
-import api from '@/lib/axios'
+import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from './AssignmentForm'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 
@@ -46,9 +46,9 @@ export function CreateAssignmentPageClient() {
     try {
       setIsSubmitting(true)
       if (createdAssignmentId) {
-        await api.put(`/assignments/${createdAssignmentId}`, data)
+        await assignmentService.updateAssignment(createdAssignmentId, data)
       } else {
-        await api.post('/assignments/create', data)
+        await assignmentService.createAssignment(data)
       }
       toast.success('Đã lưu nháp bài tập thành công!')
       router.push('/assignments')
@@ -63,10 +63,10 @@ export function CreateAssignmentPageClient() {
 
   const handleAutoSave = async (data: AssignmentFormValues) => {
     if (createdAssignmentId) {
-      await api.put(`/assignments/${createdAssignmentId}`, data)
+      await assignmentService.updateAssignment(createdAssignmentId, data)
     } else {
-      const createResponse = await api.post('/assignments/create', data)
-      const newId = createResponse.data?.id
+      const createResponse = await assignmentService.createAssignment(data)
+      const newId = createResponse?.id
       if (newId) {
         setCreatedAssignmentId(newId)
         window.history.replaceState(null, '', `/assignments/${newId}/edit`)
@@ -88,8 +88,8 @@ export function CreateAssignmentPageClient() {
       let assignmentId = createdAssignmentId
 
       if (!assignmentId) {
-        const createRes = await api.post('/assignments/create', currentAssignmentData)
-        assignmentId = createRes.data?.id
+        const createRes = await assignmentService.createAssignment(currentAssignmentData)
+        assignmentId = createRes?.id
         if (assignmentId) {
           setCreatedAssignmentId(assignmentId)
         }
@@ -100,7 +100,7 @@ export function CreateAssignmentPageClient() {
       }
 
       // Step 2: Publish it
-      await api.put(`/assignments/${assignmentId}/publish`, {
+      await assignmentService.publishAssignment(assignmentId, {
         targets: targets.map(t => ({
           classCode: t.classCode,
           deadline: t.deadline,

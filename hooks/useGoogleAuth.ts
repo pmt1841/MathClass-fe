@@ -1,16 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
-import api from '@/lib/axios'
-
-export interface GoogleAuthCredentials {
-  credential: string
-  role: string
-}
+import { authService, GoogleAuthCredentials } from '@/services/authService'
 
 export function useGoogleAuth() {
   return useMutation({
     mutationFn: async (credentials: GoogleAuthCredentials) => {
-      const response = await api.post('/auth/google', credentials)
-      return response.data
+      return authService.googleAuth(credentials)
     },
   })
 }

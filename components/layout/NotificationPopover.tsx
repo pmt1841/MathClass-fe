@@ -13,7 +13,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { NotificationResponse } from '@/types/notification'
-import { getNotifications, getUnreadCount, markAllAsRead, markAsRead } from '@/lib/api/notification'
+import { notificationService } from '@/services/notificationService'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -24,24 +24,24 @@ export function NotificationPopover() {
   
   const { data: unreadData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
-    queryFn: getUnreadCount,
+    queryFn: notificationService.getUnreadCount,
     refetchInterval: 60000,
   })
 
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications', 'list'],
-    queryFn: () => getNotifications(0, 20),
+    queryFn: () => notificationService.getNotifications(0, 20),
   })
 
   const markAllMutation = useMutation({
-    mutationFn: markAllAsRead,
+    mutationFn: notificationService.markAllAsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     }
   })
 
   const markReadMutation = useMutation({
-    mutationFn: markAsRead,
+    mutationFn: notificationService.markAsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     }
@@ -53,9 +53,13 @@ export function NotificationPopover() {
     if (!token) return
 
     const controller = new AbortController()
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
+    const cleanBaseUrl = apiUrl.replace(/\/$/, '')
+    const streamUrl = cleanBaseUrl.endsWith('/api')
+      ? `${cleanBaseUrl}/notifications/stream`
+      : `${cleanBaseUrl}/api/notifications/stream`
 
-    fetchEventSource(apiUrl + '/api/notifications/stream', {
+    fetchEventSource(streamUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`

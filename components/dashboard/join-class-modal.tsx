@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X, Key, Loader2 } from 'lucide-react'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import { joinRequestsApi, JoinRequestResponse } from '@/lib/api/join-requests'
+import { joinRequestService, JoinRequestResponse } from '@/services/joinRequestService'
 
 interface JoinClassModalProps {
   open: boolean
@@ -29,7 +29,7 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
       setError('')
 
       try {
-        const response = await joinRequestsApi.requestToJoinClass({ classCode: values.classCode.trim() })
+        const response = await joinRequestService.requestToJoinClass({ classCode: values.classCode.trim() })
         onSuccess?.(response)
         handleClose()
       } catch (err: any) {
