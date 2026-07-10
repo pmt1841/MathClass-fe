@@ -17,6 +17,7 @@ import {
   Check,
   ClipboardList,
   Trash2,
+  UserPlus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -31,7 +32,10 @@ import { TabType } from '@/types'
 import { TabButton } from './tab-button'
 import { StudentsTab } from './students-tab'
 import { AssignmentsTab } from './assignments-tab'
+import { PendingRequestsTab } from './pending-requests-tab'
 import { useClassDetail, useUpdateClassroom, useDeleteClassroom } from '@/hooks/useClassDetail'
+import { useQuery } from '@tanstack/react-query'
+import { joinRequestsApi } from '@/lib/api/join-requests'
 
 export function ClassDetailPageClient() {
   const params = useParams()
@@ -51,6 +55,14 @@ export function ClassDetailPageClient() {
   const { data: classroom, isLoading: loadingClass } = useClassDetail(classCode)
   const updateMutation = useUpdateClassroom(classCode)
   const deleteMutation = useDeleteClassroom()
+
+  const { data: pendingRequests } = useQuery({
+    queryKey: ['pending-requests', classCode],
+    queryFn: () => joinRequestsApi.getPendingRequests(classCode),
+    enabled: !!classCode,
+  })
+  
+  const pendingCount = pendingRequests?.length || 0
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -195,6 +207,32 @@ export function ClassDetailPageClient() {
                 icon={<ClipboardList className="h-4 w-4" />}
                 label="Bài tập"
               />
+              <TabButton
+                id="tab-requests"
+                active={activeTab === 'requests'}
+                onClick={() => setActiveTab('requests')}
+                icon={
+                  <div className="relative">
+                    <UserPlus className="h-4 w-4" />
+                    {pendingCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
+                }
+                label={
+                  <span className="flex items-center gap-1.5">
+                    Chờ duyệt
+                    {pendingCount > 0 && (
+                      <span className="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </span>
+                }
+              />
             </div>
           </div>
         </div>
@@ -203,8 +241,10 @@ export function ClassDetailPageClient() {
           <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
             {activeTab === 'students' ? (
               <StudentsTab classCode={classCode} classroom={classroom || null} loadingClass={loadingClass} />
-            ) : (
+            ) : activeTab === 'assignments' ? (
               <AssignmentsTab classCode={classCode} />
+            ) : (
+              <PendingRequestsTab classCode={classCode} classroom={classroom || null} />
             )}
           </div>
         </div>

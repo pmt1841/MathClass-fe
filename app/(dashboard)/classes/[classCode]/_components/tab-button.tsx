@@ -11,7 +11,7 @@ export function TabButton({
   active: boolean
   onClick: () => void
   icon: React.ReactNode
-  label: string
+  label: React.ReactNode
 }) {
   return (
     <button
