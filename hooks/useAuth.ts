@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { authStorage } from '@/lib/auth-storage'
 
 export interface UserInfo {
   id?: number
@@ -36,13 +37,10 @@ export function useAuth() {
   }, [])
 
   const logout = () => {
-    // Clear cookies
-    document.cookie = 'auth_token=; path=/; max-age=0'
-    document.cookie = 'user_role=; path=/; max-age=0'
-    // Clear storage
-    localStorage.removeItem('auth_token')
+    // Clear cookies and storage using authStorage
+    authStorage.clearToken()
+    // Clear user info storage
     localStorage.removeItem('user_info')
-    sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('user_info')
     
     setUser(null)

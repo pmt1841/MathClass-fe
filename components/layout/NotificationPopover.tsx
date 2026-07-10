@@ -4,6 +4,7 @@ import { Bell, CheckCheck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { authStorage } from '@/lib/auth-storage'
 import {
   Popover,
   PopoverContent,
@@ -48,7 +49,7 @@ export function NotificationPopover() {
 
   // SSE logic
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const token = authStorage.getToken()
     if (!token) return
 
     const controller = new AbortController()

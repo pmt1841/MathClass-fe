@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi, LoginCredentials } from '@/lib/api/auth'
 import { AUTH_KEYS, COOKIE_OPTIONS, ROLES } from '@/lib/constants/auth'
+import { authStorage } from '@/lib/auth-storage'
 import { AxiosError } from 'axios'
 
 export function useLogin() {
@@ -20,28 +21,12 @@ export function useLogin() {
       const token = data.token
       const role = data.role || data.userRole || ROLES.STUDENT
 
-      // Setup cookies for middleware
-      const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : ''
-      const cookieBase = `auth_token=${token}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
-      const roleCookieBase = `user_role=${role}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
+      // Setup cookies and storage using authStorage
+      authStorage.setToken(token, role, rememberMe)
       
-      if (rememberMe) {
-        document.cookie = `${cookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`
-        document.cookie = `${roleCookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`
-      } else {
-        document.cookie = cookieBase
-        document.cookie = roleCookieBase
-      }
-
-      // Clear old storage to prevent stale data
-      localStorage.removeItem(AUTH_KEYS.TOKEN)
-      localStorage.removeItem(AUTH_KEYS.USER_INFO)
-      sessionStorage.removeItem(AUTH_KEYS.TOKEN)
-      sessionStorage.removeItem(AUTH_KEYS.USER_INFO)
-
-      // Save to appropriate storage for client-side use
+      // Save user info to appropriate storage for client-side use
       const storage = rememberMe ? localStorage : sessionStorage
-      storage.setItem(AUTH_KEYS.TOKEN, token)
+      storage.removeItem(AUTH_KEYS.USER_INFO)
       storage.setItem(AUTH_KEYS.USER_INFO, JSON.stringify(data))
 
       if (rememberMe) {
