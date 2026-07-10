@@ -21,8 +21,9 @@ export function useLogin() {
       const role = data.role || data.userRole || ROLES.STUDENT
 
       // Setup cookies for middleware
-      const cookieBase = `auth_token=${token}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}`
-      const roleCookieBase = `user_role=${role}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}`
+      const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : ''
+      const cookieBase = `auth_token=${token}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
+      const roleCookieBase = `user_role=${role}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
       
       if (rememberMe) {
         document.cookie = `${cookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`

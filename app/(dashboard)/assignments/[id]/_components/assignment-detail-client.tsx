@@ -7,6 +7,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import api from '@/lib/axios'
@@ -489,7 +491,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                       <ReactMarkdown
                         key={index}
                         remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
                       >
                         {part}
                       </ReactMarkdown>

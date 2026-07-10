@@ -8,12 +8,12 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
 
 | ID | Vấn đề bảo mật | Mức độ | Trạng thái | Vị trí phát hiện |
 |---|---|---|---|---|
-| **SEC-01** | Stored/Reflected XSS qua `rehype-raw` không kiểm duyệt | **HIGH** | 🔴 Chưa sửa | `submission-detail.tsx`, `inline-comment-popover.tsx`, ... |
-| **SEC-02** | Thiếu Router Middleware kiểm soát truy cập sớm | **MEDIUM** | 🔴 Chưa sửa | Cấu trúc thư mục `/app/(dashboard)/*` |
-| **SEC-03** | Lưu trữ JWT token ở Client Storage & thiếu thuộc tính Cookie an toàn | **MEDIUM** | 🔴 Chưa sửa | `useLogin.ts`, `axios.ts` |
-| **SEC-04** | Quyền mặc định khi Fallback dễ gây rò rỉ giao diện | **LOW** | 🔴 Chưa sửa | `home-client.tsx` |
-| **SEC-05** | Bỏ qua lỗi biên dịch TypeScript khi Build | **LOW** | 🔴 Chưa sửa | `next.config.mjs` |
-| **SEC-06** | Các thư viện phụ thuộc chứa lỗ hổng bảo mật đã biết | **MEDIUM** | 🔴 Chưa sửa | `package.json` |
+| **SEC-01** | Stored/Reflected XSS qua `rehype-raw` không kiểm duyệt | **HIGH** | 🟢 Đã sửa | `submission-detail.tsx`, `inline-comment-popover.tsx`, ... |
+| **SEC-02** | Thiếu Router Middleware kiểm soát truy cập sớm | **MEDIUM** | 🟢 Đã sửa | Cấu trúc thư mục `/app/(dashboard)/*` |
+| **SEC-03** | Lưu trữ JWT token ở Client Storage & thiếu thuộc tính Cookie an toàn | **MEDIUM** | 🟢 Đã sửa | `useLogin.ts`, `axios.ts` |
+| **SEC-04** | Quyền mặc định khi Fallback dễ gây rò rỉ giao diện | **LOW** | 🟢 Đã sửa | `home-client.tsx` |
+| **SEC-05** | Bỏ qua lỗi biên dịch TypeScript khi Build | **LOW** | 🟢 Đã sửa | `next.config.mjs` |
+| **SEC-06** | Các thư viện phụ thuộc chứa lỗ hổng bảo mật đã biết | **MEDIUM** | 🟢 Đã sửa | `package.json` |
 
 ---
 
@@ -45,6 +45,7 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
       {content}
     </ReactMarkdown>
     ```
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Đã tích hợp `rehype-sanitize` đi kèm bộ schema `sanitizeSchema` mở rộng (trong [markdown.ts](file:///Users/luanpv/Desktop/MathClass-fe/lib/markdown.ts)) trước `rehype-katex` để lọc sạch mọi thẻ HTML độc hại trong khi vẫn hiển thị hoàn hảo các công thức toán học.
 
 ---
 
@@ -80,6 +81,7 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
       matcher: ['/home/:path*', '/classes/:path*', '/assignments/:path*', '/settings/:path*', '/profile/:path*']
     }
     ```
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Đã cập nhật và bảo mật quá trình chuyển hướng trong [proxy.ts](file:///Users/luanpv/Desktop/MathClass-fe/proxy.ts) (phương án chuẩn Next.js 16+ thay thế cho `middleware.ts`), chặn truy cập của guest và redirect về `/login?expired=true` ngay từ server.
 
 ---
 
@@ -98,6 +100,7 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
         const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
         const cookieBase = `auth_token=${token}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
         ```
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Đã bổ sung cờ `; Secure` trên môi trường HTTPS cho các cookie xác thực khi đăng nhập thường hoặc đăng nhập qua Google trong [useLogin.ts](file:///Users/luanpv/Desktop/MathClass-fe/hooks/useLogin.ts) và [social-login-button.tsx](file:///Users/luanpv/Desktop/MathClass-fe/components/auth/social-login-button.tsx).
 
 ---
 
@@ -108,6 +111,7 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
     Nếu thông tin người dùng không tồn tại trong bộ nhớ lưu trữ, ứng dụng tự động gán role mặc định là `'STUDENT'` và render component giao diện học sinh (`StudentDashboardClient`). Điều này khiến một guest chưa đăng nhập vẫn nhìn thấy giao diện trống của học sinh trong chốc lát.
 *   **Giải pháp:**  
     Không fallback role mặc định. Nếu không tìm thấy thông tin user trong bộ nhớ, lập tiếp chuyển hướng người dùng ra trang đăng nhập `/login`.
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Sửa logic [home-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/home-client.tsx) trả về giao diện chờ xác thực thay vì tự động kết xuất giao diện của học sinh để tránh rò rỉ giao diện.
 
 ---
 
@@ -124,6 +128,7 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
     Điều này cho phép build và deploy code chứa lỗi cú pháp TypeScript lên production, có thể che giấu các lỗi logic bảo mật hoặc ép kiểu thiếu an toàn (`any`).
 *   **Giải pháp:**  
     Đặt lại thành `ignoreBuildErrors: false` và xử lý triệt để tất cả lỗi biên dịch trước khi triển khai sản phẩm.
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Chuyển `ignoreBuildErrors: false` trong [next.config.mjs](file:///Users/luanpv/Desktop/MathClass-fe/next.config.mjs), đồng thời giải quyết toàn bộ các lỗi kiểu dữ liệu TypeScript (từ Sidebar đến Recharts) để đảm bảo trình biên dịch kiểm soát hoàn toàn mã nguồn trước khi deploy.
 
 ---
 
@@ -137,3 +142,4 @@ Tài liệu này ghi lại kết quả đánh giá bảo mật chi tiết đối
 *   **Giải pháp:**  
     *   Chạy lệnh nâng cấp tự động: `npm audit fix`.
     *   Nâng cấp gói `next` lên phiên bản mới nhất để cập nhật các thư viện con đi kèm như `postcss` và `undici`.
+*   **Trạng thái khắc phục:** 🟢 **Đã sửa**. Sử dụng trường `overrides` trong [package.json](file:///Users/luanpv/Desktop/MathClass-fe/package.json) để ép phiên bản `postcss` sử dụng bản vá bảo mật mới nhất (`^8.5.16`). Lệnh `npm audit` hiện tại ghi nhận 0 lỗ hổng bảo mật.

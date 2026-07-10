@@ -11,6 +11,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
 
 interface InlineCommentPopoverProps {
@@ -96,7 +98,7 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
               <div className="p-2 bg-slate-50 rounded border border-slate-100 text-sm max-h-[100px] overflow-y-auto">
                 <ReactMarkdown
                   remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex, rehypeRaw]}
+                  rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
                 >
                   {content}
                 </ReactMarkdown>
