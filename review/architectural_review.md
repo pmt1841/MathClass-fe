@@ -43,7 +43,7 @@ graph TD
     *   `(auth)`: Chứa các route công khai phục vụ đăng ký/đăng nhập.
     *   `(dashboard)`: Chứa toàn bộ các route nghiệp vụ yêu cầu xác thực.
 *   **Cơ chế bảo vệ (Route Guarding):** 
-    *   Sử dụng cơ chế **Next.js 16 Proxy Middleware** thông qua tệp [proxy.ts](file:///Users/luanpv/Desktop/MathClass-fe/proxy.ts). Middleware này chạy ở Edge runtime, kiểm tra cookie `auth_token` và `user_role` để đưa ra quyết định redirect trước khi mã nguồn trang phía client được tải và kết xuất.
+    *   Sử dụng cơ chế **Next.js 16 Proxy Middleware** thông qua tệp [proxy.ts](../proxy.ts). Middleware này chạy ở Edge runtime, kiểm tra cookie `auth_token` và `user_role` để đưa ra quyết định redirect trước khi mã nguồn trang phía client được tải và kết xuất.
     *   Việc tách biệt này giúp ngăn chặn hiện tượng rò rỉ layout nội bộ cho người dùng chưa đăng nhập.
 
 ### 2.2. Kiến trúc Data Fetching & Caching
@@ -53,9 +53,9 @@ graph TD
     *   Đã thiết lập `staleTime` hợp lý (2 phút) cho các dữ liệu ít thay đổi ở Dashboard để giảm tải số lượng requests lên API Server.
 
 ### 2.3. Lớp Giao Tiếp API & Quản Lý Token Tập Trung
-*   **Axios Singleton:** Lớp HTTP Client được định nghĩa tập trung trong [axios.ts](file:///Users/luanpv/Desktop/MathClass-fe/lib/axios.ts).
+*   **Axios Singleton:** Lớp HTTP Client được định nghĩa tập trung trong [axios.ts](../lib/axios.ts).
 *   **Dịch vụ Quản lý Token Tập trung (`authStorage`):**
-    *   Toàn bộ logic lưu trữ, đọc và dọn dẹp token xác thực (ở cả Cookies và Local/Session Storage) được tách biệt hoàn toàn và cô lập vào tệp [auth-storage.ts](file:///Users/luanpv/Desktop/MathClass-fe/lib/auth-storage.ts).
+    *   Toàn bộ logic lưu trữ, đọc và dọn dẹp token xác thực (ở cả Cookies và Local/Session Storage) được tách biệt hoàn toàn và cô lập vào tệp [auth-storage.ts](../lib/auth-storage.ts).
     *   Giúp loại bỏ sự trùng lặp và rải rác của các lệnh truy cập storage trực tiếp trước đây.
 *   **Request Interceptor:** 
     *   Tự động phát hiện môi trường thực thi (Client-side vs Server-side SSR).
@@ -65,12 +65,12 @@ graph TD
     *   Bắt lỗi `401 Unauthorized` tập trung. Khi token hết hạn hoặc không hợp lệ, interceptor tự động gọi `authStorage.clearToken()` để dọn dẹp sạch sẽ phiên hoạt động và chuyển hướng người dùng về trang đăng nhập `/login?expired=true`.
 
 ### 2.4. Code-Splitting và Tối ưu hóa Bundle Size
-*   Sử dụng **Next.js Dynamic Imports (`next/dynamic`)** để trì hoãn việc tải các Module Dashboard rất nặng của Học sinh và Giáo viên trong [home-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/home-client.tsx) cho đến khi xác định được quyền hạn của người dùng.
+*   Sử dụng **Next.js Dynamic Imports (`next/dynamic`)** để trì hoãn việc tải các Module Dashboard rất nặng của Học sinh và Giáo viên trong [home-client.tsx](../app/(dashboard)/home/_components/home-client.tsx) cho đến khi xác định được quyền hạn của người dùng.
 *   Cách thiết kế này tối ưu hóa dung lượng JS tải xuống ban đầu, giúp cải thiện đáng kể chỉ số LCP (Largest Contentful Paint) và tốc độ sẵn sàng tương tác của trang chủ.
 
 ### 2.5. Tích Hợp Markdown & Công Thức Toán Học LaTeX An Toàn
 *   Sử dụng bộ ba plugin `remark-math`, `rehype-katex` và `rehype-raw` để render tài liệu toán học giàu định dạng.
-*   Được bảo vệ bằng **`rehype-sanitize`** thông qua một schema tùy chỉnh mở rộng tại [markdown.ts](file:///Users/luanpv/Desktop/MathClass-fe/lib/markdown.ts). Cơ chế này lọc sạch mọi mã độc Javascript chèn qua thẻ HTML thô (XSS) nhưng vẫn giữ lại các lớp CSS hiển thị công thức của KaTeX.
+*   Được bảo vệ bằng **`rehype-sanitize`** thông qua một schema tùy chỉnh mở rộng tại [markdown.ts](../lib/markdown.ts). Cơ chế này lọc sạch mọi mã độc Javascript chèn qua thẻ HTML thô (XSS) nhưng vẫn giữ lại các lớp CSS hiển thị công thức của KaTeX.
 
 ---
 

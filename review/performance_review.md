@@ -21,7 +21,7 @@ Dưới đây là kết quả rà soát hiệu năng chi tiết cho khu vực Da
 
 ### PERF-01: Tải thừa bundle của cả hai Dashboard
 *   **Mức độ nghiêm trọng:** **HIGH**
-*   **Vị trí file:** [home-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/home-client.tsx)
+*   **Vị trí file:** [home-client.tsx](../app/(dashboard)/home/_components/home-client.tsx)
 *   **Mô tả:**  
     `HomeClient` đang nạp tĩnh cả hai component giao diện:
     ```typescript
@@ -50,7 +50,7 @@ Dưới đây là kết quả rà soát hiệu năng chi tiết cho khu vực Da
 
 ### PERF-02: Re-render và tính toán lọc dữ liệu lặp lại khi tìm kiếm (Form Input Lag)
 *   **Mức độ nghiêm trọng:** **MEDIUM**
-*   **Vị trí file:** [teacher-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/teacher-client.tsx#L58-L64)
+*   **Vị trí file:** [teacher-client.tsx](../app/(dashboard)/home/_components/teacher-client.tsx#L58-L64)
 *   **Mô tả:**  
     Danh sách bài nộp chờ chấm được lọc theo lớp và tìm kiếm theo tên học sinh/bài tập. Phép toán lọc `.filter()` được thực thi lại trên mỗi ký tự người dùng gõ vào ô tìm kiếm, gây ra tình trạng giật/trễ (input lag) làm giảm chỉ số INP.
 *   **Giải pháp:**  
@@ -73,8 +73,8 @@ Dưới đây là kết quả rà soát hiệu năng chi tiết cho khu vực Da
 ### PERF-03: Tránh Fetch dữ liệu thừa với Stale Time = 0
 *   **Mức độ nghiêm trọng:** **LOW**
 *   **Vị trí file:** 
-    *   [student-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/student-client.tsx#L24-L37)
-    *   [teacher-client.tsx](file:///Users/luanpv/Desktop/MathClass-fe/app/(dashboard)/home/_components/teacher-client.tsx#L34-L55)
+    *   [student-client.tsx](../app/(dashboard)/home/_components/student-client.tsx#L24-L37)
+    *   [teacher-client.tsx](../app/(dashboard)/home/_components/teacher-client.tsx#L34-L55)
 *   **Mô tả:**  
     Cả hai dashboard đều sử dụng React Query (`useQuery`) mà không thiết lập `staleTime` (mặc định = 0). Mỗi khi người dùng chuyển tab trình duyệt rồi quay lại, hoặc chuyển trang rồi quay lại trang `/home`, React Query sẽ tự động gọi lại toàn bộ các API. Dữ liệu tổng quan này thực tế không thay đổi liên tục từng giây, do đó gây lãng phí tài nguyên.
 *   **Giải pháp:**  
