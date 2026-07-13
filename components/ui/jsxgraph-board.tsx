@@ -13,7 +13,7 @@ interface JsxGraphBoardProps {
   readOnly?: boolean
 }
 
-export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height = 400, className = '', readOnly = true }: JsxGraphBoardProps) {
+export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height = 300, className = '', readOnly = true }: JsxGraphBoardProps) {
   const boardRef = useRef<HTMLDivElement>(null)
   const boardId = `box-${shapeCode}-${Math.random().toString(36).substr(2, 9)}`
   const [error, setError] = useState<string | null>(null)
@@ -39,11 +39,11 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
           },
           keepaspectratio: true,
           resize: { enabled: true, throttle: 200 },
-          showNavigation: true,
+          showNavigation: !readOnly,
           showCopyright: false,
-          showInfobox: true,
-          pan: { enabled: true, needShift: true, needTwoFingers: false },
-          zoom: { wheel: true, needShift: false }
+          showInfobox: !readOnly,
+          pan: { enabled: !readOnly, needShift: true, needTwoFingers: false },
+          zoom: { enabled: !readOnly, wheel: !readOnly, needShift: false }
         } as any)
 
         // Add Vietnamese tooltips to navigation buttons
@@ -74,7 +74,7 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
         let lastX = 0, lastY = 0;
         
         board.on('down', (e: any) => {
-          if (e.button === 2) {
+          if (!readOnly && e.button === 2) {
             isPanning = true;
             lastX = e.clientX || e.touches?.[0]?.clientX || 0;
             lastY = e.clientY || e.touches?.[0]?.clientY || 0;
@@ -130,8 +130,8 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
             if (id) attrs.id = id
             if (readOnly) {
               attrs.fixed = true
-              attrs.showInfobox = true
-              attrs.highlight = true
+              attrs.showInfobox = false
+              attrs.highlight = false
             }
 
             if (type === 'point' && parents) {
@@ -303,7 +303,9 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
       <div
         id={boardId}
         ref={boardRef}
-        className="jxgbox border border-slate-200 rounded-xl bg-white shadow-sm"
+        className={`jxgbox border border-slate-200 rounded-xl bg-white shadow-sm ${
+          readOnly ? 'max-w-[500px] w-full' : ''
+        }`}
         style={{ width, height }}
         onContextMenu={e => e.preventDefault()}
       />

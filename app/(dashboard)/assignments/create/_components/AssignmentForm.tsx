@@ -11,11 +11,13 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { LatexToolbar } from '@/components/ui/latex-toolbar'
-import { useTextEditor } from '@/hooks/use-text-editor'
 import dynamic from 'next/dynamic'
+
+import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
+
+const TiptapEditor = dynamic(() => import('@/components/ui/tiptap'), { ssr: false })
 import { formatDateTime } from '@/lib/utils'
 import { assignmentService } from '@/services/assignmentService'
 import { toast } from 'sonner'
@@ -84,6 +86,7 @@ export function AssignmentForm({
   const router = useRouter()
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
+  const [showSidebar, setShowSidebar] = useState(true)
 
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
@@ -98,7 +101,6 @@ export function AssignmentForm({
   // Images State
   const [images, setImages] = useState<any[]>(defaultValues?.images || [])
   const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const {
     register,
@@ -193,21 +195,44 @@ export function AssignmentForm({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
-  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null)
-  const { ref: formContentRef, ...formContentRest } = register('content')
+  const [editorInstance, setEditorInstance] = useState<any>(null)
 
-  const { handleFormatText, handleInsertLatex } = useTextEditor({
-    textareaRef,
-    content: formValues.content || '',
-    onChange: (newVal) => setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-  })
+  useEffect(() => {
+    register('content')
+  }, [register])
 
-  const handleConfirmJsxGraph = (jsxGraphData: any) => {
+  const insertTextIntoEditor = (text: string) => {
+    if (editorInstance) {
+      // Use Tiptap command to insert content at cursor position
+      editorInstance.chain().focus().insertContent(text).run();
+      // Force react-hook-form value sync with Markdown output
+      const htmlData = editorInstance.getHTML();
+      const mdData = htmlToMarkdown(htmlData);
+      setValue('content', mdData, { shouldValidate: isSubmitted, shouldDirty: true });
+    }
+  };
+
+  const handleInsertDrawing = (shapeCode: string) => {
+    const drawing = drawings.find(d => d.shapeCode === shapeCode)
+    let insertText = `[${shapeCode}]`
+    if (drawing && (drawing.width || drawing.height)) {
+      insertText = `[${shapeCode}|${drawing.width || '100%'}x${drawing.height || '300'}]`
+    }
+    insertTextIntoEditor(insertText);
+  };
+
+  const handleInsertImage = (imageCode: string) => {
+    insertTextIntoEditor(imageCode);
+  };
+
+  // handleInsertLatex is now managed inside CKEditor Component
+
+  const handleConfirmJsxGraph = (jsxGraphData: any, w?: string, h?: string) => {
     if (editingShape) {
       // Cập nhật hình cũ
       const updatedDrawings = drawings.map(d =>
         d.shapeCode === editingShape.shapeCode
-          ? { ...d, jsxGraphData }
+          ? { ...d, jsxGraphData, width: w, height: h }
           : d
       )
       setDrawings(updatedDrawings)
@@ -227,31 +252,14 @@ export function AssignmentForm({
       }
 
       const shapeCode = `SHAPE_${nextIndex}`
-      const newDrawing = { shapeCode, jsxGraphData }
+      const newDrawing = { shapeCode, jsxGraphData, width: w, height: h }
       setDrawings(prev => [...prev, newDrawing])
 
-      // Chèn vào văn bản tại con trỏ
-      if (textareaRef.current) {
-        const textarea = textareaRef.current
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
-        const currentVal = formValues.content || ''
-        const before = currentVal.substring(0, start)
-        const after = currentVal.substring(end)
-
-        const insertText = `[${shapeCode}]`
-        const newVal = before + insertText + after
-        setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-
-        setTimeout(() => {
-          textarea.focus()
-          const newCursorPos = start + insertText.length
-          textarea.setSelectionRange(newCursorPos, newCursorPos)
-        }, 0)
-      } else {
-        const currentVal = formValues.content || ''
-        setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: isSubmitted, shouldDirty: true })
+      let insertText = `[${shapeCode}]`
+      if (w || h) {
+        insertText = `[${shapeCode}|${w || '100%'}x${h || '300'}]`
       }
+      insertTextIntoEditor(insertText)
     }
 
     setShowJsxGraphModal(false)
@@ -269,38 +277,17 @@ export function AssignmentForm({
   const handleDeleteDrawing = (shapeCode: string) => {
     setDrawings(prev => prev.filter(d => d.shapeCode !== shapeCode))
     const currentVal = formValues.content || ''
-    const newVal = currentVal.replace(new RegExp(`\\[${shapeCode}\\]`, 'g'), '')
+    const newVal = currentVal.replace(new RegExp(`\\[${shapeCode}(?:\\|[^\\]]*)?\\]`, 'g'), '')
     setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-  }
-
-  const handleInsertDrawing = (shapeCode: string) => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const currentVal = formValues.content || ''
-      const before = currentVal.substring(0, start)
-      const after = currentVal.substring(end)
-
-      const insertText = `[${shapeCode}]`
-      const newVal = before + insertText + after
-      setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-
-      setTimeout(() => {
-        textarea.focus()
-        const newCursorPos = start + insertText.length
-        textarea.setSelectionRange(newCursorPos, newCursorPos)
-      }, 0)
-    } else {
-      const currentVal = formValues.content || ''
-      setValue('content', currentVal + `\n[${shapeCode}]`, { shouldValidate: isSubmitted, shouldDirty: true })
+    if (editorInstance) {
+      editorInstance.commands.setContent(markdownToHtml(newVal))
     }
   }
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
 
+
+
+  const handleImageUploadFromEditor = async (file: File) => {
     if (images.length >= 10) {
       toast.error('Chỉ được phép tải lên tối đa 10 ảnh.')
       return
@@ -328,35 +315,12 @@ export function AssignmentForm({
       setImages(newImages)
       setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })
 
-      // Insert into markdown
-      if (textareaRef.current) {
-        const textarea = textareaRef.current
-        const start = textarea.selectionStart
-        const currentVal = formValues.content || ''
-        const before = currentVal.substring(0, start)
-        const after = currentVal.substring(start)
-
-        const insertText = imageCode
-        const newVal = before + insertText + after
-        setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-
-        setTimeout(() => {
-          textarea.focus()
-          const newCursorPos = start + insertText.length
-          textarea.setSelectionRange(newCursorPos, newCursorPos)
-        }, 0)
-      } else {
-        const currentVal = formValues.content || ''
-        setValue('content', currentVal + `\n${imageCode}`, { shouldValidate: isSubmitted, shouldDirty: true })
-      }
+      insertTextIntoEditor(imageCode)
       toast.success('Tải ảnh lên thành công')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi tải ảnh lên')
     } finally {
       setIsUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
   }
 
@@ -365,36 +329,54 @@ export function AssignmentForm({
     setImages(updatedImages)
     setValue('images', updatedImages, { shouldValidate: isSubmitted, shouldDirty: true })
     const currentVal = formValues.content || ''
-    const newVal = currentVal.replace(new RegExp(imageCode.replace(/\[/g, '\\[').replace(/\]/g, '\\]'), 'g'), '')
+    const code = imageCode.replace('[', '').replace(']', '')
+    const newVal = currentVal.replace(new RegExp(`\\[${code}(?:\\|[^\\]]*)?\\]`, 'g'), '')
     setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
+    if (editorInstance) {
+      editorInstance.commands.setContent(markdownToHtml(newVal))
+    }
   }
 
   // Render function for Content with JSXGraph replacing
   const renderContentWithDrawings = (content: string) => {
     if (!content) return null
 
-    // Split content by [SHAPE_XXX] or [IMAGE_XXX] pattern
-    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+\]|\[IMAGE_[a-zA-Z0-9_]+\])/g)
+    // Split content by [SHAPE_XXX|options] or [IMAGE_XXX|options] pattern
+    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {
       // Check if it's a shape placeholder
-      const shapeMatch = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
+      const shapeMatch = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (shapeMatch) {
         const shapeCode = shapeMatch[1]
         const drawing = drawings.find(d => d.shapeCode === shapeCode)
         if (drawing) {
-          return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+          let width: string | number = drawing.width || '100%'
+          let height: string | number = drawing.height || 300
+          if (shapeMatch[2]) {
+            const [w, h] = shapeMatch[2].split('x')
+            if (w) width = isNaN(Number(w)) ? w : Number(w)
+            if (h) height = isNaN(Number(h)) ? h : Number(h)
+          }
+          return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} width={width} height={height} />
         }
       }
 
       // Check if it's an image placeholder
-      const imageMatch = part.match(/^(\[IMAGE_[a-zA-Z0-9_]+\])$/)
+      const imageMatch = part.match(/^\[(IMAGE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (imageMatch) {
         const imageCode = imageMatch[1]
-        const image = images.find(img => img.imageCode === imageCode)
+        const image = images.find(img => img.imageCode === `[${imageCode}]`)
         if (image) {
+          let width: string | number = 'auto'
+          let height: string | number = 'auto'
+          if (imageMatch[2]) {
+            const [w, h] = imageMatch[2].split('x')
+            if (w) width = isNaN(Number(w)) ? w : Number(w)
+            if (h) height = isNaN(Number(h)) ? h : Number(h)
+          }
           // eslint-disable-next-line @next/next/no-img-element
-          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full h-auto rounded-lg my-4 shadow-sm border border-slate-200" />
+          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full rounded-lg my-4 shadow-sm border border-slate-200" style={{ width, height }} />
         }
       }
 
@@ -412,51 +394,76 @@ export function AssignmentForm({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-100 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 flex flex-col overflow-hidden select-none">
       {/* TOOLBAR */}
-      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10">
-        {/* Left: Back & Breadcrumb */}
-        <div className="flex items-center gap-4">
+      <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 shadow-sm z-20">
+        {/* Left: Back & Breadcrumb & Status */}
+        <div className="flex items-center gap-3">
           <button
             onClick={handleBackClick}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 hover:shadow-sm hover:text-slate-900 transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm hover:text-slate-900 dark:hover:text-slate-100 transition-all"
             title={backText}
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 font-medium">
-            <button onClick={handleBackClick} className="hover:text-slate-800 transition-colors">
-              {backText}
-            </button>
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[300px]">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{backText}</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-[300px]">
               {pageTitle}
             </span>
           </div>
+
+          <div className="ml-4 flex items-center border-l border-slate-200 dark:border-slate-800 pl-4">
+            {isAutoSaving ? (
+              <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500 font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Đang lưu...
+              </span>
+            ) : lastSavedTime ? (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-500 font-medium">
+                <Check className="h-3.5 w-3.5" />
+                Đã lưu ({formatDateTime(lastSavedTime)})
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        {/* Right: Submit Buttons */}
-        <div className="flex items-center gap-3">
-          {isAutoSaving ? (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-amber-600 font-medium mr-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Đang lưu nháp...
-            </span>
-          ) : lastSavedTime ? (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
-              <Check className="h-3 w-3" />
-              Đã lưu ({formatDateTime(lastSavedTime)})
-            </span>
-          ) : null}
+        {/* Right: Submit & Toolbar Options */}
+        <div className="flex items-center gap-2">
+          {/* Mode switch */}
+          <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 mr-2">
+            <button
+              type="button"
+              onClick={() => setViewMode('edit')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'edit'
+                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
+              }`}
+            >
+              <Edit3 className="w-3.5 h-3.5" /> Soạn thảo
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('preview')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'preview'
+                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" /> Xem trước
+            </button>
+          </div>
 
           <button
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit(handleDraft)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-750 shadow-sm border border-slate-200 dark:border-slate-700 transition-all disabled:opacity-50"
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-3.5 h-3.5" />
             {submitDraftText}
           </button>
 
@@ -465,235 +472,232 @@ export function AssignmentForm({
               type="button"
               disabled={isSubmitting}
               onClick={handleSubmit(handlePublish)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/95 shadow-sm active:scale-98 transition-all disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
               Giao bài
             </button>
           )}
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
+
+          {/* Toggle Sidebar */}
+          <button
+            type="button"
+            onClick={() => setShowSidebar(!showSidebar)}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+              showSidebar
+                ? 'bg-primary/10 text-primary border-primary/20'
+                : 'bg-background text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900'
+            }`}
+            title="Cài đặt bài tập"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 min-h-0 flex flex-col p-2 sm:p-4 gap-4">
+      {/* BODY WORKSPACE */}
+      <div className="flex-1 min-h-0 flex relative overflow-hidden bg-slate-50/50 dark:bg-slate-950/10">
+        
+        {/* Left Column: Editor Sheet Canvas */}
+        <div className="flex-1 overflow-hidden p-4 sm:p-8 flex flex-col min-w-0 h-full">
+          <div className="max-w-3xl mx-auto w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs flex-1 flex flex-col p-6 sm:p-10 relative min-h-0 h-full">
+            {viewMode === 'edit' ? (
+              <>
+                {/* Title */}
+                <div className="relative mb-6">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tiêu đề bài tập</label>
+                  <input
+                    type="text"
+                    {...register('title')}
+                    placeholder="Nhập tiêu đề bài tập..."
+                    className={`w-full text-3xl font-extrabold bg-transparent border-none outline-none border-b border-slate-100 dark:border-slate-800 pb-3 focus:border-primary/50 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800 ${
+                      errors.title ? 'border-destructive' : ''
+                    }`}
+                  />
+                  {errors.title && (
+                    <span className="absolute left-0 -bottom-5 text-[10px] text-destructive font-medium">
+                      {errors.title.message}
+                    </span>
+                  )}
+                </div>
 
-        {/* ROW 1: Title and Description */}
-        <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl border border-border shadow-sm shrink-0">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              {...register('title')}
-              placeholder="Nhập tiêu đề..."
-              className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-base font-semibold outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${errors.title ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
-                }`}
-            />
-            {errors.title && (
-              <span className="absolute -bottom-5 left-2 text-[10px] text-destructive font-medium">{errors.title.message}</span>
-            )}
-          </div>
+                {/* Content Separator Label */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
+                </div>
 
-          <div className="flex-1 md:flex-[2] relative">
-            <input
-              type="text"
-              {...register('description')}
-              placeholder="Nhập mô tả ngắn gọn cho bài tập..."
-              className={`w-full h-11 px-4 rounded-xl border bg-slate-50/50 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary/15 ${errors.description ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
-                }`}
-            />
-            {errors.description && (
-              <span className="absolute -bottom-5 left-2 text-[10px] text-destructive font-medium">{errors.description.message}</span>
+                {/* LaTeX Toolbar is embedded inside CKEditor Component */}
+
+                {/* Content CKEditor */}
+                <div className="flex-1 flex flex-col relative min-h-0 h-full">
+                  {errors.content && (
+                    <span className="absolute right-0 -top-6 bg-destructive/10 text-destructive px-2 py-0.5 rounded text-[11px] font-medium border border-destructive/20 z-10">
+                      {errors.content.message}
+                    </span>
+                  )}
+                  <TiptapEditor
+                    value={formValues.content || ''}
+                    onReady={(editor) => setEditorInstance(editor)}
+                    onChange={(newVal) => setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })}
+                    onUploadImage={handleImageUploadFromEditor}
+                    placeholder="Soạn thảo nội dung bài tập ở đây (hỗ trợ chèn công thức toán học từ thanh công cụ)..."
+                  />
+                </div>
+              </>
+            ) : (
+              /* Preview Mode */
+              <div className="space-y-6 flex-1 flex flex-col">
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
+                  <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-50">
+                    {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa nhập tiêu đề</span>}
+                  </h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                    {watch('description') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa có mô tả ngắn</span>}
+                  </p>
+                </div>
+                <div className="flex-1 prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none overflow-y-auto">
+                  {debouncedContentValue ? (
+                    renderContentWithDrawings(debouncedContentValue)
+                  ) : (
+                    <p className="text-slate-400 dark:text-slate-600 italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* ROW 2: Editor and Preview Split */}
-        <div className="flex-1 min-h-0 relative">
-          {errors.content && (
-            <div className="absolute top-0 right-4 -translate-y-full pb-1 z-10">
-              <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded text-[11px] font-medium border border-destructive/20">{errors.content.message}</span>
-            </div>
-          )}
-          <div className={`h-full w-full bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden focus-within:ring-2 focus-within:ring-primary/15 transition-all ${errors.content ? 'border-destructive focus-within:border-destructive' : 'border-border focus-within:border-primary'}`}>
-            <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="flex bg-slate-200/50 p-0.5 rounded-lg border border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('edit')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
-                      viewMode === 'edit'
-                        ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200 font-semibold'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                    }`}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> Soạn thảo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('preview')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
-                      viewMode === 'preview'
-                        ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200 font-semibold'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" /> Xem trước
-                  </button>
-                </div>
+        {/* Backdrop for Mobile Sidebar */}
+        {showSidebar && (
+          <div 
+            onClick={() => setShowSidebar(false)}
+            className="fixed inset-0 bg-slate-900/25 backdrop-blur-xs z-30 lg:hidden"
+          />
+        )}
+
+        {/* Right Settings Sidebar */}
+        <aside className={`fixed inset-y-0 right-0 z-40 w-80 border-l border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shadow-2xl transition-transform duration-300 lg:static lg:shadow-none lg:translate-x-0 ${
+          showSidebar ? 'translate-x-0' : 'translate-x-full lg:hidden'
+        }`}>
+          {/* Sidebar Header */}
+          <div className="h-14 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900 shrink-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cấu hình bài tập</span>
+            <button
+              type="button"
+              onClick={() => setShowSidebar(false)}
+              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Sidebar Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Section 1: Thông tin chung */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông tin chung</h3>
+              <div className="space-y-1 relative">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mô tả ngắn gọn</label>
+                <textarea
+                  {...register('description')}
+                  placeholder="Mô tả tóm tắt nội dung bài tập này cho học sinh..."
+                  rows={4}
+                  className={`w-full px-3 py-2 text-sm rounded-xl border bg-slate-50/30 dark:bg-slate-950/20 text-slate-800 dark:text-slate-200 outline-none transition-all focus:bg-white dark:focus:bg-slate-950/40 focus:ring-2 focus:ring-primary/10 ${
+                    errors.description ? 'border-destructive focus:border-destructive' : 'border-slate-200 dark:border-slate-800 focus:border-primary'
+                  }`}
+                />
+                {errors.description && (
+                  <span className="text-[10px] text-destructive font-medium block mt-0.5">{errors.description.message}</span>
+                )}
               </div>
-              {viewMode === 'edit' && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleUploadImage}
-                  />
-                  <button
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded flex items-center gap-1.5 hover:bg-emerald-100 transition-colors shadow-sm border border-emerald-200 disabled:opacity-50"
-                  >
-                    <ImagePlus className="w-3.5 h-3.5" />
-                    {isUploading ? 'Đang tải...' : 'Thêm ảnh'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setEditingShape(null);
-                      setShowJsxGraphModal(true);
-                    }}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
-                  >
-                    <CircleDot className="w-3.5 h-3.5" />
-                    Thêm hình vẽ và đồ thị
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Editor Area */}
-            <div className={`flex-1 flex-col overflow-hidden ${viewMode === 'edit' ? 'flex' : 'hidden'}`}>
-              <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
+            <div className="h-px bg-slate-100 dark:bg-slate-850" />
 
-              {/* Danh sách hình vẽ & Ảnh */}
-              {(drawings.length > 0 || images.length > 0) && (
-                <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
-                  {drawings.length > 0 && (
-                    <>
-                      <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ:</span>
-                      {drawings.map(d => (
-                        <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                          <button
-                            type="button"
-                            onClick={() => handleInsertDrawing(d.shapeCode)}
-                            className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                            title="Chèn vào văn bản"
-                          >
-                            {d.shapeCode}
-                          </button>
-                          <div className="w-px h-4 bg-slate-200"></div>
+            {/* Section 2: Tài nguyên học liệu */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thư viện tài nguyên</h3>
+              
+              {/* JSXGraph Section */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ & Đồ thị</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setEditingShape(null);
+                    setShowJsxGraphModal(true);
+                  }}
+                  className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-blue-200 dark:border-blue-900/50"
+                >
+                  <CircleDot className="w-3.5 h-3.5" />
+                  Thêm hình vẽ đồ thị
+                </button>
+
+                {drawings.length > 0 ? (
+                  <div className="space-y-1.5 mt-2 max-h-[200px] overflow-y-auto">
+                    {drawings.map(d => (
+                      <div key={d.shapeCode} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all group">
+                        <button
+                          type="button"
+                          onClick={() => handleInsertDrawing(d.shapeCode)}
+                          className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px]"
+                          title="Nhấp để chèn vào vị trí con trỏ"
+                        >
+                          {d.shapeCode} {d.width || d.height ? `(${d.width || '100%'}x${d.height || '300'})` : ''}
+                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             onClick={() => handleEditDrawing(d.shapeCode)}
-                            className="px-1.5 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Chỉnh sửa"
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded transition-colors"
+                            title="Sửa hình vẽ"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteDrawing(d.shapeCode)}
-                            className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                            title="Xoá hình vẽ"
+                            className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                            title="Xóa hình vẽ"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      ))}
-                    </>
-                  )}
-                  {images.length > 0 && (
-                    <>
-                      {drawings.length > 0 && <div className="w-px h-4 bg-slate-300 mx-2"></div>}
-                      <span className="text-xs font-semibold text-slate-500 mr-1">Ảnh:</span>
-                      {images.map(img => (
-                        <div key={img.imageCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const textarea = textareaRef.current
-                              if (!textarea) return
-                              const start = textarea.selectionStart
-                              const currentVal = formValues.content || ''
-                              const newVal = currentVal.substring(0, start) + img.imageCode + currentVal.substring(start)
-                              setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })
-                              setTimeout(() => {
-                                textarea.focus()
-                                textarea.setSelectionRange(start + img.imageCode.length, start + img.imageCode.length)
-                              }, 0)
-                            }}
-                            className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                            title={`Chèn ${img.imageCode} vào văn bản`}
-                          >
-                            {img.imageCode}
-                          </button>
-                          <div className="w-px h-4 bg-slate-200"></div>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteImage(img.imageCode)}
-                            className="px-1.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                            title="Xoá ảnh"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-              <textarea
-                {...formContentRest}
-                ref={(e) => {
-                  formContentRef(e)
-                  textareaRef.current = e
-                }}
-                placeholder="Nhập nội dung bài tập..."
-                className="flex-1 w-full p-4 text-sm bg-transparent outline-none resize-none font-mono leading-relaxed"
-              />
-            </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-1">Chưa có hình vẽ JSXGraph nào.</p>
+                )}
+              </div>
 
-            {/* Preview Area */}
-            <div className={`flex-1 w-full p-6 prose prose-slate prose-sm max-w-none overflow-y-auto ${viewMode === 'preview' ? 'block' : 'hidden'}`}>
-              {debouncedContentValue ? (
-                renderContentWithDrawings(debouncedContentValue)
-              ) : (
-                <p className="text-muted-foreground italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
-              )}
+
+              {/* HDSD Note */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                💡 <b>Mẹo:</b> Thiết lập kích thước mong muốn ở trên, sau đó nhấp vào hình vẽ hoặc ảnh để chèn mã tương ứng (ví dụ: <code className="text-primary font-mono">{`[SHAPE_1|500x250]`}</code>, <code className="text-primary font-mono">{`[IMAGE_1|300xauto]`}</code>) vào vị trí con trỏ.
+              </div>
             </div>
           </div>
-        </div>
-
+        </aside>
       </div>
 
       {/* Leave Confirmation Modal */}
       {showLeaveModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Hủy bỏ các thay đổi?</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Hủy bỏ các thay đổi?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                 Bạn có chắc chắn muốn quay lại không? Các thông tin bạn vừa nhập có thể bị mất.
               </p>
             </div>
-            <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+            <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 justify-end">
               <button
                 onClick={() => setShowLeaveModal(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 bg-slate-100 dark:bg-slate-900 rounded-xl transition-colors"
               >
                 Tiếp tục ở lại
               </button>
@@ -717,6 +721,8 @@ export function AssignmentForm({
         }}
         onConfirm={handleConfirmJsxGraph}
         initialData={editingShape?.jsxGraphData}
+        initialWidth={editingShape ? drawings.find(d => d.shapeCode === editingShape.shapeCode)?.width : undefined}
+        initialHeight={editingShape ? drawings.find(d => d.shapeCode === editingShape.shapeCode)?.height : undefined}
       />
     </div>
   )

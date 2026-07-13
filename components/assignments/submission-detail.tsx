@@ -236,21 +236,40 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
   const renderContentWithDrawings = (rawContent: string) => {
     if (!rawContent) return null
     const { content: cleanContent, extractedDrawings } = extractDrawings(rawContent)
-    const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+\]|\[IMAGE_[a-zA-Z0-9_]+\])/g)
+    const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {
-      const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)\]$/)
+      const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (match) {
         const shapeCode = match[1]
         const drawing = extractedDrawings.find((d: any) => d.shapeCode === shapeCode)
-        if (drawing) return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} />
+        if (drawing) {
+          let width: string | number = '100%'
+          let height: string | number = 300
+          if (match[2]) {
+            const [w, h] = match[2].split('x')
+            if (w) width = isNaN(Number(w)) ? w : Number(w)
+            if (h) height = isNaN(Number(h)) ? h : Number(h)
+          }
+          return <JsxGraphBoard key={index} shapeCode={shapeCode} jsxGraphData={drawing.jsxGraphData} width={width} height={height} />
+        }
       }
 
-      const imageMatch = part.match(/^(\[IMAGE_[a-zA-Z0-9_]+\])$/)
+      const imageMatch = part.match(/^\[(IMAGE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (imageMatch) {
         const imageCode = imageMatch[1]
-        const image = assignment?.images?.find((img: any) => img.imageCode === imageCode)
-        if (image) return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full h-auto rounded-lg my-4 shadow-sm border border-slate-200" />
+        const image = assignment?.images?.find((img: any) => img.imageCode === `[${imageCode}]`)
+        if (image) {
+          let width: string | number = 'auto'
+          let height: string | number = 'auto'
+          if (imageMatch[2]) {
+            const [w, h] = imageMatch[2].split('x')
+            if (w) width = isNaN(Number(w)) ? w : Number(w)
+            if (h) height = isNaN(Number(h)) ? h : Number(h)
+          }
+          // eslint-disable-next-line @next/next/no-img-element
+          return <img key={index} src={image.imageUrl} alt="Assignment image" className="max-w-full rounded-lg my-4 shadow-sm border border-slate-200" style={{ width, height }} />
+        }
       }
 
       return (
