@@ -14,15 +14,16 @@ export function parseDateSafe(dateInput: Date | string | number | null | undefin
   if (Array.isArray(dateInput)) {
     // Handling Spring Boot LocalDateTime array [YYYY, MM, DD, HH, mm, ss, ns]
     const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
-    return new Date(year, month - 1, day, hour, minute, second);
+    // The backend is configured to UTC, so the array values are in UTC
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
   }
 
   if (typeof dateInput === 'string') {
-    // Prevent auto-shifting to UTC by standardizing
-    // If the date string has a 'Z' appended from a hack, remove it to parse as local time
     let cleanStr = dateInput;
-    if (cleanStr.includes('T') && cleanStr.endsWith('Z') && !cleanStr.includes('+')) {
-      cleanStr = cleanStr.substring(0, cleanStr.length - 1);
+    // Since Backend is now forced to UTC, any date string without timezone info is actually UTC.
+    // Ensure it's parsed as UTC by appending 'Z' if it doesn't have timezone info.
+    if (cleanStr.includes('T') && !cleanStr.endsWith('Z') && !cleanStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+      cleanStr = cleanStr + 'Z';
     }
     const d = new Date(cleanStr);
     return isNaN(d.getTime()) ? null : d;
