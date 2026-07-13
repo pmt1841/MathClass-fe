@@ -25,6 +25,11 @@ export interface LoginResponse {
   [key: string]: any // Allows for dynamic user fields
 }
 
+export interface ResetPasswordPayload {
+  token: string
+  newPassword: string
+}
+
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const { data } = await api.post<LoginResponse>('/auth/login', credentials)
@@ -44,5 +49,13 @@ export const authService = {
   verifyEmail: async (token: string) => {
     const response = await api.get(`/auth/verify?token=${token}`)
     return response.data
+  },
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const { data } = await api.post<{ message: string }>('/auth/forgot-password', { email })
+    return data
+  },
+  resetPassword: async (payload: ResetPasswordPayload): Promise<{ message: string, role?: string }> => {
+    const { data } = await api.post<{ message: string, role?: string }>('/auth/reset-password', payload)
+    return data
   }
 }
