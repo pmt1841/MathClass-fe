@@ -26,17 +26,28 @@ declare module 'react' {
 interface JsxGraphEditorModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (jsxGraphData: any) => void
+  onConfirm: (jsxGraphData: any, width?: string, height?: string) => void
   initialData?: any
+  initialWidth?: string
+  initialHeight?: string
 }
 
 type ToolType = 'select' | 'point' | 'line' | 'circle' | 'function'
 
-export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: JsxGraphEditorModalProps) {
+export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, initialWidth, initialHeight }: JsxGraphEditorModalProps) {
   const boardRef = useRef<HTMLDivElement>(null)
   const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
   const [board, setBoard] = useState<any>(null)
   const [activeTool, setActiveTool] = useState<ToolType>('point')
+  const [width, setWidth] = useState<string>('')
+  const [height, setHeight] = useState<string>('')
+
+  useEffect(() => {
+    if (open) {
+      setWidth(initialWidth || '')
+      setHeight(initialHeight || '')
+    }
+  }, [open, initialWidth, initialHeight])
 
   // Undo / Redo States
   interface HistoryState {
@@ -671,7 +682,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
       grid: true,
       elements: history[historyIndex].elements
     }
-    onConfirm(jsxGraphData)
+    onConfirm(jsxGraphData, width.trim(), height.trim())
   }
 
   const handleToolClick = (tool: ToolType) => {
@@ -1161,19 +1172,45 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData }: J
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-slate-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition-colors shadow-sm"
-          >
-            Hủy bỏ
-          </button>
-          <button
-            onClick={handleConfirm}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/95 rounded-xl transition-colors shadow-sm"
-          >
-            <Check className="w-4 h-4" /> Lưu hình vẽ
-          </button>
+        <div className="flex items-center justify-between p-4 border-t border-border bg-slate-50">
+          {/* Dimension Controls */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-500">Rộng:</label>
+              <input
+                type="text"
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+                placeholder="100%"
+                className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-500">Cao:</label>
+              <input
+                type="text"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="300"
+                className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition-colors shadow-sm cursor-pointer"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/95 rounded-xl transition-colors shadow-sm cursor-pointer"
+            >
+              <Check className="w-4 h-4" /> Lưu hình vẽ
+            </button>
+          </div>
         </div>
       </div>
     </div>
