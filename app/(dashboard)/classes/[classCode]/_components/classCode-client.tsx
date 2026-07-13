@@ -60,6 +60,7 @@ export function ClassDetailPageClient() {
     queryKey: ['pending-requests', classCode],
     queryFn: () => joinRequestService.getPendingRequests(classCode),
     enabled: !!classCode,
+    refetchInterval: 5000, // Tự động cập nhật mỗi 5 giây
   })
   
   const pendingCount = pendingRequests?.length || 0
