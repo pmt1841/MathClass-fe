@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from '../../../create/_components/AssignmentForm'
 
+import { authStorage } from '@/lib/auth-storage'
+
 export function EditAssignmentPageClient() {
   const router = useRouter()
   const params = useParams()
@@ -22,10 +24,9 @@ export function EditAssignmentPageClient() {
 
   useEffect(() => {
     // Check role
-    const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
-    if (stored) {
+    const info = authStorage.getUserInfo()
+    if (info) {
       try {
-        const info = JSON.parse(stored)
         const role = info.role || info.userRole || 'STUDENT'
         if (role !== 'TEACHER') {
           toast.error('Bạn không có quyền truy cập trang này')

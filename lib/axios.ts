@@ -47,7 +47,7 @@ api.interceptors.response.use(
         
         if (!isAlreadyLoginPage) {
           authStorage.clearToken();
-          window.location.href = '/login?expired=true';
+          window.location.href = '/';
         }
       }
     }

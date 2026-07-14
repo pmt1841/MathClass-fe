@@ -18,20 +18,25 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    const stored =
-      sessionStorage.getItem('user_info') ||
-      localStorage.getItem('user_info')
+    // If the session token has expired or the session cookie was cleared (e.g. browser closed),
+    // we should not use any stale user_info remaining in cookies/storage.
+    if (!authStorage.getToken()) {
+      authStorage.clearUserInfo()
+      setUser(null)
+      return
+    }
+
+    const storedUser = authStorage.getUserInfo()
     
-    if (stored) {
+    if (storedUser) {
       try {
-        const parsed = JSON.parse(stored)
         // Ensure standard role field exists
-        if (parsed.userRole && !parsed.role) {
-          parsed.role = parsed.userRole
+        if (storedUser.userRole && !storedUser.role) {
+          storedUser.role = storedUser.userRole
         }
-        setUser(parsed)
+        setUser(storedUser)
       } catch (e) {
-        console.error('Error parsing user_info', e)
+        console.error('Error processing user_info', e)
       }
     }
   }, [])
@@ -39,9 +44,7 @@ export function useAuth() {
   const logout = () => {
     // Clear cookies and storage using authStorage
     authStorage.clearToken()
-    // Clear user info storage
-    localStorage.removeItem('user_info')
-    sessionStorage.removeItem('user_info')
+    authStorage.clearUserInfo()
     
     setUser(null)
     router.push('/')

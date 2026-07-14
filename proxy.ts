@@ -27,10 +27,8 @@ export function proxy(request: NextRequest) {
 
   // 1. Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !token) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
-    loginUrl.searchParams.set('expired', 'true')
-    return NextResponse.redirect(loginUrl)
+    const landingUrl = new URL('/', request.url)
+    return NextResponse.redirect(landingUrl)
   }
 
   // 2. Redirect authenticated users from public to their respective dashboards

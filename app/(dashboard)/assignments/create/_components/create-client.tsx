@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from './AssignmentForm'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
+import { authStorage } from '@/lib/auth-storage'
 
 export function CreateAssignmentPageClient() {
   const router = useRouter()
@@ -21,10 +22,9 @@ export function CreateAssignmentPageClient() {
 
   useEffect(() => {
     // Check role
-    const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
-    if (stored) {
+    const info = authStorage.getUserInfo()
+    if (info) {
       try {
-        const info = JSON.parse(stored)
         const role = info.role || info.userRole || 'STUDENT'
         if (role !== 'TEACHER') {
           toast.error('Bạn không có quyền truy cập trang này')
@@ -146,7 +146,7 @@ export function CreateAssignmentPageClient() {
         assignmentId={null}
         assignmentTitle={currentAssignmentData?.title}
         onSubmit={handlePublish}
-        onSuccess={() => {}} // Not used because we pass onSubmit instead
+        onSuccess={() => { }} // Not used because we pass onSubmit instead
         isSubmitting={isSubmitting}
       />
     </>
