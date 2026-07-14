@@ -23,11 +23,9 @@ export function useLogin() {
 
       // Setup cookies and storage using authStorage
       authStorage.setToken(token, role, rememberMe)
-      
-      // Save user info to appropriate storage for client-side use
-      const storage = rememberMe ? localStorage : sessionStorage
-      storage.removeItem(AUTH_KEYS.USER_INFO)
-      storage.setItem(AUTH_KEYS.USER_INFO, JSON.stringify(data))
+
+      // Save user info to cookie for consistent session behavior
+      authStorage.setUserInfo(data, rememberMe)
 
       if (rememberMe) {
         localStorage.setItem(AUTH_KEYS.REMEMBERED_EMAIL, credentials.email)

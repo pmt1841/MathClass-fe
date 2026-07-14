@@ -21,27 +21,27 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
   const login = useGoogleLogin({
     onSuccess: (codeResponse) => {
       // Get role from session storage or default to STUDENT
-      const role = typeof window !== 'undefined' 
+      const role = typeof window !== 'undefined'
         ? sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE) || 'STUDENT'
         : 'STUDENT';
-        
+
       googleAuthMutation.mutate(
         { credential: codeResponse.access_token, role },
         {
           onSuccess: (data) => {
             const role = data.role || data.userRole || 'STUDENT';
-            
+
             // Setup cookies and storage using authStorage
             authStorage.setToken(data.token, role, true)
- 
-            // Save user info like in useLogin
-            sessionStorage.setItem(AUTH_KEYS.USER_INFO, JSON.stringify({
+
+            // Save user info into cookie
+            authStorage.setUserInfo({
               id: data.id,
               email: data.email,
               fullName: data.fullName,
               role: role,
               avatarUrl: data.avatarUrl
-            }))
+            }, true)
             toast.success('Đăng nhập thành công')
             router.push('/home')
           },
@@ -80,6 +80,6 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
       </button>
     )
   }
-  
+
   return null
 }

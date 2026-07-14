@@ -18,6 +18,7 @@ import { StudentAssignmentLayout } from './student-assignment-layout'
 import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
+import { authStorage } from '@/lib/auth-storage'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -97,11 +98,10 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     // Get user role
-    const stored = sessionStorage.getItem('user_info') || localStorage.getItem('user_info')
+    const userInfo = authStorage.getUserInfo()
     let currentRole = 'STUDENT'
-    if (stored) {
+    if (userInfo) {
       try {
-        const userInfo = JSON.parse(stored)
         if (userInfo.userRole) currentRole = userInfo.userRole
       } catch { }
     }

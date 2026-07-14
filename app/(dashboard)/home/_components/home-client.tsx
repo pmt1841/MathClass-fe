@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+
+import { authStorage } from '@/lib/auth-storage'
 
 const DashboardSkeleton = () => (
   <div className="flex-1 flex items-center justify-center bg-slate-50/50">
@@ -23,26 +26,21 @@ const TeacherDashboardClient = dynamic(
 )
 
 export function HomeClient() {
+  const router = useRouter()
   const [role, setRole] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    const stored =
-      localStorage.getItem('user_info') ||
-      sessionStorage.getItem('user_info')
-    
-    if (stored) {
-      try {
-        const info = JSON.parse(stored)
-        setRole(info.role || info.userRole || null)
-      } catch {
-        setRole(null)
-      }
+    const info = authStorage.getUserInfo()
+    if (info) {
+      setRole(info.role || info.userRole || null)
     } else {
       setRole(null)
+      router.replace('/')
+      return
     }
     setIsChecking(false)
-  }, [])
+  }, [router])
 
   if (isChecking) {
     return (
