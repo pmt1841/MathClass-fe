@@ -47,7 +47,9 @@ describe('ProfileForm', () => {
 
     expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument()
     expect(screen.getByDisplayValue('0123456789')).toBeInTheDocument()
-    expect(screen.getByText('01-01-2000')).toBeInTheDocument()
+    expect(screen.getByText('01')).toBeInTheDocument()
+    expect(screen.getByText('Tháng 01')).toBeInTheDocument()
+    expect(screen.getByText('2000')).toBeInTheDocument()
   })
 
   it('shows validation errors when fields are empty', async () => {

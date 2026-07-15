@@ -24,11 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { format, parse } from 'date-fns'
-import { vi } from 'date-fns/locale'
-import { CalendarIcon, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const profileFormSchema = z.object({
@@ -91,7 +87,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-6">
           <FormField
             control={form.control}
             name="phoneNumber"
@@ -114,46 +110,108 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-6">
           <FormField
             control={form.control}
             name="dateOfBirth"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ngày sinh</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
+            render={({ field }) => {
+              const [dayVal, monthVal, yearVal] = field.value ? field.value.split('-') : ['', '', '']
+              
+              const currentYear = new Date().getFullYear()
+              const years = Array.from({ length: 100 }, (_, i) => String(currentYear - i))
+              const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+              
+              const getDaysInMonth = (m: number, y: number) => {
+                return new Date(y, m, 0).getDate()
+              }
+              
+              const selectedMonth = monthVal ? Number(monthVal) : 1
+              const selectedYear = yearVal ? Number(yearVal) : currentYear
+              const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
+              const days = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'))
+
+              const handleSelectChange = (type: 'day' | 'month' | 'year', val: string) => {
+                let nextD = dayVal
+                let nextM = monthVal
+                let nextY = yearVal
+
+                if (type === 'day') nextD = val
+                if (type === 'month') nextM = val
+                if (type === 'year') nextY = val
+
+                // Adjust day if it exceeds max days of new month/year
+                if (nextD && nextM) {
+                  const maxDays = getDaysInMonth(Number(nextM), nextY ? Number(nextY) : currentYear)
+                  if (Number(nextD) > maxDays) {
+                    nextD = String(maxDays).padStart(2, '0')
+                  }
+                }
+
+                if (nextD && nextM && nextY) {
+                  field.onChange(`${nextD}-${nextM}-${nextY}`)
+                } else {
+                  field.onChange('')
+                }
+              }
+
+              return (
+                <FormItem className="flex flex-col gap-2">
+                  <FormLabel>Ngày sinh</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-[1fr_1.6fr_1.2fr] gap-2">
+                      <Select
+                        value={dayVal || undefined}
+                        onValueChange={(val) => handleSelectChange('day', val)}
                       >
-                        {field.value ? (
-                          field.value
-                        ) : (
-                          <span>Chọn ngày sinh</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? parse(field.value, 'dd-MM-yyyy', new Date()) : undefined}
-                      onSelect={(date) => field.onChange(date ? format(date, 'dd-MM-yyyy') : '')}
-                      disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                      initialFocus
-                      locale={vi}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Ngày" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {days.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {d}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={monthVal || undefined}
+                        onValueChange={(val) => handleSelectChange('month', val)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Tháng" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {months.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              Tháng {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={yearVal || undefined}
+                        onValueChange={(val) => handleSelectChange('year', val)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Năm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((y) => (
+                            <SelectItem key={y} value={y}>
+                              {y}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
           />
 
           <FormField
