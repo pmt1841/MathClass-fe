@@ -72,5 +72,14 @@ export const assignmentService = {
       }
     })
     return response.data
+  },
+
+  extractText: async (formData: FormData) => {
+    const response = await api.post('/assignments/extract-text', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data
   }
 }

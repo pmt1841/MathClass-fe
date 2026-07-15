@@ -90,7 +90,12 @@ export const htmlToMarkdown = (html: string): string => {
     const { processed: withMath, mathBlocks } = extractMath(html)
     const { processed: withResources, resourceBlocks } = extractResources(withMath)
 
-    const rawMd = turndownService.turndown(withResources)
+    const preservedSpacesHtml = withResources.split(/(<[^>]*>)/).map(part => {
+      if (part.startsWith('<')) return part
+      return part.replace(/  /g, ' \u00A0')
+    }).join('')
+
+    const rawMd = turndownService.turndown(preservedSpacesHtml)
 
     const restoredResources = restoreResources(rawMd, resourceBlocks)
     
