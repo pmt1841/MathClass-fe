@@ -33,6 +33,7 @@ export function useLogin() {
         localStorage.removeItem(AUTH_KEYS.REMEMBERED_EMAIL)
       }
 
+      router.refresh()
       router.push('/home')
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>

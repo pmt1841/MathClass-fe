@@ -43,6 +43,7 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
               avatarUrl: data.avatarUrl
             }, true)
             toast.success('Đăng nhập thành công')
+            router.refresh()
             router.push('/home')
           },
           onError: (error) => {
