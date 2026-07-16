@@ -103,6 +103,10 @@ export function AssignmentForm({
   const [isUploading, setIsUploading] = useState(false)
   const [isUploadingFile, setIsUploadingFile] = useState(false)
 
+  const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false)
+  const [pendingUploadData, setPendingUploadData] = useState<any>(null)
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -334,13 +338,6 @@ export function AssignmentForm({
       return
     }
 
-    // Tự động điền tiêu đề từ tên file nếu tiêu đề đang trống
-    const currentTitle = formValues.title
-    if (!currentTitle || currentTitle.trim() === '') {
-      const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "")
-      setValue('title', fileNameWithoutExt, { shouldValidate: true, shouldDirty: true })
-    }
-
     setIsUploadingFile(true)
     const formData = new FormData()
     formData.append('file', file)
@@ -348,15 +345,13 @@ export function AssignmentForm({
     try {
       const response = await assignmentService.extractText(formData)
       if (response.content) {
-        insertTextIntoEditor(markdownToHtml(response.content))
-
-        if (response.images && response.images.length > 0) {
-          const newImages = [...images, ...response.images]
-          setImages(newImages)
-          setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })
-          toast.success(`Trích xuất văn bản và ${response.images.length} hình ảnh thành công`)
+        const hasData = formValues.title?.trim() || formValues.content?.trim() || images.length > 0 || drawings.length > 0;
+        if (!hasData) {
+          applyUploadData('replace', response, file)
         } else {
-          toast.success('Trích xuất nội dung thành công')
+          setPendingUploadData(response)
+          setPendingUploadFile(file)
+          setShowUploadConfirmModal(true)
         }
       }
     } catch (error: any) {
@@ -367,6 +362,62 @@ export function AssignmentForm({
         event.target.value = ''
       }
     }
+  }
+
+  const applyUploadData = (mode: 'append' | 'replace', uploadData: any, uploadFile: File) => {
+    const { content, images: newImagesArr } = uploadData
+    
+    if (mode === 'replace') {
+      const fileNameWithoutExt = uploadFile.name.replace(/\.[^/.]+$/, "")
+      setValue('title', fileNameWithoutExt, { shouldValidate: true, shouldDirty: true })
+
+      const htmlData = markdownToHtml(content)
+      if (editorInstance) {
+        editorInstance.commands.setContent(htmlData)
+      }
+      setValue('content', content, { shouldValidate: true, shouldDirty: true })
+
+      setDrawings([])
+      setValue('drawings', [], { shouldValidate: true, shouldDirty: true })
+
+      if (newImagesArr && newImagesArr.length > 0) {
+        setImages(newImagesArr)
+        setValue('images', newImagesArr, { shouldValidate: true, shouldDirty: true })
+        toast.success(`Đã thay thế nội dung và thêm ${newImagesArr.length} hình ảnh`)
+      } else {
+        setImages([])
+        setValue('images', [], { shouldValidate: true, shouldDirty: true })
+        toast.success('Đã thay thế nội dung thành công')
+      }
+    } else { // 'append'
+      const appendHtml = `<p></p><p></p>` + markdownToHtml(content)
+      
+      if (editorInstance) {
+        const currentHtml = editorInstance.getHTML()
+        editorInstance.commands.setContent(currentHtml + appendHtml)
+      }
+      
+      const currentMd = formValues.content || ''
+      const appendMd = `\n\n${content}`
+      setValue('content', currentMd + appendMd, { shouldValidate: true, shouldDirty: true })
+
+      if (newImagesArr && newImagesArr.length > 0) {
+        const updatedImages = [...images, ...newImagesArr]
+        setImages(updatedImages)
+        setValue('images', updatedImages, { shouldValidate: true, shouldDirty: true })
+        toast.success(`Đã bổ sung nội dung và ${newImagesArr.length} hình ảnh`)
+      } else {
+        toast.success('Đã bổ sung nội dung thành công')
+      }
+    }
+  }
+
+  const handleConfirmUpload = (mode: 'append' | 'replace') => {
+    setShowUploadConfirmModal(false)
+    if (!pendingUploadData || !pendingUploadFile) return
+    applyUploadData(mode, pendingUploadData, pendingUploadFile)
+    setPendingUploadData(null)
+    setPendingUploadFile(null)
   }
 
   const handleDeleteImage = (imageCode: string) => {
@@ -767,6 +818,47 @@ export function AssignmentForm({
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
               >
                 Vẫn quay lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Confirmation Modal */}
+      {showUploadConfirmModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 pb-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải nội dung file</h3>
+              <button 
+                onClick={() => {
+                  setShowUploadConfirmModal(false)
+                  setPendingUploadData(null)
+                  setPendingUploadFile(null)
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 pb-6 pt-2">
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Bạn muốn <b>thay thế toàn bộ</b> dữ liệu cũ bằng file này, hay muốn <b>bổ sung thêm</b> dữ liệu mới vào cuối bài tập hiện tại?
+              </p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 justify-end">
+              <button
+                onClick={() => handleConfirmUpload('replace')}
+                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
+              >
+                Thay thế
+              </button>
+              <button
+                onClick={() => handleConfirmUpload('append')}
+                className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-sm"
+              >
+                Bổ sung
               </button>
             </div>
           </div>
