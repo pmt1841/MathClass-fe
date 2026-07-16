@@ -30,9 +30,7 @@ dist-ssr
 
 .env
 
-# Playwright Test Output
-/test-results/
-/playwright-report/
 
 package-lock.json
 .antigravity/skill
+
