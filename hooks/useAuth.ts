@@ -47,7 +47,7 @@ export function useAuth() {
     authStorage.clearUserInfo()
     
     setUser(null)
-    router.push('/')
+    window.location.href = '/'
   }
 
   return { user, logout }
