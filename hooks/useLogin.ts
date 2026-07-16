@@ -34,7 +34,12 @@ export function useLogin() {
       }
 
       router.refresh()
-      router.push('/home')
+      if (role === ROLES.ADMIN) {
+        router.push('/admin/users')
+      } else {
+        router.push('/home')
+      }
+
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>
       if (axiosError.response) {

@@ -42,7 +42,7 @@ export default function LoginForm() {
     setRole(savedRole)
   }, [searchParams])
 
-  const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : ''
+  const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : role === ROLES.ADMIN ? ' Quản trị viên' : ''
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

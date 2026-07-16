@@ -8,6 +8,7 @@ export const AUTH_KEYS = {
 export const ROLES = {
   STUDENT: 'STUDENT',
   TEACHER: 'TEACHER',
+  ADMIN: 'ADMIN',
 } as const
 
 export const COOKIE_OPTIONS = {
