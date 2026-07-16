@@ -33,11 +33,10 @@ export function useLogin() {
         localStorage.removeItem(AUTH_KEYS.REMEMBERED_EMAIL)
       }
 
-      router.refresh()
       if (role === ROLES.ADMIN) {
-        router.push('/admin/users')
+        window.location.href = '/admin/users'
       } else {
-        router.push('/home')
+        window.location.href = '/home'
       }
 
     } catch (err) {
