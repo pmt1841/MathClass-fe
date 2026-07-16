@@ -23,8 +23,8 @@ export function DashboardHeader() {
 
   const role = user?.role
   const displayName = user?.fullName || user?.email || 'Người dùng'
-  const roleLabel = role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
-  const roleColor = role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
+  const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
+  const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">

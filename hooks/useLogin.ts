@@ -33,8 +33,12 @@ export function useLogin() {
         localStorage.removeItem(AUTH_KEYS.REMEMBERED_EMAIL)
       }
 
-      router.refresh()
-      router.push('/home')
+      if (role === ROLES.ADMIN) {
+        window.location.href = '/admin/users'
+      } else {
+        window.location.href = '/home'
+      }
+
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>
       if (axiosError.response) {

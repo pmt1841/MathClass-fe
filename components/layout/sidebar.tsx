@@ -54,12 +54,14 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
   onCreateClass?: () => void
+  customNavItems?: NavItem[]
 }
 
-export function Sidebar({ onCreateClass }: SidebarProps = {}) {
+export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const { user } = useAuth()
+
   
   useEffect(() => {
     const checkScreenSize = () => {
@@ -82,7 +84,7 @@ export function Sidebar({ onCreateClass }: SidebarProps = {}) {
 
   const userRole = user?.role || 'STUDENT'
 
-  const visibleItems = navItems.filter(
+  const visibleItems = customNavItems || navItems.filter(
     (item) => !item.roles || item.roles.includes(userRole as 'TEACHER' | 'STUDENT')
   )
 
