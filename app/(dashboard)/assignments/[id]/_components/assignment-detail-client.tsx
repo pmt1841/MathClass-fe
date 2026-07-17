@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ChevronRight, Send, Save, Users, XCircle, CheckCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import { classroomService } from '@/services/classroomService'
@@ -516,8 +518,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                     return (
                       <ReactMarkdown
                         key={index}
-                        remarkPlugins={[remarkMath]}
+                        remarkPlugins={[remarkMath, remarkGfm]}
                         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                        components={markdownComponents}
                       >
                         {part}
                       </ReactMarkdown>

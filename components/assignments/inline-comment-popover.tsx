@@ -9,10 +9,12 @@ import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 
 interface InlineCommentPopoverProps {
@@ -97,8 +99,9 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
             {content && (
               <div className="p-2 bg-slate-50 rounded border border-slate-100 text-sm max-h-[100px] overflow-y-auto">
                 <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
+                  remarkPlugins={[remarkMath, remarkGfm]}
                   rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                  components={markdownComponents}
                 >
                   {content}
                 </ReactMarkdown>

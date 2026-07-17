@@ -5,10 +5,12 @@ import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, 
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
@@ -283,8 +285,9 @@ export function StudentAssignmentLayout({
       return (
         <ReactMarkdown
           key={index}
-          remarkPlugins={[remarkMath]}
+          remarkPlugins={[remarkMath, remarkGfm]}
           rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+          components={markdownComponents}
         >
           {part}
         </ReactMarkdown>
@@ -406,7 +409,7 @@ export function StudentAssignmentLayout({
                 Nhận xét từ giáo viên
               </h4>
               <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
+                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]} components={markdownComponents}>
                   {teacherFeedback}
                 </ReactMarkdown>
               </div>
