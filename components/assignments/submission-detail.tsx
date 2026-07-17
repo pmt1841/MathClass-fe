@@ -20,6 +20,7 @@ import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
@@ -138,6 +139,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
   }, [deleteComment, toast])
 
   const memoizedComponents = useMemo(() => ({
+    ...markdownComponents,
     mark: ({ node, ...props }: any) => {
       const id = Number(props['data-comment-id'])
       const comment = comments.find((c: any) => c.id === id)

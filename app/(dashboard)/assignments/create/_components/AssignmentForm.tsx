@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings, Upload, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -366,7 +368,7 @@ export function AssignmentForm({
 
   const applyUploadData = (mode: 'append' | 'replace', uploadData: any, uploadFile: File) => {
     const { content, images: newImagesArr } = uploadData
-    
+
     if (mode === 'replace') {
       const fileNameWithoutExt = uploadFile.name.replace(/\.[^/.]+$/, "")
       setValue('title', fileNameWithoutExt, { shouldValidate: true, shouldDirty: true })
@@ -391,12 +393,12 @@ export function AssignmentForm({
       }
     } else { // 'append'
       const appendHtml = `<p></p><p></p>` + markdownToHtml(content)
-      
+
       if (editorInstance) {
         const currentHtml = editorInstance.getHTML()
         editorInstance.commands.setContent(currentHtml + appendHtml)
       }
-      
+
       const currentMd = formValues.content || ''
       const appendMd = `\n\n${content}`
       setValue('content', currentMd + appendMd, { shouldValidate: true, shouldDirty: true })
@@ -480,8 +482,9 @@ export function AssignmentForm({
       return (
         <ReactMarkdown
           key={index}
-          remarkPlugins={[remarkMath]}
+          remarkPlugins={[remarkMath, remarkGfm]}
           rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+          components={markdownComponents}
         >
           {part}
         </ReactMarkdown>
@@ -737,12 +740,14 @@ export function AssignmentForm({
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ & Đồ thị</span>
                 <button
                   type="button"
+                  title={viewMode === 'preview' ? 'Quay lại soạn thảo để thêm đồ thị' : undefined}
+                  disabled={viewMode === 'preview'}
                   onClick={(e) => {
                     e.preventDefault();
                     setEditingShape(null);
                     setShowJsxGraphModal(true);
                   }}
-                  className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-blue-200 dark:border-blue-900/50"
+                  className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-blue-200 dark:border-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
                 >
                   <CircleDot className="w-3.5 h-3.5" />
                   Thêm hình vẽ đồ thị
@@ -754,8 +759,9 @@ export function AssignmentForm({
                       <div key={d.shapeCode} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all group">
                         <button
                           type="button"
+                          disabled={viewMode === 'preview'}
                           onClick={() => handleInsertDrawing(d.shapeCode)}
-                          className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px]"
+                          className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px] disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Nhấp để chèn vào vị trí con trỏ"
                         >
                           {d.shapeCode} {d.width || d.height ? `(${d.width || '100%'}x${d.height || '300'})` : ''}
@@ -763,16 +769,18 @@ export function AssignmentForm({
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
+                            disabled={viewMode === 'preview'}
                             onClick={() => handleEditDrawing(d.shapeCode)}
-                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded transition-colors"
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Sửa hình vẽ"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
+                            disabled={viewMode === 'preview'}
                             onClick={() => handleDeleteDrawing(d.shapeCode)}
-                            className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                            className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Xóa hình vẽ"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -830,7 +838,7 @@ export function AssignmentForm({
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 pb-2">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải nội dung file</h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowUploadConfirmModal(false)
                   setPendingUploadData(null)

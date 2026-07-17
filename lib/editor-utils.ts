@@ -1,12 +1,15 @@
 import { marked } from 'marked'
 // @ts-ignore
 import TurndownService from 'turndown'
+// @ts-ignore
+import { gfm } from 'turndown-plugin-gfm'
 
 // Setup Turndown
 const turndownService = new TurndownService({
   headingStyle: 'atx',
   codeBlockStyle: 'fenced'
 })
+turndownService.use(gfm)
 
 // Keep raw LaTeX formatting intact during conversion
 const extractMath = (text: string) => {
