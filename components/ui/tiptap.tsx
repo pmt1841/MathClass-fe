@@ -10,15 +10,15 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
-import { 
-  Bold, 
-  Italic, 
-  Link as LinkIcon, 
-  List, 
-  ListOrdered, 
-  Quote, 
-  Table as TableIcon, 
-  Undo, 
+import {
+  Bold,
+  Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Quote,
+  Table as TableIcon,
+  Undo,
   Redo,
   Heading1,
   Heading2,
@@ -52,7 +52,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     const fn = (md: string) => {
       onChange(md)
     }
-    
+
     let timeout: NodeJS.Timeout | null = null
     let lastArgs: any[] | null = null
 
@@ -169,11 +169,11 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
 
   const handleInsertLatex = (latexCommand: string) => {
     const isMathBlock = latexCommand.includes('\\begin')
-    const insertText = isMathBlock ? `$$ \n${latexCommand} \n$$` : `$$ ${latexCommand} $$`
-    
+    const insertText = isMathBlock ? `$$ \n${latexCommand} \n$$` : `$${latexCommand}$`
+
     // Insert text at current cursor position
     editor.chain().focus().insertContent(insertText).run()
-    
+
     // Force form state sync
     const htmlData = editor.getHTML()
     const mdData = htmlToMarkdown(htmlData)
@@ -184,7 +184,8 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
 
   return (
     <div className="tiptap-wrapper w-full flex-1 min-h-0 flex flex-col gap-3">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .tiptap-wrapper {
           flex: 1 1 0%;
           min-height: 0;
@@ -286,12 +287,12 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
       <div className="flex items-center justify-between mb-0.5 shrink-0">
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShowMathToolbar(!showMathToolbar)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${
-            showMathToolbar
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
               ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
-          }`}
+            }`}
         >
           <span className="font-mono text-sm leading-none">∑</span>
           {showMathToolbar ? 'Ẩn bảng công thức Toán' : 'Hiện bảng công thức Toán'}
@@ -310,20 +311,20 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         {/* Headings */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Tiêu đề lớn"
         >
           <Heading1 className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Tiêu đề vừa"
         >
           <Heading2 className="w-4 h-4" />
@@ -334,36 +335,37 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         {/* Basic formatting */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('bold') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('bold') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="In đậm"
         >
           <Bold className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('italic') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('italic') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="In nghiêng"
         >
           <Italic className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={setLink}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Chèn liên kết"
         >
           <LinkIcon className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
           title="Tải lên ảnh từ máy tính"
@@ -376,30 +378,30 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         {/* Lists */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('bulletList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('bulletList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Danh sách dấu đầu dòng"
         >
           <List className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('orderedList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('orderedList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Danh sách số"
         >
           <ListOrdered className="w-4 h-4" />
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${
-            editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-          }`}
+          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+            }`}
           title="Trích dẫn"
         >
           <Quote className="w-4 h-4" />
@@ -410,6 +412,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         {/* Tables */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
           title="Chèn bảng"
@@ -421,6 +424,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
           <>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().addColumnAfter().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded transition-colors"
               title="Thêm cột bên phải"
@@ -429,6 +433,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().addRowAfter().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded transition-colors"
               title="Thêm dòng bên dưới"
@@ -437,6 +442,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteColumn().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-colors"
               title="Xóa cột hiện tại"
@@ -445,6 +451,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteRow().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-colors"
               title="Xóa dòng hiện tại"
@@ -453,6 +460,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteTable().run()}
               className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors"
               title="Xóa toàn bộ bảng"
@@ -467,6 +475,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         {/* Undo/Redo */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-40 transition-colors"
@@ -476,6 +485,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-40 transition-colors"

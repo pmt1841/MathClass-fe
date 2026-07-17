@@ -73,6 +73,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
         <div className="flex items-center gap-1 p-2 border-b border-slate-200">
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => { e.preventDefault(); onFormatText('bold') }}
             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
             title="In đậm"
@@ -81,6 +82,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => { e.preventDefault(); onFormatText('italic') }}
             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
             title="In nghiêng"
@@ -89,6 +91,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => { e.preventDefault(); onFormatText('underline') }}
             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
             title="Gạch chân"
@@ -107,6 +110,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
           return (
             <button
               key={item.id}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => {
                 e.preventDefault()
                 onInsert(item.insert)

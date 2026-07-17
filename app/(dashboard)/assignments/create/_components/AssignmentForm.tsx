@@ -11,7 +11,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings, Upload, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
@@ -101,6 +101,11 @@ export function AssignmentForm({
   // Images State
   const [images, setImages] = useState<any[]>(defaultValues?.images || [])
   const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingFile, setIsUploadingFile] = useState(false)
+
+  const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false)
+  const [pendingUploadData, setPendingUploadData] = useState<any>(null)
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
 
   const {
     register,
@@ -324,6 +329,97 @@ export function AssignmentForm({
     }
   }
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Dung lượng file vượt quá 10MB.')
+      return
+    }
+
+    setIsUploadingFile(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await assignmentService.extractText(formData)
+      if (response.content) {
+        const hasData = formValues.title?.trim() || formValues.content?.trim() || images.length > 0 || drawings.length > 0;
+        if (!hasData) {
+          applyUploadData('replace', response, file)
+        } else {
+          setPendingUploadData(response)
+          setPendingUploadFile(file)
+          setShowUploadConfirmModal(true)
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Có lỗi xảy ra khi trích xuất nội dung file')
+    } finally {
+      setIsUploadingFile(false)
+      if (event.target) {
+        event.target.value = ''
+      }
+    }
+  }
+
+  const applyUploadData = (mode: 'append' | 'replace', uploadData: any, uploadFile: File) => {
+    const { content, images: newImagesArr } = uploadData
+    
+    if (mode === 'replace') {
+      const fileNameWithoutExt = uploadFile.name.replace(/\.[^/.]+$/, "")
+      setValue('title', fileNameWithoutExt, { shouldValidate: true, shouldDirty: true })
+
+      const htmlData = markdownToHtml(content)
+      if (editorInstance) {
+        editorInstance.commands.setContent(htmlData)
+      }
+      setValue('content', content, { shouldValidate: true, shouldDirty: true })
+
+      setDrawings([])
+      setValue('drawings', [], { shouldValidate: true, shouldDirty: true })
+
+      if (newImagesArr && newImagesArr.length > 0) {
+        setImages(newImagesArr)
+        setValue('images', newImagesArr, { shouldValidate: true, shouldDirty: true })
+        toast.success(`Đã thay thế nội dung và thêm ${newImagesArr.length} hình ảnh`)
+      } else {
+        setImages([])
+        setValue('images', [], { shouldValidate: true, shouldDirty: true })
+        toast.success('Đã thay thế nội dung thành công')
+      }
+    } else { // 'append'
+      const appendHtml = `<p></p><p></p>` + markdownToHtml(content)
+      
+      if (editorInstance) {
+        const currentHtml = editorInstance.getHTML()
+        editorInstance.commands.setContent(currentHtml + appendHtml)
+      }
+      
+      const currentMd = formValues.content || ''
+      const appendMd = `\n\n${content}`
+      setValue('content', currentMd + appendMd, { shouldValidate: true, shouldDirty: true })
+
+      if (newImagesArr && newImagesArr.length > 0) {
+        const updatedImages = [...images, ...newImagesArr]
+        setImages(updatedImages)
+        setValue('images', updatedImages, { shouldValidate: true, shouldDirty: true })
+        toast.success(`Đã bổ sung nội dung và ${newImagesArr.length} hình ảnh`)
+      } else {
+        toast.success('Đã bổ sung nội dung thành công')
+      }
+    }
+  }
+
+  const handleConfirmUpload = (mode: 'append' | 'replace') => {
+    setShowUploadConfirmModal(false)
+    if (!pendingUploadData || !pendingUploadFile) return
+    applyUploadData(mode, pendingUploadData, pendingUploadFile)
+    setPendingUploadData(null)
+    setPendingUploadFile(null)
+  }
+
   const handleDeleteImage = (imageCode: string) => {
     const updatedImages = images.filter(img => img.imageCode !== imageCode)
     setImages(updatedImages)
@@ -436,22 +532,20 @@ export function AssignmentForm({
             <button
               type="button"
               onClick={() => setViewMode('edit')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'edit'
-                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
-              }`}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'edit'
+                ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
+                }`}
             >
               <Edit3 className="w-3.5 h-3.5" /> Soạn thảo
             </button>
             <button
               type="button"
               onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'preview'
-                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
-              }`}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'preview'
+                ? 'bg-white dark:bg-slate-900 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-800'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
+                }`}
             >
               <Eye className="w-3.5 h-3.5" /> Xem trước
             </button>
@@ -485,11 +579,10 @@ export function AssignmentForm({
           <button
             type="button"
             onClick={() => setShowSidebar(!showSidebar)}
-            className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
-              showSidebar
-                ? 'bg-primary/10 text-primary border-primary/20'
-                : 'bg-background text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900'
-            }`}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${showSidebar
+              ? 'bg-primary/10 text-primary border-primary/20'
+              : 'bg-background text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900'
+              }`}
             title="Cài đặt bài tập"
           >
             <Settings className="h-4 w-4" />
@@ -499,10 +592,10 @@ export function AssignmentForm({
 
       {/* BODY WORKSPACE */}
       <div className="flex-1 min-h-0 flex relative overflow-hidden bg-slate-50/50 dark:bg-slate-950/10">
-        
+
         {/* Left Column: Editor Sheet Canvas */}
         <div className="flex-1 overflow-hidden p-4 sm:p-8 flex flex-col min-w-0 h-full">
-          <div className="max-w-3xl mx-auto w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs flex-1 flex flex-col p-6 sm:p-10 relative min-h-0 h-full">
+          <div className="max-w-4xl mx-auto w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs flex-1 flex flex-col p-6 sm:p-10 relative min-h-0 h-full">
             {viewMode === 'edit' ? (
               <>
                 {/* Title */}
@@ -512,9 +605,8 @@ export function AssignmentForm({
                     type="text"
                     {...register('title')}
                     placeholder="Nhập tiêu đề bài tập..."
-                    className={`w-full text-3xl font-extrabold bg-transparent border-none outline-none border-b border-slate-100 dark:border-slate-800 pb-3 focus:border-primary/50 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800 ${
-                      errors.title ? 'border-destructive' : ''
-                    }`}
+                    className={`w-full text-3xl font-extrabold bg-transparent border-none outline-none border-b border-slate-100 dark:border-slate-800 pb-3 focus:border-primary/50 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800 ${errors.title ? 'border-destructive' : ''
+                      }`}
                   />
                   {errors.title && (
                     <span className="absolute left-0 -bottom-5 text-[10px] text-destructive font-medium">
@@ -526,6 +618,28 @@ export function AssignmentForm({
                 {/* Content Separator Label */}
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept=".txt,.docx"
+                      id="upload-file-input"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={isUploadingFile}
+                    />
+                    <label
+                      htmlFor="upload-file-input"
+                      className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${isUploadingFile ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                    >
+                      {isUploadingFile ? (
+                        <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
+                      Tải lên file (.docx, .txt)
+                    </label>
+                  </div>
                 </div>
 
                 {/* LaTeX Toolbar is embedded inside CKEditor Component */}
@@ -548,7 +662,7 @@ export function AssignmentForm({
               </>
             ) : (
               /* Preview Mode */
-              <div className="space-y-6 flex-1 flex flex-col">
+              <div className="space-y-6 flex-1 flex flex-col min-h-0">
                 <div className="border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
                   <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-50">
                     {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa nhập tiêu đề</span>}
@@ -557,7 +671,7 @@ export function AssignmentForm({
                     {watch('description') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa có mô tả ngắn</span>}
                   </p>
                 </div>
-                <div className="flex-1 prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none overflow-y-auto">
+                <div className="flex-1 min-h-0 prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none overflow-y-auto pr-2">
                   {debouncedContentValue ? (
                     renderContentWithDrawings(debouncedContentValue)
                   ) : (
@@ -571,16 +685,15 @@ export function AssignmentForm({
 
         {/* Backdrop for Mobile Sidebar */}
         {showSidebar && (
-          <div 
+          <div
             onClick={() => setShowSidebar(false)}
             className="fixed inset-0 bg-slate-900/25 backdrop-blur-xs z-30 lg:hidden"
           />
         )}
 
         {/* Right Settings Sidebar */}
-        <aside className={`fixed inset-y-0 right-0 z-40 w-80 border-l border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shadow-2xl transition-transform duration-300 lg:static lg:shadow-none lg:translate-x-0 ${
-          showSidebar ? 'translate-x-0' : 'translate-x-full lg:hidden'
-        }`}>
+        <aside className={`fixed inset-y-0 right-0 z-40 w-80 border-l border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shadow-2xl transition-transform duration-300 lg:static lg:shadow-none lg:translate-x-0 ${showSidebar ? 'translate-x-0' : 'translate-x-full lg:hidden'
+          }`}>
           {/* Sidebar Header */}
           <div className="h-14 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900 shrink-0">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cấu hình bài tập</span>
@@ -604,9 +717,8 @@ export function AssignmentForm({
                   {...register('description')}
                   placeholder="Mô tả tóm tắt nội dung bài tập này cho học sinh..."
                   rows={4}
-                  className={`w-full px-3 py-2 text-sm rounded-xl border bg-slate-50/30 dark:bg-slate-950/20 text-slate-800 dark:text-slate-200 outline-none transition-all focus:bg-white dark:focus:bg-slate-950/40 focus:ring-2 focus:ring-primary/10 ${
-                    errors.description ? 'border-destructive focus:border-destructive' : 'border-slate-200 dark:border-slate-800 focus:border-primary'
-                  }`}
+                  className={`w-full px-3 py-2 text-sm rounded-xl border bg-slate-50/30 dark:bg-slate-950/20 text-slate-800 dark:text-slate-200 outline-none transition-all focus:bg-white dark:focus:bg-slate-950/40 focus:ring-2 focus:ring-primary/10 ${errors.description ? 'border-destructive focus:border-destructive' : 'border-slate-200 dark:border-slate-800 focus:border-primary'
+                    }`}
                 />
                 {errors.description && (
                   <span className="text-[10px] text-destructive font-medium block mt-0.5">{errors.description.message}</span>
@@ -619,7 +731,7 @@ export function AssignmentForm({
             {/* Section 2: Tài nguyên học liệu */}
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thư viện tài nguyên</h3>
-              
+
               {/* JSXGraph Section */}
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ & Đồ thị</span>
@@ -706,6 +818,47 @@ export function AssignmentForm({
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
               >
                 Vẫn quay lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Confirmation Modal */}
+      {showUploadConfirmModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 pb-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải nội dung file</h3>
+              <button 
+                onClick={() => {
+                  setShowUploadConfirmModal(false)
+                  setPendingUploadData(null)
+                  setPendingUploadFile(null)
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 pb-6 pt-2">
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Bạn muốn <b>thay thế toàn bộ</b> dữ liệu cũ bằng file này, hay muốn <b>bổ sung thêm</b> dữ liệu mới vào cuối bài tập hiện tại?
+              </p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 justify-end">
+              <button
+                onClick={() => handleConfirmUpload('replace')}
+                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
+              >
+                Thay thế
+              </button>
+              <button
+                onClick={() => handleConfirmUpload('append')}
+                className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-sm"
+              >
+                Bổ sung
               </button>
             </div>
           </div>
