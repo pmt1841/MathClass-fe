@@ -105,18 +105,45 @@ export default function AdminRolesPage() {
                     <Spinner />
                   </div>
                 ) : allPermissions && allPermissions.length > 0 ? (
-                  allPermissions.map((permission) => (
-                    <div key={permission.id} className="flex items-center justify-between space-x-4">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">{permission.description}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Mã quyền: <code className="bg-muted px-1 py-0.5 rounded text-xs">{permission.name}</code>
-                        </p>
+                  Object.entries(
+                    allPermissions
+                      .filter(
+                        (p) =>
+                          !['dashboard:teacher_view', 'dashboard:student_view', 'user:manage'].includes(
+                            p.name
+                          )
+                      )
+                      .reduce((acc, p) => {
+                        const prefix = p.name.split(':')[0]
+                        const groupName =
+                          prefix === 'classroom' ? 'Lớp học' :
+                          prefix === 'assignment' ? 'Bài tập' :
+                          prefix === 'submission' ? 'Bài nộp' : 'Khác'
+                        if (!acc[groupName]) acc[groupName] = []
+                        acc[groupName].push(p)
+                        return acc
+                      }, {} as Record<string, typeof allPermissions>)
+                  ).map(([group, perms]) => (
+                    <div key={group} className="space-y-4">
+                      <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">
+                        {group}
+                      </h4>
+                      <div className="space-y-4 pl-2">
+                        {perms.map((permission) => (
+                          <div key={permission.id} className="flex items-center justify-between space-x-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium leading-none">{permission.description}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Mã quyền: <code className="bg-muted px-1 py-0.5 rounded text-xs">{permission.name}</code>
+                              </p>
+                            </div>
+                            <Switch
+                              checked={selectedPermissionIds.includes(permission.id)}
+                              onCheckedChange={(checked) => handleToggle(permission.id, checked)}
+                            />
+                          </div>
+                        ))}
                       </div>
-                      <Switch
-                        checked={selectedPermissionIds.includes(permission.id)}
-                        onCheckedChange={(checked) => handleToggle(permission.id, checked)}
-                      />
                     </div>
                   ))
                 ) : (

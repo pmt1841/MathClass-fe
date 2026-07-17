@@ -6,6 +6,7 @@ import { Check, X, UserPlus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { joinRequestService } from '@/services/joinRequestService'
 import { ClassroomDetail } from '@/types'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 export function PendingRequestsTab({
   classCode,
@@ -134,20 +135,24 @@ export function PendingRequestsTab({
                 Đã chọn {selectedIds.length} yêu cầu
               </span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleBulkAction('APPROVED')}
-                  disabled={processRequestMutation.isPending || isFull}
-                  className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
-                >
-                  <Check className="h-3.5 w-3.5" /> Duyệt tất cả
-                </button>
-                <button
-                  onClick={() => handleBulkAction('REJECTED')}
-                  disabled={processRequestMutation.isPending}
-                  className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
-                >
-                  <X className="h-3.5 w-3.5" /> Từ chối tất cả
-                </button>
+                <PermissionGuard permission="classroom:manage_requests">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleBulkAction('APPROVED')}
+                      disabled={processRequestMutation.isPending || isFull}
+                      className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Duyệt tất cả
+                    </button>
+                    <button
+                      onClick={() => handleBulkAction('REJECTED')}
+                      disabled={processRequestMutation.isPending}
+                      className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
+                    >
+                      <X className="h-3.5 w-3.5" /> Từ chối tất cả
+                    </button>
+                  </div>
+                </PermissionGuard>
               </div>
             </div>
           )}
@@ -179,32 +184,36 @@ export function PendingRequestsTab({
                       <span className="text-xs text-muted-foreground">{req.studentEmail}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          toast.promise(processRequestMutation.mutateAsync({ id: req.id, status: 'APPROVED' }), {
-                            loading: 'Đang duyệt...',
-                            success: 'Đã duyệt yêu cầu tham gia',
-                            error: 'Duyệt thất bại'
-                          })
-                        }}
-                        disabled={processRequestMutation.isPending || isFull}
-                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50 text-xs font-semibold"
-                      >
-                        <Check className="h-3.5 w-3.5" /> Duyệt
-                      </button>
-                      <button
-                        onClick={() => {
-                          toast.promise(processRequestMutation.mutateAsync({ id: req.id, status: 'REJECTED' }), {
-                            loading: 'Đang từ chối...',
-                            success: 'Đã từ chối yêu cầu tham gia',
-                            error: 'Từ chối thất bại'
-                          })
-                        }}
-                        disabled={processRequestMutation.isPending}
-                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50 text-xs font-semibold"
-                      >
-                        <X className="h-3.5 w-3.5" /> Từ chối
-                      </button>
+                      <PermissionGuard permission="classroom:manage_requests">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              toast.promise(processRequestMutation.mutateAsync({ id: req.id, status: 'APPROVED' }), {
+                                loading: 'Đang duyệt...',
+                                success: 'Đã duyệt yêu cầu tham gia',
+                                error: 'Duyệt thất bại'
+                              })
+                            }}
+                            disabled={processRequestMutation.isPending || isFull}
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50 text-xs font-semibold"
+                          >
+                            <Check className="h-3.5 w-3.5" /> Duyệt
+                          </button>
+                          <button
+                            onClick={() => {
+                              toast.promise(processRequestMutation.mutateAsync({ id: req.id, status: 'REJECTED' }), {
+                                loading: 'Đang từ chối...',
+                                success: 'Đã từ chối yêu cầu tham gia',
+                                error: 'Từ chối thất bại'
+                              })
+                            }}
+                            disabled={processRequestMutation.isPending}
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50 text-xs font-semibold"
+                          >
+                            <X className="h-3.5 w-3.5" /> Từ chối
+                          </button>
+                        </div>
+                      </PermissionGuard>
                     </div>
                   </div>
                 ))}

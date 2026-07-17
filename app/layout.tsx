@@ -27,7 +27,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
           <QueryProvider>
             {children}
-            <Toaster position="top-right" richColors />
+            <Toaster position="top-right" richColors closeButton duration={3000} />
             {process.env.NODE_ENV === 'production' && <Analytics />}
           </QueryProvider>
         </GoogleOAuthProvider>

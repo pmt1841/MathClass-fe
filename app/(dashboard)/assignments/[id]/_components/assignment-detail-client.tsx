@@ -21,6 +21,7 @@ import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { authStorage } from '@/lib/auth-storage'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -420,33 +421,37 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
           {userRole === 'STUDENT' && !isPastDeadline && !isGraded && (
             <>
               {submissionStatus !== 'SUBMITTED' ? (
-                <>
-                  <button
-                    onClick={handleSaveDraft}
-                    disabled={isSavingExternal}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
-                  >
-                    <Save className="h-4 w-4" />
-                    Lưu nháp
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSavingExternal}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    <Send className="h-4 w-4" />
-                    Nộp bài
-                  </button>
-                </>
+                <PermissionGuard permission="submission:submit">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={isSavingExternal}
+                      className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
+                    >
+                      <Save className="h-4 w-4" />
+                      Lưu nháp
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSavingExternal}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      <Send className="h-4 w-4" />
+                      Nộp bài
+                    </button>
+                  </div>
+                </PermissionGuard>
               ) : (
-                <button
-                  onClick={() => setShowUnsubmitModal(true)}
-                  disabled={isSavingExternal}
-                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Hủy nộp bài
-                </button>
+                <PermissionGuard permission="submission:submit">
+                  <button
+                    onClick={() => setShowUnsubmitModal(true)}
+                    disabled={isSavingExternal}
+                    className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Hủy nộp bài
+                  </button>
+                </PermissionGuard>
               )}
             </>
           )}
@@ -565,42 +570,44 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                         <CheckCircle className="w-4 h-4" /> Điểm: {sub.score}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 w-full">
-                        {gradingSubmissionId === sub.id ? (
-                          <>
-                            <input
-                              type="number"
-                              min="0" max="10" step="0.5"
-                              value={gradingScore}
-                              onChange={(e) => setGradingScore(e.target.value)}
-                              className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-1 outline-none focus:border-primary"
-                              placeholder="Điểm"
-                            />
+                      <PermissionGuard permission="submission:grade">
+                        <div className="flex items-center gap-2 w-full">
+                          {gradingSubmissionId === sub.id ? (
+                            <>
+                              <input
+                                type="number"
+                                min="0" max="10" step="0.5"
+                                value={gradingScore}
+                                onChange={(e) => setGradingScore(e.target.value)}
+                                className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-1 outline-none focus:border-primary"
+                                placeholder="Điểm"
+                              />
+                              <button
+                                onClick={() => handleGradeSubmission(sub.id)}
+                                className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                onClick={() => setGradingSubmissionId(null)}
+                                className="text-xs text-slate-500 hover:text-slate-700 underline"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          ) : (
                             <button
-                              onClick={() => handleGradeSubmission(sub.id)}
-                              className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                              onClick={() => {
+                                setGradingSubmissionId(sub.id)
+                                setGradingScore('')
+                              }}
+                              className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors w-full text-center"
                             >
-                              Lưu
+                              Chấm điểm
                             </button>
-                            <button
-                              onClick={() => setGradingSubmissionId(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700 underline"
-                            >
-                              Hủy
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setGradingSubmissionId(sub.id)
-                              setGradingScore('')
-                            }}
-                            className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors w-full text-center"
-                          >
-                            Chấm điểm
-                          </button>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      </PermissionGuard>
                     )}
                   </div>
                 </div>

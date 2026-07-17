@@ -671,7 +671,7 @@ export function AssignmentForm({
                     {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa nhập tiêu đề</span>}
                   </h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                    {watch('description') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa có mô tả ngắn</span>}
+                    {watch('description')}
                   </p>
                 </div>
                 <div className="flex-1 min-h-0 prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none overflow-y-auto pr-2">

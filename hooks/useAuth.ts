@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authStorage } from '@/lib/auth-storage'
+import { profileService } from '@/services/profileService'
+
+let globalProfilePromise: Promise<any> | null = null;
 
 export interface UserInfo {
   id?: number
@@ -11,6 +14,7 @@ export interface UserInfo {
   role?: string
   userRole?: string
   avatarUrl?: string
+  permissions?: string[]
 }
 
 export function useAuth() {
@@ -18,8 +22,40 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    // If the session token has expired or the session cookie was cleared (e.g. browser closed),
-    // we should not use any stale user_info remaining in cookies/storage.
+    const fetchProfile = () => {
+      if (!globalProfilePromise) {
+        globalProfilePromise = profileService.getProfile().then((profile) => {
+          const storedUser = authStorage.getUserInfo() || {} as UserInfo
+          const updatedUser = {
+            ...storedUser,
+            ...profile,
+            role: profile.role || storedUser.role
+          }
+          const isPersistent = localStorage.getItem('auth_persistence') === 'persistent'
+          authStorage.setUserInfo(updatedUser, isPersistent)
+          window.dispatchEvent(new Event('auth-updated'))
+          return updatedUser
+        }).catch(e => {
+          console.error('Background refresh failed', e)
+        }).finally(() => {
+          globalProfilePromise = null;
+        })
+      }
+
+      globalProfilePromise.then((updatedUser) => {
+        if (updatedUser) setUser(updatedUser)
+      })
+    }
+
+    const handleRefreshRequest = () => {
+      fetchProfile()
+    }
+
+    const handleAuthUpdated = () => {
+      const storedUser = authStorage.getUserInfo()
+      if (storedUser) setUser(storedUser)
+    }
+
     if (!authStorage.getToken()) {
       authStorage.clearUserInfo()
       setUser(null)
@@ -30,14 +66,21 @@ export function useAuth() {
     
     if (storedUser) {
       try {
-        // Ensure standard role field exists
         if (storedUser.userRole && !storedUser.role) {
           storedUser.role = storedUser.userRole
         }
         setUser(storedUser)
+        fetchProfile()
       } catch (e) {
         console.error('Error processing user_info', e)
       }
+    }
+
+    window.addEventListener('auth-refresh-request', handleRefreshRequest)
+    window.addEventListener('auth-updated', handleAuthUpdated)
+    return () => {
+      window.removeEventListener('auth-refresh-request', handleRefreshRequest)
+      window.removeEventListener('auth-updated', handleAuthUpdated)
     }
   }, [])
 

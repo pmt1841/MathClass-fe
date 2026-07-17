@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import { TabType } from '@/types'
 import { TabButton } from './tab-button'
+import { PermissionGuard } from '@/components/ui/with-permission'
 import { StudentsTab } from './students-tab'
 import { AssignmentsTab } from './assignments-tab'
 import { PendingRequestsTab } from './pending-requests-tab'
@@ -62,7 +63,7 @@ export function ClassDetailPageClient() {
     enabled: !!classCode,
     refetchInterval: 5000, // Tự động cập nhật mỗi 5 giây
   })
-  
+
   const pendingCount = pendingRequests?.length || 0
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -151,13 +152,15 @@ export function ClassDetailPageClient() {
                       <h1 className="text-xl font-bold tracking-tight text-foreground">
                         {classroom?.className ?? classCode}
                       </h1>
-                      <button
-                        onClick={() => setIsEditModalOpen(true)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors"
-                        title="Chỉnh sửa thông tin"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </button>
+                      <PermissionGuard permission="classroom:update">
+                        <button
+                          onClick={() => setIsEditModalOpen(true)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Chỉnh sửa thông tin"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                      </PermissionGuard>
                     </div>
                     <div className="text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                       <span className="flex items-center gap-1.5">
@@ -167,7 +170,7 @@ export function ClassDetailPageClient() {
                       <span className="hidden sm:inline text-border">•</span>
                       <span className="flex items-center gap-1.5 text-slate-500 line-clamp-1 max-w-md">
                         <Mail className="h-3.5 w-3.5" />
-                        {classroom?.description || 'Chưa có mô tả'}
+                        {classroom?.description || ''}
                       </span>
                     </div>
                   </>
@@ -308,14 +311,16 @@ export function ClassDetailPageClient() {
               />
             </div>
             <DialogFooter className="mt-6 sm:justify-between">
-              <button
-                type="button"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Xóa lớp học
-              </button>
+              <PermissionGuard permission="classroom:delete">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Xóa lớp học
+                </button>
+              </PermissionGuard>
               <div className="flex gap-2">
                 <button
                   type="button"
