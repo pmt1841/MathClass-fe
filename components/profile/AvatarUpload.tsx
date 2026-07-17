@@ -9,15 +9,19 @@ import { useUploadAvatar } from '@/hooks/useProfile'
 interface AvatarUploadProps {
   currentAvatarUrl?: string
   fullName: string
+  isGoogleUser?: boolean
   onUploadSuccess?: (url: string) => void
 }
 
-export function AvatarUpload({ currentAvatarUrl, fullName, onUploadSuccess }: AvatarUploadProps) {
+export function AvatarUpload({ currentAvatarUrl, fullName, isGoogleUser = false, onUploadSuccess }: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadAvatarMutation = useUploadAvatar()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  const isGoogle = isGoogleUser
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isGoogle) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -53,7 +57,7 @@ export function AvatarUpload({ currentAvatarUrl, fullName, onUploadSuccess }: Av
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="relative group">
+      <div className="relative group" title={isGoogle ? "Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google" : undefined}>
         <Avatar className="h-24 w-24 border-2 border-slate-200">
           <AvatarImage src={previewUrl || currentAvatarUrl} alt={fullName} className="object-cover" />
           <AvatarFallback className="text-2xl bg-blue-100 text-blue-700">
@@ -62,8 +66,8 @@ export function AvatarUpload({ currentAvatarUrl, fullName, onUploadSuccess }: Av
         </Avatar>
         
         <div 
-          className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-          onClick={() => !isUploading && fileInputRef.current?.click()}
+          className={`absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center ${isGoogle ? "cursor-not-allowed" : "cursor-pointer"}`}
+          onClick={() => !isGoogle && !isUploading && fileInputRef.current?.click()}
         >
           {isUploading ? (
             <Loader2 className="h-8 w-8 text-white animate-spin" />
@@ -77,12 +81,14 @@ export function AvatarUpload({ currentAvatarUrl, fullName, onUploadSuccess }: Av
         <Button 
           variant="outline" 
           size="sm" 
-          disabled={isUploading}
-          onClick={() => fileInputRef.current?.click()}
+          disabled={isGoogle || isUploading}
+          onClick={() => !isGoogle && fileInputRef.current?.click()}
+          title={isGoogle ? "Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google" : undefined}
+          className={isGoogle ? "cursor-not-allowed opacity-50 bg-slate-50" : ""}
         >
           {isUploading ? 'Đang tải lên...' : 'Thay đổi ảnh'}
         </Button>
-        <p className="text-xs text-muted-foreground">
+        <p className={`text-xs text-muted-foreground ${isGoogle ? "opacity-50" : ""}`}>
           Định dạng: JPEG, PNG, WEBP (Tối đa 5MB)
         </p>
       </div>
@@ -93,6 +99,7 @@ export function AvatarUpload({ currentAvatarUrl, fullName, onUploadSuccess }: Av
         className="hidden"
         accept="image/jpeg, image/png, image/jpg, image/webp"
         onChange={handleFileChange}
+        disabled={isGoogle}
       />
     </div>
   )

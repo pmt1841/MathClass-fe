@@ -48,6 +48,7 @@ export interface UserResponse {
   avatarUrl?: string
   dateOfBirth?: string
   gender?: Gender
+  provider?: 'LOCAL' | 'GOOGLE'
 }
 
 export interface UpdateProfileRequest {

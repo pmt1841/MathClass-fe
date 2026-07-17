@@ -39,10 +39,12 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 interface ProfileFormProps {
   initialData: UserResponse
+  isGoogleUser?: boolean
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
   const updateProfileMutation = useUpdateProfile()
+  const isGoogle = isGoogleUser !== undefined ? isGoogleUser : initialData.provider === 'GOOGLE'
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -82,7 +84,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             <FormItem>
               <FormLabel>Họ và tên</FormLabel>
               <FormControl>
-                <Input placeholder="Nhập họ và tên..." {...field} />
+                <Input 
+                  placeholder="Nhập họ và tên..." 
+                  {...field} 
+                  readOnly={isGoogle}
+                  className={isGoogle ? "bg-slate-50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0" : ""}
+                  title={isGoogle ? "Không thể thay đổi họ và tên vì đăng nhập bằng tài khoản Google" : undefined}
+                  onKeyDown={(e) => isGoogle && e.preventDefault()}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
