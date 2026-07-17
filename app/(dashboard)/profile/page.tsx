@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { data: profile, isLoading, isError } = useProfile()
+  const { data: profile, isGoogleUser, isLoading, isError } = useProfile()
 
   if (isLoading) {
     return (
@@ -48,6 +48,7 @@ export default function ProfilePage() {
               <AvatarUpload
                 currentAvatarUrl={profile.avatarUrl}
                 fullName={profile.fullName}
+                isGoogleUser={isGoogleUser}
               />
             </CardContent>
           </Card>
@@ -60,7 +61,7 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ProfileForm initialData={profile} />
+              <ProfileForm initialData={profile} isGoogleUser={isGoogleUser} />
             </CardContent>
           </Card>
         </div>

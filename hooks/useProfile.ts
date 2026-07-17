@@ -6,10 +6,16 @@ import { toast } from 'sonner'
 export const PROFILE_QUERY_KEY = ['profile']
 
 export const useProfile = () => {
-  return useQuery<UserResponse>({
+  const query = useQuery<UserResponse>({
     queryKey: PROFILE_QUERY_KEY,
     queryFn: profileService.getProfile
   })
+
+  return {
+    ...query,
+    isGoogleUser: query.data?.provider === 'GOOGLE',
+    isLocalUser: query.data?.provider === 'LOCAL'
+  }
 }
 
 export const useUpdateProfile = () => {
