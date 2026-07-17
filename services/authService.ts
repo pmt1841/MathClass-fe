@@ -22,6 +22,7 @@ export interface LoginResponse {
   token: string
   role?: string
   userRole?: string
+  permissions?: string[]
   [key: string]: any // Allows for dynamic user fields
 }
 

@@ -38,16 +38,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Prevent intercepting login requests which naturally return 401 on wrong credentials
-      const isLoginApi = error.config && error.config.url && error.config.url.includes('/auth/login');
-      
-      if (!isLoginApi && typeof window !== 'undefined') {
-        const isAlreadyLoginPage = window.location.pathname.includes('/login');
+    if (error.response) {
+      if (error.response.status === 401) {
+        // Prevent intercepting login requests which naturally return 401 on wrong credentials
+        const isLoginApi = error.config && error.config.url && error.config.url.includes('/auth/login');
         
-        if (!isAlreadyLoginPage) {
-          authStorage.clearToken();
-          window.location.href = '/';
+        if (!isLoginApi && typeof window !== 'undefined') {
+          const isAlreadyLoginPage = window.location.pathname.includes('/login');
+          
+          if (!isAlreadyLoginPage) {
+            authStorage.clearToken();
+            window.location.href = '/';
+          }
+        }
+      } else if (error.response.status === 403) {
+        const msg = 'Bạn không có quyền thực hiện thao tác này.';
+        error.message = msg;
+        if (error.response.data && typeof error.response.data === 'object') {
+          error.response.data.message = msg;
+        } else {
+          error.response.data = { message: msg };
+        }
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('auth-refresh-request'));
         }
       }
     }

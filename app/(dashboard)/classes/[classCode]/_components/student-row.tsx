@@ -2,6 +2,7 @@ import React from 'react'
 import { Mail, Trash2, Loader2 } from 'lucide-react'
 import { Student } from '@/types'
 import { formatDate } from '@/lib/utils'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 export function StudentRow({
   student,
@@ -45,14 +46,16 @@ export function StudentRow({
           {formatDate(student.joinedAt)}
         </span>
       )}
-      <button
-        onClick={onRemove}
-        disabled={isRemoving}
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 disabled:opacity-50"
-        title="Xóa học sinh khỏi lớp"
-      >
-        {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-      </button>
+      <PermissionGuard permission="classroom:remove_student">
+        <button
+          onClick={onRemove}
+          disabled={isRemoving}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 disabled:opacity-50"
+          title="Xóa học sinh khỏi lớp"
+        >
+          {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+        </button>
+      </PermissionGuard>
     </div>
   )
 }

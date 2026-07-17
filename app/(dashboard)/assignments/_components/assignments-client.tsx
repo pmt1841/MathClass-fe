@@ -12,6 +12,7 @@ import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { AssignmentCard } from './assignment-card'
 import { parseDateSafe } from '@/lib/utils'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 export function AssignmentsPageClient() {
   const router = useRouter()
@@ -117,13 +118,15 @@ export function AssignmentsPageClient() {
 
           <div className="flex items-center gap-2">
             {userRole === 'TEACHER' && (
-              <Link
-                href="/assignments/create"
-                className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
-              >
-                <Plus className="h-4.5 w-4.5" />
-                Tạo bài tập mới
-              </Link>
+              <PermissionGuard permission="assignment:create">
+                <Link
+                  href="/assignments/create"
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                >
+                  <Plus className="h-4.5 w-4.5" />
+                  Tạo bài tập mới
+                </Link>
+              </PermissionGuard>
             )}
           </div>
         </div>

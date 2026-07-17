@@ -3,6 +3,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { ClipboardList, Clock, Pencil, Send, ListChecks } from 'lucide-react'
 import { Assignment } from '@/types'
 import { formatDateTime } from '@/lib/utils'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 export function AssignmentRow({
   assignment,
@@ -85,31 +86,35 @@ export function AssignmentRow({
           </button>
         )}
 
-        <button
-          id={`edit-assignment-${assignment.id}`}
-          onClick={() => {
-            const url = classCode 
-              ? `/assignments/${assignment.id}/edit?returnUrl=/classes/${classCode}` 
-              : `/assignments/${assignment.id}/edit`
-            router.push(url)
-          }}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
-          title="Chỉnh sửa bài tập"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Sửa
-        </button>
+        <PermissionGuard permission="assignment:update">
+          <button
+            id={`edit-assignment-${assignment.id}`}
+            onClick={() => {
+              const url = classCode 
+                ? `/assignments/${assignment.id}/edit?returnUrl=/classes/${classCode}` 
+                : `/assignments/${assignment.id}/edit`
+              router.push(url)
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
+            title="Chỉnh sửa bài tập"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Sửa
+          </button>
+        </PermissionGuard>
 
         {assignment.status === 'DRAFT' && (
-          <button
-            id={`publish-assignment-${assignment.id}`}
-            onClick={onPublish}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-            title="Giao bài tập này"
-          >
-            <Send className="h-3.5 w-3.5" />
-            Giao bài
-          </button>
+          <PermissionGuard permission="assignment:publish">
+            <button
+              id={`publish-assignment-${assignment.id}`}
+              onClick={onPublish}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+              title="Giao bài tập này"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Giao bài
+            </button>
+          </PermissionGuard>
         )}
       </div>
     </div>

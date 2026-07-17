@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Clock, CheckCircle, Edit, Trash2, Send } from 'lucide-react'
 import { Assignment } from '@/hooks/useAssignments'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 interface AssignmentCardProps {
   assignment: Assignment
@@ -78,41 +79,47 @@ export function AssignmentCard({
       {isTeacher ? (
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
           <div className="flex gap-2">
-            <button
-              onClick={() => onEdit(assignment.id, assignment.hasSubmissions)}
-              disabled={assignment.hasSubmissions}
-              className={`p-2 rounded-lg transition-all relative group/editbtn ${assignment.hasSubmissions
-                ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
-              }`}
-              title={assignment.hasSubmissions ? "" : "Sửa nội dung"}
-            >
-              <Edit className="h-4 w-4" />
-              {assignment.hasSubmissions && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover/editbtn:opacity-100 transition-opacity pointer-events-none z-10">
-                  Không thể sửa đề bài do đã có học sinh nộp bài làm
-                </div>
-              )}
-            </button>
-            <button
-              onClick={() => onDelete(assignment.id, assignment.title)}
-              className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all"
-              title="Xóa bài tập"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <PermissionGuard permission="assignment:update">
+              <button
+                onClick={() => onEdit(assignment.id, assignment.hasSubmissions)}
+                disabled={assignment.hasSubmissions}
+                className={`p-2 rounded-lg transition-all relative group/editbtn ${assignment.hasSubmissions
+                  ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
+                  : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
+                }`}
+                title={assignment.hasSubmissions ? "" : "Sửa nội dung"}
+              >
+                <Edit className="h-4 w-4" />
+                {assignment.hasSubmissions && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover/editbtn:opacity-100 transition-opacity pointer-events-none z-10">
+                    Không thể sửa đề bài do đã có học sinh nộp bài làm
+                  </div>
+                )}
+              </button>
+            </PermissionGuard>
+            <PermissionGuard permission="assignment:delete">
+              <button
+                onClick={() => onDelete(assignment.id, assignment.title)}
+                className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all"
+                title="Xóa bài tập"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </PermissionGuard>
           </div>
 
-          <button
-            onClick={() => onPublish(assignment.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
-              ? 'bg-primary text-primary-foreground hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
-              : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-            }`}
-          >
-            <Send className="h-4 w-4" />
-            {activeTab === 'DRAFT' ? 'Giao bài' : 'Giao lại'}
-          </button>
+          <PermissionGuard permission="assignment:publish">
+            <button
+              onClick={() => onPublish(assignment.id)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+            >
+              <Send className="h-4 w-4" />
+              {activeTab === 'DRAFT' ? 'Giao bài' : 'Giao lại'}
+            </button>
+          </PermissionGuard>
         </div>
       ) : (
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">

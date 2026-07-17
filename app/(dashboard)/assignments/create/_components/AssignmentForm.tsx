@@ -366,7 +366,7 @@ export function AssignmentForm({
 
   const applyUploadData = (mode: 'append' | 'replace', uploadData: any, uploadFile: File) => {
     const { content, images: newImagesArr } = uploadData
-    
+
     if (mode === 'replace') {
       const fileNameWithoutExt = uploadFile.name.replace(/\.[^/.]+$/, "")
       setValue('title', fileNameWithoutExt, { shouldValidate: true, shouldDirty: true })
@@ -391,12 +391,12 @@ export function AssignmentForm({
       }
     } else { // 'append'
       const appendHtml = `<p></p><p></p>` + markdownToHtml(content)
-      
+
       if (editorInstance) {
         const currentHtml = editorInstance.getHTML()
         editorInstance.commands.setContent(currentHtml + appendHtml)
       }
-      
+
       const currentMd = formValues.content || ''
       const appendMd = `\n\n${content}`
       setValue('content', currentMd + appendMd, { shouldValidate: true, shouldDirty: true })
@@ -668,7 +668,7 @@ export function AssignmentForm({
                     {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa nhập tiêu đề</span>}
                   </h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                    {watch('description') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa có mô tả ngắn</span>}
+                    {watch('description')}
                   </p>
                 </div>
                 <div className="flex-1 min-h-0 prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none overflow-y-auto pr-2">
@@ -830,7 +830,7 @@ export function AssignmentForm({
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 pb-2">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải nội dung file</h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowUploadConfirmModal(false)
                   setPendingUploadData(null)

@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { ClassCard } from './class-card'
 import { formatDateTime } from '@/lib/utils'
+import { PermissionGuard } from '@/components/ui/with-permission'
 
 export function ClassesClient() {
   const { user } = useAuth()
@@ -101,22 +102,26 @@ export function ClassesClient() {
               <RefreshCw className={`h-4.5 w-4.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
             {userRole === 'TEACHER' && (
-              <button
-                onClick={() => setCreateModalOpen(true)}
-                className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
-              >
-                <Plus className="h-4.5 w-4.5" />
-                Tạo lớp học mới
-              </button>
+              <PermissionGuard permission="classroom:create">
+                <button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                >
+                  <Plus className="h-4.5 w-4.5" />
+                  Tạo lớp học mới
+                </button>
+              </PermissionGuard>
             )}
             {userRole === 'STUDENT' && (
-              <button
-                onClick={() => setJoinModalOpen(true)}
-                className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
-              >
-                <Plus className="h-4.5 w-4.5" />
-                Xin vào lớp
-              </button>
+              <PermissionGuard permission="classroom:join">
+                <button
+                  onClick={() => setJoinModalOpen(true)}
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                >
+                  <Plus className="h-4.5 w-4.5" />
+                  Xin vào lớp
+                </button>
+              </PermissionGuard>
             )}
           </div>
         </div>
@@ -221,13 +226,15 @@ export function ClassesClient() {
                 </p>
               </div>
               {!searchQuery && userRole === 'TEACHER' && (
-                <button
-                  onClick={() => setCreateModalOpen(true)}
-                  className="flex items-center gap-2 h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20"
-                >
-                  <Plus className="h-4.5 w-4.5" />
-                  Tạo lớp đầu tiên
-                </button>
+                <PermissionGuard permission="classroom:create">
+                  <button
+                    onClick={() => setCreateModalOpen(true)}
+                    className="flex items-center gap-2 h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20"
+                  >
+                    <Plus className="h-4.5 w-4.5" />
+                    Tạo lớp đầu tiên
+                  </button>
+                </PermissionGuard>
               )}
             </div>
           ) : (
