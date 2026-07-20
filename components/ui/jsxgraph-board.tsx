@@ -72,7 +72,7 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
         // Custom right-click panning
         let isPanning = false;
         let lastX = 0, lastY = 0;
-        
+
         board.on('down', (e: any) => {
           if (!readOnly && e.button === 2) {
             isPanning = true;
@@ -80,7 +80,7 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
             lastY = e.clientY || e.touches?.[0]?.clientY || 0;
           }
         });
-        
+
         board.on('move', (e: any) => {
           if (isPanning) {
             const cx = e.clientX || e.touches?.[0]?.clientX || 0;
@@ -89,13 +89,13 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
             const dy = cy - lastY;
             lastX = cx;
             lastY = cy;
-            
+
             if (board) {
               board.moveOrigin(board.origin.scrCoords[1] + dx, board.origin.scrCoords[2] + dy);
             }
           }
         });
-        
+
         board.on('up', (e: any) => {
           if (e.button === 2) {
             isPanning = false;
@@ -191,8 +191,8 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
           }
 
           const funcGraphs: any[] = [];
-          const vLines: number[] = []; 
-          
+          const vLines: number[] = [];
+
           jsxGraphData.elements.forEach((el: any) => {
             if (el.type === 'functiongraph') {
               const obj = board.objects[el.id];
@@ -303,9 +303,8 @@ export function JsxGraphBoard({ shapeCode, jsxGraphData, width = '100%', height 
       <div
         id={boardId}
         ref={boardRef}
-        className={`jxgbox border border-slate-200 rounded-xl bg-white shadow-sm ${
-          readOnly ? 'max-w-[500px] w-full' : ''
-        }`}
+        className={`jxgbox border border-slate-200 rounded-xl bg-white shadow-sm ${readOnly ? 'max-w-[500px] w-full' : ''
+          }`}
         style={{ width, height }}
         onContextMenu={e => e.preventDefault()}
       />

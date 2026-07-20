@@ -322,7 +322,11 @@ export function AssignmentForm({
       setImages(newImages)
       setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })
 
-      insertTextIntoEditor(imageCode)
+      if (editorInstance) {
+        editorInstance.chain().focus().setImage({ src: imageUrl, alt: imageCode }).run()
+      } else {
+        insertTextIntoEditor(imageCode)
+      }
       toast.success('Tải ảnh lên thành công')
     } catch (error: any) {
       toast.error(error.response?.data || 'Có lỗi xảy ra khi tải ảnh lên')
@@ -659,6 +663,7 @@ export function AssignmentForm({
                     onReady={(editor) => setEditorInstance(editor)}
                     onChange={(newVal) => setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })}
                     onUploadImage={handleImageUploadFromEditor}
+                    images={images}
                     placeholder="Soạn thảo nội dung bài tập ở đây (hỗ trợ chèn công thức toán học từ thanh công cụ)..."
                   />
                 </div>

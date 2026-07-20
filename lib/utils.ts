@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]) {
 export function parseDateSafe(dateInput: Date | string | number | null | undefined | any[]): Date | null {
   if (!dateInput) return null;
   if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
-  
+
   if (Array.isArray(dateInput)) {
     // Handling Spring Boot LocalDateTime array [YYYY, MM, DD, HH, mm, ss, ns]
     const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
