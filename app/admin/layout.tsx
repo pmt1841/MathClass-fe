@@ -17,12 +17,12 @@ const adminNavItems = [
   },
   {
     icon: Shield,
-    label: 'Phân quyền Động',
+    label: 'Quản lý quyền hạn',
     href: '/admin/roles',
   },
   {
     icon: FileText,
-    label: 'Nhật ký Hệ thống',
+    label: 'Nhật ký hệ thống',
     href: '/admin/logs',
   },
   {

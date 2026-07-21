@@ -68,7 +68,7 @@ export interface AdminUser {
   fullName: string
   email: string
   role: UserRole
-  isActive: boolean
+  active: boolean
   avatarUrl?: string
 }
 
