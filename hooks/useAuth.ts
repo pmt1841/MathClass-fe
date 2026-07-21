@@ -15,6 +15,7 @@ export interface UserInfo {
   userRole?: string
   avatarUrl?: string
   permissions?: string[]
+  active?: boolean
 }
 
 export function useAuth() {
