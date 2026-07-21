@@ -8,6 +8,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
+import Image from '@tiptap/extension-image'
 import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import {
@@ -33,9 +34,10 @@ interface TiptapProps {
   onReady?: (editor: any) => void
   onUploadImage?: (file: File) => void
   placeholder?: string
+  images?: { imageCode: string, imageUrl: string }[]
 }
 
-export default function TiptapEditor({ value, onChange, onReady, onUploadImage, placeholder }: TiptapProps) {
+export default function TiptapEditor({ value, onChange, onReady, onUploadImage, placeholder, images }: TiptapProps) {
   const [showMathToolbar, setShowMathToolbar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -114,8 +116,15 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
       TableRow,
       TableHeader,
       TableCell,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full rounded-lg inline-block'
+        }
+      })
     ],
-    content: markdownToHtml(value),
+    content: markdownToHtml(value, images),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       const md = htmlToMarkdown(html)
@@ -132,7 +141,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     if (editor && value !== undefined) {
       // Only set content if the editor is NOT focused (meaning the change came externally like draft load or undo)
       if (!editor.isFocused) {
-        const htmlValue = markdownToHtml(value)
+        const htmlValue = markdownToHtml(value, images)
         if (editor.getHTML() !== htmlValue) {
           editor.commands.setContent(htmlValue, { emitUpdate: false })
         }
@@ -290,8 +299,8 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShowMathToolbar(!showMathToolbar)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
-              ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
+            ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
+            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
             }`}
         >
           <span className="font-mono text-sm leading-none">∑</span>
