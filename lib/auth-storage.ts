@@ -2,38 +2,23 @@ import { AUTH_KEYS, COOKIE_OPTIONS } from '@/lib/constants/auth'
 
 export const authStorage = {
   getToken(): string | null {
-    if (typeof window === 'undefined') return null
-
-    // Check tab session persistence
-    const isSession = localStorage.getItem('auth_persistence') === 'session'
-    if (isSession && !sessionStorage.getItem('tab_session_active')) {
-      // Tab was closed or this is a new tab, but login wasn't remembered
-      this.clearToken()
-      this.clearUserInfo()
-      return null
-    }
-
-    return (
-      localStorage.getItem(AUTH_KEYS.TOKEN) ||
-      sessionStorage.getItem(AUTH_KEYS.TOKEN) ||
-      this.getCookie(AUTH_KEYS.TOKEN) ||
-      null
-    )
+    // We no longer retrieve the token from JS storage.
+    // The token is handled automatically by the browser via HttpOnly cookies.
+    return null
   },
 
   setToken(token: string, role: string, rememberMe: boolean) {
     if (typeof window === 'undefined') return
 
+    // Token is now set by the backend via HttpOnly Cookie.
+    // We only save the user role and persistence preference.
     const secureFlag = window.location.protocol === 'https:' ? '; Secure' : ''
-    const cookieBase = `auth_token=${token}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
     const roleCookieBase = `user_role=${role}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
 
     if (rememberMe) {
-      document.cookie = `${cookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`
       document.cookie = `${roleCookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`
       localStorage.setItem('auth_persistence', 'persistent')
     } else {
-      document.cookie = cookieBase
       document.cookie = roleCookieBase
       localStorage.setItem('auth_persistence', 'session')
       sessionStorage.setItem('tab_session_active', 'true')
@@ -42,14 +27,10 @@ export const authStorage = {
     // Clear old storage to prevent stale data
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
-
-    const storage = rememberMe ? localStorage : sessionStorage
-    storage.setItem(AUTH_KEYS.TOKEN, token)
   },
 
   clearToken() {
     if (typeof window === 'undefined') return
-    document.cookie = 'auth_token=; path=/; max-age=0'
     document.cookie = 'user_role=; path=/; max-age=0'
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)

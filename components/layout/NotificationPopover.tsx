@@ -4,7 +4,7 @@ import { Bell, CheckCheck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
-import { authStorage } from '@/lib/auth-storage'
+
 import {
   Popover,
   PopoverContent,
@@ -49,9 +49,6 @@ export function NotificationPopover() {
 
   // SSE logic
   useEffect(() => {
-    const token = authStorage.getToken()
-    if (!token) return
-
     const controller = new AbortController()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
     const cleanBaseUrl = apiUrl.replace(/\/$/, '')
@@ -61,9 +58,7 @@ export function NotificationPopover() {
 
     fetchEventSource(streamUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
+      credentials: 'include', // Automatically send HttpOnly cookie
       signal: controller.signal,
       openWhenHidden: true,
       onopen(response) {
