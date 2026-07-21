@@ -184,8 +184,8 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
 
   return (
     <div className="tiptap-wrapper w-full flex-1 min-h-0 flex flex-col gap-3">
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style>
+        {`
         .tiptap-wrapper {
           flex: 1 1 0%;
           min-height: 0;
@@ -281,7 +281,8 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
           position: absolute;
           z-index: 2;
         }
-      `}} />
+      `}
+      </style>
 
       {/* Math Formulas Toggle Button */}
       <div className="flex items-center justify-between mb-0.5 shrink-0">

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { Bold, Italic, Underline } from 'lucide-react'
+import DOMPurify from 'dompurify'
 
 interface LatexItem {
   id: string
@@ -117,7 +118,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
               }}
               title={item.label}
               className="flex items-center justify-center min-w-[36px] h-9 px-2 rounded-md hover:bg-slate-200 transition-colors text-slate-700 bg-white border border-slate-200 shadow-sm"
-              dangerouslySetInnerHTML={{ __html: html }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
             />
           )
         })}
