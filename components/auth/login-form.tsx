@@ -62,7 +62,7 @@ export default function LoginForm() {
   }, [form])
 
   const onSubmit = async (values: FormValues) => {
-    await login({ email: values.email, password: values.password }, !!values.rememberMe)
+    await login({ email: values.email, password: values.password }, !!values.rememberMe, role)
   }
 
   return (
@@ -209,7 +209,7 @@ export default function LoginForm() {
 
         {/* Social Login */}
         <div className="w-full">
-          <SocialLoginButton provider="google" label="Đăng nhập bằng Google" />
+          <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} />
         </div>
       </div>
     </div>

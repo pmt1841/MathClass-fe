@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile']
+const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile', '/admin']
 const teacherOnlyRoutes = ['/classes/create', '/students', '/reports']
 const studentOnlyRoutes = ['/assignments/submit']
+const adminOnlyRoutes = ['/admin']
 const publicRoutes = ['/', '/login', '/signup', '/verify']
 
 // Hàm tiện ích để kiểm tra chính xác đường dẫn tránh bị nuốt từ (ví dụ /students bắt đầu bằng /student)
@@ -14,8 +15,21 @@ const matchRoute = (pathname: string, routes: string[]) => {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const token = request.cookies.get('auth_token')?.value
-  const userRole = request.cookies.get('user_role')?.value
+  const token = request.cookies.get('mathclass_jwt')?.value
+  
+  let userRole: string | null = null
+  if (token) {
+    try {
+      const parts = token.split('.')
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'))
+        const rawRole = payload.role || ''
+        userRole = rawRole.replace('ROLE_', '')
+      }
+    } catch (e) {
+      console.error('Error decoding token in middleware', e)
+    }
+  }
 
   // SỬA: Sử dụng hàm matchRoute mới để kiểm tra chính xác
   const isProtectedRoute = matchRoute(pathname, protectedRoutes)
@@ -33,7 +47,8 @@ export function proxy(request: NextRequest) {
 
   // 2. Redirect authenticated users from public to their respective dashboards
   if (token && (pathname === '/' || pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/home', request.url))
+    const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
+    return NextResponse.redirect(new URL(dest, request.url))
   }
 
   const fallbackUrl = '/home'
@@ -45,6 +60,12 @@ export function proxy(request: NextRequest) {
 
   // 4. Role-based access: student-only routes
   if (isStudentRoute && token && userRole !== 'STUDENT') {
+    return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
+  }
+
+  // 5. Role-based access: admin-only routes
+  const isAdminRoute = matchRoute(pathname, adminOnlyRoutes)
+  if (isAdminRoute && token && userRole !== 'ADMIN') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 

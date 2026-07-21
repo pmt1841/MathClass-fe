@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import QueryProvider from '@/components/providers/query-provider'
+import { StoreProvider } from '@/components/providers/StoreProvider'
 
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
@@ -26,9 +27,11 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
           <QueryProvider>
-            {children}
-            <Toaster position="top-right" richColors closeButton duration={3000} />
-            {process.env.NODE_ENV === 'production' && <Analytics />}
+            <StoreProvider>
+              {children}
+              <Toaster position="top-right" richColors closeButton duration={3000} />
+              {process.env.NODE_ENV === 'production' && <Analytics />}
+            </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>
       </body>

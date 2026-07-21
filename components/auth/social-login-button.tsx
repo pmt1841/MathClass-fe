@@ -4,18 +4,22 @@ import React from 'react'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useGoogleAuth } from '@/hooks/useGoogleAuth'
 import { AUTH_KEYS } from '@/lib/constants/auth'
-import { authStorage } from '@/lib/auth-storage'
+import { useAppDispatch } from '@/lib/redux/hooks'
+import { setAuth } from '@/lib/redux/features/authSlice'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { handleApiError } from '@/lib/utils/error-handler'
+import api from '@/lib/axios'
 
 interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   provider: 'google'
   label: string
+  expectedRole?: string
 }
 
-export function SocialLoginButton({ provider, label, ...props }: SocialLoginButtonProps) {
+export function SocialLoginButton({ provider, label, expectedRole, ...props }: SocialLoginButtonProps) {
   const router = useRouter()
+  const dispatch = useAppDispatch()
   const googleAuthMutation = useGoogleAuth()
 
   const login = useGoogleLogin({
@@ -29,19 +33,23 @@ export function SocialLoginButton({ provider, label, ...props }: SocialLoginButt
         { credential: codeResponse.access_token, role },
         {
           onSuccess: (data) => {
-            const role = data.role || data.userRole || 'STUDENT';
+            const returnedRole = data.role || data.userRole || 'STUDENT';
 
-            // Setup cookies and storage using authStorage
-            authStorage.setToken(data.token, role, true)
+            if (expectedRole && returnedRole !== expectedRole) {
+              api.post('/auth/logout').catch(() => {});
+              toast.error('Đăng nhập Google thất bại');
+              return;
+            }
 
-            // Save user info into cookie
-            authStorage.setUserInfo({
-              id: data.id,
+            // Dispatch user data to Redux Store
+            dispatch(setAuth({
+              id: data.id || 0,
               email: data.email,
               fullName: data.fullName,
-              role: role,
-              avatarUrl: data.avatarUrl
-            }, true)
+              role: returnedRole,
+              avatarUrl: data.avatarUrl,
+              permissions: data.permissions
+            }))
             toast.success('Đăng nhập thành công')
             router.refresh()
             router.push('/home')

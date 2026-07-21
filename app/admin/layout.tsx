@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { authStorage } from '@/lib/auth-storage'
+
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
@@ -38,31 +38,28 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user } = useAuth()
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const { user, isAuthenticated, isInitializing } = useAuth()
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    if (!authStorage.getToken()) {
-      setIsAuthenticated(false)
+    if (isInitializing) return
+    
+    if (!isAuthenticated) {
       router.replace('/')
-    } else {
-      setIsAuthenticated(true)
+      return
     }
-  }, [router])
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.role === 'ADMIN') {
+    
+    if (user) {
+      if (user.role === 'ADMIN' || user.userRole === 'ADMIN') {
         setIsAuthorized(true)
       } else {
         setIsAuthorized(false)
         router.replace('/home')
       }
     }
-  }, [isAuthenticated, user, router])
+  }, [isInitializing, isAuthenticated, user, router])
 
-  if (isAuthenticated === null || isAuthorized === null || !isAuthorized) {
+  if (isInitializing || !isAuthenticated || isAuthorized === null || !isAuthorized) {
     return null
   }
 
