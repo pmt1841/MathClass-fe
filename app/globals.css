@@ -123,3 +123,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Landing Page: Experience Slideshow Animations ───────────────────────── */
+@keyframes auto-slide-teacher {
+  0%, 45%  { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100%     { opacity: 1; }
+}
+
+@keyframes auto-slide-student {
+  0%, 45%  { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100%     { opacity: 1; }
+}
+
+.slide-teacher-1 { animation: auto-slide-teacher 6s infinite; }
+.slide-teacher-2 { animation: auto-slide-teacher 6s infinite -3s; }
+.slide-student-1 { animation: auto-slide-student 6s infinite; }
+.slide-student-2 { animation: auto-slide-student 6s infinite -3s; }
