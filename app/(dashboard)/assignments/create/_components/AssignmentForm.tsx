@@ -629,7 +629,7 @@ export function AssignmentForm({
                   <div className="flex items-center gap-2">
                     <input
                       type="file"
-                      accept=".txt,.docx"
+                      accept=".txt,.docx,.pdf"
                       id="upload-file-input"
                       className="hidden"
                       onChange={handleFileUpload}
@@ -644,7 +644,7 @@ export function AssignmentForm({
                       ) : (
                         <Upload className="w-3.5 h-3.5" />
                       )}
-                      Tải lên file (.docx, .txt)
+                      Tải lên file (.docx, .txt, .pdf)
                     </label>
                   </div>
                 </div>
