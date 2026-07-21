@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 .next
 
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
 .env
 
 package-lock.json
