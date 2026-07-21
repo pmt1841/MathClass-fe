@@ -27,7 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { SocialLoginButton } from './social-login-button'
 
 import { useSignup } from '@/hooks/useSignup'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
@@ -255,23 +254,6 @@ export default function SignupForm() {
               Đăng nhập ngay
             </Link>
           </p>
-        </div>
-        
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-background text-muted-foreground">
-              hoặc tiếp tục với
-            </span>
-          </div>
-        </div>
-
-        {/* Social Login */}
-        <div className="w-full">
-          <SocialLoginButton provider="google" label="Đăng ký bằng Google" />
         </div>
       </div>
 

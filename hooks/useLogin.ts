@@ -3,29 +3,43 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService, LoginCredentials } from '@/services/authService'
-import { AUTH_KEYS, COOKIE_OPTIONS, ROLES } from '@/lib/constants/auth'
-import { authStorage } from '@/lib/auth-storage'
+import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { AxiosError } from 'axios'
+import { useAppDispatch } from '@/lib/redux/hooks'
+import { setAuth } from '@/lib/redux/features/authSlice'
+import api from '@/lib/axios'
 
 export function useLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
   const router = useRouter()
+  const dispatch = useAppDispatch()
 
-  const login = async (credentials: LoginCredentials, rememberMe: boolean) => {
+  const login = async (credentials: LoginCredentials, rememberMe: boolean, expectedRole?: string) => {
     setIsLoading(true)
     setLoginError('')
 
     try {
+      // Bổ sung role từ trang hiện tại nếu frontend đã gửi (để tương thích backend mới)
+      // Hiện tại ta để mặc định role lấy từ response hoặc có thể pass role vào credentials.
       const data = await authService.login(credentials)
-      const token = data.token
       const role = data.role || data.userRole || ROLES.STUDENT
 
-      // Setup cookies and storage using authStorage
-      authStorage.setToken(token, role, rememberMe)
+      if (expectedRole && role !== expectedRole) {
+        await api.post('/auth/logout').catch(() => {})
+        setLoginError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+        setIsLoading(false)
+        return
+      }
 
-      // Save user info to cookie for consistent session behavior
-      authStorage.setUserInfo(data, rememberMe)
+      // Cập nhật Redux Store
+      dispatch(setAuth({
+        ...data,
+        id: data.id || 0,
+        email: data.email || credentials.email,
+        fullName: data.fullName || '',
+        role: role
+      }))
 
       if (rememberMe) {
         localStorage.setItem(AUTH_KEYS.REMEMBERED_EMAIL, credentials.email)
@@ -34,9 +48,9 @@ export function useLogin() {
       }
 
       if (role === ROLES.ADMIN) {
-        window.location.href = '/admin/users'
+        router.push('/admin/users')
       } else {
-        window.location.href = '/home'
+        router.push('/home')
       }
 
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { authStorage } from '@/lib/auth-storage'
+import { useAuth } from '@/hooks/useAuth'
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
@@ -15,18 +15,15 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const [createClassOpen, setCreateClassOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const { isAuthenticated, isInitializing } = useAuth()
 
   useEffect(() => {
-    if (!authStorage.getToken()) {
-      setIsAuthenticated(false)
+    if (!isInitializing && !isAuthenticated) {
       router.replace('/')
-    } else {
-      setIsAuthenticated(true)
     }
-  }, [router])
+  }, [isInitializing, isAuthenticated, router])
 
-  if (isAuthenticated !== true) {
+  if (isInitializing || !isAuthenticated) {
     return null
   }
 

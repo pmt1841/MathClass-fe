@@ -6,7 +6,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authStorage } from '@/lib/auth-storage'
 
 interface PermissionGuardProps {
   permission: string
@@ -54,13 +53,13 @@ interface RoutePermissionGuardProps {
 }
 
 export function RoutePermissionGuard({ permission, children, redirectUrl = '/home' }: RoutePermissionGuardProps) {
-  const { user } = useAuth()
+  const { user, isAuthenticated, isInitializing } = useAuth()
   const router = useRouter()
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
     // Fast check if not logged in
-    if (!authStorage.getToken()) {
+    if (!isInitializing && !isAuthenticated) {
       router.replace('/')
       return
     }
@@ -68,7 +67,7 @@ export function RoutePermissionGuard({ permission, children, redirectUrl = '/hom
     if (user) {
       const isAdmin = user.role === 'ADMIN' || user.userRole === 'ADMIN'
       const hasPerm = isAdmin || (user.permissions && user.permissions.includes(permission))
-      
+
       if (!hasPerm) {
         toast.error('Bạn không có quyền truy cập trang này')
         router.replace(redirectUrl)

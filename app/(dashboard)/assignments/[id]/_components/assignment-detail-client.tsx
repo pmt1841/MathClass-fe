@@ -20,7 +20,7 @@ import { StudentAssignmentLayout } from './student-assignment-layout'
 import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { authStorage } from '@/lib/auth-storage'
+import { useAuth } from '@/hooks/useAuth'
 import { PermissionGuard } from '@/components/ui/with-permission'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -68,6 +68,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [showUnsubmitModal, setShowUnsubmitModal] = useState(false)
+  const { user, isInitializing } = useAuth()
   const [userRole, setUserRole] = useState<string>('STUDENT')
 
   // Submission states
@@ -100,13 +101,10 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   }, [])
 
   useEffect(() => {
-    // Get user role
-    const userInfo = authStorage.getUserInfo()
+    if (isInitializing) return
     let currentRole = 'STUDENT'
-    if (userInfo) {
-      try {
-        if (userInfo.userRole) currentRole = userInfo.userRole
-      } catch { }
+    if (user) {
+      currentRole = user.role || user.userRole || 'STUDENT'
     }
     setUserRole(currentRole)
 

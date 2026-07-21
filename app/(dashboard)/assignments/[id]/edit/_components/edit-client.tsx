@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from '../../../create/_components/AssignmentForm'
 
-import { authStorage } from '@/lib/auth-storage'
+import { useAuth } from '@/hooks/useAuth'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function EditAssignmentPageClient() {
   const router = useRouter()
@@ -17,23 +18,18 @@ export function EditAssignmentPageClient() {
 
   const backHref = returnUrl || '/assignments'
 
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const { user, isInitializing } = useAuth()
+  const queryClient = useQueryClient()
   const [isFetching, setIsFetching] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [assignmentData, setAssignmentData] = useState<AssignmentFormValues | null>(null)
 
   useEffect(() => {
-    // Check role
-    const info = authStorage.getUserInfo()
-    if (info) {
-      try {
-        const role = info.role || info.userRole || 'STUDENT'
-        if (role !== 'TEACHER') {
-          toast.error('Bạn không có quyền truy cập trang này')
-          router.replace('/assignments')
-          return
-        }
-      } catch (err) {
+    if (isInitializing) return
+    if (user) {
+      const role = user.role || user.userRole || 'STUDENT'
+      if (role !== 'TEACHER') {
+        toast.error('Bạn không có quyền truy cập trang này')
         router.replace('/assignments')
         return
       }
@@ -41,11 +37,10 @@ export function EditAssignmentPageClient() {
       router.replace('/')
       return
     }
-    setIsCheckingAuth(false)
-  }, [router])
+  }, [user, isInitializing, router])
 
   useEffect(() => {
-    if (isCheckingAuth || !id) return
+    if (isInitializing || !user || !id) return
 
     const fetchAssignment = async () => {
       try {
@@ -71,12 +66,13 @@ export function EditAssignmentPageClient() {
     }
 
     fetchAssignment()
-  }, [id, isCheckingAuth, router, backHref])
+  }, [id, isInitializing, router, backHref])
 
   const handleUpdate = async (data: AssignmentFormValues) => {
     try {
       setIsSubmitting(true)
       await assignmentService.updateAssignment(Number(id), data)
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
       toast.success('Đã cập nhật bài tập thành công!')
       router.push(backHref)
     } catch (err: any) {
@@ -92,7 +88,7 @@ export function EditAssignmentPageClient() {
     await assignmentService.updateAssignment(Number(id), data)
   }
 
-  if (isCheckingAuth || isFetching) {
+  if (isInitializing || isFetching) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50/50">
         <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
-import { authStorage } from '@/lib/auth-storage'
+import { useAuth } from '@/hooks/useAuth'
 
 const DashboardSkeleton = () => (
   <div className="flex-1 flex items-center justify-center bg-slate-50/50">
@@ -27,28 +27,21 @@ const TeacherDashboardClient = dynamic(
 
 export function HomeClient() {
   const router = useRouter()
-  const [role, setRole] = useState<string | null>(null)
-  const [isChecking, setIsChecking] = useState(true)
+  const { user, isAuthenticated, isInitializing } = useAuth()
 
   useEffect(() => {
-    const info = authStorage.getUserInfo()
-    if (info) {
-      setRole(info.role || info.userRole || null)
-    } else {
-      setRole(null)
+    if (isInitializing) return
+    
+    if (!isAuthenticated) {
       router.replace('/')
-      return
     }
-    setIsChecking(false)
-  }, [router])
+  }, [isAuthenticated, isInitializing, router])
 
-  if (isChecking) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50/50">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    )
+  if (isInitializing || !isAuthenticated || !user) {
+    return <DashboardSkeleton />
   }
+
+  const role = user.role || user.userRole;
 
   if (role === 'TEACHER') {
     return <TeacherDashboardClient />

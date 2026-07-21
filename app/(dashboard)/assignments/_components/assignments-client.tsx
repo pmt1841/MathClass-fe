@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 import { DeleteAssignmentModal } from './delete-assignment-modal'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
@@ -18,6 +19,7 @@ export function AssignmentsPageClient() {
   const router = useRouter()
   const { user } = useAuth()
   const userRole = user?.role || 'STUDENT'
+  const queryClient = useQueryClient()
   
   const [activeTab, setActiveTab] = useState<string>('PENDING')
   
@@ -247,6 +249,7 @@ export function AssignmentsPageClient() {
         onClose={() => setPublishModalOpen(false)}
         onSuccess={() => {
           setPublishModalOpen(false)
+          queryClient.invalidateQueries({ queryKey: ['assignments'] })
         }}
         assignmentId={selectedAssignmentId}
       />

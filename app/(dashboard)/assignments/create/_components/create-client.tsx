@@ -2,17 +2,17 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, BookMarked } from 'lucide-react'
 import { toast } from 'sonner'
 import { assignmentService } from '@/services/assignmentService'
 import { AssignmentForm, AssignmentFormValues } from './AssignmentForm'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
-import { authStorage } from '@/lib/auth-storage'
+import { useAuth } from '@/hooks/useAuth'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function CreateAssignmentPageClient() {
   const router = useRouter()
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const { user, isInitializing } = useAuth()
+  const queryClient = useQueryClient()
 
   // State for Draft & Publish
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -21,17 +21,12 @@ export function CreateAssignmentPageClient() {
   const [createdAssignmentId, setCreatedAssignmentId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Check role
-    const info = authStorage.getUserInfo()
-    if (info) {
-      try {
-        const role = info.role || info.userRole || 'STUDENT'
-        if (role !== 'TEACHER') {
-          toast.error('Bạn không có quyền truy cập trang này')
-          router.replace('/assignments')
-          return
-        }
-      } catch (err) {
+    if (isInitializing) return
+    
+    if (user) {
+      const role = user.role || user.userRole || 'STUDENT'
+      if (role !== 'TEACHER') {
+        toast.error('Bạn không có quyền truy cập trang này')
         router.replace('/assignments')
         return
       }
@@ -39,8 +34,9 @@ export function CreateAssignmentPageClient() {
       router.replace('/')
       return
     }
-    setIsCheckingAuth(false)
-  }, [router])
+  }, [user, isInitializing, router])
+
+  if (!user && !isInitializing) return null
 
   const handleDraft = async (data: AssignmentFormValues) => {
     try {
@@ -50,6 +46,7 @@ export function CreateAssignmentPageClient() {
       } else {
         await assignmentService.createAssignment(data)
       }
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
       toast.success('Đã lưu nháp bài tập thành công!')
       router.push('/assignments')
     } catch (err: any) {
@@ -107,6 +104,7 @@ export function CreateAssignmentPageClient() {
         })),
       })
 
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
       toast.success('Đã đăng bài tập thành công!')
       setPublishModalOpen(false)
       router.push('/assignments')
@@ -119,7 +117,7 @@ export function CreateAssignmentPageClient() {
     }
   }
 
-  if (isCheckingAuth) {
+  if (isInitializing) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50/50">
         <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
