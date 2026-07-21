@@ -58,3 +58,46 @@ export interface UpdateProfileRequest {
   gender?: Gender
   avatarUrl?: string
 }
+
+// ── Admin Domain Types ────────────────────────────────────────────────────
+export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT'
+
+/** User record returned from GET /admin/users — all fields required */
+export interface AdminUser {
+  id: number
+  fullName: string
+  email: string
+  role: UserRole
+  isActive: boolean
+  avatarUrl?: string
+}
+
+// ── Spring Data Page Types ─────────────────────────────────────────────────
+export interface SpringSort {
+  sorted: boolean
+  unsorted: boolean
+  empty: boolean
+}
+
+export interface SpringPageable {
+  pageNumber: number
+  pageSize: number
+  offset: number
+  paged: boolean
+  unpaged: boolean
+  sort: SpringSort
+}
+
+export interface PageResponse<T> {
+  content: T[]
+  pageable: SpringPageable
+  last: boolean
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+  sort: SpringSort
+  first: boolean
+  numberOfElements: number
+  empty: boolean
+}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile']
+const adminRoutes = ['/admin']
 const teacherOnlyRoutes = ['/classes/create', '/students', '/reports']
 const studentOnlyRoutes = ['/assignments/submit']
 const publicRoutes = ['/', '/login', '/signup', '/verify']
@@ -19,6 +20,7 @@ export function proxy(request: NextRequest) {
 
   // SỬA: Sử dụng hàm matchRoute mới để kiểm tra chính xác
   const isProtectedRoute = matchRoute(pathname, protectedRoutes)
+  const isAdminRoute = matchRoute(pathname, adminRoutes)
   const isTeacherRoute = matchRoute(pathname, teacherOnlyRoutes)
   const isStudentRoute = matchRoute(pathname, studentOnlyRoutes)
   const isPublicRoute = publicRoutes.some(
@@ -29,6 +31,12 @@ export function proxy(request: NextRequest) {
   if (isProtectedRoute && !token) {
     const landingUrl = new URL('/', request.url)
     return NextResponse.redirect(landingUrl)
+  }
+
+  // 1b. Admin routes: must be logged in AND have ADMIN role
+  if (isAdminRoute) {
+    if (!token) return NextResponse.redirect(new URL('/', request.url))
+    if (userRole !== 'ADMIN') return NextResponse.redirect(new URL('/forbidden', request.url))
   }
 
   // 2. Redirect authenticated users from public to their respective dashboards
