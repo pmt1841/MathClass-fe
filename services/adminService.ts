@@ -1,19 +1,5 @@
 import api from '@/lib/axios'
-import { UserInfo } from '@/hooks/useAuth'
-
-export interface PageResponse<T> {
-  content: T[]
-  pageable: any
-  last: boolean
-  totalElements: number
-  totalPages: number
-  size: number
-  number: number
-  sort: any
-  first: boolean
-  numberOfElements: number
-  empty: boolean
-}
+import { AdminUser, PageResponse } from '@/types'
 
 export interface SystemLog {
   id: number
@@ -37,7 +23,7 @@ export const adminService = {
     if (isActive !== undefined) params.append('isActive', String(isActive))
     if (search) params.append('search', search)
 
-    const response = await api.get<PageResponse<UserInfo>>(`/admin/users?${params.toString()}`)
+    const response = await api.get<PageResponse<AdminUser>>(`/admin/users?${params.toString()}`)
     return response.data
   },
 

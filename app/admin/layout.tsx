@@ -62,9 +62,28 @@ export default function AdminLayout({
     }
   }, [isAuthenticated, user, router])
 
-  if (isAuthenticated === null || isAuthorized === null || !isAuthorized) {
-    return null
+  if (isAuthenticated === null || isAuthorized === null) {
+    return (
+      <div className="flex min-h-screen flex-col bg-muted/30 animate-pulse">
+        {/* Header skeleton */}
+        <div className="h-16 shrink-0 bg-background border-b" />
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar skeleton */}
+          <div className="w-64 shrink-0 bg-background border-r" />
+
+          {/* Content skeleton */}
+          <div className="flex-1 p-8 space-y-4">
+            <div className="h-8 w-56 bg-muted rounded-md" />
+            <div className="h-10 w-96 bg-muted rounded-md" />
+            <div className="h-64 bg-muted rounded-md" />
+          </div>
+        </div>
+      </div>
+    )
   }
+
+  if (!isAuthorized) return null
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">

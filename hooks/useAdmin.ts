@@ -16,8 +16,6 @@ export function useUpdateUserStatus() {
       adminService.updateUserStatus(userId, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      // Cập nhật thêm log query nếu log page cũng đang mở
-      queryClient.invalidateQueries({ queryKey: ['admin-logs'] })
     },
   })
 }

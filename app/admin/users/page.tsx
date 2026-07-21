@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAdminUsers, useUpdateUserStatus } from '@/hooks/useAdmin'
+import { useDebounce } from '@/hooks/useDebounce'
 import {
   Table,
   TableBody,
@@ -31,11 +32,13 @@ export default function AdminUsersPage() {
   const [isActive, setIsActive] = useState<string>('ALL')
   const [search, setSearch] = useState('')
 
+  const debouncedSearch = useDebounce(search, 300)
+
   const { data, isLoading } = useAdminUsers(
     page,
     role === 'ALL' ? undefined : role,
     isActive === 'ALL' ? undefined : isActive === 'TRUE',
-    search
+    debouncedSearch
   )
 
   const updateUserStatus = useUpdateUserStatus()
@@ -106,6 +109,12 @@ export default function AdminUsersPage() {
         </Select>
       </div>
 
+      {data && (
+        <p className="text-sm text-muted-foreground">
+          Hiển thị <span className="font-medium text-foreground">{data.numberOfElements}</span> / <span className="font-medium text-foreground">{data.totalElements}</span> người dùng
+        </p>
+      )}
+
       <div className="rounded-md border bg-white">
         <Table>
           <TableHeader>
@@ -146,7 +155,7 @@ export default function AdminUsersPage() {
                       <Switch
                         checked={user.isActive}
                         disabled={updateUserStatus.isPending || user.role === 'ADMIN'}
-                        onCheckedChange={() => handleStatusChange(user.id!, user.isActive!)}
+                        onCheckedChange={() => handleStatusChange(user.id, user.isActive)}
                       />
                       <span className="text-sm text-muted-foreground">
                         {user.isActive ? 'Khóa' : 'Mở khóa'}
