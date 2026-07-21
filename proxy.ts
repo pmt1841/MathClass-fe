@@ -31,14 +31,10 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // SỬA: Sử dụng hàm matchRoute mới để kiểm tra chính xác
   const isProtectedRoute = matchRoute(pathname, protectedRoutes)
-  const isAdminRoute = matchRoute(pathname, adminRoutes)
+  const isAdminRoute = matchRoute(pathname, adminOnlyRoutes)
   const isTeacherRoute = matchRoute(pathname, teacherOnlyRoutes)
   const isStudentRoute = matchRoute(pathname, studentOnlyRoutes)
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + '/')
-  )
 
   // 1. Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !token) {
@@ -67,12 +63,6 @@ export function proxy(request: NextRequest) {
 
   // 4. Role-based access: student-only routes
   if (isStudentRoute && token && userRole !== 'STUDENT') {
-    return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
-  }
-
-  // 5. Role-based access: admin-only routes
-  const isAdminRoute = matchRoute(pathname, adminOnlyRoutes)
-  if (isAdminRoute && token && userRole !== 'ADMIN') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
