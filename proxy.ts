@@ -5,9 +5,9 @@ const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/rep
 const teacherOnlyRoutes = ['/classes/create', '/students', '/reports']
 const studentOnlyRoutes = ['/assignments/submit']
 const adminOnlyRoutes = ['/admin']
-const publicRoutes = ['/', '/login', '/signup', '/verify']
+const publicRoutes = ['/', '/login', '/admin/login', '/signup', '/verify']
 
-// Hàm tiện ích để kiểm tra chính xác đường dẫn tránh bị nuốt từ (ví dụ /students bắt đầu bằng /student)
+// Hàm tiện ích để kiểm tra chính xác đường dẫn tránh bị nuốt từ
 const matchRoute = (pathname: string, routes: string[]) => {
   return routes.some((route) => pathname === route || pathname.startsWith(route + '/'))
 }
@@ -17,43 +17,44 @@ export function proxy(request: NextRequest) {
 
   const token = request.cookies.get('mathclass_jwt')?.value
 
-  let userRole: string | null = null
-  if (token) {
+  // Đọc role từ cookie mathclass_role hoặc từ token payload (nếu có)
+  let userRole: string | null = request.cookies.get('mathclass_role')?.value || null
+  if (!userRole && token) {
     try {
       const parts = token.split('.')
       if (parts.length === 3) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'))
-        const rawRole = payload.role || ''
-        userRole = rawRole.replace('ROLE_', '')
+        const rawRole = payload.role || payload.userRole || payload.roles?.[0] || payload.authorities?.[0] || ''
+        if (rawRole) {
+          userRole = rawRole.replace('ROLE_', '')
+        }
       }
     } catch (e) {
       console.error('Error decoding token in middleware', e)
     }
   }
 
-  // SỬA: Sử dụng hàm matchRoute mới để kiểm tra chính xác
-  const isProtectedRoute = matchRoute(pathname, protectedRoutes)
-  const isAdminRoute = matchRoute(pathname, adminOnlyRoutes)
+  // Loại trừ trang /admin/login khỏi các protected & admin-only routes
+  const isAdminLogin = pathname === '/admin/login' || pathname.startsWith('/admin/login/')
+  const isProtectedRoute = matchRoute(pathname, protectedRoutes) && !isAdminLogin
+  const isAdminRoute = matchRoute(pathname, adminOnlyRoutes) && !isAdminLogin
   const isTeacherRoute = matchRoute(pathname, teacherOnlyRoutes)
   const isStudentRoute = matchRoute(pathname, studentOnlyRoutes)
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + '/')
-  )
 
   // 1. Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !token) {
-    const landingUrl = new URL('/', request.url)
-    return NextResponse.redirect(landingUrl)
+    const redirectUrl = isAdminRoute ? '/admin/login' : '/'
+    return NextResponse.redirect(new URL(redirectUrl, request.url))
   }
 
-  // 1b. Admin routes: must be logged in AND have ADMIN role
+  // 1b. Admin routes: must be logged in. Only redirect to forbidden if userRole is explicitly non-ADMIN.
   if (isAdminRoute) {
-    if (!token) return NextResponse.redirect(new URL('/', request.url))
-    if (userRole !== 'ADMIN') return NextResponse.redirect(new URL('/forbidden', request.url))
+    if (!token) return NextResponse.redirect(new URL('/admin/login', request.url))
+    if (userRole && userRole !== 'ADMIN') return NextResponse.redirect(new URL('/forbidden', request.url))
   }
 
-  // 2. Redirect authenticated users from public to their respective dashboards
-  if (token && (pathname === '/' || pathname === '/login' || pathname === '/signup')) {
+  // 2. Redirect authenticated users from public routes to their respective dashboards
+  if (token && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
     const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
@@ -61,17 +62,17 @@ export function proxy(request: NextRequest) {
   const fallbackUrl = '/home'
 
   // 3. Role-based access: teacher-only routes
-  if (isTeacherRoute && token && userRole !== 'TEACHER') {
+  if (isTeacherRoute && token && userRole && userRole !== 'TEACHER') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
   // 4. Role-based access: student-only routes
-  if (isStudentRoute && token && userRole !== 'STUDENT') {
+  if (isStudentRoute && token && userRole && userRole !== 'STUDENT') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
   // 5. Role-based access: admin-only routes
-  if (isAdminRoute && token && userRole !== 'ADMIN') {
+  if (isAdminRoute && token && userRole && userRole !== 'ADMIN') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
