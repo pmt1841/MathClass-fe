@@ -20,10 +20,16 @@ export function useUpdateUserStatus() {
   })
 }
 
-export function useAdminLogs(page: number, level?: string, startDate?: string, endDate?: string) {
+export function useAdminLogs(
+  page: number,
+  level?: string,
+  resourceType?: string,
+  startDate?: string,
+  endDate?: string
+) {
   return useQuery({
-    queryKey: ['admin-logs', page, level, startDate, endDate],
-    queryFn: () => adminService.getLogs(page, level, startDate, endDate),
+    queryKey: ['admin-logs', page, level, resourceType, startDate, endDate],
+    queryFn: () => adminService.getLogs(page, level, resourceType, startDate, endDate),
   })
 }
 
