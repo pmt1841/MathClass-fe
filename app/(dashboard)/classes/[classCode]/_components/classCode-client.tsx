@@ -103,6 +103,8 @@ export function ClassDetailPageClient() {
       maxStudents: yup
         .number()
         .required('Vui lòng nhập sĩ số tối đa')
+        .integer('Sĩ số tối đa phải là số nguyên')
+        .positive('Sĩ số tối đa phải lớn hơn 0')
         .min(
           classroom?.studentCount || 0,
           `Sĩ số tối đa không được nhỏ hơn sĩ số hiện tại (${classroom?.studentCount || 0})`
@@ -262,7 +264,7 @@ export function ClassDetailPageClient() {
               Thay đổi tên lớp, sĩ số tối đa và mô tả của lớp học này.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={editClassroomForm.handleSubmit} className="space-y-4 py-4">
+          <form onSubmit={editClassroomForm.handleSubmit} noValidate className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-semibold">Tên lớp</label>
               <input
@@ -289,6 +291,7 @@ export function ClassDetailPageClient() {
                 type="number"
                 id="maxStudents"
                 name="maxStudents"
+                min={classroom?.studentCount || 1}
                 value={editClassroomForm.values.maxStudents}
                 onChange={editClassroomForm.handleChange}
                 onBlur={editClassroomForm.handleBlur}

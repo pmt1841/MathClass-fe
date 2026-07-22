@@ -28,6 +28,8 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
       description: Yup.string(),
       maxStudents: Yup.number()
         .transform((value, originalValue) => (String(originalValue).trim() === '' ? null : value))
+        .integer('Số học sinh phải là số nguyên')
+        .positive('Số học sinh tối đa phải lớn hơn 0')
         .nullable(),
     }),
     onSubmit: (values, { setSubmitting }) => {
@@ -92,7 +94,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
         </div>
 
         {/* Form */}
-        <form onSubmit={formik.handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={formik.handleSubmit} noValidate className="p-6 space-y-4">
           {error && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
               <p className="text-sm text-destructive font-medium">{error}</p>
@@ -136,6 +138,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 id="class-max-students"
                 name="maxStudents"
                 type="number"
+                min={1}
                 max={100}
                 value={formik.values.maxStudents}
                 onChange={formik.handleChange}
