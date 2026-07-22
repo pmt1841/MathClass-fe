@@ -7,6 +7,11 @@ export interface SystemLog {
   actor: string
   action: string
   level: 'INFO' | 'WARNING' | 'ERROR'
+  resourceType?: string
+  resourceId?: string
+  ipAddress?: string
+  userAgent?: string
+  status?: 'SUCCESS' | 'FAILED'
 }
 
 export interface Permission {
@@ -32,10 +37,11 @@ export const adminService = {
     return response.data
   },
 
-  getLogs: async (page: number, level?: string, startDate?: string, endDate?: string) => {
+  getLogs: async (page: number, level?: string, resourceType?: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams()
     params.append('page', page.toString())
     if (level && level !== 'ALL') params.append('level', level)
+    if (resourceType && resourceType !== 'ALL') params.append('resourceType', resourceType)
     if (startDate) params.append('startDate', startDate)
     if (endDate) params.append('endDate', endDate)
 
