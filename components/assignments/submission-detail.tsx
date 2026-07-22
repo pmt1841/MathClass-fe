@@ -51,9 +51,10 @@ const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').the
 interface SubmissionDetailProps {
   submissionId: number
   assignmentId: number
+  classCode?: string
 }
 
-export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetailProps) {
+export function SubmissionDetail({ submissionId, assignmentId, classCode }: SubmissionDetailProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const contentContainerRef = useRef<HTMLDivElement>(null)
@@ -293,7 +294,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
       {/* Header Điều Hướng & Thông tin chung */}
       <div className="flex items-center justify-between bg-white px-6 py-3 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-6">
-          <Link href={`/assignments/${assignmentId}/submissions`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors">
+          <Link href={`/assignments/${assignmentId}/submissions${classCode ? `?classCode=${classCode}` : ''}`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Quay lại
           </Link>

@@ -37,7 +37,7 @@ export default async function SubmissionsPage({ params, searchParams }: PageProp
           {isNaN(parsedAssignmentId) ? (
             <div className="text-red-500">ID bài tập không hợp lệ.</div>
           ) : (
-            <SubmissionTable assignmentId={parsedAssignmentId} />
+            <SubmissionTable assignmentId={parsedAssignmentId} classCode={classCode} />
           )}
         </CardContent>
       </Card>

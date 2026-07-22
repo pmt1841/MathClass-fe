@@ -108,15 +108,14 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
     setUserRole(currentRole)
 
-    if (!classCode) {
-      toast.error('Thiếu mã lớp (classCode)')
-      router.push('/assignments')
-      return
-    }
-
     const fetchDetail = async () => {
       try {
-        const data = await classroomService.getClassroomAssignmentDetail(classCode, Number(id))
+        let data: any
+        if (classCode) {
+          data = await classroomService.getClassroomAssignmentDetail(classCode, Number(id))
+        } else {
+          data = await assignmentService.getAssignmentById(Number(id))
+        }
         setAssignment(data)
 
         // Nếu là học sinh, lấy bài nộp của họ
@@ -192,11 +191,17 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const submissionStatusRef = useRef(submissionStatus)
+  useEffect(() => {
+    submissionStatusRef.current = submissionStatus
+  }, [submissionStatus])
+
   const handleAutoSaveDraft = async (content: string) => {
-    if (submissionScore !== null) return;
+    if (submissionScore !== null || submissionStatusRef.current === 'SUBMITTED' || submissionStatusRef.current === 'GRADED') return;
     try {
       setIsSavingExternal(true)
       const res = await saveOrUpdateSubmission(content, 'DRAFT')
+      if (submissionStatusRef.current === 'SUBMITTED' || submissionStatusRef.current === 'GRADED') return;
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
       setLastSavedExternal(new Date())

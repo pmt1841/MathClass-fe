@@ -15,6 +15,9 @@ export interface Assignment {
   submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | null
   submissionCreatedAt?: string
   submissionUpdatedAt?: string
+  publishedClassCodes?: string[]
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface FetchAssignmentsParams {
@@ -22,6 +25,11 @@ interface FetchAssignmentsParams {
   activeTab: string
   searchQuery: string
   selectedClassCode: string
+}
+
+export interface AssignmentSheet extends Assignment {
+  type?: 'ASSIGNMENT' | 'SHEET';
+  items?: Assignment[];
 }
 
 export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode }: FetchAssignmentsParams) {
@@ -42,7 +50,29 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
       }
 
       const data = await assignmentService.getAssignments(params)
-      return (data?.content || []) as Assignment[]
+      let assignments = (data?.content || []) as AssignmentSheet[]
+      assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' }))
+
+      // Only fetch sheets for teacher's ARCHIVED or PUBLISHED, or for student
+      if ((userRole === 'TEACHER' && (activeTab === 'ARCHIVED' || activeTab === 'PUBLISHED')) || userRole === 'STUDENT') {
+        try {
+          const sheetData = await assignmentService.getAssignmentSheets(params)
+          const sheets = (sheetData?.content || []) as AssignmentSheet[]
+          
+          assignments = [...assignments, ...sheets]
+          
+          // Sort by updated at descending
+          assignments.sort((a, b) => {
+             const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime()
+             const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime()
+             return timeB - timeA
+          })
+        } catch (error) {
+          console.error("Failed to fetch assignment sheets", error)
+        }
+      }
+
+      return assignments
     },
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })

@@ -46,12 +46,31 @@ export const assignmentService = {
     return response.data
   },
 
+  getAssignmentSheets: async (params: GetAssignmentsParams) => {
+    const response = await api.get('/assignment-sheets', { params })
+    return response.data
+  },
+
   deleteAssignment: async (id: number) => {
     await api.delete(`/assignments/${id}`)
   },
 
+  deleteAssignmentSheet: async (id: number) => {
+    await api.delete(`/assignment-sheets/${id}`)
+  },
+
+  updateAssignmentSheet: async (id: number, data: { title: string; description?: string }) => {
+    const response = await api.put(`/assignment-sheets/${id}`, data)
+    return response.data
+  },
+
   publishAssignment: async (assignmentId: number, payload: PublishPayload) => {
     const response = await api.put(`/assignments/${assignmentId}/publish`, payload)
+    return response.data
+  },
+
+  publishAssignmentSheet: async (payload: { title: string; description: string; assignmentIds: number[]; targets: { classCode: string; deadline: string }[] }) => {
+    const response = await api.post(`/assignment-sheets/publish`, payload)
     return response.data
   },
 

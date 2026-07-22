@@ -6,6 +6,8 @@ import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, A
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
+import { PublishSheetModal } from '@/components/assignments/publish-sheet-modal'
+import { EditSheetModal } from '@/components/assignments/edit-sheet-modal'
 import { DeleteAssignmentModal } from './delete-assignment-modal'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
@@ -14,19 +16,23 @@ import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { AssignmentCard } from './assignment-card'
 import { parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { assignmentService } from '@/services/assignmentService'
 
 export function AssignmentsPageClient() {
   const router = useRouter()
   const { user } = useAuth()
   const userRole = user?.role || 'STUDENT'
-  const queryClient = useQueryClient()
-  
+
   const [activeTab, setActiveTab] = useState<string>('PENDING')
-  
+  const [selectedAssignments, setSelectedAssignments] = useState<number[]>([])
+  const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
+
   useEffect(() => {
     if (user?.role === 'TEACHER' && activeTab === 'PENDING') {
       setActiveTab('DRAFT')
     }
+    // Clear selections when tab changes
+    setSelectedAssignments([])
   }, [user, activeTab])
 
   const [searchInput, setSearchInput] = useState('')
@@ -40,13 +46,16 @@ export function AssignmentsPageClient() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [deleteTargetTitle, setDeleteTargetTitle] = useState<string>('')
 
+  const [editSheetModalOpen, setEditSheetModalOpen] = useState(false)
+  const [editSheetTarget, setEditSheetTarget] = useState<any>(null)
+
   useEffect(() => {
     const timer = setTimeout(() => setSearchQuery(searchInput), 500)
     return () => clearTimeout(timer)
   }, [searchInput])
 
   const { data: myClasses = [] } = useMyClassrooms()
-  
+
   const { data: assignments = [], isLoading: loading } = useAssignments({
     userRole,
     activeTab,
@@ -54,34 +63,76 @@ export function AssignmentsPageClient() {
     selectedClassCode
   })
 
+  const queryClient = useQueryClient()
   const deleteMutation = useDeleteAssignment()
+  const [deleteIsSheet, setDeleteIsSheet] = useState(false)
 
-  const handleDeleteClick = (id: number, title: string) => {
+  const handleDeleteClick = (id: number, title: string, isSheet?: boolean) => {
     setDeleteTargetId(id)
     setDeleteTargetTitle(title)
+    setDeleteIsSheet(!!isSheet)
     setDeleteModalOpen(true)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteTargetId === null) return
-    deleteMutation.mutate(deleteTargetId, {
-      onSuccess: () => {
-        toast.success('Đã xóa bài tập thành công')
+    if (deleteIsSheet) {
+      try {
+        await assignmentService.deleteAssignmentSheet(deleteTargetId)
+        toast.success('Đã xóa phiếu bài tập thành công')
+        queryClient.invalidateQueries({ queryKey: ['assignments'] })
         setDeleteModalOpen(false)
         setDeleteTargetId(null)
-      },
-      onError: () => toast.error('Xóa bài tập thất bại. Vui lòng thử lại.')
-    })
+      } catch (error) {
+        toast.error('Xóa phiếu bài tập thất bại. Vui lòng thử lại.')
+      }
+    } else {
+      deleteMutation.mutate(deleteTargetId, {
+        onSuccess: () => {
+          toast.success('Đã xóa bài tập thành công')
+          setDeleteModalOpen(false)
+          setDeleteTargetId(null)
+        },
+        onError: () => toast.error('Xóa bài tập thất bại. Vui lòng thử lại.')
+      })
+    }
   }
 
-  const handlePublishClick = (id: number) => {
-    setSelectedAssignmentId(id)
-    setPublishModalOpen(true)
+  const [publishingTarget, setPublishingTarget] = useState<any>(null)
+  const [sheetModalAssignmentIds, setSheetModalAssignmentIds] = useState<number[]>([])
+
+  const handlePublishClick = (id: number, isSheet?: boolean) => {
+    const targetObj = assignments.find((a: any) => a.id === id && (isSheet ? a.type === 'SHEET' : a.type !== 'SHEET'))
+    setPublishingTarget(targetObj || null)
+    if (isSheet) {
+      const itemIds = targetObj?.items?.map((it: any) => it.id) || []
+      setSheetModalAssignmentIds(itemIds)
+      setPublishSheetModalOpen(true)
+    } else {
+      setSelectedAssignmentId(id)
+      setPublishModalOpen(true)
+    }
   }
 
-  const handleEditClick = (id: number, hasSubmissions?: boolean) => {
+  const handleEditClick = (id: number, hasSubmissions?: boolean, isSheet?: boolean) => {
+    if (isSheet) {
+      const sheet = assignments.find((a: any) => a.id === id && a.type === 'SHEET')
+      if (sheet) {
+        setEditSheetTarget(sheet)
+        setEditSheetModalOpen(true)
+      }
+      return
+    }
     if (hasSubmissions) return
     router.push(`/assignments/${id}/edit`)
+  }
+
+  const handleSelectAssignment = (id: number, selected: boolean) => {
+    if (selected) {
+      setSelectedAssignments(prev => [...prev, id])
+    } else {
+      setSelectedAssignments(prev => prev.filter(aId => aId !== id))
+    }
   }
 
   const displayAssignments = assignments.filter(assignment => {
@@ -123,7 +174,7 @@ export function AssignmentsPageClient() {
               <PermissionGuard permission="assignment:create">
                 <Link
                   href="/assignments/create"
-                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
                 >
                   <Plus className="h-4.5 w-4.5" />
                   Tạo bài tập mới
@@ -165,6 +216,20 @@ export function AssignmentsPageClient() {
                 </>
               )}
             </div>
+
+            {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'ARCHIVED') && selectedAssignments.length > 0 && (
+              <button
+                onClick={() => {
+                  setPublishingTarget(null)
+                  setSheetModalAssignmentIds(selectedAssignments)
+                  setPublishSheetModalOpen(true)
+                }}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200"
+              >
+                <Layers className="h-4 w-4" />
+                Giao {selectedAssignments.length} bài thành phiếu
+              </button>
+            )}
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
               {userRole === 'STUDENT' && (
@@ -228,12 +293,15 @@ export function AssignmentsPageClient() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {displayAssignments.map((assignment, index) => (
-                <AssignmentCard 
-                  key={assignment.id} 
-                  assignment={assignment} 
+                <AssignmentCard
+                  key={assignment.type === 'SHEET' ? `sheet-${assignment.id}` : `assignment-${assignment.id}`}
+                  assignment={assignment}
                   userRole={userRole}
                   activeTab={activeTab}
                   index={index}
+                  selectable={userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'ARCHIVED') && assignment.type !== 'SHEET'}
+                  selected={selectedAssignments.includes(assignment.id)}
+                  onSelect={handleSelectAssignment}
                   onEdit={handleEditClick}
                   onDelete={handleDeleteClick}
                   onPublish={handlePublishClick}
@@ -252,6 +320,25 @@ export function AssignmentsPageClient() {
           queryClient.invalidateQueries({ queryKey: ['assignments'] })
         }}
         assignmentId={selectedAssignmentId}
+        publishedClassCodes={publishingTarget?.publishedClassCodes}
+      />
+
+      <PublishSheetModal
+        open={publishSheetModalOpen}
+        assignmentIds={sheetModalAssignmentIds}
+        publishedClassCodes={publishingTarget?.publishedClassCodes}
+        defaultTitle={publishingTarget?.title || ''}
+        defaultDescription={publishingTarget?.description || ''}
+        onClose={() => {
+          setPublishSheetModalOpen(false)
+          setSheetModalAssignmentIds([])
+        }}
+        onSuccess={() => {
+          setPublishSheetModalOpen(false)
+          setSelectedAssignments([])
+          setSheetModalAssignmentIds([])
+          queryClient.invalidateQueries({ queryKey: ['assignments'] })
+        }}
       />
 
       <DeleteAssignmentModal
@@ -261,6 +348,20 @@ export function AssignmentsPageClient() {
         isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <EditSheetModal
+        open={editSheetModalOpen}
+        sheetId={editSheetTarget?.id || null}
+        initialTitle={editSheetTarget?.title || ''}
+        initialDescription={editSheetTarget?.description || ''}
+        onClose={() => {
+          setEditSheetModalOpen(false)
+          setEditSheetTarget(null)
+        }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['assignments'] })
+        }}
       />
     </div>
   )

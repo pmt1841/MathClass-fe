@@ -132,15 +132,20 @@ export function StudentAssignmentLayout({
       setSubmissionContent(newFullContent)
 
       // Auto save after typing
-      if (!isReadOnly && onAutoSave) {
+      if (!isReadOnly && submissionStatus !== 'SUBMITTED' && onAutoSave) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
         saveTimeoutRef.current = setTimeout(() => {
           onAutoSave(newFullContent)
           isDirtyRef.current = false
         }, 5000)
+      } else if (isReadOnly || submissionStatus === 'SUBMITTED') {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+          saveTimeoutRef.current = null
+        }
       }
     }
-  }, [pureContent, studentDrawings])
+  }, [pureContent, studentDrawings, isReadOnly, submissionStatus])
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     isDirtyRef.current = true
@@ -352,8 +357,14 @@ export function StudentAssignmentLayout({
                 <>
                   <button
                     onClick={() => {
-                      isDirtyRef.current = true; // force save
-                      onSaveDraft();
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current)
+                        saveTimeoutRef.current = null
+                      }
+                      isDirtyRef.current = false
+                      const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                      setSubmissionContent(latestFullContent)
+                      onSaveDraft()
                     }}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
@@ -362,7 +373,16 @@ export function StudentAssignmentLayout({
                     Lưu nháp
                   </button>
                   <button
-                    onClick={onSubmit}
+                    onClick={() => {
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current)
+                        saveTimeoutRef.current = null
+                      }
+                      isDirtyRef.current = false
+                      const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                      setSubmissionContent(latestFullContent)
+                      onSubmit()
+                    }}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 shadow-sm active:scale-95 transition-all disabled:opacity-50"
                   >
@@ -372,7 +392,14 @@ export function StudentAssignmentLayout({
                 </>
               ) : (
                 <button
-                  onClick={onUnsubmit}
+                  onClick={() => {
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current)
+                      saveTimeoutRef.current = null
+                    }
+                    isDirtyRef.current = false
+                    onUnsubmit()
+                  }}
                   disabled={isSavingExternal}
                   className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
                 >

@@ -1,12 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
 import { toast } from 'sonner'
 import { Assignment } from '@/types'
 import { AssignmentRow } from './assignment-row'
+import { PermissionGuard } from '@/components/ui/with-permission'
+import { assignmentService } from '@/services/assignmentService'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
 
 export function AssignmentsTab({ classCode }: { classCode: string }) {
+  const router = useRouter()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState('')
@@ -22,20 +26,38 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const fetchAssignments = useCallback(async () => {
     try {
       setLoading(true)
-      const params = { 
-        page, 
-        size, 
+      const params = {
+        page,
+        size,
         status: 'PUBLISHED',
-        keyword: keyword.trim() || undefined 
+        keyword: keyword.trim() || undefined
       }
-      const data = await classroomService.getClassroomAssignments(classCode, params)
+      const [data, sheetsData] = await Promise.all([
+        classroomService.getClassroomAssignments(classCode, params),
+        assignmentService.getAssignmentSheets({ classCode, status: 'PUBLISHED' })
+      ])
+
+      let allAssignments: any[] = []
+      const sheetsList = Array.isArray(sheetsData) ? sheetsData : (sheetsData?.content || [])
+
       if (data?.content !== undefined) {
-        setAssignments(data.content)
+        allAssignments = [...data.content]
         setTotalPages(data.totalPages)
-        setTotalElements(data.totalElements)
+        setTotalElements(data.totalElements + sheetsList.length)
       } else {
-        setAssignments(Array.isArray(data) ? data : [])
+        allAssignments = [...(Array.isArray(data) ? data : [])]
       }
+
+      // Merge sheets if page is 0, or handle them consistently
+      if (sheetsList.length > 0 && page === 0 && !keyword.trim()) {
+        const mappedSheets = sheetsList.map((sheet: any) => ({
+          ...sheet,
+          isSheet: true
+        }))
+        allAssignments = [...mappedSheets, ...allAssignments]
+      }
+
+      setAssignments(allAssignments)
     } catch (err: any) {
       toast.error('Không thể tải danh sách bài tập')
     } finally {
@@ -149,13 +171,93 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {assignments.map((assignment) => (
-              <AssignmentRow
-                key={assignment.id}
-                assignment={assignment}
-                onPublish={() => openPublishModal(assignment)}
-              />
-            ))}
+            {assignments.map((assignment: any) => {
+              if (assignment.isSheet) {
+                return (
+                  <details
+                    key={`sheet-${assignment.id}`}
+                    className="group flex flex-col bg-white [&_summary::-webkit-details-marker]:hidden"
+                  >
+                    <summary className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-primary-50/50 transition-colors border-b border-slate-100">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                          <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{assignment.title} (Phiếu bài tập)</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {assignment.items?.length || 0} bài tập
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex justify-end">
+                          <div className="flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors border border-primary/20">
+                            Mở phiếu
+                            <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
+                          </div>
+                        </div>
+                      </div>
+                    </summary>
+                    <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-2">
+                      {assignment.items?.map((item: any, i: number) => (
+                        <div key={item.id} className="group flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all ml-12">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="text-sm font-semibold text-slate-500 w-5">{i + 1}.</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{item.title}</p>
+                            </div>
+                          </div>
+
+                          <span className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 flex-shrink-0">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Đã giao
+                          </span>
+
+                          <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                            <button
+                              onClick={() => {
+                                const url = `/assignments/${item.id}/submissions?classCode=${classCode}`
+                                router.push(url)
+                              }}
+                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+                              title="Xem bài nộp"
+                            >
+                              <ListChecks className="h-3.5 w-3.5" />
+                              Bài nộp
+                            </button>
+
+                            <PermissionGuard permission="assignment:update">
+                              <button
+                                onClick={() => {
+                                  const url = classCode
+                                    ? `/assignments/${item.id}/edit?returnUrl=/classes/${classCode}`
+                                    : `/assignments/${item.id}/edit`
+                                  router.push(url)
+                                }}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
+                                title="Chỉnh sửa bài tập"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Sửa
+                              </button>
+                            </PermissionGuard>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )
+              }
+
+              return (
+                <AssignmentRow
+                  key={assignment.id}
+                  assignment={assignment}
+                  onPublish={() => openPublishModal(assignment)}
+                />
+              )
+            })}
           </div>
         )}
 
