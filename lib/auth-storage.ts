@@ -77,7 +77,14 @@ export const authStorage = {
         return null
       }
     }
-    // Fallback cleanup (optional, left just in case)
+    const localData = localStorage.getItem(AUTH_KEYS.USER_INFO)
+    if (localData) {
+      try {
+        return JSON.parse(localData)
+      } catch (e) {
+        return null
+      }
+    }
     return null
   },
 

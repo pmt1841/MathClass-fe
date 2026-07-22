@@ -46,7 +46,7 @@ describe('HomeClient', () => {
     render(<HomeClient />)
     
     await waitFor(() => {
-      expect(screen.getByText('Đang xác thực thông tin...')).toBeInTheDocument()
+      expect(screen.getByText('Đang tải giao diện...')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('student-dashboard')).not.toBeInTheDocument()
     expect(screen.queryByTestId('teacher-dashboard')).not.toBeInTheDocument()
