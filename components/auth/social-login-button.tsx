@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { handleApiError } from '@/lib/utils/error-handler'
 import api from '@/lib/axios'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   provider: 'google'
@@ -20,6 +21,7 @@ interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
 export function SocialLoginButton({ provider, label, expectedRole, ...props }: SocialLoginButtonProps) {
   const router = useRouter()
   const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
   const googleAuthMutation = useGoogleAuth()
 
   const login = useGoogleLogin({
@@ -40,6 +42,9 @@ export function SocialLoginButton({ provider, label, expectedRole, ...props }: S
               toast.error('Đăng nhập Google thất bại');
               return;
             }
+
+            // Xóa cache các query của tài khoản trước đó (nếu có)
+            queryClient.clear()
 
             // Dispatch user data to Redux Store
             dispatch(setAuth({

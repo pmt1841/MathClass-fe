@@ -8,12 +8,14 @@ import { AxiosError } from 'axios'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { setAuth } from '@/lib/redux/features/authSlice'
 import api from '@/lib/axios'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function useLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
   const router = useRouter()
   const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
 
   const login = async (credentials: LoginCredentials, rememberMe: boolean, expectedRole?: string) => {
     setIsLoading(true)
@@ -31,6 +33,9 @@ export function useLogin() {
         setIsLoading(false)
         return
       }
+
+      // Xóa cache các query của tài khoản trước đó (nếu có)
+      queryClient.clear()
 
       // Cập nhật Redux Store
       dispatch(setAuth({
