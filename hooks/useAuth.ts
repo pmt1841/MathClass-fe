@@ -18,6 +18,9 @@ export function useAuth() {
     } catch (e) {
       console.error('Logout error', e)
     }
+    if (typeof document !== 'undefined') {
+      document.cookie = 'mathclass_role=; path=/; max-age=0; SameSite=Lax'
+    }
     dispatch(logoutSuccess())
     router.push('/')
   }

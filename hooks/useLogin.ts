@@ -41,6 +41,11 @@ export function useLogin() {
         role: role
       }))
 
+      // Lưu cookie mathclass_role cho middleware nhận diện vai trò tức thì
+      if (typeof document !== 'undefined') {
+        document.cookie = `mathclass_role=${role}; path=/; max-age=86400; SameSite=Lax`
+      }
+
       if (rememberMe) {
         localStorage.setItem(AUTH_KEYS.REMEMBERED_EMAIL, credentials.email)
       } else {
