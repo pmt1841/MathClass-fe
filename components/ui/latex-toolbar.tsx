@@ -65,7 +65,7 @@ export function LatexToolbar({ onInsert, onFormatText }: LatexToolbarProps) {
   }, [])
 
   if (!mounted) {
-    return null
+    return <div className="h-[110px] bg-slate-50 border-b border-slate-200" />
   }
 
   return (
