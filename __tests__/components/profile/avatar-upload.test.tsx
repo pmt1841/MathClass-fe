@@ -28,7 +28,7 @@ describe('AvatarUpload', () => {
   it('renders correctly with placeholder when no avatarUrl is provided', () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <AvatarUpload avatarUrl={undefined} fullName="John Doe" />
+        <AvatarUpload currentAvatarUrl={undefined} fullName="John Doe" />
       </QueryClientProvider>
     )
 
@@ -38,7 +38,7 @@ describe('AvatarUpload', () => {
   it.skip('renders image when avatarUrl is provided', () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <AvatarUpload avatarUrl="https://example.com/avatar.png" fullName="John Doe" />
+        <AvatarUpload currentAvatarUrl="https://example.com/avatar.png" fullName="John Doe" />
       </QueryClientProvider>
     )
 
@@ -50,7 +50,7 @@ describe('AvatarUpload', () => {
   it('calls upload mutation when a file is selected', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <AvatarUpload avatarUrl={undefined} fullName="John Doe" />
+        <AvatarUpload currentAvatarUrl={undefined} fullName="John Doe" />
       </QueryClientProvider>
     )
 

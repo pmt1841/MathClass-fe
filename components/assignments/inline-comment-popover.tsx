@@ -75,43 +75,56 @@ export function InlineCommentPopover({ onAddComment, isAdding, position, onClose
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-[500px] p-4 shadow-xl" 
+          className="w-[90vw] max-w-[420px] max-h-[var(--radix-popover-content-available-height)] p-3 shadow-xl z-[9999] overflow-hidden flex flex-col" 
           align="start" 
-          sideOffset={10}
+          side="top"
+          sideOffset={6}
+          collisionPadding={8}
+          avoidCollisions={true}
           onInteractOutside={(e) => {
             if (isAdding) {
               e.preventDefault()
             }
           }}
         >
-          <div className="space-y-3 w-full">
-            <h4 className="font-semibold text-sm text-slate-800">Thêm nhận xét</h4>
-            <div className="border border-slate-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
-              <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
-              <Textarea
-                ref={textareaRef}
-                placeholder="Nhập nội dung nhận xét..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[80px] max-h-[140px] overflow-y-auto text-sm border-0 focus-visible:ring-0 rounded-none resize-none p-3"
-              />
-            </div>
-            {content && (
-              <div className="p-2 bg-slate-50 rounded border border-slate-100 text-sm max-h-[100px] overflow-y-auto">
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath, remarkGfm]}
-                  rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
-                  components={markdownComponents}
-                >
-                  {content}
-                </ReactMarkdown>
+          <div className="flex flex-col h-full max-h-full overflow-hidden gap-2">
+            <h4 className="font-semibold text-sm text-slate-800 shrink-0">Thêm nhận xét</h4>
+            
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5">
+              <div className="border border-slate-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
+                <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Nhập nội dung nhận xét..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[50px] max-h-[80px] text-sm border-0 focus-visible:ring-0 rounded-none resize-none p-2"
+                />
               </div>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose} disabled={isAdding}>
+
+              <div className="px-2 py-1 bg-slate-50 rounded border border-slate-200 text-xs text-slate-600 flex items-center gap-1.5 overflow-hidden h-7 shrink-0">
+                <span className="font-medium text-slate-500 shrink-0 select-none">Xem trước:</span>
+                <div className="line-clamp-1 text-slate-700 flex-1 [&_p]:inline [&_p]:m-0 [&_p]:p-0 truncate">
+                  {content.trim() ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                      components={markdownComponents}
+                    >
+                      {content}
+                    </ReactMarkdown>
+                  ) : (
+                    <span className="text-slate-400 italic">Chưa có nội dung...</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 shrink-0 pt-2 border-t border-slate-100 bg-white">
+              <Button variant="outline" size="sm" onClick={onClose} disabled={isAdding} className="h-7 text-xs px-3">
                 Hủy
               </Button>
-              <Button size="sm" onClick={handleAdd} disabled={!content.trim() || isAdding}>
+              <Button size="sm" onClick={handleAdd} disabled={!content.trim() || isAdding} className="h-7 text-xs px-3 bg-blue-600 hover:bg-blue-700">
                 {isAdding ? 'Đang lưu...' : 'Nhận xét'}
               </Button>
             </div>
