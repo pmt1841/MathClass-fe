@@ -18,6 +18,7 @@ export interface Assignment {
   publishedClassCodes?: string[]
   createdAt?: string
   updatedAt?: string
+  maxScore?: number
 }
 
 interface FetchAssignmentsParams {
@@ -37,42 +38,64 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
     queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode],
     queryFn: async () => {
       const params: any = {}
-      if (userRole === 'TEACHER') {
-        params.status = activeTab
-      } else {
-        params.status = 'PUBLISHED'
-        if (selectedClassCode) {
-          params.classCode = selectedClassCode
-        }
-      }
       if (searchQuery) {
         params.keyword = searchQuery
       }
 
-      const data = await assignmentService.getAssignments(params)
-      let assignments = (data?.content || []) as AssignmentSheet[]
-      assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' }))
+      const sortByNewest = (list: AssignmentSheet[]) => {
+        return list.sort((a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          if (timeA !== timeB) {
+            return timeB - timeA
+          }
+          return (b.id || 0) - (a.id || 0)
+        })
+      }
 
-      // Only fetch sheets for teacher's ARCHIVED or PUBLISHED, or for student
-      if ((userRole === 'TEACHER' && (activeTab === 'ARCHIVED' || activeTab === 'PUBLISHED')) || userRole === 'STUDENT') {
-        try {
+      if (userRole === 'TEACHER') {
+        if (activeTab === 'DRAFT') {
+          params.status = 'DRAFT'
+          const data = await assignmentService.getAssignments(params)
+          let assignments = (data?.content || []) as AssignmentSheet[]
+          assignments = sortByNewest(assignments)
+          return assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+        }
+
+        if (activeTab === 'SINGLE') {
+          params.status = 'ARCHIVED'
+          const data = await assignmentService.getAssignments(params)
+          let assignments = (data?.content || []) as AssignmentSheet[]
+          assignments = sortByNewest(assignments)
+          return assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+        }
+
+        if (activeTab === 'SHEET') {
           const sheetData = await assignmentService.getAssignmentSheets(params)
-          const sheets = (sheetData?.content || []) as AssignmentSheet[]
-          
-          assignments = [...assignments, ...sheets]
-          
-          // Sort by updated at descending
-          assignments.sort((a, b) => {
-             const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime()
-             const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime()
-             return timeB - timeA
-          })
-        } catch (error) {
-          console.error("Failed to fetch assignment sheets", error)
+          let sheets = (sheetData?.content || []) as AssignmentSheet[]
+          return sortByNewest(sheets)
         }
       }
 
-      return assignments
+      // Student logic
+      params.status = 'PUBLISHED'
+      if (selectedClassCode) {
+        params.classCode = selectedClassCode
+      }
+
+      const data = await assignmentService.getAssignments(params)
+      let assignments = (data?.content || []) as AssignmentSheet[]
+      assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+
+      try {
+        const sheetData = await assignmentService.getAssignmentSheets(params)
+        const sheets = (sheetData?.content || []) as AssignmentSheet[]
+        assignments = [...assignments, ...sheets]
+      } catch (error) {
+        console.error("Failed to fetch assignment sheets", error)
+      }
+
+      return sortByNewest(assignments)
     },
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })

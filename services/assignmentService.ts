@@ -59,8 +59,13 @@ export const assignmentService = {
     await api.delete(`/assignment-sheets/${id}`)
   },
 
-  updateAssignmentSheet: async (id: number, data: { title: string; description?: string }) => {
+  updateAssignmentSheet: async (id: number, data: { title: string; description?: string; itemScores?: { assignmentId: number; maxScore: number }[] }) => {
     const response = await api.put(`/assignment-sheets/${id}`, data)
+    return response.data
+  },
+
+  getCompletedStudentsBySheet: async (sheetId: number, params?: { classCode?: string; page?: number; size?: number; sort?: string }) => {
+    const response = await api.get(`/assignment-sheets/${sheetId}/completed-students`, { params })
     return response.data
   },
 
@@ -69,7 +74,7 @@ export const assignmentService = {
     return response.data
   },
 
-  publishAssignmentSheet: async (payload: { title: string; description: string; assignmentIds: number[]; targets: { classCode: string; deadline: string }[] }) => {
+  publishAssignmentSheet: async (payload: { title: string; description: string; assignmentIds: number[]; itemScores?: { assignmentId: number; maxScore: number }[]; targets: { classCode: string; deadline: string }[] }) => {
     const response = await api.post(`/assignment-sheets/publish`, payload)
     return response.data
   },

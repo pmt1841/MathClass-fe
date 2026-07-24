@@ -18,6 +18,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const [size, setSize] = useState(10)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
+  const [activeTab, setActiveTab] = useState<'individual' | 'sheet'>('individual')
 
   // Publish modal state
   const [publishModalOpen, setPublishModalOpen] = useState(false)
@@ -32,38 +33,28 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
         status: 'PUBLISHED',
         keyword: keyword.trim() || undefined
       }
-      const [data, sheetsData] = await Promise.all([
-        classroomService.getClassroomAssignments(classCode, params),
-        assignmentService.getAssignmentSheets({ classCode, status: 'PUBLISHED' })
-      ])
-
-      let allAssignments: any[] = []
-      const sheetsList = Array.isArray(sheetsData) ? sheetsData : (sheetsData?.content || [])
-
-      if (data?.content !== undefined) {
-        allAssignments = [...data.content]
-        setTotalPages(data.totalPages)
-        setTotalElements(data.totalElements + sheetsList.length)
+      if (activeTab === 'individual') {
+        const data = await classroomService.getClassroomAssignments(classCode, params)
+        setAssignments(data?.content !== undefined ? data.content : (Array.isArray(data) ? data : []))
+        setTotalPages(data?.totalPages || 0)
+        setTotalElements(data?.totalElements || 0)
       } else {
-        allAssignments = [...(Array.isArray(data) ? data : [])]
-      }
-
-      // Merge sheets if page is 0, or handle them consistently
-      if (sheetsList.length > 0 && page === 0 && !keyword.trim()) {
+        const sheetsData = await assignmentService.getAssignmentSheets({ ...params, classCode, status: 'PUBLISHED' })
+        const sheetsList = sheetsData?.content !== undefined ? sheetsData.content : (Array.isArray(sheetsData) ? sheetsData : [])
         const mappedSheets = sheetsList.map((sheet: any) => ({
           ...sheet,
           isSheet: true
         }))
-        allAssignments = [...mappedSheets, ...allAssignments]
+        setAssignments(mappedSheets)
+        setTotalPages(sheetsData?.totalPages || 0)
+        setTotalElements(sheetsData?.totalElements || 0)
       }
-
-      setAssignments(allAssignments)
     } catch (err: any) {
       toast.error('Không thể tải danh sách bài tập')
     } finally {
       setLoading(false)
     }
-  }, [classCode, keyword, page, size])
+  }, [classCode, keyword, page, size, activeTab])
 
   useEffect(() => {
     fetchAssignments()
@@ -103,9 +94,32 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             <div>
               <h2 className="text-sm font-bold text-foreground">Danh sách bài tập</h2>
               <p className="text-xs text-muted-foreground">
-                {loading ? 'Đang tải...' : `${totalElements} bài tập`}
+                {loading ? 'Đang tải...' : `${totalElements} ${activeTab === 'individual' ? 'bài tập' : 'phiếu bài tập'}`}
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center bg-slate-100/80 p-1 rounded-xl">
+            <button
+              onClick={() => { setActiveTab('individual'); setPage(0) }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'individual' 
+                  ? 'bg-white text-primary shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
+            >
+              Bài tập lẻ
+            </button>
+            <button
+              onClick={() => { setActiveTab('sheet'); setPage(0) }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'sheet' 
+                  ? 'bg-white text-primary shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
+            >
+              Phiếu bài tập
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -162,10 +176,10 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                {keyword ? 'Không tìm thấy bài tập phù hợp' : 'Chưa có bài tập nào'}
+                {keyword ? 'Không tìm thấy kết quả phù hợp' : (activeTab === 'individual' ? 'Chưa có bài tập nào' : 'Chưa có phiếu bài tập nào')}
               </p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                {keyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : 'Tạo bài tập mới và giao cho lớp này.'}
+                {keyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : (activeTab === 'individual' ? 'Tạo bài tập mới và giao cho lớp này.' : 'Tạo phiếu bài tập mới và giao cho lớp này.')}
               </p>
             </div>
           </div>
@@ -191,7 +205,20 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                             </span>
                           </div>
                         </div>
-                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex justify-end">
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex justify-end gap-2 items-center">
+                          {assignment.items && assignment.items.length > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                router.push(`/assignments/sheets/${assignment.id}/submissions?classCode=${classCode}`)
+                              }}
+                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+                              title="Xem bài nộp của phiếu"
+                            >
+                              <ListChecks className="h-3.5 w-3.5" />
+                              Bài nộp
+                            </button>
+                          )}
                           <div className="flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors border border-primary/20">
                             Mở phiếu
                             <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
@@ -204,8 +231,13 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                         <div key={item.id} className="group flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all ml-12">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <span className="text-sm font-semibold text-slate-500 w-5">{i + 1}.</span>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
                               <p className="text-sm font-semibold text-slate-800 truncate">{item.title}</p>
+                              {item.maxScore !== undefined && item.maxScore !== null && (
+                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
+                                  {item.maxScore} đ
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -215,17 +247,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                           </span>
 
                           <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                            <button
-                              onClick={() => {
-                                const url = `/assignments/${item.id}/submissions?classCode=${classCode}`
-                                router.push(url)
-                              }}
-                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
-                              title="Xem bài nộp"
-                            >
-                              <ListChecks className="h-3.5 w-3.5" />
-                              Bài nộp
-                            </button>
+
 
                             <PermissionGuard permission="assignment:update">
                               <button

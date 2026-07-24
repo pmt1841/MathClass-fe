@@ -129,6 +129,10 @@ export function AssignmentsPageClient() {
 
   const handleSelectAssignment = (id: number, selected: boolean) => {
     if (selected) {
+      if (selectedAssignments.length >= 5) {
+        toast.error('Chỉ được chọn tối đa 5 bài tập cho một phiếu')
+        return
+      }
       setSelectedAssignments(prev => [...prev, id])
     } else {
       setSelectedAssignments(prev => prev.filter(aId => aId !== id))
@@ -192,11 +196,14 @@ export function AssignmentsPageClient() {
             <div className="flex bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto">
               {userRole === 'TEACHER' ? (
                 <>
-                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <Edit className="h-4 w-4" /> Bản nháp
                   </button>
-                  <button onClick={() => setActiveTab('ARCHIVED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ARCHIVED' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Layers className="h-4 w-4" /> Kho lưu trữ
+                  <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <BookOpen className="h-4 w-4" /> Bài tập lẻ
+                  </button>
+                  <button onClick={() => setActiveTab('SHEET')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Layers className="h-4 w-4" /> Phiếu bài tập
                   </button>
                 </>
               ) : (
@@ -217,7 +224,7 @@ export function AssignmentsPageClient() {
               )}
             </div>
 
-            {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'ARCHIVED') && selectedAssignments.length > 0 && (
+            {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && selectedAssignments.length > 0 && (
               <button
                 onClick={() => {
                   setPublishingTarget(null)
@@ -259,14 +266,19 @@ export function AssignmentsPageClient() {
           </div>
 
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={activeTab === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between">
+                <div
+                  key={i}
+                  className={`rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between ${
+                    activeTab === 'SHEET' ? 'h-24' : 'h-48'
+                  }`}
+                >
                   <div className="space-y-3">
                     <div className="h-6 bg-slate-200 rounded w-3/4" />
-                    <div className="h-4 bg-slate-100 rounded w-full" />
+                    <div className="h-4 bg-slate-100 rounded w-1/2" />
                   </div>
-                  <div className="h-10 bg-slate-100 rounded-xl" />
+                  {activeTab !== 'SHEET' && <div className="h-10 bg-slate-100 rounded-xl" />}
                 </div>
               ))}
             </div>
@@ -280,7 +292,9 @@ export function AssignmentsPageClient() {
                 {userRole === 'TEACHER'
                   ? activeTab === 'DRAFT'
                     ? 'Bạn chưa tạo bản nháp nào. Hãy bắt đầu bằng cách tạo bài tập mới.'
-                    : 'Kho lưu trữ của bạn đang trống.'
+                    : activeTab === 'SINGLE'
+                      ? 'Kho bài tập lẻ của bạn đang trống.'
+                      : 'Bạn chưa tạo phiếu bài tập nào.'
                   : activeTab === 'PENDING'
                     ? 'Bạn không có bài tập nào cần làm lúc này.'
                     : activeTab === 'SUBMITTED'
@@ -291,7 +305,7 @@ export function AssignmentsPageClient() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={activeTab === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
               {displayAssignments.map((assignment, index) => (
                 <AssignmentCard
                   key={assignment.type === 'SHEET' ? `sheet-${assignment.id}` : `assignment-${assignment.id}`}
@@ -299,7 +313,8 @@ export function AssignmentsPageClient() {
                   userRole={userRole}
                   activeTab={activeTab}
                   index={index}
-                  selectable={userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'ARCHIVED') && assignment.type !== 'SHEET'}
+                  isHorizontal={activeTab === 'SHEET'}
+                  selectable={userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && assignment.type !== 'SHEET'}
                   selected={selectedAssignments.includes(assignment.id)}
                   onSelect={handleSelectAssignment}
                   onEdit={handleEditClick}
@@ -326,6 +341,7 @@ export function AssignmentsPageClient() {
       <PublishSheetModal
         open={publishSheetModalOpen}
         assignmentIds={sheetModalAssignmentIds}
+        assignments={displayAssignments.filter(a => sheetModalAssignmentIds.includes(a.id)).map(a => ({ id: a.id, title: a.title }))}
         publishedClassCodes={publishingTarget?.publishedClassCodes}
         defaultTitle={publishingTarget?.title || ''}
         defaultDescription={publishingTarget?.description || ''}
@@ -355,6 +371,7 @@ export function AssignmentsPageClient() {
         sheetId={editSheetTarget?.id || null}
         initialTitle={editSheetTarget?.title || ''}
         initialDescription={editSheetTarget?.description || ''}
+        items={editSheetTarget?.items || []}
         onClose={() => {
           setEditSheetModalOpen(false)
           setEditSheetTarget(null)

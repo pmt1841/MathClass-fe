@@ -1,3 +1,4 @@
+import { useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -6,13 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Save } from 'lucide-react'
 
-export const gradeSchema = z.object({
+export const createGradeSchema = (maxScore: number = 10) => z.object({
   score: z
     .string()
     .min(1, 'Vui lòng nhập điểm số')
     .refine((val) => !isNaN(Number(val)), { message: 'Điểm phải là một số hợp lệ' })
     .refine((val) => Number(val) >= 0, { message: 'Điểm tối thiểu là 0' })
-    .refine((val) => Number(val) <= 10, { message: 'Điểm tối đa là 10' })
+    .refine((val) => Number(val) <= maxScore, { message: `Điểm tối đa là ${maxScore}` })
     .refine(
       (val) => {
         const num = Number(val)
@@ -24,6 +25,8 @@ export const gradeSchema = z.object({
   teacherFeedback: z.string().optional(),
 })
 
+export const gradeSchema = createGradeSchema(10)
+
 export type GradeFormValues = z.infer<typeof gradeSchema>
 
 interface SubmissionGradeFormProps {
@@ -31,6 +34,7 @@ interface SubmissionGradeFormProps {
   initialFeedback: string
   isSubmitting: boolean
   isDraft: boolean
+  maxScore?: number
   onSubmit: (values: GradeFormValues) => void
 }
 
@@ -39,15 +43,22 @@ export function SubmissionGradeForm({
   initialFeedback, 
   isSubmitting, 
   isDraft, 
+  maxScore = 10,
   onSubmit 
 }: SubmissionGradeFormProps) {
+  const schema = useMemo(() => createGradeSchema(maxScore), [maxScore])
   const form = useForm<GradeFormValues>({
-    resolver: zodResolver(gradeSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       score: initialScore,
       teacherFeedback: initialFeedback,
     },
   })
+
+  useEffect(() => {
+    form.setValue('score', initialScore)
+    form.setValue('teacherFeedback', initialFeedback)
+  }, [initialScore, initialFeedback, form])
 
   return (
     <div className="flex items-center gap-4">
@@ -64,7 +75,7 @@ export function SubmissionGradeForm({
                     type="number"
                     step="0.1"
                     min="0"
-                    max="10"
+                    max={maxScore}
                     className="w-20 h-8 text-center font-bold bg-white focus-visible:ring-blue-500"
                     {...field}
                   />
@@ -72,7 +83,7 @@ export function SubmissionGradeForm({
               </FormItem>
             )}
           />
-          <span className="text-sm text-slate-400 font-medium">/ 10</span>
+          <span className="text-sm text-slate-400 font-medium">/ {maxScore}</span>
         </form>
       </Form>
       

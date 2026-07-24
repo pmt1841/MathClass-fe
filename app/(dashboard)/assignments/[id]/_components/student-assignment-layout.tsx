@@ -13,6 +13,8 @@ import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import { CountdownTimer } from './countdown-timer'
@@ -45,13 +47,7 @@ export const embedDrawings = (content: string, drawings: any[]) => {
 }
 
 interface StudentAssignmentLayoutProps {
-  assignment: {
-    title: string
-    description: string
-    content: string
-    deadline: string
-    images?: any[]
-  }
+  assignment: any
   submissionContent: string
   setSubmissionContent: (val: string) => void
   isReadOnly: boolean
@@ -300,6 +296,9 @@ export function StudentAssignmentLayout({
     })
   }
 
+  const searchParams = useSearchParams()
+  const classCodeUrl = searchParams.get('classCode') || ''
+  
   const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
 
@@ -320,9 +319,37 @@ export function StudentAssignmentLayout({
               {fromText}
             </span>
             <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[300px]" title={assignment.title}>
+            <span className="text-slate-900 truncate max-w-[200px]" title={assignment.title}>
               {assignment.title}
             </span>
+            
+            {/* Nav Buttons for Sheet */}
+            {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
+                {assignment.sheetSiblings.map((sibling: any, idx: number) => {
+                  const isActive = sibling.id === assignment.id
+                  const isSubmitted = sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED'
+                  return (
+                    <Link
+                      key={sibling.id}
+                      replace
+                      href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
+                      className={`
+                        w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
+                        ${isActive 
+                          ? 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
+                          : isSubmitted 
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                      `}
+                      title={sibling.title}
+                    >
+                      {idx + 1}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 

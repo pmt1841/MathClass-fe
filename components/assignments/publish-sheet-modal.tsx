@@ -23,6 +23,7 @@ interface TargetClassEntry {
 interface PublishSheetModalProps {
   open: boolean
   assignmentIds: number[]
+  assignments?: { id: number, title: string }[]
   publishedClassCodes?: string[]
   defaultTitle?: string
   defaultDescription?: string
@@ -35,6 +36,7 @@ const EMPTY_CLASS_CODES: string[] = []
 export function PublishSheetModal({
   open,
   assignmentIds,
+  assignments = [],
   publishedClassCodes = EMPTY_CLASS_CODES,
   defaultTitle = '',
   defaultDescription = '',
@@ -47,6 +49,7 @@ export function PublishSheetModal({
   const [targets, setTargets] = useState<TargetClassEntry[]>([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [scoresMap, setScoresMap] = useState<{ [id: number]: string }>({})
 
   const publishedKey = publishedClassCodes ? publishedClassCodes.join(',') : ''
 
@@ -67,7 +70,17 @@ export function PublishSheetModal({
     )
     setTitle(defaultTitle)
     setDescription(defaultDescription)
-  }, [open, myClasses, publishedKey, defaultTitle, defaultDescription, loadingClasses])
+
+    // Default score split equally among items
+    if (assignmentIds && assignmentIds.length > 0) {
+      const defaultPerItem = (Math.floor((10 / assignmentIds.length) * 10) / 10).toString()
+      const initialMap: { [id: number]: string } = {}
+      assignmentIds.forEach(id => {
+        initialMap[id] = defaultPerItem
+      })
+      setScoresMap(initialMap)
+    }
+  }, [open, myClasses, publishedKey, defaultTitle, defaultDescription, loadingClasses, assignmentIds])
 
   const getDefaultDeadline = () => {
     const d = new Date()
@@ -96,6 +109,26 @@ export function PublishSheetModal({
     )
   }
 
+  const autoSplitScores = () => {
+    if (!assignmentIds || assignmentIds.length === 0) return
+    const defaultPerItem = (Math.floor((10 / assignmentIds.length) * 10) / 10).toString()
+    const newMap: { [id: number]: string } = {}
+    assignmentIds.forEach(id => {
+      newMap[id] = defaultPerItem
+    })
+    setScoresMap(newMap)
+  }
+
+  const currentTotalScore = assignmentIds.reduce((sum, id) => {
+    const val = parseFloat(scoresMap[id] || '0')
+    return sum + (isNaN(val) ? 0 : val)
+  }, 0)
+
+  const hasNegativeScore = assignmentIds.some(id => {
+    const val = parseFloat(scoresMap[id] || '0')
+    return !isNaN(val) && val < 0
+  })
+
   const selectedTargets = targets.filter((t) => t.selected)
 
   const handlePublish = () => {
@@ -113,10 +146,24 @@ export function PublishSheetModal({
       return
     }
 
+    if (hasNegativeScore) {
+      toast.error('Điểm tối đa từng câu không được là số âm')
+      return
+    }
+
+    if (currentTotalScore > 10.0001) {
+      toast.error(`Tổng điểm các câu (${currentTotalScore.toFixed(1)} điểm) không được vượt quá 10 điểm`)
+      return
+    }
+
     const payloadTargets = selectedTargets.map((t) => ({ classCode: t.classCode, deadline: t.deadline }))
+    const itemScores = assignmentIds.map((id) => ({
+      assignmentId: id,
+      maxScore: parseFloat(scoresMap[id] || '0')
+    }))
 
     publishMutation.mutate(
-      { title, description, assignmentIds, targets: payloadTargets },
+      { title, description, assignmentIds, itemScores, targets: payloadTargets },
       {
         onSuccess: () => {
           toast.success(`Đã giao phiếu bài tập "${title}" thành công!`)
@@ -183,6 +230,55 @@ export function PublishSheetModal({
                      : 'bg-white text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20'
                  }`}
                />
+             </div>
+
+             <div>
+               <div className="flex items-center justify-between mb-1.5">
+                 <label className="text-xs font-semibold text-slate-700">
+                   Điểm tối đa từng câu
+                 </label>
+                 <div className="flex items-center gap-2">
+                   <span className={`text-xs font-bold ${hasNegativeScore || currentTotalScore > 10 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                     Tổng điểm: {currentTotalScore.toFixed(1)} / 10
+                   </span>
+                   <button
+                     type="button"
+                     onClick={autoSplitScores}
+                     className="text-[11px] text-primary hover:underline font-medium"
+                   >
+                     Chia đều
+                   </button>
+                 </div>
+               </div>
+
+               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 space-y-1.5 max-h-40 overflow-y-auto">
+                 {assignmentIds.map((id, index) => {
+                   const assignment = assignments?.find(a => a.id === id)
+                   const title = assignment ? assignment.title : `Câu ${index + 1}`
+                   return (
+                     <div key={id} className="flex items-center justify-between text-xs bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                       <span className="font-semibold text-slate-700 truncate pr-2 flex-1">
+                         {index + 1}. {title}
+                       </span>
+                       <div className="flex items-center gap-1 flex-shrink-0">
+                         <input
+                           type="number"
+                           step="0.5"
+                           min="0"
+                           max="10"
+                           value={scoresMap[id] || ''}
+                           onChange={(e) => {
+                             const val = e.target.value
+                             setScoresMap(prev => ({ ...prev, [id]: val }))
+                           }}
+                           className="w-16 h-7 px-2 text-center rounded border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary"
+                         />
+                         <span className="text-slate-400 font-medium">điểm</span>
+                       </div>
+                     </div>
+                   )
+                 })}
+               </div>
              </div>
           </div>
 

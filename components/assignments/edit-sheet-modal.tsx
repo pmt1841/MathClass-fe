@@ -17,6 +17,7 @@ interface EditSheetModalProps {
   sheetId: number | null
   initialTitle?: string
   initialDescription?: string
+  items?: { id: number; title: string; maxScore?: number }[]
   onClose: () => void
   onSuccess: () => void
 }
@@ -26,19 +27,53 @@ export function EditSheetModal({
   sheetId,
   initialTitle = '',
   initialDescription = '',
+  items = [],
   onClose,
   onSuccess,
 }: EditSheetModalProps) {
   const [title, setTitle] = useState(initialTitle)
   const [description, setDescription] = useState(initialDescription)
+  const [scoresMap, setScoresMap] = useState<{ [id: number]: string }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (open) {
       setTitle(initialTitle || '')
       setDescription(initialDescription || '')
+      if (items && items.length > 0) {
+        const defaultPerItem = (Math.floor((10 / items.length) * 10) / 10).toString()
+        const initialMap: { [id: number]: string } = {}
+        items.forEach((item) => {
+          initialMap[item.id] = item.maxScore !== undefined && item.maxScore !== null
+            ? item.maxScore.toString()
+            : defaultPerItem
+        })
+        setScoresMap(initialMap)
+      } else {
+        setScoresMap({})
+      }
     }
-  }, [open, initialTitle, initialDescription])
+  }, [open, initialTitle, initialDescription, items])
+
+  const autoSplitScores = () => {
+    if (!items || items.length === 0) return
+    const defaultPerItem = (Math.floor((10 / items.length) * 10) / 10).toString()
+    const newMap: { [id: number]: string } = {}
+    items.forEach((item) => {
+      newMap[item.id] = defaultPerItem
+    })
+    setScoresMap(newMap)
+  }
+
+  const currentTotalScore = items.reduce((sum, item) => {
+    const val = parseFloat(scoresMap[item.id] || '0')
+    return sum + (isNaN(val) ? 0 : val)
+  }, 0)
+
+  const hasNegativeScore = items.some((item) => {
+    const val = parseFloat(scoresMap[item.id] || '0')
+    return !isNaN(val) && val < 0
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,11 +83,27 @@ export function EditSheetModal({
       return
     }
 
+    if (hasNegativeScore) {
+      toast.error('Điểm tối đa từng câu không được là số âm')
+      return
+    }
+
+    if (currentTotalScore > 10.0001) {
+      toast.error(`Tổng điểm các câu (${currentTotalScore.toFixed(1)} điểm) không được vượt quá 10 điểm`)
+      return
+    }
+
+    const itemScores = items.map((item) => ({
+      assignmentId: item.id,
+      maxScore: parseFloat(scoresMap[item.id] || '0')
+    }))
+
     try {
       setIsSubmitting(true)
       await assignmentService.updateAssignmentSheet(sheetId, {
         title: title.trim(),
         description: description.trim(),
+        itemScores,
       })
       toast.success('Cập nhật phiếu bài tập thành công')
       onSuccess()
@@ -67,8 +118,8 @@ export function EditSheetModal({
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
       <DialogContent 
-        className="!max-w-[460px] !w-[90vw] p-6 rounded-2xl border border-slate-100 shadow-2xl" 
-        style={{ maxWidth: '460px', width: '90vw' }}
+        className="!max-w-[500px] !w-[90vw] max-h-[85vh] overflow-y-auto p-6 rounded-2xl border border-slate-100 shadow-2xl" 
+        style={{ maxWidth: '500px', width: '90vw' }}
       >
         <DialogHeader className="gap-1">
           <div className="flex items-center gap-3">
@@ -78,7 +129,7 @@ export function EditSheetModal({
             <div>
               <DialogTitle className="text-lg font-bold text-slate-800">Chỉnh sửa phiếu bài tập</DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Cập nhật tiêu đề đề mục và mô tả của phiếu bài tập
+                Cập nhật tiêu đề đề mục, mô tả và điểm tối đa của phiếu bài tập
               </DialogDescription>
             </div>
           </div>
@@ -107,10 +158,57 @@ export function EditSheetModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Nhập mô tả ngắn cho phiếu bài tập..."
-              rows={3}
+              rows={2}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
             />
           </div>
+
+          {items && items.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Điểm tối đa từng câu
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-bold ${hasNegativeScore || currentTotalScore > 10 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    Tổng điểm: {currentTotalScore.toFixed(1)} / 10
+                  </span>
+                  <button
+                    type="button"
+                    onClick={autoSplitScores}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    Chia đều
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 space-y-1.5 max-h-40 overflow-y-auto">
+                {items.map((item, index) => (
+                  <div key={item.id} className="flex items-center justify-between text-xs bg-white px-3 py-2 rounded-lg border border-slate-200">
+                    <span className="font-semibold text-slate-700 truncate pr-2 flex-1">
+                      {index + 1}. {item.title}
+                    </span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="10"
+                        value={scoresMap[item.id] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setScoresMap(prev => ({ ...prev, [item.id]: val }))
+                        }}
+                        className="w-16 h-7 px-2 text-center rounded border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary"
+                      />
+                      <span className="text-slate-400 font-medium">điểm</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <DialogFooter className="pt-2 gap-2 flex-row justify-end">
             <button
@@ -123,7 +221,7 @@ export function EditSheetModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || hasNegativeScore || currentTotalScore > 10}
               className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary/95 transition-all shadow-sm disabled:opacity-50"
             >
               {isSubmitting ? (

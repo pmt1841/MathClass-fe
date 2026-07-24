@@ -132,8 +132,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         completed.forEach(task => {
           const subStatus = task.isSheet ? task.submissionStatus : task.submission?.status;
           if (subStatus === 'GRADED') {
-            // For sheets we might not have a single score, but we can try
-            if (task.submission?.score !== undefined) {
+            if (task.isSheet) {
+              const sheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0;
+              totalScore += sheetScore;
+              gradedCount++;
+            } else if (task.submission?.score !== undefined) {
               totalScore += task.submission.score;
               gradedCount++;
             }
@@ -362,9 +365,12 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                           <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
                             {task.items?.map((item: any, i: number) => (
                               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
-                                <div className="flex flex-col">
-                                  <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
-                                </div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
+                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
+                                      {item.maxScore ?? 10} đ
+                                    </span>
+                                  </div>
                                 <Link 
                                   href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
                                   className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-white bg-slate-900 hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors"
@@ -462,8 +468,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                             <div className="p-4 border-t border-red-50 bg-slate-50/30 space-y-3">
                               {task.items?.map((item: any, i: number) => (
                                 <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-100 bg-white p-3 shadow-sm hover:shadow-md transition-all">
-                                  <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
                                     <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
+                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
+                                      {item.maxScore ?? 10} đ
+                                    </span>
                                   </div>
                                   <Link 
                                     href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
@@ -527,6 +536,9 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     if (task.isSheet) {
                       const isGraded = task.submissionStatus === 'GRADED';
                       const submittedAt = 'Đã hoàn thành'; // Sheets don't have a single submit time currently mapped, or use items' latest
+                      
+                      const totalSheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0;
+                      const allItemsGraded = task.items?.length > 0 && task.items.every((item: any) => item.submissionStatus === 'GRADED');
 
                       return (
                         <details
@@ -540,6 +552,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                 <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
                                   {task.items?.length || 0} bài tập
                                 </span>
+                                {allItemsGraded && (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
+                                    {totalSheetScore}/10 điểm
+                                  </span>
+                                )}
                               </div>
                               <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {submittedAt}</p>
                             </div>
@@ -559,7 +576,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                       <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
                                       {itemGraded ? (
                                         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                          {item.submission?.score}/10 điểm
+                                          {item.submissionScore ?? 0}/{item.maxScore ?? 10} điểm
                                         </span>
                                       ) : (
                                         <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
@@ -593,7 +610,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                             <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
                             {isGraded ? (
                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                 {task.submission?.score}/10 điểm
+                                 {task.submission?.score}/{task.maxScore ?? 10} điểm
                                </span>
                              ) : (
                                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">

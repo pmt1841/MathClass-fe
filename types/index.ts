@@ -26,6 +26,7 @@ export interface Assignment {
   className?: string
   teacherName?: string
   isOpen?: boolean
+  maxScore?: number
 }
 
 export interface MyClassroom {
