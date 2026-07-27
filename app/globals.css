@@ -2,6 +2,9 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
+details[open] > summary .details-chevron {
+  transform: rotate(180deg);
+}
 
 :root {
   --background: oklch(0.98 0.001 0);

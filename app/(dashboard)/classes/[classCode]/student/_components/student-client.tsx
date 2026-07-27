@@ -359,7 +359,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                             </div>
                             <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-all">
                               Mở phiếu
-                              <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
+                              <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                             </div>
                           </summary>
                           <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
@@ -437,7 +437,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                         </span>
                       </h3>
                     </div>
-                    <ChevronDown className="h-5 w-5 text-slate-400 group-open:-rotate-180 transition-transform duration-300" />
+                    <ChevronDown className="h-5 w-5 text-slate-400 details-chevron transition-transform duration-300" />
                   </summary>
                   <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
                     {overdueTasks.map((task) => {
@@ -462,7 +462,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                               </div>
                               <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100">
                                 Mở phiếu
-                                <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
+                                <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                               </div>
                             </summary>
                             <div className="p-4 border-t border-red-50 bg-slate-50/30 space-y-3">
@@ -527,7 +527,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                       </span>
                     </h3>
                   </div>
-                  <ChevronDown className="h-5 w-5 text-slate-400 group-open:-rotate-180 transition-transform duration-300" />
+                  <ChevronDown className="h-5 w-5 text-slate-400 details-chevron transition-transform duration-300" />
                 </summary>
                 <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
                   {completedTasks.length === 0 ? (
@@ -562,7 +562,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                             </div>
                             <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200">
                               Xem chi tiết
-                              <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
+                              <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                             </div>
                           </summary>
                           <div className="p-4 border-t border-slate-100 bg-slate-50/30 space-y-3">

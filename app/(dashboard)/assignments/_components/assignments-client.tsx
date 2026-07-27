@@ -345,6 +345,7 @@ export function AssignmentsPageClient() {
         publishedClassCodes={publishingTarget?.publishedClassCodes}
         defaultTitle={publishingTarget?.title || ''}
         defaultDescription={publishingTarget?.description || ''}
+        masterSheetId={publishingTarget?.type === 'SHEET' ? publishingTarget?.id : undefined}
         onClose={() => {
           setPublishSheetModalOpen(false)
           setSheetModalAssignmentIds([])

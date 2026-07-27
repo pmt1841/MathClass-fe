@@ -14,6 +14,7 @@ import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import { classroomService } from '@/services/classroomService'
+import { assignmentService, SheetSiblingDto } from '@/services/assignmentService'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { StudentAssignmentLayout } from './student-assignment-layout'
@@ -52,7 +53,11 @@ interface AssignmentDetail {
   teacherName: string
   classCode: string
   className: string
+  maxScore?: number
   images?: { id: number; imageCode: string; imageUrl: string }[]
+  sheetId?: number
+  sheetTitle?: string
+  sheetSiblings?: SheetSiblingDto[]
 }
 
 export function AssignmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
@@ -202,7 +207,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     try {
       setIsSavingExternal(true)
       const res = await saveOrUpdateSubmission(content, 'DRAFT')
-      if (submissionStatusRef.current === 'SUBMITTED' || submissionStatusRef.current === 'GRADED') return;
+      if ((submissionStatusRef.current as string) === 'SUBMITTED' || (submissionStatusRef.current as string) === 'GRADED') return;
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
       setLastSavedExternal(new Date())

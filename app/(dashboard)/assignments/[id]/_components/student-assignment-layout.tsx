@@ -328,7 +328,10 @@ export function StudentAssignmentLayout({
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
                 {assignment.sheetSiblings.map((sibling: any, idx: number) => {
                   const isActive = sibling.id === assignment.id
-                  const isSubmitted = sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED'
+                  const isSubmitted = isActive
+                    ? (submissionStatus === 'SUBMITTED' || submissionStatus === 'GRADED')
+                    : (sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED')
+
                   return (
                     <Link
                       key={sibling.id}
@@ -337,7 +340,9 @@ export function StudentAssignmentLayout({
                       className={`
                         w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
                         ${isActive 
-                          ? 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
+                          ? isSubmitted
+                            ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
+                            : 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
                           : isSubmitted 
                             ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
                             : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}

@@ -27,6 +27,7 @@ interface PublishSheetModalProps {
   publishedClassCodes?: string[]
   defaultTitle?: string
   defaultDescription?: string
+  masterSheetId?: number
   onClose: () => void
   onSuccess: () => void
 }
@@ -40,6 +41,7 @@ export function PublishSheetModal({
   publishedClassCodes = EMPTY_CLASS_CODES,
   defaultTitle = '',
   defaultDescription = '',
+  masterSheetId,
   onClose,
   onSuccess,
 }: PublishSheetModalProps) {
@@ -163,7 +165,7 @@ export function PublishSheetModal({
     }))
 
     publishMutation.mutate(
-      { title, description, assignmentIds, itemScores, targets: payloadTargets },
+      { masterSheetId, title, description, assignmentIds, itemScores, targets: payloadTargets },
       {
         onSuccess: () => {
           toast.success(`Đã giao phiếu bài tập "${title}" thành công!`)

@@ -88,6 +88,42 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     enabled: !!assignmentId,
   })
 
+  // Tự động kiểm tra trạng thái nộp bài của học sinh này trên tất cả các câu trong sheet
+  const { data: siblingStatuses = {} } = useQuery<Record<number, string>>({
+    queryKey: ['sheet-sibling-statuses', assignment?.sheetId, submission?.studentId, assignmentId],
+    queryFn: async () => {
+      if (!assignment?.sheetSiblings || !submission?.studentName) return {}
+      const statuses: Record<number, string> = {}
+
+      await Promise.all(
+        assignment.sheetSiblings.map(async (sibling) => {
+          if (sibling.id === assignmentId) {
+            if (submission?.status) statuses[sibling.id] = submission.status
+            return
+          }
+          try {
+            const res = await submissionService.getSubmissionsByAssignment({
+              assignmentId: sibling.id,
+              keyword: submission.studentName,
+              size: 10
+            })
+            if (res.content && res.content.length > 0) {
+              const match = res.content.find(s => s.studentId === submission.studentId || s.studentName === submission.studentName)
+              if (match) {
+                statuses[sibling.id] = match.status
+              }
+            }
+          } catch {
+            // bỏ qua lỗi
+          }
+        })
+      )
+      return statuses
+    },
+    enabled: !!assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && !!submission?.studentName,
+    staleTime: 60000,
+  })
+
   const gradeMutation = useMutation({
     mutationFn: (values: GradeFormValues) =>
       submissionService.gradeSubmission(submissionId, values.score, values.teacherFeedback || ''),
@@ -96,7 +132,12 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
         title: 'Thành công',
         description: 'Đã lưu điểm và nhận xét.',
       })
+      queryClient.setQueryData(['sheet-sibling-statuses', assignment?.sheetId, submission?.studentId, assignmentId], (old: Record<number, string> | undefined) => ({
+        ...old,
+        [assignmentId]: 'GRADED'
+      }))
       queryClient.invalidateQueries({ queryKey: ['submission', submissionId] })
+      queryClient.invalidateQueries({ queryKey: ['sheet-sibling-statuses'] })
     },
     onError: (err) => {
       toast({
@@ -150,7 +191,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
       const id = Number(props['data-comment-id'])
       const comment = comments.find((c: any) => c.id === id)
       if (!comment) return <mark {...props} />
-      
+
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -335,15 +376,17 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
           <div className="flex items-center gap-3">
             <span className="font-semibold text-lg text-slate-800">{submission.studentName}</span>
             {getStatusBadge(submission.status)}
-            
+
             {/* Sheet Siblings Navigation */}
             {assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && (
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
-                {assignment.sheetSiblings.map((sibling: any, idx: number) => {
+                {assignment.sheetSiblings.map((sibling, idx: number) => {
                   const isActive = sibling.id === assignmentId
-                  // We don't have the real submission status for the sibling for this specific student from this API, 
-                  // but we can just show the numbers so the teacher can click.
-                  // For the current one, we know it is isActive.
+                  const currentStatus = isActive
+                    ? submission?.status
+                    : (siblingStatuses[sibling.id] || sibling.submissionStatus)
+                  const isGraded = currentStatus === 'GRADED'
+
                   return (
                     <button
                       key={sibling.id}
@@ -351,9 +394,13 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                       disabled={navigatingSibling !== null}
                       className={`
                         w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
-                        ${isActive 
-                          ? 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                        ${isActive
+                          ? isGraded
+                            ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
+                            : 'ring-2 ring-primary ring-offset-1 bg-primary text-white'
+                          : isGraded
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
                         ${navigatingSibling === sibling.id ? 'opacity-50 cursor-wait' : ''}
                       `}
                       title={sibling.title}
@@ -367,7 +414,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
           </div>
 
           {isTeacher && (
-            <SubmissionGradeForm 
+            <SubmissionGradeForm
               initialScore={submission.score ?? 0}
               initialFeedback={submission.teacherFeedback ?? ''}
               isSubmitting={gradeMutation.isPending}
@@ -376,18 +423,6 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               onSubmit={handleGradeSubmit}
             />
           )}
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-500 bg-slate-50 rounded-lg px-2 py-1 border border-slate-200">
-            <Button variant="ghost" size="icon" disabled className="h-7 w-7 text-slate-400">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-xs font-medium">-- / --</span>
-            <Button variant="ghost" size="icon" disabled className="h-7 w-7 text-slate-400">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
         </div>
       </div>
 

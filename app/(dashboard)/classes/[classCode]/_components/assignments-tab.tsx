@@ -221,7 +221,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                           )}
                           <div className="flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors border border-primary/20">
                             Mở phiếu
-                            <ChevronDown className="h-4 w-4 group-open:-rotate-180 transition-transform duration-300" />
+                            <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                           </div>
                         </div>
                       </div>

@@ -12,7 +12,7 @@ export interface Assignment {
   classCode: string
   className: string
   hasSubmissions?: boolean
-  submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | null
+  submissionStatus?: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE' | null
   submissionCreatedAt?: string
   submissionUpdatedAt?: string
   publishedClassCodes?: string[]
