@@ -15,8 +15,7 @@ import { Button } from '@/components/ui/button'
 import { NotificationResponse } from '@/types/notification'
 import { notificationService } from '@/services/notificationService'
 import Link from 'next/link'
-import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { formatDistanceToNowSafe } from '@/lib/utils'
 
 export function NotificationPopover() {
   const queryClient = useQueryClient()
@@ -157,7 +156,7 @@ export function NotificationPopover() {
                     </div>
                   )}
                   <span className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: vi })}
+                    {formatDistanceToNowSafe(n.createdAt, { addSuffix: true })}
                   </span>
                 </div>
               ))}
