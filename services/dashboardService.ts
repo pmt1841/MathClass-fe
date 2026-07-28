@@ -6,6 +6,7 @@ export interface TeacherDashboardStats {
   assignmentsToGrade: number
   pendingJoinRequests: number
   openAssignments: number
+  originalAssignmentSheets: number
 }
 
 export interface PendingSubmission {
