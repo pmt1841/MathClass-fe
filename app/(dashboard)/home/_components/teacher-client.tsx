@@ -88,7 +88,7 @@ export function TeacherDashboardClient() {
       <main className="p-4 sm:p-6 space-y-8 max-w-screen-2xl mx-auto w-full">
 
         {/* Row 1: KPI Cards */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -130,6 +130,21 @@ export function TeacherDashboardClient() {
             <CardContent>
               <div className="text-3xl font-extrabold text-slate-800">
                 {isLoading ? '-' : stats?.openAssignments ?? 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Phiếu bài tập</CardTitle>
+              <div className="p-2.5 bg-cyan-50 rounded-xl">
+                <FileText className="h-5 w-5 text-cyan-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-extrabold text-slate-800">
+                {isLoading ? '-' : stats?.originalAssignmentSheets ?? 0}
               </div>
             </CardContent>
           </Card>
