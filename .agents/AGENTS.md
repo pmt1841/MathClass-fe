@@ -15,12 +15,7 @@ Trước khi thực hiện bất kỳ nhiệm vụ nào (tạo trang mới, sử
 
 ## 2. Tech Stack & Môi trường Phát triển
 
-- **Framework:** Next.js 16 (App Router), React 19
-- **Language:** TypeScript (Strict mode)
-- **Styling:** Tailwind CSS v4, Radix UI, Shadcn UI (`components/ui/`), Lucide React
-- **State & Fetching:** Axios, TanStack React Query v5
-- **Form & Validation:** React Hook Form kết hợp Zod schema
-- **LaTeX Math Rendering:** KaTeX (`katex`, `react-markdown`, `remark-math`, `rehype-katex`)
+Chi tiết danh sách Tech Stack và thư viện được quản lý tập trung tại [README.md](../README.md) và [.antigravity/rules.md](../.antigravity/rules.md).
 
 ---
 
