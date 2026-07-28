@@ -341,7 +341,11 @@ export function AssignmentsPageClient() {
       <PublishSheetModal
         open={publishSheetModalOpen}
         assignmentIds={sheetModalAssignmentIds}
-        assignments={displayAssignments.filter(a => sheetModalAssignmentIds.includes(a.id)).map(a => ({ id: a.id, title: a.title }))}
+        assignments={
+          publishingTarget?.type === 'SHEET'
+            ? publishingTarget.items?.map((it: any) => ({ id: it.id, title: it.title, maxScore: it.maxScore })) || []
+            : displayAssignments.filter(a => sheetModalAssignmentIds.includes(a.id)).map(a => ({ id: a.id, title: a.title, maxScore: a.maxScore }))
+        }
         publishedClassCodes={publishingTarget?.publishedClassCodes}
         defaultTitle={publishingTarget?.title || ''}
         defaultDescription={publishingTarget?.description || ''}

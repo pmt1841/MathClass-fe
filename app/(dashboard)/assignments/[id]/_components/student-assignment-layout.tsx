@@ -305,7 +305,7 @@ export function StudentAssignmentLayout({
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">
       {/* TOOLBAR */}
-      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10">
+      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -319,48 +319,50 @@ export function StudentAssignmentLayout({
               {fromText}
             </span>
             <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[200px]" title={assignment.title}>
+            <span className="text-slate-900 truncate max-w-[250px]" title={assignment.title}>
               {assignment.title}
             </span>
-            
-            {/* Nav Buttons for Sheet */}
-            {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
-              <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
-                {assignment.sheetSiblings.map((sibling: any, idx: number) => {
-                  const isActive = sibling.id === assignment.id
-                  const isSubmitted = isActive
-                    ? (submissionStatus === 'SUBMITTED' || submissionStatus === 'GRADED')
-                    : (sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED')
-
-                  return (
-                    <Link
-                      key={sibling.id}
-                      replace
-                      href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
-                      className={`
-                        w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
-                        ${isActive 
-                          ? isSubmitted
-                            ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
-                            : 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
-                          : isSubmitted 
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
-                            : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
-                      `}
-                      title={sibling.title}
-                    >
-                      {idx + 1}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center gap-6 pointer-events-none">
+          {/* Nav Buttons for Sheet */}
+          {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
+            <div className="flex items-center gap-1.5 pointer-events-auto">
+              {assignment.sheetSiblings.map((sibling: any, idx: number) => {
+                const isActive = sibling.id === assignment.id
+                const isSubmitted = isActive
+                  ? (submissionStatus === 'SUBMITTED' || submissionStatus === 'GRADED')
+                  : (sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED')
+
+                return (
+                  <Link
+                    key={sibling.id}
+                    replace
+                    href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
+                    className={`
+                      w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all shadow-sm
+                      ${isActive 
+                        ? isSubmitted
+                          ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
+                          : 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
+                        : isSubmitted 
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                    `}
+                    title={sibling.title}
+                  >
+                    {idx + 1}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
           {assignment.deadline && !isGraded && (
-            <CountdownTimer deadline={assignment.deadline} />
+            <div className="pointer-events-auto">
+              <CountdownTimer deadline={assignment.deadline} />
+            </div>
           )}
         </div>
 

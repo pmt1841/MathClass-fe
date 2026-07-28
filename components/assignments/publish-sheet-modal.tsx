@@ -23,7 +23,7 @@ interface TargetClassEntry {
 interface PublishSheetModalProps {
   open: boolean
   assignmentIds: number[]
-  assignments?: { id: number, title: string }[]
+  assignments?: { id: number, title: string, maxScore?: number }[]
   publishedClassCodes?: string[]
   defaultTitle?: string
   defaultDescription?: string
@@ -73,12 +73,17 @@ export function PublishSheetModal({
     setTitle(defaultTitle)
     setDescription(defaultDescription)
 
-    // Default score split equally among items
+    // Initialize scores: use maxScore if available, else default
     if (assignmentIds && assignmentIds.length > 0) {
       const defaultPerItem = (Math.floor((10 / assignmentIds.length) * 10) / 10).toString()
       const initialMap: { [id: number]: string } = {}
       assignmentIds.forEach(id => {
-        initialMap[id] = defaultPerItem
+        const assignment = assignments?.find(a => a.id === id)
+        if (masterSheetId && assignment && assignment.maxScore !== undefined && assignment.maxScore !== null) {
+          initialMap[id] = assignment.maxScore.toString()
+        } else {
+          initialMap[id] = defaultPerItem
+        }
       })
       setScoresMap(initialMap)
     }

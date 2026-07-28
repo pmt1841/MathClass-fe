@@ -58,7 +58,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const [announcements, setAnnouncements] = useState<any[]>(DEFAULT_ANNOUNCEMENTS)
 
   const { user } = useAuth()
-  
+
   useEffect(() => {
     if (user?.role === 'TEACHER' || user?.userRole === 'TEACHER') {
       router.replace(`/classes/${classCode}`)
@@ -89,7 +89,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             }
           })
         );
-        
+
         // Add sheets with their submission status (already calculated from backend or frontend logic)
         const allTasks = [...tasksWithSubs, ...sheets];
 
@@ -126,7 +126,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         // Tính toán thống kê
         const totalPublished = allTasks.length;
         const totalCompleted = completed.length;
-        
+
         let totalScore = 0;
         let gradedCount = 0;
         completed.forEach(task => {
@@ -163,7 +163,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             createdAt: task.createdAt
           }))
           .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-        
+
         if (generatedAnnouncements.length > 0) {
           generatedAnnouncements[0].pinned = true; // Pin the latest announcement
           setAnnouncements(generatedAnnouncements);
@@ -191,12 +191,12 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
-      
+
       {/* ── Hero & Banner Section ── */}
       <div className="relative bg-white border-b border-border shadow-sm">
         {/* Background gradient/glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/30 opacity-70" />
-        
+
         <div className="relative z-10 mx-auto max-w-[1600px] px-6 pt-6 pb-8">
           <button
             onClick={() => router.push('/classes')}
@@ -207,7 +207,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           </button>
 
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-            
+
             {/* Title & Info */}
             <div className="flex-1 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -258,7 +258,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1600px] px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 xl:gap-8">
-            
+
             {/* ── Column 1 (Left 25%): Quick Info & Calendar ── */}
             <div className="space-y-6 lg:col-span-1 hidden lg:block">
               {/* Teacher Info */}
@@ -288,7 +288,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     </div>
                     <span className="text-sm font-bold text-slate-900">{stats.completionRate}</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
@@ -304,12 +304,12 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
             {/* ── Column 2 (Middle 50%): Productivity Focus ── */}
             <div className="space-y-6 lg:col-span-2">
-              
+
               {/* Assignments To Do */}
               <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
                 {/* Subtle background glow */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2" />
-                
+
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm shadow-blue-200">
@@ -365,13 +365,13 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                           <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
                             {task.items?.map((item: any, i: number) => (
                               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
-                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
-                                      {item.maxScore ?? 10} đ
-                                    </span>
-                                  </div>
-                                <Link 
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
+                                  <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
+                                    {item.maxScore ?? 10} đ
+                                  </span>
+                                </div>
+                                <Link
                                   href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
                                   className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-white bg-slate-900 hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors"
                                 >
@@ -409,7 +409,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                             </div>
                           </div>
                         </div>
-                        <Link 
+                        <Link
                           href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                           className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-600 hover:shadow-md hover:shadow-blue-200 transition-all active:scale-[.98]"
                         >
@@ -474,7 +474,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                       {item.maxScore ?? 10} đ
                                     </span>
                                   </div>
-                                  <Link 
+                                  <Link
                                     href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
                                     className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100"
                                   >
@@ -490,7 +490,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                           </details>
                         )
                       }
-                      
+
                       return (
                         <div key={task.isSheet ? `sheet-${task.id}` : `task-${task.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
                           <div className="flex flex-col">
@@ -500,7 +500,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                               Hết hạn: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
                             </span>
                           </div>
-                          <Link 
+                          <Link
                             href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                             className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100"
                           >
@@ -536,7 +536,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     if (task.isSheet) {
                       const isGraded = task.submissionStatus === 'GRADED';
                       const submittedAt = 'Đã hoàn thành'; // Sheets don't have a single submit time currently mapped, or use items' latest
-                      
+
                       const totalSheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0;
                       const allItemsGraded = task.items?.length > 0 && task.items.every((item: any) => item.submissionStatus === 'GRADED');
 
@@ -586,7 +586,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                     </div>
                                     <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {itemSubmittedAt}</p>
                                   </div>
-                                  <Link 
+                                  <Link
                                     href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
                                     className="flex-shrink-0 self-start sm:self-center text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
                                   >
@@ -609,18 +609,18 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
                             {isGraded ? (
-                               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                 {task.submission?.score}/{task.maxScore ?? 10} điểm
-                               </span>
-                             ) : (
-                               <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
-                                 Chờ chấm
-                               </span>
-                             )}
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
+                                {task.submission?.score}/{task.maxScore ?? 10} điểm
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                Chờ chấm
+                              </span>
+                            )}
                           </div>
                           <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {submittedAt}</p>
                         </div>
-                        <Link 
+                        <Link
                           href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                           className="flex-shrink-0 self-start sm:self-center text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
                         >
@@ -636,7 +636,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
             {/* ── Column 3 (Right 25%): Announcements Sidebar ── */}
             <div className="space-y-6 lg:col-span-1">
-              
+
               {/* Old Announcements */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -647,7 +647,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     <h2 className="text-sm font-bold text-slate-800">Thông báo khác</h2>
                   </div>
                 </div>
-                
+
                 <div className="divide-y divide-slate-100">
                   {oldAnnouncements.map((ann) => (
                     <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer">
