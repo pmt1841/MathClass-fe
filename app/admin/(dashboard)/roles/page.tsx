@@ -9,6 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { Save } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
 
 const ROLES = [
   { id: 'TEACHER', name: 'Giáo viên' },
@@ -35,6 +42,16 @@ export default function AdminRolesPage() {
       setSelectedPermissionIds(prev => [...prev, permissionId])
     } else {
       setSelectedPermissionIds(prev => prev.filter(id => id !== permissionId))
+    }
+  }
+
+  const handleToggleGroup = (groupPermissions: typeof allPermissions, selectAll: boolean) => {
+    if (!groupPermissions) return
+    const groupIds = groupPermissions.map(p => p.id)
+    if (selectAll) {
+      setSelectedPermissionIds(prev => Array.from(new Set([...prev, ...groupIds])))
+    } else {
+      setSelectedPermissionIds(prev => prev.filter(id => !groupIds.includes(id)))
     }
   }
 
@@ -105,47 +122,66 @@ export default function AdminRolesPage() {
                     <Spinner />
                   </div>
                 ) : allPermissions && allPermissions.length > 0 ? (
-                  Object.entries(
-                    allPermissions
-                      .filter(
-                        (p) =>
-                          !['dashboard:teacher_view', 'dashboard:student_view', 'user:manage'].includes(
-                            p.name
-                          )
-                      )
-                      .reduce((acc, p) => {
-                        const prefix = p.name.split(':')[0]
-                        const groupName =
-                          prefix === 'classroom' ? 'Lớp học' :
-                          prefix === 'assignment' ? 'Bài tập' :
-                          prefix === 'submission' ? 'Bài nộp' : 'Khác'
-                        if (!acc[groupName]) acc[groupName] = []
-                        acc[groupName].push(p)
-                        return acc
-                      }, {} as Record<string, typeof allPermissions>)
-                  ).map(([group, perms]) => (
-                    <div key={group} className="space-y-4">
-                      <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">
-                        {group}
-                      </h4>
-                      <div className="space-y-4 pl-2">
-                        {perms.map((permission) => (
-                          <div key={permission.id} className="flex items-center justify-between space-x-4">
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium leading-none">{permission.description}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Mã quyền: <code className="bg-muted px-1 py-0.5 rounded text-xs">{permission.name}</code>
-                              </p>
+                  <Accordion type="multiple" className="w-full space-y-3">
+                    {Object.entries(
+                      allPermissions
+                        .filter(
+                          (p) =>
+                            !['dashboard:teacher_view', 'dashboard:student_view', 'user:manage'].includes(
+                              p.name
+                            )
+                        )
+                        .reduce((acc, p) => {
+                          const prefix = p.name.split(':')[0]
+                          const groupName =
+                            prefix === 'classroom' ? 'Lớp học' :
+                            prefix === 'assignment' ? 'Bài tập' :
+                            prefix === 'submission' ? 'Bài nộp' : 'Khác'
+                          if (!acc[groupName]) acc[groupName] = []
+                          acc[groupName].push(p)
+                          return acc
+                        }, {} as Record<string, typeof allPermissions>)
+                    ).map(([group, perms]) => {
+                      const activeCount = perms.filter(p => selectedPermissionIds.includes(p.id)).length
+                      const totalCount = perms.length
+                      const isAllSelected = activeCount === totalCount && totalCount > 0
+
+                      return (
+                        <AccordionItem key={group} value={group} className="border rounded-lg border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+                          <AccordionTrigger className="hover:no-underline py-3.5 px-4 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-base tracking-wide uppercase text-slate-800 dark:text-slate-200">{group}</span>
+                              <Badge variant={activeCount > 0 ? "secondary" : "outline"} className="text-xs font-normal">
+                                {activeCount}/{totalCount} quyền đã bật
+                              </Badge>
                             </div>
-                            <Switch
-                              checked={selectedPermissionIds.includes(permission.id)}
-                              onCheckedChange={(checked) => handleToggle(permission.id, checked)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
+                          </AccordionTrigger>
+                          <AccordionContent className="p-0 pb-1 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                            <div className="flex items-center justify-between space-x-4 px-4 py-3 bg-slate-100/70 dark:bg-slate-800/50 border-b-2 border-slate-200 dark:border-slate-700 font-medium text-sm text-foreground">
+                              <span>{isAllSelected ? 'Tắt tất cả nhóm này' : 'Bật tất cả nhóm này'}</span>
+                              <Switch
+                                checked={isAllSelected}
+                                onCheckedChange={(checked) => handleToggleGroup(perms, checked)}
+                              />
+                            </div>
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                              {perms.map((permission) => (
+                                <div key={permission.id} className="flex items-center justify-between space-x-4 px-4 py-3 hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium leading-none text-slate-700 dark:text-slate-300">{permission.description}</p>
+                                  </div>
+                                  <Switch
+                                    checked={selectedPermissionIds.includes(permission.id)}
+                                    onCheckedChange={(checked) => handleToggle(permission.id, checked)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
                 ) : (
                   <div className="text-center text-muted-foreground py-4">
                     Không có quyền nào được định nghĩa trong hệ thống.
@@ -159,3 +195,4 @@ export default function AdminRolesPage() {
     </div>
   )
 }
+
