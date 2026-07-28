@@ -25,17 +25,21 @@ interface PublishAssignmentModalProps {
   assignmentId: number | null
   assignmentTitle?: string
   defaultClassCode?: string
+  publishedClassCodes?: string[]
   onClose: () => void
   onSuccess: () => void
   onSubmit?: (targets: { classCode: string; deadline: string }[]) => void
   isSubmitting?: boolean
 }
 
+const EMPTY_CLASS_CODES: string[] = []
+
 export function PublishAssignmentModal({
   open,
   assignmentId,
   assignmentTitle,
   defaultClassCode = '',
+  publishedClassCodes = EMPTY_CLASS_CODES,
   onClose,
   onSuccess,
   onSubmit,
@@ -45,20 +49,25 @@ export function PublishAssignmentModal({
   const publishMutation = usePublishAssignment(assignmentId)
   
   const [targets, setTargets] = useState<TargetClassEntry[]>([])
+  const publishedKey = publishedClassCodes ? publishedClassCodes.join(',') : ''
 
   useEffect(() => {
     if (!open || loadingClasses) return
     
     const defaultDeadline = getDefaultDeadline()
+    const availableClasses = publishedClassCodes && publishedClassCodes.length > 0
+      ? myClasses.filter((c) => !publishedClassCodes.includes(c.classCode))
+      : myClasses
+
     setTargets(
-      myClasses.map((c) => ({
+      availableClasses.map((c) => ({
         classCode: c.classCode,
         className: c.className,
         deadline: c.classCode === defaultClassCode ? defaultDeadline : '',
         selected: c.classCode === defaultClassCode,
       }))
     )
-  }, [open, defaultClassCode, myClasses, loadingClasses])
+  }, [open, defaultClassCode, myClasses, publishedKey, loadingClasses])
 
   const getDefaultDeadline = () => {
     const d = new Date()

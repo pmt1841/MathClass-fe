@@ -14,6 +14,7 @@ import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import { classroomService } from '@/services/classroomService'
+import { assignmentService, SheetSiblingDto } from '@/services/assignmentService'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { StudentAssignmentLayout } from './student-assignment-layout'
@@ -21,6 +22,7 @@ import { submissionService } from '@/services/submissionService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
+import Link from 'next/link'
 import { PermissionGuard } from '@/components/ui/with-permission'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -51,7 +53,11 @@ interface AssignmentDetail {
   teacherName: string
   classCode: string
   className: string
+  maxScore?: number
   images?: { id: number; imageCode: string; imageUrl: string }[]
+  sheetId?: number
+  sheetTitle?: string
+  sheetSiblings?: SheetSiblingDto[]
 }
 
 export function AssignmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
@@ -108,15 +114,14 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
     setUserRole(currentRole)
 
-    if (!classCode) {
-      toast.error('Thiếu mã lớp (classCode)')
-      router.push('/assignments')
-      return
-    }
-
     const fetchDetail = async () => {
       try {
-        const data = await classroomService.getClassroomAssignmentDetail(classCode, Number(id))
+        let data: any
+        if (classCode) {
+          data = await classroomService.getClassroomAssignmentDetail(classCode, Number(id))
+        } else {
+          data = await assignmentService.getAssignmentById(Number(id))
+        }
         setAssignment(data)
 
         // Nếu là học sinh, lấy bài nộp của họ
@@ -159,17 +164,21 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     fetchDetail()
   }, [id, classCode, router, assignmentId])
 
+  const navigateBack = () => {
+    if (from === 'class' && classCode) {
+      router.push(`/classes/${classCode}`)
+    } else {
+      router.push('/assignments')
+    }
+  }
+
   const handleBackClick = () => {
     const pastDeadline = assignment?.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
     const graded = submissionScore !== null
     const readOnly = pastDeadline || userRole !== 'STUDENT' || graded || submissionStatus === 'SUBMITTED'
 
     if (readOnly) {
-      if (window.history.length > 2) {
-        router.back()
-      } else {
-        router.push('/assignments')
-      }
+      navigateBack()
     } else {
       setShowLeaveModal(true)
     }
@@ -177,11 +186,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   const handleLeaveConfirm = () => {
     setShowLeaveModal(false)
-    if (window.history.length > 2) {
-      router.back()
-    } else {
-      router.push('/assignments')
-    }
+    navigateBack()
   }
 
   const saveOrUpdateSubmission = async (content: string, status: 'DRAFT' | 'SUBMITTED') => {
@@ -192,11 +197,17 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const submissionStatusRef = useRef(submissionStatus)
+  useEffect(() => {
+    submissionStatusRef.current = submissionStatus
+  }, [submissionStatus])
+
   const handleAutoSaveDraft = async (content: string) => {
-    if (submissionScore !== null) return;
+    if (submissionScore !== null || submissionStatusRef.current === 'SUBMITTED' || submissionStatusRef.current === 'GRADED') return;
     try {
       setIsSavingExternal(true)
       const res = await saveOrUpdateSubmission(content, 'DRAFT')
+      if ((submissionStatusRef.current as string) === 'SUBMITTED' || (submissionStatusRef.current as string) === 'GRADED') return;
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('DRAFT')
       setLastSavedExternal(new Date())
@@ -263,8 +274,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   const handleGradeSubmission = async (subId: number) => {
     const scoreVal = parseFloat(gradingScore)
-    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
-      toast.error('Điểm số không hợp lệ. Vui lòng nhập từ 0 đến 10.')
+    const maxScore = assignment?.maxScore || 10
+    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > maxScore) {
+      toast.error(`Điểm số không hợp lệ. Vui lòng nhập từ 0 đến ${maxScore}.`)
       return
     }
     try {
@@ -396,9 +408,34 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
               {from === 'class' ? `Lớp ${assignment.className}` : 'Kho bài tập'}
             </span>
             <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[300px]" title={assignment.title}>
+            <span className="text-slate-900 truncate max-w-[200px]" title={assignment.title}>
               {assignment.title}
             </span>
+
+            {/* Nav Buttons for Sheet for Teacher */}
+            {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
+                {assignment.sheetSiblings.map((sibling: any, idx: number) => {
+                  const isActive = sibling.id === assignment.id
+                  return (
+                    <Link
+                      key={sibling.id}
+                      replace
+                      href={`/assignments/${sibling.id}?classCode=${classCode || ''}&from=${from}`}
+                      className={`
+                        w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
+                        ${isActive
+                          ? 'ring-2 ring-primary ring-offset-1 bg-primary text-white'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                      `}
+                      title={sibling.title}
+                    >
+                      {idx + 1}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 

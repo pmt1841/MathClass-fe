@@ -28,9 +28,10 @@ import { parseDateSafe } from '@/lib/utils'
 
 interface SubmissionTableProps {
   assignmentId: number
+  classCode?: string
 }
 
-export function SubmissionTable({ assignmentId }: SubmissionTableProps) {
+export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProps) {
   const [page, setPage] = useState(0)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedKeyword, setDebouncedKeyword] = useState('')
@@ -142,7 +143,7 @@ export function SubmissionTable({ assignmentId }: SubmissionTableProps) {
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>{sub.score !== null ? sub.score : '-'}</TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/assignments/${assignmentId}/submissions/${sub.id}`}>
+                    <Link href={`/assignments/${assignmentId}/submissions/${sub.id}${classCode ? `?classCode=${classCode}` : ''}`}>
                       <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700">
                         Xem chi tiết
                       </Button>

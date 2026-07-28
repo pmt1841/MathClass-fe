@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { ChevronLeft, ChevronRight, ArrowLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
 import { parseDateSafe } from '@/lib/utils'
@@ -51,13 +52,17 @@ const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').the
 interface SubmissionDetailProps {
   submissionId: number
   assignmentId: number
+  classCode?: string
+  sheetId?: number
 }
 
-export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetailProps) {
+export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetId }: SubmissionDetailProps) {
+  const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
+  const [navigatingSibling, setNavigatingSibling] = useState<number | null>(null)
   const { user } = useAuth()
   const isTeacher = user?.role === 'TEACHER'
 
@@ -83,6 +88,42 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
     enabled: !!assignmentId,
   })
 
+  // Tự động kiểm tra trạng thái nộp bài của học sinh này trên tất cả các câu trong sheet
+  const { data: siblingStatuses = {} } = useQuery<Record<number, string>>({
+    queryKey: ['sheet-sibling-statuses', assignment?.sheetId, submission?.studentId, assignmentId],
+    queryFn: async () => {
+      if (!assignment?.sheetSiblings || !submission?.studentName) return {}
+      const statuses: Record<number, string> = {}
+
+      await Promise.all(
+        assignment.sheetSiblings.map(async (sibling) => {
+          if (sibling.id === assignmentId) {
+            if (submission?.status) statuses[sibling.id] = submission.status
+            return
+          }
+          try {
+            const res = await submissionService.getSubmissionsByAssignment({
+              assignmentId: sibling.id,
+              keyword: submission.studentName,
+              size: 10
+            })
+            if (res.content && res.content.length > 0) {
+              const match = res.content.find(s => s.studentId === submission.studentId || s.studentName === submission.studentName)
+              if (match) {
+                statuses[sibling.id] = match.status
+              }
+            }
+          } catch {
+            // bỏ qua lỗi
+          }
+        })
+      )
+      return statuses
+    },
+    enabled: !!assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && !!submission?.studentName,
+    staleTime: 60000,
+  })
+
   const gradeMutation = useMutation({
     mutationFn: (values: GradeFormValues) =>
       submissionService.gradeSubmission(submissionId, values.score, values.teacherFeedback || ''),
@@ -91,7 +132,12 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
         title: 'Thành công',
         description: 'Đã lưu điểm và nhận xét.',
       })
+      queryClient.setQueryData(['sheet-sibling-statuses', assignment?.sheetId, submission?.studentId, assignmentId], (old: Record<number, string> | undefined) => ({
+        ...old,
+        [assignmentId]: 'GRADED'
+      }))
       queryClient.invalidateQueries({ queryKey: ['submission', submissionId] })
+      queryClient.invalidateQueries({ queryKey: ['sheet-sibling-statuses'] })
     },
     onError: (err) => {
       toast({
@@ -145,7 +191,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
       const id = Number(props['data-comment-id'])
       const comment = comments.find((c: any) => c.id === id)
       if (!comment) return <mark {...props} />
-      
+
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -194,6 +240,33 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
       )
     }
   }), [comments, isTeacher, user?.id, isDeleting, handleDeleteComment])
+
+  const handleNavigateSibling = async (siblingId: number) => {
+    if (!submission?.studentName) return
+    setNavigatingSibling(siblingId)
+    try {
+      const res = await submissionService.getSubmissionsByAssignment({
+        assignmentId: siblingId,
+        keyword: submission.studentName,
+        size: 10
+      })
+      if (res.content && res.content.length > 0) {
+        // Tìm chính xác tên học sinh
+        const exactMatch = res.content.find(s => s.studentName === submission.studentName)
+        if (exactMatch) {
+          router.push(`/assignments/${siblingId}/submissions/${exactMatch.id}?${sheetId ? `sheetId=${sheetId}&` : ''}${classCode ? `classCode=${classCode}` : ''}`)
+        } else {
+          toast({ title: 'Thông báo', description: 'Học sinh chưa mở câu này.' })
+        }
+      } else {
+        toast({ title: 'Thông báo', description: 'Học sinh chưa mở câu này.' })
+      }
+    } catch (err) {
+      toast({ title: 'Lỗi', description: 'Không thể tìm thấy bài làm', variant: 'destructive' })
+    } finally {
+      setNavigatingSibling(null)
+    }
+  }
 
   const memoizedRehypePlugins = useMemo(() => [
     rehypeRaw,
@@ -293,7 +366,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
       {/* Header Điều Hướng & Thông tin chung */}
       <div className="flex items-center justify-between bg-white px-6 py-3 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-6">
-          <Link href={`/assignments/${assignmentId}/submissions`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors">
+          <Link href={sheetId ? `/assignments/sheets/${sheetId}/submissions${classCode ? `?classCode=${classCode}` : ''}` : `/assignments/${assignmentId}/submissions${classCode ? `?classCode=${classCode}` : ''}`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Quay lại
           </Link>
@@ -303,29 +376,53 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
           <div className="flex items-center gap-3">
             <span className="font-semibold text-lg text-slate-800">{submission.studentName}</span>
             {getStatusBadge(submission.status)}
+
+            {/* Sheet Siblings Navigation */}
+            {assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
+                {assignment.sheetSiblings.map((sibling, idx: number) => {
+                  const isActive = sibling.id === assignmentId
+                  const currentStatus = isActive
+                    ? submission?.status
+                    : (siblingStatuses[sibling.id] || sibling.submissionStatus)
+                  const isGraded = currentStatus === 'GRADED'
+
+                  return (
+                    <button
+                      key={sibling.id}
+                      onClick={() => !isActive && handleNavigateSibling(sibling.id)}
+                      disabled={navigatingSibling !== null}
+                      className={`
+                        w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
+                        ${isActive
+                          ? isGraded
+                            ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
+                            : 'ring-2 ring-primary ring-offset-1 bg-primary text-white'
+                          : isGraded
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                        ${navigatingSibling === sibling.id ? 'opacity-50 cursor-wait' : ''}
+                      `}
+                      title={sibling.title}
+                    >
+                      {navigatingSibling === sibling.id ? <Loader2 className="w-3 h-3 animate-spin" /> : idx + 1}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {isTeacher && (
-            <SubmissionGradeForm 
+            <SubmissionGradeForm
               initialScore={submission.score ?? 0}
               initialFeedback={submission.teacherFeedback ?? ''}
               isSubmitting={gradeMutation.isPending}
               isDraft={submission.status === 'DRAFT'}
+              maxScore={assignment?.maxScore || 10}
               onSubmit={handleGradeSubmit}
             />
           )}
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-500 bg-slate-50 rounded-lg px-2 py-1 border border-slate-200">
-            <Button variant="ghost" size="icon" disabled className="h-7 w-7 text-slate-400">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-xs font-medium">-- / --</span>
-            <Button variant="ghost" size="icon" disabled className="h-7 w-7 text-slate-400">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
         </div>
       </div>
 

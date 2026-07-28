@@ -13,6 +13,8 @@ import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import { CountdownTimer } from './countdown-timer'
@@ -45,13 +47,7 @@ export const embedDrawings = (content: string, drawings: any[]) => {
 }
 
 interface StudentAssignmentLayoutProps {
-  assignment: {
-    title: string
-    description: string
-    content: string
-    deadline: string
-    images?: any[]
-  }
+  assignment: any
   submissionContent: string
   setSubmissionContent: (val: string) => void
   isReadOnly: boolean
@@ -132,15 +128,20 @@ export function StudentAssignmentLayout({
       setSubmissionContent(newFullContent)
 
       // Auto save after typing
-      if (!isReadOnly && onAutoSave) {
+      if (!isReadOnly && submissionStatus !== 'SUBMITTED' && onAutoSave) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
         saveTimeoutRef.current = setTimeout(() => {
           onAutoSave(newFullContent)
           isDirtyRef.current = false
         }, 5000)
+      } else if (isReadOnly || submissionStatus === 'SUBMITTED') {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+          saveTimeoutRef.current = null
+        }
       }
     }
-  }, [pureContent, studentDrawings])
+  }, [pureContent, studentDrawings, isReadOnly, submissionStatus])
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     isDirtyRef.current = true
@@ -295,13 +296,16 @@ export function StudentAssignmentLayout({
     })
   }
 
+  const searchParams = useSearchParams()
+  const classCodeUrl = searchParams.get('classCode') || ''
+  
   const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">
       {/* TOOLBAR */}
-      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10">
+      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -315,15 +319,50 @@ export function StudentAssignmentLayout({
               {fromText}
             </span>
             <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[300px]" title={assignment.title}>
+            <span className="text-slate-900 truncate max-w-[250px]" title={assignment.title}>
               {assignment.title}
             </span>
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center gap-6 pointer-events-none">
+          {/* Nav Buttons for Sheet */}
+          {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
+            <div className="flex items-center gap-1.5 pointer-events-auto">
+              {assignment.sheetSiblings.map((sibling: any, idx: number) => {
+                const isActive = sibling.id === assignment.id
+                const isSubmitted = isActive
+                  ? (submissionStatus === 'SUBMITTED' || submissionStatus === 'GRADED')
+                  : (sibling.submissionStatus === 'SUBMITTED' || sibling.submissionStatus === 'GRADED')
+
+                return (
+                  <Link
+                    key={sibling.id}
+                    replace
+                    href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
+                    className={`
+                      w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all shadow-sm
+                      ${isActive 
+                        ? isSubmitted
+                          ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
+                          : 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
+                        : isSubmitted 
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
+                    `}
+                    title={sibling.title}
+                  >
+                    {idx + 1}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
           {assignment.deadline && !isGraded && (
-            <CountdownTimer deadline={assignment.deadline} />
+            <div className="pointer-events-auto">
+              <CountdownTimer deadline={assignment.deadline} />
+            </div>
           )}
         </div>
 
@@ -352,8 +391,14 @@ export function StudentAssignmentLayout({
                 <>
                   <button
                     onClick={() => {
-                      isDirtyRef.current = true; // force save
-                      onSaveDraft();
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current)
+                        saveTimeoutRef.current = null
+                      }
+                      isDirtyRef.current = false
+                      const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                      setSubmissionContent(latestFullContent)
+                      onSaveDraft()
                     }}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
@@ -362,7 +407,16 @@ export function StudentAssignmentLayout({
                     Lưu nháp
                   </button>
                   <button
-                    onClick={onSubmit}
+                    onClick={() => {
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current)
+                        saveTimeoutRef.current = null
+                      }
+                      isDirtyRef.current = false
+                      const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                      setSubmissionContent(latestFullContent)
+                      onSubmit()
+                    }}
                     disabled={isSavingExternal}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 shadow-sm active:scale-95 transition-all disabled:opacity-50"
                   >
@@ -372,7 +426,14 @@ export function StudentAssignmentLayout({
                 </>
               ) : (
                 <button
-                  onClick={onUnsubmit}
+                  onClick={() => {
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current)
+                      saveTimeoutRef.current = null
+                    }
+                    isDirtyRef.current = false
+                    onUnsubmit()
+                  }}
                   disabled={isSavingExternal}
                   className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
                 >

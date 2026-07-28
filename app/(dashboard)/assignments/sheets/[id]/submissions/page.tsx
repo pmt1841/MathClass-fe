@@ -1,4 +1,4 @@
-import { SubmissionTable } from '@/components/assignments/submission-table'
+import { SheetSubmissionTable } from '@/components/assignments/sheet-submission-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
@@ -9,11 +9,11 @@ interface PageProps {
   searchParams: Promise<{ classCode?: string }>
 }
 
-export default async function SubmissionsPage({ params, searchParams }: PageProps) {
+export default async function SheetSubmissionsPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const sParams = await searchParams
   const classCode = sParams.classCode
-  const parsedAssignmentId = parseInt(id, 10)
+  const parsedSheetId = parseInt(id, 10)
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -23,21 +23,21 @@ export default async function SubmissionsPage({ params, searchParams }: PageProp
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h2 className="text-3xl font-bold tracking-tight">Danh sách bài nộp</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Danh sách bài nộp phiếu</h2>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Quản lý bài nộp học sinh</CardTitle>
+          <CardTitle>Học sinh đã hoàn thành phiếu bài tập</CardTitle>
           <CardDescription>
-            Xem, lọc và chấm điểm các bài nộp của học sinh cho bài tập này.
+            Danh sách những học sinh đã nộp toàn bộ các bài tập trong phiếu này.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isNaN(parsedAssignmentId) ? (
-            <div className="text-red-500">ID bài tập không hợp lệ.</div>
+          {isNaN(parsedSheetId) ? (
+            <div className="text-red-500">ID phiếu bài tập không hợp lệ.</div>
           ) : (
-            <SubmissionTable assignmentId={parsedAssignmentId} classCode={classCode} />
+            <SheetSubmissionTable sheetId={parsedSheetId} classCode={classCode} />
           )}
         </CardContent>
       </Card>
