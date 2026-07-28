@@ -30,6 +30,8 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { format } from 'date-fns'
+import { parseDateSafe } from '@/lib/utils'
 
 export default function AdminLogsPage() {
   const [page, setPage] = useState(0)
@@ -41,7 +43,18 @@ export default function AdminLogsPage() {
 
   const formatIsoDate = (dateString: string, isEnd: boolean = false) => {
     if (!dateString) return undefined
-    return isEnd ? `${dateString}T23:59:59` : `${dateString}T00:00:00`
+    let cleanDate = dateString.trim()
+    if (cleanDate.includes('/')) {
+      cleanDate = cleanDate.replace(/\//g, '-')
+    }
+    const parts = cleanDate.split('-')
+    if (parts.length === 3) {
+      if (parts[0].length === 2 && parts[2].length === 4) {
+        // DD-MM-YYYY -> YYYY-MM-DD
+        cleanDate = `${parts[2]}-${parts[1]}-${parts[0]}`
+      }
+    }
+    return isEnd ? `${cleanDate}T23:59:59` : `${cleanDate}T00:00:00`
   }
 
   const { data, isLoading } = useAdminLogs(
@@ -54,15 +67,9 @@ export default function AdminLogsPage() {
 
   const formatDateTime = (timestamp: string) => {
     if (!timestamp) return '---'
-    const date = new Date(timestamp)
-    return date.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
+    const date = parseDateSafe(timestamp)
+    if (!date) return '---'
+    return format(date, 'HH:mm:ss dd/MM/yyyy')
   }
 
   const renderStatusBadge = (status?: string) => {

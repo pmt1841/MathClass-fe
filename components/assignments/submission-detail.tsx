@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
+import { parseDateSafe } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -158,7 +159,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
               <div>
                 <div className="font-semibold text-sm text-slate-800">{comment.teacherName}</div>
                 <div className="text-[10px] text-slate-500">
-                  {format(new Date(comment.createdAt), 'HH:mm dd/MM/yyyy')}
+                  {comment.createdAt && parseDateSafe(comment.createdAt) ? format(parseDateSafe(comment.createdAt)!, 'HH:mm dd/MM/yyyy') : ''}
                 </div>
               </div>
               {isTeacher && comment.teacherId === user?.id && (
@@ -339,7 +340,7 @@ export function SubmissionDetail({ submissionId, assignmentId }: SubmissionDetai
                 Bài làm của học sinh
               </h3>
               <div className="text-xs text-slate-500 font-medium">
-                Nộp lúc: {submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
+                Nộp lúc: {submission.submittedAt && parseDateSafe(submission.submittedAt) ? format(parseDateSafe(submission.submittedAt)!, 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
               </div>
             </div>
 
