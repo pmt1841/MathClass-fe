@@ -93,6 +93,7 @@
 - **Phòng chống XSS (HTML Sanitization):** Mọi nội dung HTML hoặc Markdown hiển thị trực tiếp từ đầu vào của người dùng (nhận xét, nội dung bài tập, bài nộp) bắt buộc phải được lọc qua bộ lọc `rehype-sanitize` kết hợp với cấu hình schema an toàn (`sanitizeSchema` của dự án) trước khi render thông qua `ReactMarkdown`.
 - **Lưu trữ Token an toàn:** Cookie lưu trữ JWT token (`auth_token`) ở client-side bắt buộc phải thiết lập thuộc tính `; Secure` trên môi trường HTTPS. Không sử dụng cookie thiếu cờ bảo mật.
 - **Tuân thủ TypeScript khi Build:** Tuyệt đối không cho phép bỏ qua lỗi TypeScript khi build nhằm ngăn chặn lỗi ép kiểu thiếu an toàn. Thuộc tính `ignoreBuildErrors` trong cấu hình `next.config.mjs` bắt buộc phải luôn luôn để là `false`.
+- **Bảo mật file môi trường (.env):** AI Agent và người phát triển **TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP ĐỌC VÀ CHỈNH SỬA** các tập tin cấu hình môi trường chứa khóa bí mật (`.env`, `.env.local`, `.env.production`, `.env.development`).
 
 ## 8. Session Management
 
@@ -102,3 +103,7 @@ Cuối mỗi session, tự động tạo summary với format:
 - Đã làm xong gì?
 - Decision đã chốt?
 - Task tiếp theo là gì?
+
+## 9. Forbidden File
+
+- Không được phép đọc và chỉnh sửa các file sau: `.env`, `.env.local`, `.env.production`, `.env.development`
