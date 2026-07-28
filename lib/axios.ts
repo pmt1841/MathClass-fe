@@ -59,7 +59,7 @@ api.interceptors.response.use(
           }
         }
       } else if (error.response.status === 403) {
-        const msg = 'Bạn không có quyền thực hiện thao tác này.';
+        const msg = 'Tính năng không khả dụng hoặc bạn không có quyền thực hiện thao tác này.';
         error.message = msg;
         if (error.response.data && typeof error.response.data === 'object') {
           error.response.data.message = msg;
@@ -68,7 +68,7 @@ api.interceptors.response.use(
         }
 
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('auth-refresh-request'));
+          window.dispatchEvent(new CustomEvent('permission-revoked', { detail: { message: msg } }));
         }
       }
     }
