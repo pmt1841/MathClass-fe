@@ -1,11 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 interface PermissionGuardProps {
   permission: string
@@ -15,27 +13,18 @@ interface PermissionGuardProps {
 
 export function PermissionGuard({ permission, children, fallback }: PermissionGuardProps) {
   const { user } = useAuth()
-
-  // Admin has all permissions automatically
-  const isAdmin = user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'ADMIN' || user?.userRole === 'ADMIN'
   const hasPermission = isAdmin || (user?.permissions && user.permissions.includes(permission))
 
-  if (hasPermission) {
-    return <>{children}</>
-  }
-
-  if (fallback !== undefined) {
-    return <>{fallback}</>
-  }
+  if (hasPermission) return <>{children}</>
+  if (fallback !== undefined) return <>{fallback}</>
 
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <span tabIndex={0} className="inline-block cursor-not-allowed w-full">
-            <div className="pointer-events-none opacity-50 w-full">
-              {children}
-            </div>
+            <div className="pointer-events-none opacity-50 w-full">{children}</div>
           </span>
         </TooltipTrigger>
         <TooltipContent>
@@ -58,7 +47,6 @@ export function RoutePermissionGuard({ permission, children, redirectUrl = '/hom
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // Fast check if not logged in
     if (!isInitializing && !isAuthenticated) {
       router.replace('/')
       return
@@ -69,13 +57,23 @@ export function RoutePermissionGuard({ permission, children, redirectUrl = '/hom
       const hasPerm = isAdmin || (user.permissions && user.permissions.includes(permission))
 
       if (!hasPerm) {
-        toast.error('Bạn không có quyền truy cập trang này')
-        router.replace(redirectUrl)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('permission-revoked', {
+              detail: { message: 'Tính năng không khả dụng. Bạn không có quyền truy cập vào khu vực này.' },
+            })
+          )
+          if (window.history.length > 1) {
+            router.back()
+          } else {
+            router.replace(redirectUrl)
+          }
+        }
       } else {
         setIsChecking(false)
       }
     }
-  }, [user, permission, router, redirectUrl])
+  }, [user, permission, router, redirectUrl, isInitializing, isAuthenticated])
 
   if (isChecking) {
     return (
