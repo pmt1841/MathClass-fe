@@ -28,9 +28,9 @@ export default async function SheetSubmissionsPage({ params, searchParams }: Pag
 
       <Card>
         <CardHeader>
-          <CardTitle>Học sinh đã hoàn thành phiếu bài tập</CardTitle>
+          <CardTitle>Tiến độ làm phiếu bài tập của học sinh</CardTitle>
           <CardDescription>
-            Danh sách những học sinh đã nộp toàn bộ các bài tập trong phiếu này.
+            Danh sách những học sinh đã làm và nộp ít nhất một bài tập trong phiếu này.
           </CardDescription>
         </CardHeader>
         <CardContent>

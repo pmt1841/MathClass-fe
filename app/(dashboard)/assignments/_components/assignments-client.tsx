@@ -28,12 +28,12 @@ export function AssignmentsPageClient() {
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
 
   useEffect(() => {
-    if (user?.role === 'TEACHER' && activeTab === 'PENDING') {
+    if (userRole === 'TEACHER' && activeTab === 'PENDING') {
       setActiveTab('DRAFT')
     }
     // Clear selections when tab changes
     setSelectedAssignments([])
-  }, [user, activeTab])
+  }, [userRole, activeTab])
 
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')

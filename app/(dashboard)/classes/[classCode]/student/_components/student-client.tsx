@@ -423,24 +423,25 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
               </section>
 
               {/* Overdue Tasks (Accordion) */}
-              {overdueTasks.length > 0 && (
-                <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
-                  <summary className="flex items-center justify-between p-5 cursor-pointer bg-red-50/30 hover:bg-red-50/80 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
-                        <AlertCircle className="h-4 w-4 text-red-600" />
-                      </div>
-                      <h3 className="text-sm font-bold text-slate-900">
-                        Bài tập quá hạn
-                        <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
-                          {overdueTasks.length}
-                        </span>
-                      </h3>
+              <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex items-center justify-between p-5 cursor-pointer bg-red-50/30 hover:bg-red-50/80 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
                     </div>
-                    <ChevronDown className="h-5 w-5 text-slate-400 details-chevron transition-transform duration-300" />
-                  </summary>
-                  <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
-                    {overdueTasks.map((task) => {
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Bài tập quá hạn
+                      <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
+                        {overdueTasks.length}
+                      </span>
+                    </h3>
+                  </div>
+                  <ChevronDown className="h-5 w-5 text-slate-400 details-chevron transition-transform duration-300" />
+                </summary>
+                <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3">
+                  {overdueTasks.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-2">Bạn không có bài tập nào quá hạn.</p>
+                  ) : overdueTasks.map((task) => {
                       if (task.isSheet) {
                         return (
                           <details
@@ -511,7 +512,6 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     })}
                   </div>
                 </details>
-              )}
 
               {/* Completed Tasks (Accordion) */}
               <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
