@@ -11,6 +11,7 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import Image from '@tiptap/extension-image'
 import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
+import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
 import {
   Bold,
   Italic,
@@ -39,15 +40,10 @@ interface TiptapProps {
 
 export default function TiptapEditor({ value, onChange, onReady, onUploadImage, placeholder, images }: TiptapProps) {
   const [showMathToolbar, setShowMathToolbar] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && onUploadImage) {
-      onUploadImage(file)
-    }
-    e.target.value = ''
-  }
+  const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
+    isOpen: false,
+    mode: 'image'
+  })
 
   // Debounce helper to prevent heavy HTML-Markdown conversions on every key stroke
   const debouncedOnChange = React.useMemo(() => {
@@ -160,20 +156,12 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     return null
   }
 
-  const setLink = () => {
-    const previousUrl = editor.getAttributes('link').href
-    const url = window.prompt('Nhập địa chỉ liên kết:', previousUrl)
-
-    if (url === null) {
-      return
+  const handleInsertLinkModal = (url: string, text?: string) => {
+    if (text) {
+      editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run()
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
     }
-
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-      return
-    }
-
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }
 
   const handleInsertLatex = (latexCommand: string) => {
@@ -366,7 +354,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={setLink}
+          onClick={() => setUploadModalState({ isOpen: true, mode: 'link' })}
           className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
             }`}
           title="Chèn liên kết"
@@ -376,7 +364,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setUploadModalState({ isOpen: true, mode: 'image' })}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
           title="Tải lên ảnh từ máy tính"
         >
@@ -508,13 +496,18 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
       {/* Editor Content Area */}
       <EditorContent editor={editor} className="flex-1 min-h-0 flex flex-col" placeholder={placeholder} />
 
-      {/* Hidden File Input for Image Upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/jpeg,image/jpg,image/png,image/webp"
-        onChange={handleImageFileChange}
+      {/* Unified Media & Upload Modal */}
+      <MediaUploadModal
+        isOpen={uploadModalState.isOpen}
+        initialMode={uploadModalState.mode}
+        onClose={() => setUploadModalState(prev => ({ ...prev, isOpen: false }))}
+        onUploadImage={(file) => {
+          if (onUploadImage) {
+            onUploadImage(file)
+          }
+        }}
+        onInsertLink={handleInsertLinkModal}
+        initialLinkUrl={editor ? editor.getAttributes('link').href || '' : ''}
       />
     </div>
   )
