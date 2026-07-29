@@ -121,7 +121,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
       return statuses
     },
     enabled: !!assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && !!submission?.studentName,
-    staleTime: 60000,
+    staleTime: 0,
   })
 
   const gradeMutation = useMutation({
@@ -387,11 +387,14 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                     : (siblingStatuses[sibling.id] || sibling.submissionStatus)
                   const isGraded = currentStatus === 'GRADED'
 
+                  const isUnsubmitted = isTeacher && (!currentStatus || currentStatus === 'DRAFT')
+                  const isDisabled = (navigatingSibling !== null) || isUnsubmitted
+
                   return (
                     <button
                       key={sibling.id}
-                      onClick={() => !isActive && handleNavigateSibling(sibling.id)}
-                      disabled={navigatingSibling !== null}
+                      onClick={() => !isActive && !isUnsubmitted && handleNavigateSibling(sibling.id)}
+                      disabled={isDisabled}
                       className={`
                         w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-all shadow-sm
                         ${isActive
@@ -402,8 +405,9 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                             ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
                             : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
                         ${navigatingSibling === sibling.id ? 'opacity-50 cursor-wait' : ''}
+                        ${isUnsubmitted ? 'opacity-50 cursor-not-allowed !bg-slate-100 !text-slate-400 !border-slate-200' : ''}
                       `}
-                      title={sibling.title}
+                      title={isUnsubmitted ? "Học sinh chưa nộp bài này" : sibling.title}
                     >
                       {navigatingSibling === sibling.id ? <Loader2 className="w-3 h-3 animate-spin" /> : idx + 1}
                     </button>
