@@ -17,6 +17,9 @@ import {
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 
+import { ResetRolePermissionsModal } from './_components/ResetRolePermissionsModal'
+import { SaveRolePermissionsModal } from './_components/SaveRolePermissionsModal'
+
 const ROLES = [
   { id: 'TEACHER', name: 'Giáo viên' },
   { id: 'STUDENT', name: 'Học sinh' },
@@ -27,7 +30,7 @@ export default function AdminRolesPage() {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([])
   
   const { data: allPermissions, isLoading: isLoadingAll } = useAllPermissions()
-  const { data: rolePermissions, isLoading: isLoadingRole, isFetching } = useRolePermissions(selectedRole)
+  const { data: rolePermissions, isLoading: isLoadingRole, isFetching, refetch } = useRolePermissions(selectedRole)
   const updatePermissions = useUpdateRolePermissions()
 
   // Đồng bộ state cục bộ khi dữ liệu từ API thay đổi
@@ -36,6 +39,13 @@ export default function AdminRolesPage() {
       setSelectedPermissionIds(rolePermissions.map(p => p.id))
     }
   }, [rolePermissions])
+
+  const handleResetSuccess = async () => {
+    const { data: updatedPermissions } = await refetch()
+    if (updatedPermissions) {
+      setSelectedPermissionIds(updatedPermissions.map(p => p.id))
+    }
+  }
 
   const handleToggle = (permissionId: number, checked: boolean) => {
     if (checked) {
@@ -55,12 +65,14 @@ export default function AdminRolesPage() {
     }
   }
 
+  const currentRoleName = ROLES.find(r => r.id === selectedRole)?.name || selectedRole
+
   const handleSave = () => {
     updatePermissions.mutate(
       { role: selectedRole, permissionIds: selectedPermissionIds },
       {
         onSuccess: () => {
-          toast.success(`Cập nhật quyền cho nhóm ${selectedRole} thành công!`)
+          toast.success(`Cập nhật quyền cho nhóm ${currentRoleName} thành công!`)
         },
         onError: () => {
           toast.error('Có lỗi xảy ra khi lưu quyền, vui lòng thử lại sau.')
@@ -85,17 +97,20 @@ export default function AdminRolesPage() {
     <div className="flex-1 space-y-4 p-8 pt-6 max-w-5xl mx-auto w-full">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Phân quyền Động</h2>
-        <Button 
-          onClick={handleSave} 
-          disabled={!hasChanges() || updatePermissions.isPending}
-        >
-          {updatePermissions.isPending ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          Lưu cài đặt
-        </Button>
+        <div className="flex items-center gap-2">
+          <ResetRolePermissionsModal
+            roleId={selectedRole}
+            roleName={currentRoleName}
+            disabled={isLoadingAll || isFetching}
+            onSuccess={handleResetSuccess}
+          />
+          <SaveRolePermissionsModal
+            roleName={currentRoleName}
+            disabled={!hasChanges() || isLoadingAll || isFetching}
+            isPending={updatePermissions.isPending}
+            onSave={handleSave}
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="TEACHER" onValueChange={setSelectedRole} className="space-y-4">

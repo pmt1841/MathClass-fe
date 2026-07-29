@@ -62,5 +62,10 @@ export const adminService = {
   updateRolePermissions: async (role: string, permissionIds: number[]) => {
     const response = await api.put<{ message: string }>(`/admin/roles/${role}/permissions`, { permissionIds })
     return response.data
+  },
+
+  resetRolePermissions: async (role: string) => {
+    const response = await api.post<{ message: string }>(`/admin/roles/${role}/reset-permissions`)
+    return response.data
   }
 }
