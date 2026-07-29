@@ -6,7 +6,7 @@ import * as z from 'zod'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Mail } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 import {
   Form,
@@ -22,7 +22,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 import { useLogin } from '@/hooks/useLogin'
 import { SocialLoginButton } from './social-login-button'
+import { AccountLockedModal } from './account-locked-modal'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
+import { useAppDispatch } from '@/lib/redux/hooks'
+import { logoutSuccess } from '@/lib/redux/features/authSlice'
+import { authStorage } from '@/lib/auth-storage'
+import api from '@/lib/axios'
 
 const formSchema = z.object({
   email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ'),
@@ -34,13 +39,71 @@ type FormValues = z.infer<typeof formSchema>
 
 export default function LoginForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const dispatch = useAppDispatch()
   const [role, setRole] = useState<string>(ROLES.STUDENT)
+  /*
+   * PHÁT HIỆN LÝ DO BỊ KHÓA:
+   * State kiểm soát việc hiển thị Modal Cảnh báo khi người dùng bị văng từ hệ thống về trang Login với tham số ?reason=account_locked
+   */
+  const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
+
   const { login, isLoading, loginError } = useLogin()
 
   useEffect(() => {
     const savedRole = searchParams.get('role') || sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE) || ROLES.STUDENT
     setRole(savedRole)
+
+    // Kiểm tra query parameter để mở Modal cảnh báo tài khoản bị khóa
+    const reason = searchParams.get('reason')
+    if (reason === 'account_locked') {
+      setShowLockedModal(true)
+    }
   }, [searchParams])
+
+  /*
+   * TỰ ĐỘNG BẬT MODAL KHI ĐĂNG NHẬP THẤT BẠI DO BỊ KHÓA:
+   * Nếu người dùng cố tình nhập thông tin đăng nhập của một tài khoản đã bị khóa,
+   * thông báo lỗi từ backend trả về cũng sẽ kích hoạt hiển thị Modal Cảnh Báo.
+   */
+  useEffect(() => {
+    if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
+      setShowLockedModal(true)
+    }
+  }, [loginError])
+
+  /**
+   * Đóng Modal, xóa sạch Redux Auth State & Cookie còn đọng lại trên trình duyệt
+   * và loại bỏ tham số ?reason=account_locked để giữ người dùng an toàn tại trang Login chuẩn bị đăng nhập lại.
+   */
+  const handleCloseLockedModal = () => {
+    setShowLockedModal(false)
+
+    // Xóa sạch trạng thái Auth trong Redux và Storage
+    try {
+      dispatch(logoutSuccess())
+    } catch (e) {
+      // ignore
+    }
+
+    authStorage.clearToken()
+    authStorage.clearUserInfo()
+
+    if (typeof document !== 'undefined') {
+      document.cookie = 'mathclass_role=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'user_role=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'mathclass_jwt=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+
+    // Gửi request ngầm logout tới backend để dọn cookie HttpOnly
+    api.post('/auth/logout').catch(() => {})
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('reason')
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+    router.replace(newUrl)
+  }
 
   const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : role === ROLES.ADMIN ? ' Quản trị viên' : ''
 
@@ -212,6 +275,9 @@ export default function LoginForm() {
           <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} />
         </div>
       </div>
+
+      {/* ── Modal Cảnh báo Tài khoản bị khóa (Tách biệt Component) ───────────── */}
+      <AccountLockedModal open={showLockedModal} onClose={handleCloseLockedModal} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Provider } from 'react-redux';
 import { store } from '@/lib/redux/store';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
-import { setAuth, setInitializing } from '@/lib/redux/features/authSlice';
+import { setAuth, setInitializing, logoutSuccess } from '@/lib/redux/features/authSlice';
 import api from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { PermissionRevokedModal } from '@/components/auth/permission-revoked-modal';
@@ -18,12 +18,25 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState<string | undefined>();
 
+  /*
+   * TỰ ĐỘNG TẢI THÔNG TIN PROFILE:
+   * Nếu người dùng bị Admin khóa (!isActive), API /users/profile sẽ trả về lỗi ACCOUNT_LOCKED (403).
+   * Tại đây ta bắt lỗi và dispatch logoutSuccess() để dọn dẹp Redux State, tránh việc trang bị kẹt loading vô tận.
+   */
   const refreshProfile = useCallback(async () => {
     try {
       const response = await api.get('/users/profile');
       dispatch(setAuth(response.data));
-    } catch {
-      dispatch(setInitializing(false));
+    } catch (error: any) {
+      const isLocked =
+        error?.response?.data?.code === 'ACCOUNT_LOCKED' ||
+        (typeof error?.response?.data?.message === 'string' && error.response.data.message.includes('đã bị khóa'));
+
+      if (isLocked) {
+        dispatch(logoutSuccess());
+      } else {
+        dispatch(setInitializing(false));
+      }
     }
   }, [dispatch]);
 
