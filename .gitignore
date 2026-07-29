@@ -26,10 +26,13 @@ dist-ssr
 .next
 
 # TypeScript build cache
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 .env
 
+# Playwright Test Output
+/test-results/
+/playwright-report/
+
 package-lock.json
 .antigravity/skill
-*.tsbuildinfo
