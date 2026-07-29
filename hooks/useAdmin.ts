@@ -60,3 +60,15 @@ export function useUpdateRolePermissions() {
     },
   })
 }
+
+export function useResetRolePermissions() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (role: string) => adminService.resetRolePermissions(role),
+    onSuccess: (_, role) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-role-permissions', role] })
+      queryClient.invalidateQueries({ queryKey: ['admin-logs'] })
+    },
+  })
+}
