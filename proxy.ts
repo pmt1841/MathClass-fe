@@ -41,6 +41,9 @@ export function proxy(request: NextRequest) {
   const isTeacherRoute = matchRoute(pathname, teacherOnlyRoutes)
   const isStudentRoute = matchRoute(pathname, studentOnlyRoutes)
 
+  // Kiểm tra tham số lý do khóa tài khoản để cho phép truy cập trang login hiển thị Modal cảnh báo
+  const isAccountLockedReason = request.nextUrl.searchParams.get('reason') === 'account_locked'
+
   // 1. Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !token) {
     const redirectUrl = isAdminRoute ? '/admin/login' : '/'
@@ -53,8 +56,12 @@ export function proxy(request: NextRequest) {
     if (userRole && userRole !== 'ADMIN') return NextResponse.redirect(new URL('/forbidden', request.url))
   }
 
-  // 2. Redirect authenticated users from public routes to their respective dashboards
-  if (token && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
+  /*
+   * XỬ LÝ VÒNG LẶP CHUYỂN HƯỚNG (INFINITE REDIRECT LOOP):
+   * Không chuyển hướng tự động người dùng từ /login về /home nếu URL chứa ?reason=account_locked.
+   * Điều này đảm bảo người dùng bị khóa tài khoản giữ nguyên ở trang Login để xem Modal Cảnh báo.
+   */
+  if (!isAccountLockedReason && token && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
     const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
