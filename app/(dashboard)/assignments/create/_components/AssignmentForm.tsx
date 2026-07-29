@@ -23,6 +23,7 @@ const TiptapEditor = dynamic(() => import('@/components/ui/tiptap'), { ssr: fals
 import { formatDateTime } from '@/lib/utils'
 import { assignmentService } from '@/services/assignmentService'
 import { toast } from 'sonner'
+import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
 
 export const embedDrawings = (content: string, drawings: any[]) => {
   if (!drawings || drawings.length === 0) return content
@@ -108,6 +109,12 @@ export function AssignmentForm({
   const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false)
   const [pendingUploadData, setPendingUploadData] = useState<any>(null)
   const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
+
+  // Media & Upload Modal State
+  const [mediaModalState, setMediaModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
+    isOpen: false,
+    mode: 'image'
+  })
 
   const {
     register,
@@ -335,10 +342,7 @@ export function AssignmentForm({
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
+  const processFileUpload = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Dung lượng file vượt quá 10MB.')
       return
@@ -364,9 +368,6 @@ export function AssignmentForm({
       toast.error(error.response?.data?.error || 'Có lỗi xảy ra khi trích xuất nội dung file')
     } finally {
       setIsUploadingFile(false)
-      if (event.target) {
-        event.target.value = ''
-      }
     }
   }
 
@@ -627,16 +628,10 @@ export function AssignmentForm({
                   <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
 
                   <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept=".txt,.docx,.pdf"
-                      id="upload-file-input"
-                      className="hidden"
-                      onChange={handleFileUpload}
+                    <button
+                      type="button"
+                      onClick={() => setMediaModalState({ isOpen: true, mode: 'file' })}
                       disabled={isUploadingFile}
-                    />
-                    <label
-                      htmlFor="upload-file-input"
                       className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${isUploadingFile ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                     >
                       {isUploadingFile ? (
@@ -645,7 +640,7 @@ export function AssignmentForm({
                         <Upload className="w-3.5 h-3.5" />
                       )}
                       Tải lên file (.docx, .txt, .pdf)
-                    </label>
+                    </button>
                   </div>
                 </div>
 
@@ -740,9 +735,58 @@ export function AssignmentForm({
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thư viện tài nguyên</h3>
 
-              {/* JSXGraph Section */}
+              {/* JSXGraph & Image Section */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ & Đồ thị</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ, Đồ thị & Ảnh</span>
+
+                {/* Upload Image Button */}
+                <button
+                  type="button"
+                  disabled={viewMode === 'preview' || isUploading}
+                  onClick={() => setMediaModalState({ isOpen: true, mode: 'image' })}
+                  className={`w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-emerald-200 dark:border-emerald-900/50 cursor-pointer ${viewMode === 'preview' || isUploading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                    }`}
+                  title={viewMode === 'preview' ? 'Quay lại soạn thảo để thêm ảnh' : undefined}
+                >
+                  {isUploading ? (
+                    <span className="w-3.5 h-3.5 border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+                  ) : (
+                    <ImagePlus className="w-3.5 h-3.5" />
+                  )}
+                  Thêm ảnh
+                </button>
+
+                {/* Uploaded Images List */}
+                {images.length > 0 && (
+                  <div className="space-y-1.5 my-2 max-h-[150px] overflow-y-auto">
+                    {images.map(img => (
+                      <div key={img.imageCode} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-all group">
+                        <button
+                          type="button"
+                          disabled={viewMode === 'preview'}
+                          onClick={() => handleInsertImage(img.imageCode)}
+                          className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                          title="Nhấp để chèn vào vị trí con trỏ"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.imageUrl} alt={img.imageCode} className="w-5 h-5 rounded object-cover border border-slate-200 dark:border-slate-700 shrink-0" />
+                          <span className="truncate">{img.imageCode}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={viewMode === 'preview'}
+                          onClick={() => handleDeleteImage(img.imageCode)}
+                          className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
+                          title="Xóa ảnh"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Graph / Drawing Button */}
                 <button
                   type="button"
                   title={viewMode === 'preview' ? 'Quay lại soạn thảo để thêm đồ thị' : undefined}
@@ -877,6 +921,16 @@ export function AssignmentForm({
           </div>
         </div>
       )}
+
+      {/* Media & Upload Modal */}
+      <MediaUploadModal
+        isOpen={mediaModalState.isOpen}
+        initialMode={mediaModalState.mode}
+        onClose={() => setMediaModalState(prev => ({ ...prev, isOpen: false }))}
+        onUploadImage={handleImageUploadFromEditor}
+        onUploadFile={processFileUpload}
+        isUploading={isUploading || isUploadingFile}
+      />
 
       {/* JSXGraph Editor Modal */}
       <JsxGraphEditorModal
