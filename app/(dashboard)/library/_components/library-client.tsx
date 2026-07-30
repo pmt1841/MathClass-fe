@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { AssignmentCard } from '@/app/(dashboard)/assignments/_components/assignment-card'
 import { CloneConfirmDialog, CloneTarget } from './clone-confirm-dialog'
 import { useLibraryAssignments, useLibrarySheets } from '@/hooks/useLibrary'
+import { useAuth } from '@/hooks/useAuth'
 import { AssignmentSheet } from '@/hooks/useAssignments'
 
 type LibraryTab = 'SINGLE' | 'SHEET'
@@ -16,35 +17,46 @@ const TABS: { key: LibraryTab; label: string; icon: React.ElementType }[] = [
 ]
 
 export function LibraryClient() {
+  const { user } = useAuth()
+  const userRole = user?.role ?? 'TEACHER'
+
   const [activeTab, setActiveTab] = useState<LibraryTab>('SINGLE')
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [cloneTarget, setCloneTarget] = useState<CloneTarget | null>(null)
 
-  // Debounce search input 500ms
+  // Debounce search input 500ms + reset trang về 0 khi search mới
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(searchInput)
-      setPage(0) // Reset về trang đầu khi search mới
+      setPage(0)
     }, 500)
     return () => clearTimeout(timer)
   }, [searchInput])
+
+  // Reset trang và search về 0 khi đổi tab
+  useEffect(() => {
+    setPage(0)
+    setSearchInput('')
+    setSearchQuery('')
+  }, [activeTab])
 
   const queryParams = useMemo(
     () => ({ keyword: searchQuery || undefined, page, size: 12 }),
     [searchQuery, page]
   )
 
+  // Mỗi query chỉ enabled khi đúng tab đang active — không chạy song song
   const {
     data: assignmentPage,
     isLoading: loadingAssignments,
-  } = useLibraryAssignments(queryParams)
+  } = useLibraryAssignments({ ...queryParams, enabled: activeTab === 'SINGLE' })
 
   const {
     data: sheetPage,
     isLoading: loadingSheets,
-  } = useLibrarySheets(queryParams)
+  } = useLibrarySheets({ ...queryParams, enabled: activeTab === 'SHEET' })
 
   const isLoading = activeTab === 'SINGLE' ? loadingAssignments : loadingSheets
   const currentPage = activeTab === 'SINGLE' ? assignmentPage : sheetPage
@@ -122,7 +134,7 @@ export function LibraryClient() {
               <AssignmentCard
                 key={item.id}
                 assignment={item}
-                userRole="TEACHER"
+                userRole={userRole}
                 activeTab={activeTab}
                 index={index}
                 mode="library"
