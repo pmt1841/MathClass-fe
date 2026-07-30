@@ -16,6 +16,14 @@ export interface ClassroomDetail {
   maxStudents: number
 }
 
+export type AssignmentVisibility = 'PRIVATE' | 'PUBLIC'
+
+export interface OriginalAuthor {
+  id: number
+  fullName: string
+  email?: string
+}
+
 export interface Assignment {
   id: number
   title: string
@@ -27,6 +35,8 @@ export interface Assignment {
   teacherName?: string
   isOpen?: boolean
   maxScore?: number
+  visibility?: AssignmentVisibility
+  originalAuthor?: OriginalAuthor
 }
 
 export interface MyClassroom {

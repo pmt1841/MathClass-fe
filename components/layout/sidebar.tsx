@@ -8,6 +8,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  Library,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -19,6 +20,7 @@ interface NavItem {
   label: string
   href: string
   roles?: ('TEACHER' | 'STUDENT')[]
+  permission?: string
   badge?: string
 }
 
@@ -49,6 +51,12 @@ const navItems: NavItem[] = [
     label: 'Báo cáo & Thống kê',
     href: '/reports',
     roles: ['TEACHER'],
+  },
+  {
+    icon: Library,
+    label: 'Thư viện bài tập',
+    href: '/library',
+    permission: 'library:read',
   },
 ]
 
@@ -84,9 +92,15 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
 
   const userRole = user?.role || 'STUDENT'
 
-  const visibleItems = customNavItems || navItems.filter(
-    (item) => !item.roles || item.roles.includes(userRole as 'TEACHER' | 'STUDENT')
-  )
+  const visibleItems = (customNavItems || navItems).filter((item) => {
+    if (item.roles && !item.roles.includes(userRole as 'TEACHER' | 'STUDENT')) return false
+    if (item.permission) {
+      const isAdmin = user?.role === 'ADMIN'
+      const hasPerm = isAdmin || (user?.permissions?.includes(item.permission) ?? false)
+      if (!hasPerm) return false
+    }
+    return true
+  })
 
   const isActive = (href: string) => {
     if (href === '/' || href === '/home') {

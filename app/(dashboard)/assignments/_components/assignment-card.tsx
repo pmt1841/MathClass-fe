@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers } from 'lucide-react'
+import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers, GitFork, User } from 'lucide-react'
 import { AssignmentSheet } from '@/hooks/useAssignments'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { VisibilityToggle } from '@/components/ui/visibility-toggle'
 import { useState } from 'react'
 
 interface AssignmentCardProps {
@@ -13,10 +14,14 @@ interface AssignmentCardProps {
   selectable?: boolean
   selected?: boolean
   isHorizontal?: boolean
+  /** 'personal' = kho cá nhân (default), 'library' = thư viện dùng chung */
+  mode?: 'personal' | 'library'
   onSelect?: (id: number, selected: boolean) => void
   onEdit: (id: number, hasSubmissions?: boolean, isSheet?: boolean) => void
   onDelete: (id: number, title: string, isSheet?: boolean) => void
   onPublish: (id: number, isSheet?: boolean) => void
+  /** Callback khi bấm Clone (chỉ dùng ở mode='library') */
+  onClone?: (id: number, title: string, isSheet: boolean, authorName?: string) => void
 }
 
 export function AssignmentCard({
@@ -27,13 +32,16 @@ export function AssignmentCard({
   selectable,
   selected,
   isHorizontal,
+  mode = 'personal',
   onSelect,
   onEdit,
   onDelete,
-  onPublish
+  onPublish,
+  onClone,
 }: AssignmentCardProps) {
   const isTeacher = userRole === 'TEACHER'
   const isSheet = assignment.type === 'SHEET'
+  const isLibraryMode = mode === 'library'
   const [expanded, setExpanded] = useState(false)
 
   if (isHorizontal) {
@@ -280,11 +288,29 @@ export function AssignmentCard({
           <h3 className="font-bold text-foreground text-lg line-clamp-2 leading-tight flex items-center gap-2">
             {isSheet && <Layers className="h-5 w-5 text-indigo-500 flex-shrink-0" />}
             {assignment.title}
+            {/* Badge nguồn gốc: hiển thị khi bài được clone từ tác giả khác */}
+            {!isLibraryMode && assignment.originalAuthor && (
+              <span
+                title={`Nguồn gốc: ${assignment.originalAuthor.fullName}`}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-600 border border-violet-200 flex-shrink-0"
+              >
+                <GitFork className="h-2.5 w-2.5" />
+                Clone
+              </span>
+            )}
           </h3>
           {isSheet && (
             <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
           )}
         </div>
+
+        {/* Tên tác giả — chỉ hiển thị ở mode library */}
+        {isLibraryMode && assignment.teacherName && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+            <User className="h-3 w-3" />
+            <span>{assignment.teacherName}</span>
+          </div>
+        )}
 
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
           {assignment.description || 'Không có mô tả'}
@@ -374,9 +400,9 @@ export function AssignmentCard({
         </div>
       )}
 
-      {isTeacher ? (
+      {isTeacher && !isLibraryMode ? (
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <PermissionGuard permission="assignment:update">
               <button
                 onClick={() => onEdit(assignment.id, assignment.hasSubmissions, isSheet)}
@@ -404,6 +430,13 @@ export function AssignmentCard({
                 <Trash2 className="h-4 w-4" />
               </button>
             </PermissionGuard>
+
+            {/* Visibility Toggle — chỉ Teacher ở mode personal */}
+            <VisibilityToggle
+              value={assignment.visibility ?? 'PRIVATE'}
+              assignmentId={assignment.id}
+              isSheet={isSheet}
+            />
           </div>
 
           <PermissionGuard permission="assignment:publish">
@@ -416,6 +449,19 @@ export function AssignmentCard({
             >
               <Send className="h-4 w-4" />
               {isSheet ? 'Giao lại' : 'Giao bài'}
+            </button>
+          </PermissionGuard>
+        </div>
+      ) : isLibraryMode ? (
+        /* Footer ở mode library: nút Clone */
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
+          <PermissionGuard permission="library:clone">
+            <button
+              onClick={() => onClone?.(assignment.id, assignment.title, isSheet, assignment.teacherName)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm active:scale-95"
+            >
+              <GitFork className="h-4 w-4" />
+              Clone về
             </button>
           </PermissionGuard>
         </div>
