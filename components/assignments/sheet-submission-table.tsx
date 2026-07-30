@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { format } from 'date-fns'
+import { parseDateSafe } from '@/lib/utils'
 
 interface SheetSubmissionTableProps {
   sheetId: number
@@ -81,8 +82,8 @@ export function SheetSubmissionTable({ sheetId, classCode }: SheetSubmissionTabl
                     </span>
                   </TableCell>
                   <TableCell>
-                    {sub.latestSubmittedAt
-                      ? format(new Date(sub.latestSubmittedAt), 'dd/MM/yyyy HH:mm')
+                    {sub.latestSubmittedAt && parseDateSafe(sub.latestSubmittedAt)
+                      ? format(parseDateSafe(sub.latestSubmittedAt)!, 'dd/MM/yyyy HH:mm')
                       : 'N/A'}
                   </TableCell>
                   <TableCell>

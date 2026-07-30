@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Clock } from 'lucide-react'
+import { parseDateSafe } from '@/lib/utils'
 
 interface CountdownTimerProps {
   deadline: string
@@ -24,7 +25,8 @@ export function CountdownTimer({ deadline, onExpire }: CountdownTimerProps) {
   })
 
   useEffect(() => {
-    const targetDate = new Date(deadline).getTime()
+    const parsedDate = parseDateSafe(deadline)
+    const targetDate = parsedDate ? parsedDate.getTime() : 0
 
     const calculateTimeLeft = () => {
       const now = new Date().getTime()
