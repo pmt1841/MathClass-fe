@@ -64,7 +64,7 @@ export const libraryService = {
    * Cập nhật trạng thái visibility (PRIVATE | PUBLIC) của bài tập cá nhân.
    */
   updateVisibility: async ({ id, visibility, isSheet = false }: UpdateVisibilityPayload): Promise<AssignmentResponse> => {
-    const endpoint = isSheet ? `/assignment-sheets/${id}` : `/assignments/${id}`
+    const endpoint = isSheet ? `/assignment-sheets/${id}/visibility` : `/assignments/${id}/visibility`
     const res = await api.patch<AssignmentResponse>(endpoint, { visibility })
     return res.data
   },
