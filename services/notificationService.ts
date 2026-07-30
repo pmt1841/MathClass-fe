@@ -13,10 +13,10 @@ export const notificationService = {
   },
 
   markAllAsRead: async () => {
-    await api.put('/notifications/read-all')
+    await api.patch('/notifications/read-all')
   },
 
   markAsRead: async (id: number) => {
-    await api.put(`/notifications/${id}/read`)
+    await api.patch(`/notifications/${id}/read`)
   }
 }

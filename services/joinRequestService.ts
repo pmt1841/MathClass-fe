@@ -27,12 +27,12 @@ export interface ApiResponse<T> {
 
 export const joinRequestService = {
   requestToJoinClass: async (data: JoinRequestRequest): Promise<JoinRequestResponse> => {
-    const response = await api.post<JoinRequestResponse>('/classrooms/join', data)
+    const response = await api.post<JoinRequestResponse>('/classrooms/join-requests', data)
     return response.data
   },
 
   getMyJoinRequests: async (): Promise<JoinRequestResponse[]> => {
-    const response = await api.get<JoinRequestResponse[]>('/classrooms/my-join-requests')
+    const response = await api.get<JoinRequestResponse[]>('/classrooms/join-requests/me')
     return response.data
   },
 

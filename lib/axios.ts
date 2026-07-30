@@ -1,8 +1,14 @@
 import axios from 'axios';
 import { authStorage } from './auth-storage';
 
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+// Kiểm tra xem URL đã có tiền tố version (/v1, /v2,...) chưa. Nếu chưa có sẽ tự động chèn /v1
+export const baseURL = /\/v\d+$/.test(rawApiUrl)
+  ? rawApiUrl
+  : `${rawApiUrl.replace(/\/$/, '')}/v1`;
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -58,7 +64,7 @@ api.interceptors.response.use(
           document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0';
 
           // Gọi API logout bất đồng bộ bằng instance axios gốc để Backend gửi Set-Cookie hủy HttpOnly Cookie mà không gây đệ quy interceptor
-          axios.post(`${process.env.NEXT_PUBLIC_API_URL || ''}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+          axios.post(`${process.env.NEXT_PUBLIC_API_URL || ''}/auth/logout`, {}, { withCredentials: true }).catch(() => { });
 
           const isAlreadyLoginPage = window.location.pathname.includes('/login');
           if (!isAlreadyLoginPage) {
@@ -70,13 +76,13 @@ api.interceptors.response.use(
 
       if (error.response.status === 401) {
         // Bỏ qua nếu lỗi 401 xuất phát từ API login hoặc chính API refresh token
-        const isAuthApi = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/refreshtoken');
+        const isAuthApi = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/refresh-token');
 
         if (!isAuthApi && typeof window !== 'undefined' && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
             // Tự động gọi API gia hạn token
-            await api.post('/auth/refreshtoken');
+            await api.post('/auth/refresh-token');
             // Gia hạn thành công -> Gọi lại API ban đầu
             return api(originalRequest);
           } catch (refreshError) {

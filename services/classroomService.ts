@@ -13,11 +13,11 @@ export interface Classroom {
 
 export const classroomService = {
   getMyClassrooms: async (): Promise<Classroom[]> => {
-    const res = await api.get('/classrooms/my-classroom')
+    const res = await api.get('/classrooms')
     return Array.isArray(res.data) ? res.data : []
   },
   createClassroom: async (payload: { name: string; maxStudents: number | null; description: string }) => {
-    const res = await api.post('/classrooms/create', payload)
+    const res = await api.post('/classrooms', payload)
     return res.data
   },
   getClassroomDetail: async (classCode: string): Promise<ClassroomDetail> => {
@@ -39,13 +39,13 @@ export const classroomService = {
     return res.data
   },
   addStudent: async (classCode: string, email: string) => {
-    await api.post(`/classrooms/${classCode}/students/add`, { studentEmail: email })
+    await api.post(`/classrooms/${classCode}/students`, { studentEmail: email })
   },
   removeStudent: async (classCode: string, studentId: number) => {
     await api.delete(`/classrooms/${classCode}/students/${studentId}`)
   },
   getClassroomAssignmentDetail: async (classCode: string, assignmentId: number) => {
-    const res = await api.get(`/classrooms/${classCode}/assignments/${assignmentId}/detail`)
+    const res = await api.get(`/classrooms/${classCode}/assignments/${assignmentId}`)
     return res.data
   }
 }

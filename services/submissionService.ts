@@ -87,7 +87,7 @@ export const submissionService = {
   },
 
   getMySubmission: async (assignmentId: number) => {
-    const response = await api.get<SubmissionResponse>(`/submissions/my-submission?assignmentId=${assignmentId}`)
+    const response = await api.get<SubmissionResponse>(`/submissions/me?assignmentId=${assignmentId}`)
     return response.data
   },
 

@@ -3,12 +3,12 @@ import { UserResponse, UpdateProfileRequest } from '@/types'
 
 export const profileService = {
   getProfile: async () => {
-    const response = await api.get<UserResponse>('/users/profile')
+    const response = await api.get<UserResponse>('/users/me')
     return response.data
   },
 
   updateProfile: async (data: UpdateProfileRequest) => {
-    const response = await api.put<UserResponse>('/users/profile', data)
+    const response = await api.put<UserResponse>('/users/me', data)
     return response.data
   },
 
@@ -16,7 +16,7 @@ export const profileService = {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await api.post<{ avatarUrl: string }>('/users/avatar', formData, {
+    const response = await api.post<{ avatarUrl: string }>('/users/me/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
