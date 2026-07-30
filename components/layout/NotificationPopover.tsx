@@ -16,6 +16,7 @@ import { NotificationResponse } from '@/types/notification'
 import { notificationService } from '@/services/notificationService'
 import Link from 'next/link'
 import { formatDistanceToNowSafe } from '@/lib/utils'
+import { baseURL } from '@/lib/axios'
 
 export function NotificationPopover() {
   const queryClient = useQueryClient()
@@ -23,24 +24,25 @@ export function NotificationPopover() {
   
   const { data: unreadData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
-    queryFn: notificationService.getUnreadCount,
-    refetchInterval: 60000,
+    queryFn: () => notificationService.getUnreadCount(),
+    refetchInterval: 30000,
   })
 
   const { data: notificationsData } = useQuery({
-    queryKey: ['notifications', 'list'],
-    queryFn: () => notificationService.getNotifications(0, 20),
+    queryKey: ['notifications'],
+    queryFn: () => notificationService.getNotifications(0, 10),
+    enabled: isOpen,
   })
 
   const markAllMutation = useMutation({
-    mutationFn: notificationService.markAllAsRead,
+    mutationFn: () => notificationService.markAllAsRead(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     }
   })
 
   const markReadMutation = useMutation({
-    mutationFn: notificationService.markAsRead,
+    mutationFn: (id: number) => notificationService.markAsRead(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     }
@@ -49,11 +51,7 @@ export function NotificationPopover() {
   // SSE logic
   useEffect(() => {
     const controller = new AbortController()
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
-    const cleanBaseUrl = apiUrl.replace(/\/$/, '')
-    const streamUrl = cleanBaseUrl.endsWith('/api')
-      ? `${cleanBaseUrl}/notifications/stream`
-      : `${cleanBaseUrl}/api/notifications/stream`
+    const streamUrl = `${baseURL}/notifications/stream`
 
     fetchEventSource(streamUrl, {
       method: 'GET',

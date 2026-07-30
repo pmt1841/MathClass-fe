@@ -97,12 +97,12 @@ export const assignmentService = {
   },
 
   publishAssignmentSheet: async (payload: { masterSheetId?: number; title: string; description: string; assignmentIds: number[]; itemScores?: { assignmentId: number; maxScore: number }[]; targets: { classCode: string; deadline: string }[] }) => {
-    const response = await api.post(`/assignment-sheets/publish`, payload)
+    const response = await api.post(`/assignment-sheets`, payload)
     return response.data
   },
 
   createAssignment: async (data: any) => {
-    const response = await api.post('/assignments/create', data)
+    const response = await api.post('/assignments', data)
     return response.data
   },
 
@@ -112,7 +112,7 @@ export const assignmentService = {
   },
 
   uploadImage: async (formData: FormData) => {
-    const response = await api.post('/assignments/images/upload', formData, {
+    const response = await api.post('/assignments/images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
