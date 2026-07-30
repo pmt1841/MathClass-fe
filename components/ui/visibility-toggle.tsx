@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Switch } from '@/components/ui/switch'
 import { useUpdateVisibility } from '@/hooks/useLibrary'
@@ -22,6 +22,11 @@ interface VisibilityToggleProps {
 export function VisibilityToggle({ value, assignmentId, isSheet = false }: VisibilityToggleProps) {
   const [optimistic, setOptimistic] = useState(value === 'PUBLIC')
   const { mutateAsync, isPending } = useUpdateVisibility()
+
+  // Đồng bộ với props nếu data bị refetch từ bên ngoài
+  useEffect(() => {
+    setOptimistic(value === 'PUBLIC')
+  }, [value])
 
   const handleToggle = async (checked: boolean) => {
     setOptimistic(checked)

@@ -15,10 +15,12 @@ const LIBRARY_KEYS = {
  * Cache 2 phút vì dữ liệu thư viện không đổi liên tục.
  */
 export function useLibraryAssignments(params: LibrarySearchParams) {
+  const { enabled = true, ...queryParams } = params
   return useQuery({
-    queryKey: LIBRARY_KEYS.assignments(params),
-    queryFn: () => libraryService.getPublicAssignments(params),
-    staleTime: 2 * 60 * 1000, // 2 phút
+    queryKey: LIBRARY_KEYS.assignments(queryParams),
+    queryFn: () => libraryService.getPublicAssignments(queryParams),
+    staleTime: 2 * 60 * 1000,
+    enabled,
   })
 }
 
@@ -26,10 +28,12 @@ export function useLibraryAssignments(params: LibrarySearchParams) {
  * Tìm kiếm phiếu bài tập công khai trong thư viện.
  */
 export function useLibrarySheets(params: LibrarySearchParams) {
+  const { enabled = true, ...queryParams } = params
   return useQuery({
-    queryKey: LIBRARY_KEYS.sheets(params),
-    queryFn: () => libraryService.getPublicSheets(params),
+    queryKey: LIBRARY_KEYS.sheets(queryParams),
+    queryFn: () => libraryService.getPublicSheets(queryParams),
     staleTime: 2 * 60 * 1000,
+    enabled,
   })
 }
 
@@ -47,6 +51,7 @@ export function useCloneAssignment() {
       libraryService.cloneAssignment(id, title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
     },
   })
 }
@@ -62,6 +67,7 @@ export function useCloneSheet() {
       libraryService.cloneSheet(id, title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
     },
   })
 }
@@ -78,6 +84,7 @@ export function useUpdateVisibility() {
       libraryService.updateVisibility(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
     },
   })
 }

@@ -8,6 +8,8 @@ export interface LibrarySearchParams {
   keyword?: string
   page?: number
   size?: number
+  /** Kiểm soát khi nào TanStack Query được phép chạy (truyền từ component) */
+  enabled?: boolean
 }
 
 export interface UpdateVisibilityPayload {
