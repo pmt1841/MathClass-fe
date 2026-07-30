@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
+import type { AssignmentVisibility, OriginalAuthor } from '@/types'
 
 export interface Assignment {
   id: number
@@ -19,6 +20,8 @@ export interface Assignment {
   createdAt?: string
   updatedAt?: string
   maxScore?: number
+  visibility?: AssignmentVisibility
+  originalAuthor?: OriginalAuthor
 }
 
 interface FetchAssignmentsParams {
