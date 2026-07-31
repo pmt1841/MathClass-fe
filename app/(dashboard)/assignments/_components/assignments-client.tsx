@@ -24,6 +24,7 @@ export function AssignmentsPageClient() {
   const userRole = user?.role || 'STUDENT'
 
   const [activeTab, setActiveTab] = useState<string>('PENDING')
+  const [assignmentType, setAssignmentType] = useState<'ALL' | 'SINGLE' | 'SHEET'>('ALL')
   const [selectedAssignments, setSelectedAssignments] = useState<number[]>([])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
 
@@ -142,6 +143,9 @@ export function AssignmentsPageClient() {
   const displayAssignments = assignments.filter(assignment => {
     if (userRole === 'TEACHER') return true
 
+    if (assignmentType === 'SINGLE' && assignment.type === 'SHEET') return false
+    if (assignmentType === 'SHEET' && assignment.type !== 'SHEET') return false
+
     const status = assignment.submissionStatus
     const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
 
@@ -241,6 +245,18 @@ export function AssignmentsPageClient() {
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
               {userRole === 'STUDENT' && (
                 <select
+                  value={assignmentType}
+                  onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
+                  className="w-full sm:w-auto h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+                >
+                  <option value="ALL">Tất cả loại bài</option>
+                  <option value="SINGLE">Bài tập lẻ</option>
+                  <option value="SHEET">Phiếu bài tập</option>
+                </select>
+              )}
+              {userRole === 'STUDENT' && (
+                <select
                   value={selectedClassCode}
                   onChange={(e) => setSelectedClassCode(e.target.value)}
                   className="w-full sm:w-auto h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
@@ -305,7 +321,7 @@ export function AssignmentsPageClient() {
               </p>
             </div>
           ) : (
-            <div className={activeTab === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
+            <div className={activeTab === 'SHEET' || assignmentType === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
               {displayAssignments.map((assignment, index) => (
                 <AssignmentCard
                   key={assignment.type === 'SHEET' ? `sheet-${assignment.id}` : `assignment-${assignment.id}`}
@@ -313,7 +329,7 @@ export function AssignmentsPageClient() {
                   userRole={userRole}
                   activeTab={activeTab}
                   index={index}
-                  isHorizontal={activeTab === 'SHEET'}
+                  isHorizontal={activeTab === 'SHEET' || assignmentType === 'SHEET'}
                   selectable={userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && assignment.type !== 'SHEET'}
                   selected={selectedAssignments.includes(assignment.id)}
                   onSelect={handleSelectAssignment}
