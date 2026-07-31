@@ -25,7 +25,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
    */
   const refreshProfile = useCallback(async () => {
     try {
-      const response = await api.get('/users/profile');
+      const response = await api.get('/users/me');
       dispatch(setAuth(response.data));
     } catch (error: any) {
       const isLocked =
