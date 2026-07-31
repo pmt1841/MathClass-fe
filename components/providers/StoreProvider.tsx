@@ -20,12 +20,12 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   /*
    * TỰ ĐỘNG TẢI THÔNG TIN PROFILE:
-   * Nếu người dùng bị Admin khóa (!isActive), API /users/profile sẽ trả về lỗi ACCOUNT_LOCKED (403).
+   * Nếu người dùng bị Admin khóa (!isActive), API /users/me sẽ trả về lỗi ACCOUNT_LOCKED (403).
    * Tại đây ta bắt lỗi và dispatch logoutSuccess() để dọn dẹp Redux State, tránh việc trang bị kẹt loading vô tận.
    */
   const refreshProfile = useCallback(async () => {
     try {
-      const response = await api.get('/users/profile');
+      const response = await api.get('/users/me');
       dispatch(setAuth(response.data));
     } catch (error: any) {
       const isLocked =

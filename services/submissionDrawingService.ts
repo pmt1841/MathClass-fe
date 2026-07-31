@@ -18,15 +18,15 @@ export interface SubmissionDrawingResponse {
 
 export const submissionDrawingService = {
   getSubmissionDrawing: async (submissionId: number): Promise<SubmissionDrawingResponse> => {
-    const { data } = await api.get(`/submissions/${submissionId}/drawings`);
-    return data.data;
+    const { data } = await api.get<SubmissionDrawingResponse>(`/submissions/${submissionId}/drawings`);
+    return data;
   },
 
   saveSubmissionDrawing: async (
     submissionId: number, 
     payload: SubmissionDrawingRequest
   ): Promise<SubmissionDrawingResponse> => {
-    const { data } = await api.put(`/submissions/${submissionId}/drawings`, payload);
-    return data.data;
+    const { data } = await api.put<SubmissionDrawingResponse>(`/submissions/${submissionId}/drawings`, payload);
+    return data;
   }
 }
