@@ -187,7 +187,7 @@ export default function AdminLogsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/80">
-              <TableHead className="w-[80px]">ID</TableHead>
+              <TableHead className="w-[80px]">STT</TableHead>
               <TableHead className="w-[170px]">Thời gian</TableHead>
               <TableHead className="w-[100px]">Cấp độ</TableHead>
               <TableHead className="w-[140px]">Danh mục</TableHead>
@@ -206,43 +206,50 @@ export default function AdminLogsPage() {
                 </TableCell>
               </TableRow>
             ) : data?.content && data.content.length > 0 ? (
-              data.content.map((log) => (
-                <TableRow
-                  key={log.id}
-                  onClick={() => setSelectedLog(log)}
-                  className="cursor-pointer hover:bg-slate-100/80 transition-colors"
-                >
-                  <TableCell className="font-mono text-xs text-muted-foreground">#{log.id}</TableCell>
-                  <TableCell className="text-xs">{formatDateTime(log.timestamp)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        log.level === 'ERROR'
-                          ? 'destructive'
-                          : log.level === 'WARNING'
-                          ? 'secondary'
-                          : 'default'
-                      }
-                      className={
-                        log.level === 'INFO'
-                          ? 'bg-blue-500 hover:bg-blue-600'
-                          : log.level === 'WARNING'
-                          ? 'bg-amber-500 text-white hover:bg-amber-600'
-                          : ''
-                      }
-                    >
-                      {log.level}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{renderResourceTypeBadge(log.resourceType)}</TableCell>
-                  <TableCell className="font-medium text-xs">{log.actor}</TableCell>
-                  <TableCell className="text-xs font-normal text-slate-800">{log.action}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {log.ipAddress || '---'}
-                  </TableCell>
-                  <TableCell className="text-right">{renderStatusBadge(log.status)}</TableCell>
-                </TableRow>
-              ))
+              data.content.map((log, index) => {
+                const stt = page * (data.size || 10) + index + 1
+                return (
+                  <TableRow
+                    key={log.id}
+                    onClick={() => setSelectedLog(log)}
+                    className="cursor-pointer hover:bg-slate-100/80 transition-colors"
+                  >
+                    <TableCell className="font-mono text-xs text-muted-foreground">{stt}</TableCell>
+                    <TableCell className="text-xs">{formatDateTime(log.timestamp)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          log.level === 'ERROR'
+                            ? 'destructive'
+                            : log.level === 'WARNING'
+                            ? 'secondary'
+                            : 'default'
+                        }
+                        className={
+                          log.level === 'INFO'
+                            ? 'bg-blue-500 hover:bg-blue-600'
+                            : log.level === 'WARNING'
+                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                            : ''
+                        }
+                      >
+                        {log.level}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium text-xs text-slate-700">
+                      {log.resourceType}
+                    </TableCell>
+                    <TableCell className="text-xs">{log.actor || 'Hệ thống'}</TableCell>
+                    <TableCell className="text-xs font-medium text-slate-900">
+                      {log.action}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {log.ipAddress || '---'}
+                    </TableCell>
+                    <TableCell className="text-right">{renderStatusBadge(log.status)}</TableCell>
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">

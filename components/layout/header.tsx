@@ -21,16 +21,17 @@ export function DashboardHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
-  const role = user?.role
+  const role = user?.role || (user as any)?.userRole
   const displayName = user?.fullName || user?.email || 'Người dùng'
   const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
   const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
+  const homeHref = role === 'ADMIN' ? '/admin/users' : '/home'
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">
       <div className="mx-auto max-w-screen-xl px-6 py-2">
         <div className="flex items-center justify-between">
-          <Link href="/home" className="flex items-center gap-2">
+          <Link href={homeHref} className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
               <Calculator className="h-5 w-5 text-accent-foreground" />
             </div>

@@ -178,7 +178,7 @@ export function UsersClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">ID</TableHead>
+              <TableHead className="w-16">STT</TableHead>
               <TableHead>Họ tên</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="w-32">Vai trò</TableHead>
@@ -194,9 +194,11 @@ export function UsersClient() {
                 </TableCell>
               </TableRow>
             ) : data?.content && data.content.length > 0 ? (
-              data.content.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-muted-foreground">{user.id}</TableCell>
+              data.content.map((user, index) => {
+                const stt = page * (data.size || 10) + index + 1
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="text-muted-foreground">{stt}</TableCell>
                   <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
@@ -214,8 +216,9 @@ export function UsersClient() {
                       onToggle={handleStatusToggle}
                     />
                   </TableCell>
-                </TableRow>
-              ))
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-36 text-center">
