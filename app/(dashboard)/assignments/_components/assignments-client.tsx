@@ -13,6 +13,22 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 import { AssignmentCard } from './assignment-card'
 import { parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
@@ -27,6 +43,7 @@ export function AssignmentsPageClient() {
   const [assignmentType, setAssignmentType] = useState<'ALL' | 'SINGLE' | 'SHEET'>('ALL')
   const [selectedAssignments, setSelectedAssignments] = useState<number[]>([])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
+  const [page, setPage] = useState(0)
 
   useEffect(() => {
     if (userRole === 'TEACHER' && activeTab === 'PENDING') {
@@ -34,7 +51,12 @@ export function AssignmentsPageClient() {
     }
     // Clear selections when tab changes
     setSelectedAssignments([])
+    setPage(0)
   }, [userRole, activeTab])
+
+  useEffect(() => {
+    setPage(0)
+  }, [assignmentType])
 
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -51,18 +73,27 @@ export function AssignmentsPageClient() {
   const [editSheetTarget, setEditSheetTarget] = useState<any>(null)
 
   useEffect(() => {
-    const timer = setTimeout(() => setSearchQuery(searchInput), 500)
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput)
+      setPage(0)
+    }, 500)
     return () => clearTimeout(timer)
   }, [searchInput])
 
   const { data: myClasses = [] } = useMyClassrooms()
 
-  const { data: assignments = [], isLoading: loading } = useAssignments({
+  const { data: assignmentsData, isLoading: loading } = useAssignments({
     userRole,
     activeTab,
     searchQuery,
-    selectedClassCode
+    selectedClassCode,
+    page,
+    size: 6,
+    assignmentType
   })
+
+  const assignments = assignmentsData?.items || []
+  let totalPages = assignmentsData?.totalPages || 1
 
   const queryClient = useQueryClient()
   const deleteMutation = useDeleteAssignment()
@@ -140,7 +171,7 @@ export function AssignmentsPageClient() {
     }
   }
 
-  const displayAssignments = assignments.filter(assignment => {
+  const filterByTab = (assignment: any) => {
     if (userRole === 'TEACHER') return true
 
     if (assignmentType === 'SINGLE' && assignment.type === 'SHEET') return false
@@ -155,7 +186,23 @@ export function AssignmentsPageClient() {
     if (activeTab === 'OVERDUE') return (status === null || status === 'DRAFT') && isOverdue
 
     return true
-  })
+  }
+
+  const filteredAssignments = assignments.filter(filterByTab)
+  const displaySingleItems = (assignmentsData?.singleItems || []).filter(filterByTab)
+  const displaySheetItems = (assignmentsData?.sheetItems || []).filter(filterByTab)
+
+  if (userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')) {
+    totalPages = Math.ceil(filteredAssignments.length / 6) || 1
+  }
+
+  const displayAssignments = userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')
+    ? filteredAssignments.slice(page * 6, (page + 1) * 6)
+    : filteredAssignments
+
+  const showEmptyState = userRole === 'STUDENT' && assignmentType === 'ALL'
+    ? displaySingleItems.length === 0 && displaySheetItems.length === 0
+    : displayAssignments.length === 0
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
@@ -298,7 +345,7 @@ export function AssignmentsPageClient() {
                 </div>
               ))}
             </div>
-          ) : displayAssignments.length === 0 ? (
+          ) : showEmptyState ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 bg-white border border-border rounded-2xl text-center space-y-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/5 text-primary">
                 <BookOpen className="h-8 w-8" />
@@ -320,6 +367,76 @@ export function AssignmentsPageClient() {
                         : 'Bạn không có bài tập nào quá hạn.'}
               </p>
             </div>
+          ) : userRole === 'STUDENT' && assignmentType === 'ALL' ? (
+            <div className="space-y-12">
+              {displaySingleItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-foreground">Bài tập lẻ</h3>
+                    <button 
+                      onClick={() => setAssignmentType('SINGLE')}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      Tất cả bài tập lẻ
+                    </button>
+                  </div>
+                  <Carousel className="w-full">
+                    <CarouselContent className="-ml-4 py-4">
+                      {displaySingleItems.map((assignment, index) => (
+                        <CarouselItem key={`single-${assignment.id}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                          <AssignmentCard
+                            assignment={assignment}
+                            userRole={userRole}
+                            activeTab={activeTab}
+                            index={index}
+                            isHorizontal={false}
+                            onEdit={handleEditClick}
+                            onPublish={handlePublishClick}
+                            onDelete={handleDeleteClick}
+                          />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                    <CarouselNext className="right-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                  </Carousel>
+                </div>
+              )}
+              
+              {displaySheetItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-foreground">Phiếu bài tập</h3>
+                    <button 
+                      onClick={() => setAssignmentType('SHEET')}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      Tất cả phiếu bài tập
+                    </button>
+                  </div>
+                  <Carousel className="w-full">
+                    <CarouselContent className="-ml-4 py-4">
+                      {displaySheetItems.map((assignment, index) => (
+                        <CarouselItem key={`sheet-${assignment.id}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                          <AssignmentCard
+                            assignment={assignment}
+                            userRole={userRole}
+                            activeTab={activeTab}
+                            index={index}
+                            isHorizontal={false}
+                            onEdit={handleEditClick}
+                            onPublish={handlePublishClick}
+                            onDelete={handleDeleteClick}
+                          />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                    <CarouselNext className="right-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                  </Carousel>
+                </div>
+              )}
+            </div>
           ) : (
             <div className={activeTab === 'SHEET' || assignmentType === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
               {displayAssignments.map((assignment, index) => (
@@ -338,6 +455,64 @@ export function AssignmentsPageClient() {
                   onPublish={handlePublishClick}
                 />
               ))}
+            </div>
+          )}
+
+          {!loading && displayAssignments.length > 0 && totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (page > 0) setPage(page - 1)
+                      }}
+                      className={page === 0 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  
+                  {/* Simplified page numbers logic for brevity */}
+                  {[...Array(totalPages)].map((_, i) => {
+                    // Show current page, first, last, and +- 1 from current
+                    if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
+                      return (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            href="#"
+                            isActive={page === i}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setPage(i)
+                            }}
+                          >
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    } else if (i === page - 2 || i === page + 2) {
+                      return (
+                        <PaginationItem key={i}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )
+                    }
+                    return null
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (page < totalPages - 1) setPage(page + 1)
+                      }}
+                      className={page >= totalPages - 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </div>

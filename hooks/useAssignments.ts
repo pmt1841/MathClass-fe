@@ -29,6 +29,9 @@ interface FetchAssignmentsParams {
   activeTab: string
   searchQuery: string
   selectedClassCode: string
+  page?: number
+  size?: number
+  assignmentType?: 'ALL' | 'SINGLE' | 'SHEET'
 }
 
 export interface AssignmentSheet extends Assignment {
@@ -36,11 +39,11 @@ export interface AssignmentSheet extends Assignment {
   items?: Assignment[];
 }
 
-export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode }: FetchAssignmentsParams) {
+export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode, page = 0, size = 6, assignmentType = 'ALL' }: FetchAssignmentsParams) {
   return useQuery({
-    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode],
+    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode, page, size, assignmentType],
     queryFn: async () => {
-      const params: any = {}
+      const params: any = { page, size }
       if (searchQuery) {
         params.keyword = searchQuery
       }
@@ -62,7 +65,12 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
           const data = await assignmentService.getAssignments(params)
           let assignments = (data?.content || []) as AssignmentSheet[]
           assignments = sortByNewest(assignments)
-          return assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+          return {
+            items: assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const })),
+            totalPages: data?.totalPages || 1,
+            number: data?.number || 0,
+            totalElements: data?.totalElements || 0
+          }
         }
 
         if (activeTab === 'SINGLE') {
@@ -70,13 +78,23 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
           const data = await assignmentService.getAssignments(params)
           let assignments = (data?.content || []) as AssignmentSheet[]
           assignments = sortByNewest(assignments)
-          return assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+          return {
+            items: assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const })),
+            totalPages: data?.totalPages || 1,
+            number: data?.number || 0,
+            totalElements: data?.totalElements || 0
+          }
         }
 
         if (activeTab === 'SHEET') {
           const sheetData = await assignmentService.getAssignmentSheets(params)
           let sheets = (sheetData?.content || []) as AssignmentSheet[]
-          return sortByNewest(sheets)
+          return {
+            items: sortByNewest(sheets),
+            totalPages: sheetData?.totalPages || 1,
+            number: sheetData?.number || 0,
+            totalElements: sheetData?.totalElements || 0
+          }
         }
       }
 
@@ -85,20 +103,58 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
       if (selectedClassCode) {
         params.classCode = selectedClassCode
       }
+      
+      if (assignmentType === 'SINGLE') {
+        params.page = 0
+        params.size = 1000
+        const data = await assignmentService.getAssignments(params)
+        let assignments = (data?.content || []) as AssignmentSheet[]
+        assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+        return {
+          items: sortByNewest(assignments),
+          totalPages: 1, // Frontend will calculate this
+          number: 0,
+          totalElements: assignments.length
+        }
+      }
 
-      const data = await assignmentService.getAssignments(params)
-      let assignments = (data?.content || []) as AssignmentSheet[]
-      assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
-
-      try {
+      if (assignmentType === 'SHEET') {
+        params.page = 0
+        params.size = 1000
         const sheetData = await assignmentService.getAssignmentSheets(params)
-        const sheets = (sheetData?.content || []) as AssignmentSheet[]
-        assignments = [...assignments, ...sheets]
+        let sheets = (sheetData?.content || []) as AssignmentSheet[]
+        return {
+          items: sortByNewest(sheets),
+          totalPages: 1, // Frontend will calculate this
+          number: 0,
+          totalElements: sheets.length
+        }
+      }
+
+      // For 'ALL' filter, fetch up to 9 of each to display in carousels
+      const allParams = { ...params, page: 0, size: 9 }
+      const data = await assignmentService.getAssignments(allParams)
+      let singleItems = (data?.content || []) as AssignmentSheet[]
+      singleItems = singleItems.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
+      singleItems = sortByNewest(singleItems)
+
+      let sheetItems: AssignmentSheet[] = []
+      try {
+        const sheetData = await assignmentService.getAssignmentSheets(allParams)
+        sheetItems = (sheetData?.content || []) as AssignmentSheet[]
+        sheetItems = sortByNewest(sheetItems)
       } catch (error) {
         console.error("Failed to fetch assignment sheets", error)
       }
 
-      return sortByNewest(assignments)
+      return {
+        items: [], // Left empty because UI uses singleItems and sheetItems
+        singleItems,
+        sheetItems,
+        totalPages: 1,
+        number: 0,
+        totalElements: singleItems.length + sheetItems.length
+      }
     },
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })
