@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminService } from '@/services/adminService'
 
-export function useAdminUsers(page: number, role?: string, isActive?: boolean, search?: string) {
+export function useAdminUsers(page: number, role?: string, isActive?: boolean, search?: string, size: number = 10) {
   return useQuery({
-    queryKey: ['admin-users', page, role, isActive, search],
-    queryFn: () => adminService.getUsers(page, role, isActive, search),
+    queryKey: ['admin-users', page, role, isActive, search, size],
+    queryFn: () => adminService.getUsers(page, role, isActive, search, size),
   })
 }
 
@@ -25,11 +25,12 @@ export function useAdminLogs(
   level?: string,
   resourceType?: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  size: number = 10
 ) {
   return useQuery({
-    queryKey: ['admin-logs', page, level, resourceType, startDate, endDate],
-    queryFn: () => adminService.getLogs(page, level, resourceType, startDate, endDate),
+    queryKey: ['admin-logs', page, level, resourceType, startDate, endDate, size],
+    queryFn: () => adminService.getLogs(page, level, resourceType, startDate, endDate, size),
   })
 }
 

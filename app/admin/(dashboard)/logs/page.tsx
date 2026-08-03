@@ -40,6 +40,7 @@ export default function AdminLogsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null)
+  const [pageSize, setPageSize] = useState(10)
 
   const formatIsoDate = (dateString: string, isEnd: boolean = false) => {
     if (!dateString) return undefined
@@ -62,7 +63,8 @@ export default function AdminLogsPage() {
     level === 'ALL' ? undefined : level,
     resourceType === 'ALL' ? undefined : resourceType,
     formatIsoDate(startDate, false),
-    formatIsoDate(endDate, true)
+    formatIsoDate(endDate, true),
+    pageSize
   )
 
   const formatDateTime = (timestamp: string) => {
@@ -181,6 +183,31 @@ export default function AdminLogsPage() {
         >
           Xóa bộ lọc
         </Button>
+      </div>
+
+      {/* Table toolbar: page size selector */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Hiển thị:</span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(val) => {
+              setPageSize(Number(val))
+              setPage(0)
+            }}
+          >
+            <SelectTrigger id="log-page-size-select" className="h-8 w-[80px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="15">15</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+            </SelectContent>
+          </Select>
+          <span>/ trang</span>
+        </div>
       </div>
 
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">

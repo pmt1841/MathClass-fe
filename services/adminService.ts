@@ -21,9 +21,10 @@ export interface Permission {
 }
 
 export const adminService = {
-  getUsers: async (page: number, role?: string, isActive?: boolean, search?: string) => {
+  getUsers: async (page: number, role?: string, isActive?: boolean, search?: string, size: number = 10) => {
     const params = new URLSearchParams()
     params.append('page', page.toString())
+    params.append('size', size.toString())
     if (role) params.append('role', role)
     if (isActive !== undefined) params.append('isActive', String(isActive))
     if (search) params.append('search', search)
@@ -37,9 +38,10 @@ export const adminService = {
     return response.data
   },
 
-  getLogs: async (page: number, level?: string, resourceType?: string, startDate?: string, endDate?: string) => {
+  getLogs: async (page: number, level?: string, resourceType?: string, startDate?: string, endDate?: string, size: number = 10) => {
     const params = new URLSearchParams()
     params.append('page', page.toString())
+    params.append('size', size.toString())
     if (level && level !== 'ALL') params.append('level', level)
     if (resourceType && resourceType !== 'ALL') params.append('resourceType', resourceType)
     if (startDate) params.append('startDate', startDate)

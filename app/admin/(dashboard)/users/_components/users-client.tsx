@@ -67,6 +67,7 @@ export function UsersClient() {
   const [role, setRole] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [search, setSearch] = useState('')
+  const [pageSize, setPageSize] = useState(10)
   // Track which userId is currently being toggled (for per-switch loading)
   const [pendingUserId, setPendingUserId] = useState<number | null>(null)
 
@@ -76,7 +77,8 @@ export function UsersClient() {
     page,
     role === 'ALL' ? undefined : role,
     statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
-    debouncedSearch || undefined
+    debouncedSearch || undefined,
+    pageSize
   )
 
   const updateUserStatus = useUpdateUserStatus()
@@ -112,6 +114,11 @@ export function UsersClient() {
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value)
+    setPage(0)
+  }
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value))
     setPage(0)
   }
 
@@ -175,6 +182,24 @@ export function UsersClient() {
 
       {/* ── Data Table ── */}
       <div className="rounded-md border bg-white">
+        {/* Table toolbar: page size selector */}
+        <div className="flex items-center justify-end px-4 py-2 border-b bg-slate-50/60">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Hiển thị:</span>
+            <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+              <SelectTrigger id="user-page-size-select" className="h-8 w-[80px] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+              </SelectContent>
+            </Select>
+            <span>/ trang</span>
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
