@@ -51,6 +51,8 @@ export interface GetAssignmentsParams {
   status?: string
   classCode?: string
   keyword?: string
+  page?: number
+  size?: number
 }
 
 export interface PublishPayload {
