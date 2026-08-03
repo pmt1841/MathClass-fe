@@ -67,6 +67,7 @@ export function UsersClient() {
   const [role, setRole] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [search, setSearch] = useState('')
+  const [pageSize, setPageSize] = useState(10)
   // Track which userId is currently being toggled (for per-switch loading)
   const [pendingUserId, setPendingUserId] = useState<number | null>(null)
 
@@ -76,7 +77,8 @@ export function UsersClient() {
     page,
     role === 'ALL' ? undefined : role,
     statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
-    debouncedSearch || undefined
+    debouncedSearch || undefined,
+    pageSize
   )
 
   const updateUserStatus = useUpdateUserStatus()
@@ -112,6 +114,11 @@ export function UsersClient() {
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value)
+    setPage(0)
+  }
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value))
     setPage(0)
   }
 
@@ -175,10 +182,28 @@ export function UsersClient() {
 
       {/* ── Data Table ── */}
       <div className="rounded-md border bg-white">
+        {/* Table toolbar: page size selector */}
+        <div className="flex items-center justify-end px-4 py-2 border-b bg-slate-50/60">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Hiển thị:</span>
+            <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+              <SelectTrigger id="user-page-size-select" className="h-8 w-[80px] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+              </SelectContent>
+            </Select>
+            <span>/ trang</span>
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">ID</TableHead>
+              <TableHead className="w-16">STT</TableHead>
               <TableHead>Họ tên</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="w-32">Vai trò</TableHead>
@@ -194,9 +219,11 @@ export function UsersClient() {
                 </TableCell>
               </TableRow>
             ) : data?.content && data.content.length > 0 ? (
-              data.content.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-muted-foreground">{user.id}</TableCell>
+              data.content.map((user, index) => {
+                const stt = page * (data.size || 10) + index + 1
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="text-muted-foreground">{stt}</TableCell>
                   <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
@@ -214,8 +241,9 @@ export function UsersClient() {
                       onToggle={handleStatusToggle}
                     />
                   </TableCell>
-                </TableRow>
-              ))
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-36 text-center">

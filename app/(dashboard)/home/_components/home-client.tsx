@@ -34,8 +34,14 @@ export function HomeClient() {
     
     if (!isAuthenticated) {
       router.replace('/')
+      return
     }
-  }, [isAuthenticated, isInitializing, router])
+
+    const role = user?.role || (user as any)?.userRole
+    if (role === 'ADMIN') {
+      router.replace('/admin/users')
+    }
+  }, [isAuthenticated, isInitializing, user, router])
 
   if (isInitializing || !isAuthenticated || !user) {
     return <DashboardSkeleton />
