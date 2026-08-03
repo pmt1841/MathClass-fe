@@ -55,6 +55,12 @@ export function SocialLoginButton({ provider, label, expectedRole, ...props }: S
               avatarUrl: data.avatarUrl,
               permissions: data.permissions
             }))
+            if (typeof document !== 'undefined') {
+              const secureFlag = window.location.protocol === 'https:' ? '; Secure' : ''
+              document.cookie = `mathclass_role=${returnedRole}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${secureFlag}`
+              document.cookie = `mathclass_remember=true; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${secureFlag}`
+            }
+
             toast.success('Đăng nhập thành công')
             router.refresh()
             router.push('/home')

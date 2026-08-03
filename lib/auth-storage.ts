@@ -17,9 +17,11 @@ export const authStorage = {
 
     if (rememberMe) {
       document.cookie = `${roleCookieBase}; max-age=${COOKIE_OPTIONS.MAX_AGE}`
+      document.cookie = `mathclass_remember=true; path=/; max-age=${COOKIE_OPTIONS.MAX_AGE}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
       localStorage.setItem('auth_persistence', 'persistent')
     } else {
       document.cookie = roleCookieBase
+      document.cookie = `mathclass_remember=; path=/; max-age=0; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
       localStorage.setItem('auth_persistence', 'session')
       sessionStorage.setItem('tab_session_active', 'true')
     }
@@ -29,9 +31,21 @@ export const authStorage = {
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
   },
 
+  isValidSession(): boolean {
+    if (typeof window === 'undefined') return true
+    const isSession = localStorage.getItem('auth_persistence') === 'session'
+    if (isSession && !sessionStorage.getItem('tab_session_active')) {
+      return false
+    }
+    return true
+  },
+
   clearToken() {
     if (typeof window === 'undefined') return
     document.cookie = 'user_role=; path=/; max-age=0'
+    document.cookie = 'mathclass_role=; path=/; max-age=0'
+    document.cookie = 'mathclass_jwt=; path=/; max-age=0'
+    document.cookie = 'mathclass_remember=; path=/; max-age=0'
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
     localStorage.removeItem('auth_persistence')
@@ -60,11 +74,7 @@ export const authStorage = {
     if (typeof window === 'undefined') return null
 
     // Check tab session persistence
-    const isSession = localStorage.getItem('auth_persistence') === 'session'
-    if (isSession && !sessionStorage.getItem('tab_session_active')) {
-      // Tab was closed or this is a new tab, but login wasn't remembered
-      this.clearToken()
-      this.clearUserInfo()
+    if (!this.isValidSession()) {
       return null
     }
 

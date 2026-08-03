@@ -8,6 +8,7 @@ import { setAuth, setInitializing, logoutSuccess } from '@/lib/redux/features/au
 import api from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { PermissionRevokedModal } from '@/components/auth/permission-revoked-modal';
+import { authStorage } from '@/lib/auth-storage';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -24,6 +25,21 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
    * Tại đây ta bắt lỗi và dispatch logoutSuccess() để dọn dẹp Redux State, tránh việc trang bị kẹt loading vô tận.
    */
   const refreshProfile = useCallback(async () => {
+    if (typeof window !== 'undefined' && !authStorage.isValidSession()) {
+      try {
+        await api.post('/auth/logout');
+      } catch (e) {
+        console.error('Logout error during session cleanup', e);
+      }
+      authStorage.clearToken();
+      authStorage.clearUserInfo();
+      dispatch(logoutSuccess());
+      if (window.location.pathname !== '/' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      return;
+    }
+
     try {
       const response = await api.get('/users/me');
       dispatch(setAuth(response.data));

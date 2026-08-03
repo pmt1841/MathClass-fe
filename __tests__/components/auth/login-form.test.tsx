@@ -7,10 +7,19 @@ import LoginForm from '@/components/auth/login-form'
 vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => (key === 'role' ? 'STUDENT' : null),
+    toString: () => '',
   }),
   useRouter: () => ({
     push: vi.fn(),
+    replace: vi.fn(),
   }),
+  usePathname: () => '/login',
+}))
+
+// Mock Redux hooks
+vi.mock('@/lib/redux/hooks', () => ({
+  useAppDispatch: () => vi.fn(),
+  useAppSelector: vi.fn(),
 }))
 
 // Mock SocialLoginButton to isolate LoginForm testing

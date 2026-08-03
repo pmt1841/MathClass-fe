@@ -47,7 +47,6 @@ export default function AdminLoginForm() {
     const savedEmail = localStorage.getItem(AUTH_KEYS.REMEMBERED_EMAIL)
     if (savedEmail) {
       form.setValue('email', savedEmail)
-      form.setValue('rememberMe', true)
     }
   }, [form])
 
