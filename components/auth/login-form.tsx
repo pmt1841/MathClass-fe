@@ -120,7 +120,6 @@ export default function LoginForm() {
     const savedEmail = localStorage.getItem(AUTH_KEYS.REMEMBERED_EMAIL)
     if (savedEmail) {
       form.setValue('email', savedEmail)
-      form.setValue('rememberMe', true)
     }
   }, [form])
 

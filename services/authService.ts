@@ -3,6 +3,7 @@ import api from '@/lib/axios'
 export interface LoginCredentials {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
 export interface SignupCredentials {
@@ -16,6 +17,7 @@ export interface SignupCredentials {
 export interface GoogleAuthCredentials {
   credential: string
   role: string
+  rememberMe?: boolean
 }
 
 export interface LoginResponse {

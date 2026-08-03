@@ -57,11 +57,12 @@ export function proxy(request: NextRequest) {
   }
 
   /*
-   * XỬ LÝ VÒNG LẶP CHUYỂN HƯỚNG (INFINITE REDIRECT LOOP):
-   * Không chuyển hướng tự động người dùng từ /login về /home nếu URL chứa ?reason=account_locked.
-   * Điều này đảm bảo người dùng bị khóa tài khoản giữ nguyên ở trang Login để xem Modal Cảnh báo.
+   * XỬ LÝ VÒNG LẶP CHUYỂN HƯỚNG & KIỂM TRA MEMORY SESSION:
+   * Chỉ tự động chuyển hướng người dùng đã đăng nhập từ / hoặc /login về /home nếu chọn "Ghi nhớ đăng nhập" (mathclass_remember=true).
+   * Nếu không tích chọn "Ghi nhớ đăng nhập", để Client JS (AuthInitializer) kiểm tra tab session active để xử lý hủy phiên khi mở tab mới.
    */
-  if (!isAccountLockedReason && token && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
+  const isRemembered = request.cookies.get('mathclass_remember')?.value === 'true'
+  if (!isAccountLockedReason && token && isRemembered && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
     const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
