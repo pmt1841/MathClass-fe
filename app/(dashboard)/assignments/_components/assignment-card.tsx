@@ -219,7 +219,7 @@ export function AssignmentCard({
                     href={`/assignments/${item.id}?classCode=${assignment.classCode}`}
                     className="px-3 py-1.5 rounded-lg bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
                   >
-                    Làm bài
+                    {item.submissionStatus === 'GRADED' ? 'Xem điểm' : item.submissionStatus ? 'Sửa bài nộp' : 'Làm bài'}
                   </Link>
                 )}
 
@@ -363,7 +363,7 @@ export function AssignmentCard({
                   href={`/assignments/${item.id}?classCode=${assignment.classCode}`}
                   className="text-xs font-semibold text-primary hover:underline flex-shrink-0"
                 >
-                  Làm bài
+                  {item.submissionStatus === 'GRADED' ? 'Xem điểm' : item.submissionStatus ? 'Sửa bài nộp' : 'Làm bài'}
                 </Link>
               )}
               {isTeacher && (
