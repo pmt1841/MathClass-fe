@@ -268,12 +268,30 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     }
   }
 
-  const memoizedRehypePlugins = useMemo(() => [
+  const commentsWithDraft = useMemo(() => {
+    if (!selectionData) return comments
+    return [
+      ...comments,
+      {
+        id: -1,
+        quoteText: selectionData.quoteText,
+        occurrenceIndex: selectionData.occurrenceIndex,
+      }
+    ]
+  }, [comments, selectionData])
+
+  const submissionRehypePlugins = useMemo(() => [
     rehypeRaw,
     [rehypeSanitize, sanitizeSchema],
     rehypeKatex,
-    [rehypeMarkComments, { comments, activeCommentId }]
-  ], [comments, activeCommentId])
+    [rehypeMarkComments, { comments: commentsWithDraft, activeCommentId }]
+  ], [commentsWithDraft, activeCommentId])
+
+  const baseRehypePlugins = useMemo(() => [
+    rehypeRaw,
+    [rehypeSanitize, sanitizeSchema],
+    rehypeKatex
+  ], [])
 
   const memoizedRemarkPlugins = useMemo(() => [remarkMath, remarkGfm], [])
 
@@ -309,7 +327,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     }
   }
 
-  const renderContentWithDrawings = (rawContent: string) => {
+  const renderContentWithDrawings = (rawContent: string, enableComments: boolean = false) => {
     if (!rawContent) return null
     const { content: cleanContent, extractedDrawings } = extractDrawings(rawContent)
     const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
@@ -352,7 +370,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
         <ReactMarkdown
           key={index}
           remarkPlugins={memoizedRemarkPlugins}
-          rehypePlugins={memoizedRehypePlugins as any}
+          rehypePlugins={(enableComments ? submissionRehypePlugins : baseRehypePlugins) as any}
           components={memoizedComponents}
         >
           {part}
@@ -458,7 +476,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   onClose={clearSelection}
                 />
                 {submission.content
-                  ? renderContentWithDrawings(submission.content)
+                  ? renderContentWithDrawings(submission.content, true)
                   : <p className="text-slate-400 italic">Bài nộp trống</p>
                 }
               </div>

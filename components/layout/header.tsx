@@ -24,7 +24,7 @@ export function DashboardHeader() {
   const role = user?.role || (user as any)?.userRole
   const displayName = user?.fullName || user?.email || 'Người dùng'
   const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
-  const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-accent' : 'bg-white text-black'
+  const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-blue-600 font-semibold shadow-xs' : 'bg-white text-slate-800 font-medium'
   const homeHref = role === 'ADMIN' ? '/admin/users' : '/home'
 
   return (
@@ -32,8 +32,8 @@ export function DashboardHeader() {
       <div className="mx-auto max-w-screen-xl px-6 py-2">
         <div className="flex items-center justify-between">
           <Link href={homeHref} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-              <Calculator className="h-5 w-5 text-accent-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500 text-white shadow-xs">
+              <Calculator className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-primary-foreground">Math Class</span>
           </Link>
@@ -56,7 +56,7 @@ export function DashboardHeader() {
                 </div>
                 <div className="hidden sm:flex flex-col items-start justify-center text-left">
                   <p className="text-sm font-semibold text-primary-foreground leading-tight">{displayName}</p>
-                  <span className={`mt-0.5 inline-block rounded-full px-2 py-[2px] text-[10px] font-medium ${roleColor}`}>
+                  <span className={`mt-0.5 inline-block rounded-full px-2 py-[2px] text-[10px] ${roleColor}`}>
                     {roleLabel}
                   </span>
                 </div>
@@ -67,25 +67,25 @@ export function DashboardHeader() {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                   <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-xl bg-white border border-border shadow-xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-border bg-muted/30">
+                    <div className="px-4 py-3 border-b border-border bg-slate-50">
                       <p className="font-semibold text-foreground text-sm">{displayName}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
                     </div>
                     <div className="p-1.5">
                       <Link
                         href="/profile"
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-medium"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <User className="h-4 w-4 text-muted-foreground" />
+                        <User className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
                         Hồ sơ cá nhân
                       </Link>
                       <Link
                         href="/settings"
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-medium"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        <Settings className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
                         Cài đặt
                       </Link>
                       <button

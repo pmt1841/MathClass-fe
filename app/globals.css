@@ -144,3 +144,20 @@ details[open] > summary .details-chevron {
 .slide-teacher-2 { animation: auto-slide-teacher 6s infinite -3s; }
 .slide-student-1 { animation: auto-slide-student 6s infinite; }
 .slide-student-2 { animation: auto-slide-student 6s infinite -3s; }
+
+/* ── KaTeX Comment Highlight Smooth Fill ──────────────────────────────── */
+.prose .katex:has(mark[data-comment-id]) {
+  background-color: #fef08a; /* bg-yellow-100 */
+  border-radius: 0.25rem;
+  padding: 0.1em 0.2em;
+}
+
+.prose .katex:has(mark[data-comment-id="-1"]) {
+  background-color: rgba(191, 219, 254, 0.9); /* bg-blue-200/90 */
+  border-radius: 0.25rem;
+  padding: 0.1em 0.2em;
+}
+
+.prose .katex:has(mark.ring-2) {
+  outline: 2px solid #facc15;
+}

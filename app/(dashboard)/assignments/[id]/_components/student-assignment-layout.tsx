@@ -17,6 +17,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
+import { useMemo } from 'react'
+import { useSubmissionComments } from '@/hooks/useSubmissionComments'
+import rehypeMarkComments from '@/lib/rehype-mark-comments'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CountdownTimer } from './countdown-timer'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 
@@ -48,6 +52,7 @@ export const embedDrawings = (content: string, drawings: any[]) => {
 
 interface StudentAssignmentLayoutProps {
   assignment: any
+  submissionId?: number | null
   submissionContent: string
   setSubmissionContent: (val: string) => void
   isReadOnly: boolean
@@ -66,6 +71,7 @@ interface StudentAssignmentLayoutProps {
 
 export function StudentAssignmentLayout({
   assignment,
+  submissionId,
   submissionContent,
   setSubmissionContent,
   isReadOnly,
@@ -82,6 +88,56 @@ export function StudentAssignmentLayout({
   onAutoSave
 }: StudentAssignmentLayoutProps) {
   const [activeTab, setActiveTab] = useState<'ASSIGNMENT' | 'PREVIEW'>('ASSIGNMENT')
+
+  const { comments = [] } = useSubmissionComments(submissionId || 0)
+
+  const memoizedComponents = useMemo(() => ({
+    ...markdownComponents,
+    mark: ({ node, ...props }: any) => {
+      const id = Number(props['data-comment-id'])
+      const comment = comments.find((c: any) => c.id === id)
+      if (!comment) return <mark {...props} />
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <mark
+              {...props}
+              className="bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition-colors"
+            />
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4 shadow-xl z-[9999]">
+            <div className="flex justify-between items-start mb-2 border-b pb-2">
+              <div>
+                <div className="font-semibold text-sm text-slate-800">{comment.teacherName}</div>
+                <div className="text-[10px] text-slate-500">
+                  {comment.createdAt && parseDateSafe(comment.createdAt) ? formatDateTime(parseDateSafe(comment.createdAt)!) : ''}
+                </div>
+              </div>
+            </div>
+            <div className="prose prose-slate prose-sm max-w-none mt-2">
+              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]} components={markdownComponents}>
+                {comment.content}
+              </ReactMarkdown>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )
+    }
+  }), [comments])
+
+  const submissionRehypePlugins = useMemo(() => [
+    rehypeRaw,
+    [rehypeSanitize, sanitizeSchema],
+    rehypeKatex,
+    ...(comments.length > 0 ? [[rehypeMarkComments, { comments, activeCommentId: null }]] : [])
+  ], [comments])
+
+  const baseRehypePlugins = useMemo(() => [
+    rehypeRaw,
+    [rehypeSanitize, sanitizeSchema],
+    rehypeKatex
+  ], [])
 
   const [studentDrawings, setStudentDrawings] = useState<any[]>([])
   const [editingShape, setEditingShape] = useState<{ shapeCode: string, jsxGraphData: any } | null>(null)
@@ -242,7 +298,7 @@ export function StudentAssignmentLayout({
     }
   }
 
-  const renderContentWithDrawings = (rawContent: string, drawingList: any[]) => {
+  const renderContentWithDrawings = (rawContent: string, drawingList: any[], isSubmission: boolean = false) => {
     if (!rawContent) return null
 
     // We already passed pureContent, so it shouldn't have JSON embedded. 
@@ -287,8 +343,8 @@ export function StudentAssignmentLayout({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath, remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
-          components={markdownComponents}
+          rehypePlugins={(isSubmission ? submissionRehypePlugins : baseRehypePlugins) as any}
+          components={isSubmission ? memoizedComponents : markdownComponents}
         >
           {part}
         </ReactMarkdown>
@@ -591,13 +647,13 @@ export function StudentAssignmentLayout({
                     {(() => {
                       if (!assignment.content) return "Không có nội dung chi tiết."
                       const { content, extractedDrawings } = extractDrawings(assignment.content)
-                      return renderContentWithDrawings(content, extractedDrawings)
+                      return renderContentWithDrawings(content, extractedDrawings, false)
                     })()}
                   </>
                 ) : (
                   <>
                     {debouncedContent ? (
-                      renderContentWithDrawings(debouncedContent, studentDrawings)
+                      renderContentWithDrawings(debouncedContent, studentDrawings, true)
                     ) : (
                       <p className="text-muted-foreground italic text-sm mt-0">Bài làm của bạn sẽ hiển thị ở đây...</p>
                     )}

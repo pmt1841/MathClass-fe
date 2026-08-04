@@ -11,8 +11,8 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-              <Calculator className="h-6 w-6 text-accent-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white shadow-xs">
+              <Calculator className="h-6 w-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-primary-foreground">Math Class</span>
           </Link>

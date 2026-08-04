@@ -313,6 +313,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       <>
         <StudentAssignmentLayout
           assignment={assignment}
+          submissionId={submissionId}
           submissionContent={submissionContent}
           setSubmissionContent={setSubmissionContent}
           isReadOnly={isReadOnly}
