@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -41,8 +41,8 @@ export function AssignmentsPageClient() {
 
   const [activeTab, setActiveTab] = useState<string>('PENDING')
   const [assignmentType, setAssignmentType] = useState<'ALL' | 'SINGLE' | 'SHEET'>('ALL')
-  const [selectedAssignments, setSelectedAssignments] = useState<number[]>([])
   const [selectedAssignmentDetails, setSelectedAssignmentDetails] = useState<{ id: number, title: string, maxScore?: number }[]>([])
+  const selectedAssignments = useMemo(() => selectedAssignmentDetails.map(a => a.id), [selectedAssignmentDetails])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
   const [page, setPage] = useState(0)
 
@@ -51,7 +51,6 @@ export function AssignmentsPageClient() {
       setActiveTab('DRAFT')
     }
     // Clear selections when tab changes
-    setSelectedAssignments([])
     setSelectedAssignmentDetails([])
     setPage(0)
   }, [userRole, activeTab])
@@ -163,11 +162,10 @@ export function AssignmentsPageClient() {
 
   const handleSelectAssignment = (id: number, selected: boolean) => {
     if (selected) {
-      if (selectedAssignments.length >= 5) {
+      if (selectedAssignmentDetails.length >= 5) {
         toast.error('Chỉ được chọn tối đa 5 bài tập cho một phiếu')
         return
       }
-      setSelectedAssignments(prev => [...prev, id])
       const assignment = assignments.find((a: any) => a.id === id)
       if (assignment) {
         setSelectedAssignmentDetails(prev => {
@@ -176,7 +174,6 @@ export function AssignmentsPageClient() {
         })
       }
     } else {
-      setSelectedAssignments(prev => prev.filter(aId => aId !== id))
       setSelectedAssignmentDetails(prev => prev.filter(a => a.id !== id))
     }
   }
@@ -343,9 +340,8 @@ export function AssignmentsPageClient() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className={`rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between ${
-                    activeTab === 'SHEET' ? 'h-24' : 'h-48'
-                  }`}
+                  className={`rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between ${activeTab === 'SHEET' ? 'h-24' : 'h-48'
+                    }`}
                 >
                   <div className="space-y-3">
                     <div className="h-6 bg-slate-200 rounded w-3/4" />
@@ -383,7 +379,7 @@ export function AssignmentsPageClient() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold text-foreground">Bài tập lẻ</h3>
-                    <button 
+                    <button
                       onClick={() => setAssignmentType('SINGLE')}
                       className="text-sm font-medium text-primary hover:underline"
                     >
@@ -412,12 +408,12 @@ export function AssignmentsPageClient() {
                   </Carousel>
                 </div>
               )}
-              
+
               {displaySheetItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold text-foreground">Phiếu bài tập</h3>
-                    <button 
+                    <button
                       onClick={() => setAssignmentType('SHEET')}
                       className="text-sm font-medium text-primary hover:underline"
                     >
@@ -482,7 +478,7 @@ export function AssignmentsPageClient() {
                       className={page === 0 ? "pointer-events-none opacity-50" : ""}
                     />
                   </PaginationItem>
-                  
+
                   {/* Simplified page numbers logic for brevity */}
                   {[...Array(totalPages)].map((_, i) => {
                     // Show current page, first, last, and +- 1 from current
@@ -557,7 +553,6 @@ export function AssignmentsPageClient() {
         }}
         onSuccess={() => {
           setPublishSheetModalOpen(false)
-          setSelectedAssignments([])
           setSelectedAssignmentDetails([])
           setSheetModalAssignmentIds([])
           queryClient.invalidateQueries({ queryKey: ['assignments'] })
