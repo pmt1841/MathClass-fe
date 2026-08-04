@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
-import { Users, Shield, FileText, Database } from 'lucide-react'
+import { Users, Shield, FileText, Database, Cpu } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 const adminNavItems = [
@@ -19,6 +19,11 @@ const adminNavItems = [
     icon: Shield,
     label: 'Quản lý quyền hạn',
     href: '/admin/roles',
+  },
+  {
+    icon: Cpu,
+    label: 'Cấu hình AI Services',
+    href: '/admin/ai-config',
   },
   {
     icon: FileText,
