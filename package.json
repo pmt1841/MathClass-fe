@@ -120,6 +120,7 @@
     "lodash-es": "^4.17.24"
   },
   "allowScripts": {
-    "sharp@0.34.5": true
+    "sharp@0.34.5": true,
+    "msw@2.15.0": true
   }
 }
