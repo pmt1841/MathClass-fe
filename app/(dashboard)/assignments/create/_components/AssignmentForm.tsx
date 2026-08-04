@@ -172,42 +172,103 @@ export function AssignmentForm({
     return () => clearTimeout(timer)
   }, [contentValue])
 
+  const [isSubmittedSuccessfully, setIsSubmittedSuccessfully] = useState(false)
+
+  const isFormDirty = React.useMemo(() => {
+    const initial = defaultValues || { title: '', description: '', content: '', drawings: [], images: [] }
+
+    const currentTitle = (formValues.title || '').trim()
+    const initialTitle = (initial.title || '').trim()
+    const titleChanged = currentTitle !== initialTitle && currentTitle !== ''
+
+    const currentDesc = (formValues.description || '').trim()
+    const initialDesc = (initial.description || '').trim()
+    const descChanged = currentDesc !== initialDesc && currentDesc !== ''
+
+    const currentContent = (formValues.content || '').trim()
+    const initialContent = (initial.content || '').trim()
+    const contentChanged = currentContent !== initialContent && currentContent !== ''
+
+    const initialDrawingsCount = (initial.drawings || []).length
+    const drawingsChanged = drawings.length !== initialDrawingsCount
+
+    const initialImagesCount = (initial.images || []).length
+    const imagesChanged = images.length !== initialImagesCount
+
+    return titleChanged || descChanged || contentChanged || drawingsChanged || imagesChanged
+  }, [formValues.title, formValues.description, formValues.content, drawings, images, defaultValues])
+
+  // Reset isSubmittedSuccessfully if user modifies any input field after submit
+  useEffect(() => {
+    setIsSubmittedSuccessfully(false)
+  }, [formValues.title, formValues.description, formValues.content, drawings, images])
+
+  const shouldWarn = isFormDirty && !isSubmittedSuccessfully
+
   const handleDraft = (data: AssignmentFormValues) => {
+    setIsSubmittedSuccessfully(true)
     onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     setLastSavedTime(new Date())
   }
 
   const handlePublish = (data: AssignmentFormValues) => {
     if (onPublishClick) {
+      setIsSubmittedSuccessfully(true)
       onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     }
   }
 
   const handleBackClick = (e: React.MouseEvent) => {
     e.preventDefault()
-    setShowLeaveModal(true)
+    if (shouldWarn) {
+      setShowLeaveModal(true)
+    } else {
+      router.push(backHref)
+    }
   }
 
   const handleLeaveConfirm = () => {
     setShowLeaveModal(false)
+    setIsSubmittedSuccessfully(true)
     router.push(backHref)
   }
 
-  // Handle Before Unload for unsaved changes
-  const isSavingRef = React.useRef(false)
+  // Handle Before Unload for unsaved changes (F5, Ctrl+R, Close tab)
+  const shouldWarnRef = React.useRef(false)
   useEffect(() => {
-    isSavingRef.current = isAutoSaving || !!isSubmitting
-  }, [isAutoSaving, isSubmitting])
+    shouldWarnRef.current = shouldWarn
+  }, [shouldWarn])
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isSavingRef.current) {
+      if (shouldWarnRef.current) {
         e.preventDefault()
+        e.returnValue = ''
+        return ''
       }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
+
+  // Handle Browser Back Arrow Button (popstate) to show custom showLeaveModal
+  useEffect(() => {
+    if (!shouldWarn) return
+
+    window.history.pushState({ isFormGuarded: true }, '', window.location.href)
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (shouldWarnRef.current) {
+        window.history.pushState({ isFormGuarded: true }, '', window.location.href)
+        setShowLeaveModal(true)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [shouldWarn])
 
   const [editorInstance, setEditorInstance] = useState<any>(null)
 
