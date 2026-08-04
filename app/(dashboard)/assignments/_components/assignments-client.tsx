@@ -42,6 +42,7 @@ export function AssignmentsPageClient() {
   const [activeTab, setActiveTab] = useState<string>('PENDING')
   const [assignmentType, setAssignmentType] = useState<'ALL' | 'SINGLE' | 'SHEET'>('ALL')
   const [selectedAssignments, setSelectedAssignments] = useState<number[]>([])
+  const [selectedAssignmentDetails, setSelectedAssignmentDetails] = useState<{ id: number, title: string, maxScore?: number }[]>([])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
   const [page, setPage] = useState(0)
 
@@ -51,6 +52,7 @@ export function AssignmentsPageClient() {
     }
     // Clear selections when tab changes
     setSelectedAssignments([])
+    setSelectedAssignmentDetails([])
     setPage(0)
   }, [userRole, activeTab])
 
@@ -166,8 +168,16 @@ export function AssignmentsPageClient() {
         return
       }
       setSelectedAssignments(prev => [...prev, id])
+      const assignment = assignments.find((a: any) => a.id === id)
+      if (assignment) {
+        setSelectedAssignmentDetails(prev => {
+          if (prev.some(p => p.id === id)) return prev
+          return [...prev, { id: assignment.id, title: assignment.title, maxScore: assignment.maxScore }]
+        })
+      }
     } else {
       setSelectedAssignments(prev => prev.filter(aId => aId !== id))
+      setSelectedAssignmentDetails(prev => prev.filter(a => a.id !== id))
     }
   }
 
@@ -535,7 +545,7 @@ export function AssignmentsPageClient() {
         assignments={
           publishingTarget?.type === 'SHEET'
             ? publishingTarget.items?.map((it: any) => ({ id: it.id, title: it.title, maxScore: it.maxScore })) || []
-            : displayAssignments.filter(a => sheetModalAssignmentIds.includes(a.id)).map(a => ({ id: a.id, title: a.title, maxScore: a.maxScore }))
+            : selectedAssignmentDetails
         }
         publishedClassCodes={publishingTarget?.publishedClassCodes}
         defaultTitle={publishingTarget?.title || ''}
@@ -548,6 +558,7 @@ export function AssignmentsPageClient() {
         onSuccess={() => {
           setPublishSheetModalOpen(false)
           setSelectedAssignments([])
+          setSelectedAssignmentDetails([])
           setSheetModalAssignmentIds([])
           queryClient.invalidateQueries({ queryKey: ['assignments'] })
         }}
