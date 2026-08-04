@@ -108,17 +108,31 @@ export function MediaUploadModal({
     if (activeMode === 'image') {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
       const validFiles: File[] = []
+      const invalidSizeFiles: string[] = []
+      const invalidTypeFiles: string[] = []
 
       for (const file of newFiles) {
         if (file.size > 5 * 1024 * 1024) {
-          toast.error(`Ảnh "${file.name}" vượt quá dung lượng 5MB.`)
+          invalidSizeFiles.push(file.name)
           continue
         }
         if (!validTypes.includes(file.type)) {
-          toast.error(`Ảnh "${file.name}" không hợp lệ. Vui lòng chọn .jpg, .png, .webp`)
+          invalidTypeFiles.push(file.name)
           continue
         }
         validFiles.push(file)
+      }
+
+      // Gộp các file bị lỗi thành 1 thông báo duy nhất
+      if (invalidSizeFiles.length > 0 || invalidTypeFiles.length > 0) {
+        const errorDetails: string[] = []
+        if (invalidSizeFiles.length > 0) {
+          errorDetails.push(`Vượt quá 5MB (${invalidSizeFiles.length}): ${invalidSizeFiles.join(', ')}`)
+        }
+        if (invalidTypeFiles.length > 0) {
+          errorDetails.push(`Không đúng định dạng .jpg/.png/.webp (${invalidTypeFiles.length}): ${invalidTypeFiles.join(', ')}`)
+        }
+        toast.error(`Có ${invalidSizeFiles.length + invalidTypeFiles.length} file không thể chọn:\n• ${errorDetails.join('\n• ')}`)
       }
 
       if (validFiles.length === 0) return
@@ -153,12 +167,12 @@ export function MediaUploadModal({
     } else if (activeMode === 'file') {
       const file = newFiles[0]
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('Dung lượng file vượt quá 10MB.')
+        toast.error(`Tập tin "${file.name}" vượt quá dung lượng tối đa 10MB.`)
         return
       }
       const fileName = file.name.toLowerCase()
       if (!fileName.endsWith('.docx') && !fileName.endsWith('.txt') && !fileName.endsWith('.pdf')) {
-        toast.error('Định dạng file không hợp lệ. Vui lòng chọn .docx, .txt hoặc .pdf')
+        toast.error(`Tập tin "${file.name}" không hợp lệ. Vui lòng chọn .docx, .txt hoặc .pdf`)
         return
       }
 
@@ -290,19 +304,11 @@ export function MediaUploadModal({
     onClose()
   }
 
-  const handleBackdropClick = () => {
-    if (!isProcessing && !isUploading) {
-      onClose()
-    }
-  }
-
   return (
     <div 
-      onClick={handleBackdropClick} 
       className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200 select-none"
     >
       <div 
-        onClick={(e) => e.stopPropagation()} 
         className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200"
       >
 
