@@ -26,7 +26,8 @@ import {
   Heading2,
   Trash2,
   Plus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react'
 
 interface TiptapProps {
@@ -34,11 +35,12 @@ interface TiptapProps {
   onChange: (data: string) => void
   onReady?: (editor: any) => void
   onUploadImage?: (file: File) => void
+  onUploadFile?: (file: File) => void
   placeholder?: string
   images?: { imageCode: string, imageUrl: string }[]
 }
 
-export default function TiptapEditor({ value, onChange, onReady, onUploadImage, placeholder, images }: TiptapProps) {
+export default function TiptapEditor({ value, onChange, onReady, onUploadImage, onUploadFile, placeholder, images }: TiptapProps) {
   const [showMathToolbar, setShowMathToolbar] = useState(false)
   const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
     isOpen: false,
@@ -160,7 +162,11 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     if (text) {
       editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run()
     } else {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+      if (editor.state.selection.empty) {
+        editor.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run()
+      } else {
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+      }
     }
   }
 
@@ -370,6 +376,17 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         >
           <ImageIcon className="w-4 h-4" />
         </button>
+        {onUploadFile && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setUploadModalState({ isOpen: true, mode: 'file' })}
+            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+            title="Tải lên file"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+        )}
 
         <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
 
@@ -504,6 +521,11 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         onUploadImage={(file) => {
           if (onUploadImage) {
             onUploadImage(file)
+          }
+        }}
+        onUploadFile={(file) => {
+          if (onUploadFile) {
+            onUploadFile(file)
           }
         }}
         onInsertLink={handleInsertLinkModal}

@@ -298,8 +298,26 @@ export function AssignmentForm({
     }
   }
 
-
-
+  const handleInsertLink = (url: string, text?: string) => {
+    if (editorInstance) {
+      if (text) {
+        editorInstance.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run()
+      } else {
+        if (editorInstance.state.selection.empty) {
+          editorInstance.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run()
+        } else {
+          editorInstance.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+        }
+      }
+      const htmlData = editorInstance.getHTML()
+      const mdData = htmlToMarkdown(htmlData)
+      setValue('content', mdData, { shouldValidate: isSubmitted, shouldDirty: true })
+    } else {
+      const currentMd = formValues.content || ''
+      const mdLink = text ? `[${text}](${url})` : `[${url}](${url})`
+      setValue('content', currentMd + '\n' + mdLink, { shouldValidate: isSubmitted, shouldDirty: true })
+    }
+  }
 
   const handleImageUploadFromEditor = async (file: File) => {
     if (images.length >= 10) {
@@ -353,13 +371,14 @@ export function AssignmentForm({
     formData.append('file', file)
 
     try {
-      const response = await assignmentService.extractText(formData)
-      if (response.content) {
+      const rawResponse = await assignmentService.extractText(formData)
+      const uploadData = rawResponse.data || rawResponse
+      if (uploadData.content) {
         const hasData = formValues.title?.trim() || formValues.content?.trim() || images.length > 0 || drawings.length > 0;
         if (!hasData) {
-          applyUploadData('replace', response, file)
+          applyUploadData('replace', uploadData, file)
         } else {
-          setPendingUploadData(response)
+          setPendingUploadData(uploadData)
           setPendingUploadFile(file)
           setShowUploadConfirmModal(true)
         }
@@ -624,24 +643,8 @@ export function AssignmentForm({
                 </div>
 
                 {/* Content Separator Label */}
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2">
                   <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMediaModalState({ isOpen: true, mode: 'file' })}
-                      disabled={isUploadingFile}
-                      className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${isUploadingFile ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                    >
-                      {isUploadingFile ? (
-                        <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-                      ) : (
-                        <Upload className="w-3.5 h-3.5" />
-                      )}
-                      Tải lên file (.docx, .txt, .pdf)
-                    </button>
-                  </div>
                 </div>
 
                 {/* LaTeX Toolbar is embedded inside CKEditor Component */}
@@ -658,6 +661,7 @@ export function AssignmentForm({
                     onReady={(editor) => setEditorInstance(editor)}
                     onChange={(newVal) => setValue('content', newVal, { shouldValidate: isSubmitted, shouldDirty: true })}
                     onUploadImage={handleImageUploadFromEditor}
+                    onUploadFile={processFileUpload}
                     images={images}
                     placeholder="Soạn thảo nội dung bài tập ở đây (hỗ trợ chèn công thức toán học từ thanh công cụ)..."
                   />
@@ -929,6 +933,7 @@ export function AssignmentForm({
         onClose={() => setMediaModalState(prev => ({ ...prev, isOpen: false }))}
         onUploadImage={handleImageUploadFromEditor}
         onUploadFile={processFileUpload}
+        onInsertLink={handleInsertLink}
         isUploading={isUploading || isUploadingFile}
       />
 
