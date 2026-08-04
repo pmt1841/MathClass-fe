@@ -74,7 +74,7 @@ export function MediaUploadModal({
     e.target.value = ''
   }
 
-  const processSelectedFile = (file: File) => {
+  const processSelectedFile = async (file: File) => {
     if (activeMode === 'image') {
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Dung lượng ảnh vượt quá 5MB.')
@@ -86,7 +86,7 @@ export function MediaUploadModal({
         return
       }
       if (onUploadImage) {
-        onUploadImage(file)
+        await onUploadImage(file)
         onClose()
       }
     } else if (activeMode === 'file') {
@@ -100,7 +100,7 @@ export function MediaUploadModal({
         return
       }
       if (onUploadFile) {
-        onUploadFile(file)
+        await onUploadFile(file)
         onClose()
       }
     }
@@ -125,46 +125,49 @@ export function MediaUploadModal({
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200 select-none">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        
+
         {/* Header with Mode Tabs */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/30">
           <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveMode('image')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeMode === 'image'
-                  ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-              Tải ảnh
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMode('file')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeMode === 'file'
-                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              Tải file
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMode('link')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeMode === 'link'
-                  ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <LinkIcon className="w-3.5 h-3.5" />
-              Chèn Link
-            </button>
+            {onUploadImage && (
+              <button
+                type="button"
+                onClick={() => setActiveMode('image')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeMode === 'image'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                Tải ảnh
+              </button>
+            )}
+            {onUploadFile && (
+              <button
+                type="button"
+                onClick={() => setActiveMode('file')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeMode === 'file'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Tải file
+              </button>
+            )}
+            {onInsertLink && (
+              <button
+                type="button"
+                onClick={() => setActiveMode('link')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeMode === 'link'
+                    ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+              >
+                <LinkIcon className="w-3.5 h-3.5" />
+                Chèn Link
+              </button>
+            )}
           </div>
 
           <button
@@ -236,23 +239,21 @@ export function MediaUploadModal({
                 accept={activeMode === 'image' ? 'image/jpeg,image/png,image/webp' : '.docx,.txt,.pdf'}
                 onChange={handleFileChange}
               />
-              
+
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-                  isDragging
+                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragging
                     ? 'border-primary bg-primary/5 scale-[0.99]'
                     : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-100/50 dark:hover:bg-slate-900/50'
-                }`}
+                  }`}
               >
-                <div className={`p-3.5 rounded-full mb-3 ${
-                  activeMode === 'image'
+                <div className={`p-3.5 rounded-full mb-3 ${activeMode === 'image'
                     ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
                     : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
-                }`}>
+                  }`}>
                   <UploadCloud className="w-8 h-8 animate-bounce" style={{ animationDuration: '2s' }} />
                 </div>
 
