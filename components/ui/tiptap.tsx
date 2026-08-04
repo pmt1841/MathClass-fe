@@ -34,13 +34,14 @@ interface TiptapProps {
   value: string
   onChange: (data: string) => void
   onReady?: (editor: any) => void
-  onUploadImage?: (file: File) => void
+  onUploadImage?: (file: File, onProgress?: (percent: number) => void) => void | Promise<void>
+  onUploadImages?: (files: File[]) => void | Promise<void>
   onUploadFile?: (file: File) => void
   placeholder?: string
   images?: { imageCode: string, imageUrl: string }[]
 }
 
-export default function TiptapEditor({ value, onChange, onReady, onUploadImage, onUploadFile, placeholder, images }: TiptapProps) {
+export default function TiptapEditor({ value, onChange, onReady, onUploadImage, onUploadImages, onUploadFile, placeholder, images }: TiptapProps) {
   const [showMathToolbar, setShowMathToolbar] = useState(false)
   const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
     isOpen: false,
@@ -518,9 +519,9 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         isOpen={uploadModalState.isOpen}
         initialMode={uploadModalState.mode}
         onClose={() => setUploadModalState(prev => ({ ...prev, isOpen: false }))}
-        onUploadImage={(file) => {
+        onUploadImage={(file, onProgress) => {
           if (onUploadImage) {
-            onUploadImage(file)
+            return onUploadImage(file, onProgress) as any
           }
         }}
         onUploadFile={(file) => {
