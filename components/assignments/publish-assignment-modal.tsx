@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { usePublishAssignment } from '@/hooks/usePublishAssignment'
 import { handleApiError } from '@/lib/utils/error-handler'
@@ -18,6 +25,7 @@ interface TargetClassEntry {
   className: string
   deadline: string
   selected: boolean
+  isAlreadyPublished: boolean
 }
 
 interface PublishAssignmentModalProps {
@@ -55,17 +63,20 @@ export function PublishAssignmentModal({
     if (!open || loadingClasses) return
     
     const defaultDeadline = getDefaultDeadline()
-    const availableClasses = publishedClassCodes && publishedClassCodes.length > 0
-      ? myClasses.filter((c) => !publishedClassCodes.includes(c.classCode))
-      : myClasses
 
     setTargets(
-      availableClasses.map((c) => ({
-        classCode: c.classCode,
-        className: c.className,
-        deadline: c.classCode === defaultClassCode ? defaultDeadline : '',
-        selected: c.classCode === defaultClassCode,
-      }))
+      myClasses.map((c) => {
+        const isAlreadyPublished = Array.isArray(publishedClassCodes) && publishedClassCodes.includes(c.classCode)
+        const isSelected = !isAlreadyPublished && c.classCode === defaultClassCode
+
+        return {
+          classCode: c.classCode,
+          className: c.className,
+          deadline: isSelected ? defaultDeadline : '',
+          selected: isSelected,
+          isAlreadyPublished,
+        }
+      })
     )
   }, [open, defaultClassCode, myClasses, publishedKey, loadingClasses])
 
@@ -79,7 +90,7 @@ export function PublishAssignmentModal({
   const toggleClass = (classCode: string) => {
     setTargets((prev) =>
       prev.map((t) => {
-        if (t.classCode !== classCode) return t
+        if (t.classCode !== classCode || t.isAlreadyPublished) return t
         const newSelected = !t.selected
         return {
           ...t,
@@ -97,6 +108,8 @@ export function PublishAssignmentModal({
   }
 
   const selectedTargets = targets.filter((t) => t.selected)
+  const allClassesAlreadyPublished =
+    myClasses.length > 0 && targets.length > 0 && targets.every((t) => t.isAlreadyPublished)
 
   const handlePublish = () => {
     if (!assignmentId && !onSubmit) return
@@ -154,34 +167,74 @@ export function PublishAssignmentModal({
             </div>
           ) : (
             <>
-              {/* Left: Class checkboxes */}
-              <div className="w-48 flex-shrink-0 flex flex-col gap-1.5 overflow-y-auto pr-1">
+              {/* Left: Class list */}
+              <div className="w-52 flex-shrink-0 flex flex-col gap-1.5 overflow-y-auto pr-1">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">
                   Chọn lớp học
                 </p>
                 {myClasses.length === 0 ? (
                   <p className="text-xs text-muted-foreground px-1">Không có lớp học nào.</p>
                 ) : (
-                  targets.map((t) => (
-                     <button
-                      key={t.classCode}
-                      id={`publish-class-${t.classCode}`}
-                      onClick={() => toggleClass(t.classCode)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-150 w-full ${
-                        t.selected
-                          ? 'border-primary/40 bg-primary/5 shadow-sm'
-                          : 'border-border bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${t.selected ? 'border-primary bg-primary' : 'border-slate-300'}`}>
-                        {t.selected && <Check className="h-2.5 w-2.5 text-white" />}
+                  targets.map((t) => {
+                    const card = (
+                      <div
+                        id={`publish-class-${t.classCode}`}
+                        onClick={() => !t.isAlreadyPublished && toggleClass(t.classCode)}
+                        className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-150 w-full ${
+                          t.isAlreadyPublished
+                            ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed select-none'
+                            : t.selected
+                            ? 'border-primary/40 bg-primary/5 shadow-sm cursor-pointer'
+                            : 'border-border bg-white hover:bg-slate-50 cursor-pointer'
+                        }`}
+                      >
+                        <div
+                          className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                            t.isAlreadyPublished
+                              ? 'border-slate-300 bg-slate-200 text-slate-400'
+                              : t.selected
+                              ? 'border-primary bg-primary'
+                              : 'border-slate-300'
+                          }`}
+                        >
+                          {(t.selected || t.isAlreadyPublished) && (
+                            <Check className={`h-2.5 w-2.5 ${t.isAlreadyPublished ? 'text-slate-400' : 'text-white'}`} />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-semibold text-foreground truncate">{t.className}</p>
+                            {t.isAlreadyPublished && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-slate-200 text-slate-600 font-normal shrink-0"
+                              >
+                                Đã giao
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-mono">{t.classCode}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">{t.className}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{t.classCode}</p>
-                      </div>
-                    </button>
-                  ))
+                    )
+
+                    if (t.isAlreadyPublished) {
+                      return (
+                        <TooltipProvider key={t.classCode}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="w-full">{card}</div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="bg-slate-900 text-white text-xs">
+                              Bài tập/phiếu đã được giao cho lớp này
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
+                    }
+
+                    return <div key={t.classCode}>{card}</div>
+                  })
                 )}
               </div>
 
@@ -190,7 +243,17 @@ export function PublishAssignmentModal({
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">
                   Cấu hình hạn nộp
                 </p>
-                {selectedTargets.length === 0 ? (
+                {allClassesAlreadyPublished ? (
+                  <div className="flex flex-col items-center justify-center flex-1 text-center space-y-2 py-8 px-4">
+                    <div className="h-10 w-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-1">
+                      <Check className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-700">Tất cả lớp học đã được giao bài tập này</p>
+                    <p className="text-xs text-muted-foreground max-w-xs">
+                      Không còn lớp học nào khả dụng để giao thêm bài tập này.
+                    </p>
+                  </div>
+                ) : selectedTargets.length === 0 ? (
                   <div className="flex flex-col items-center justify-center flex-1 text-center space-y-2 py-8">
                     <CalendarDays className="h-8 w-8 text-slate-300" />
                     <p className="text-sm text-muted-foreground">Chọn lớp học để cấu hình hạn nộp</p>
@@ -234,7 +297,9 @@ export function PublishAssignmentModal({
         <DialogFooter className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center gap-2 w-full justify-between">
             <p className="text-xs text-muted-foreground">
-              {selectedTargets.length > 0
+              {allClassesAlreadyPublished
+                ? 'Tất cả lớp học đã được giao'
+                : selectedTargets.length > 0
                 ? `Sẽ giao cho ${selectedTargets.length} lớp`
                 : 'Chưa chọn lớp nào'}
             </p>
@@ -268,3 +333,4 @@ export function PublishAssignmentModal({
     </Dialog>
   )
 }
+
