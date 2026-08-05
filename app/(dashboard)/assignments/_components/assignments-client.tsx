@@ -250,32 +250,32 @@ export function AssignmentsPageClient() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
 
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto">
+          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
+            <div className="flex bg-slate-200/50 p-1 rounded-xl w-full xl:w-auto overflow-x-auto max-w-full">
               {userRole === 'TEACHER' ? (
                 <>
-                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <Edit className="h-4 w-4" /> Bản nháp
                   </button>
-                  <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <BookOpen className="h-4 w-4" /> Bài tập lẻ
                   </button>
-                  <button onClick={() => setActiveTab('SHEET')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('SHEET')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <Layers className="h-4 w-4" /> Phiếu bài tập
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => setActiveTab('PENDING')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('PENDING')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <Clock className="h-4 w-4" /> Chưa nộp
                   </button>
-                  <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <CheckCircle className="h-4 w-4" /> Đã nộp
                   </button>
-                  <button onClick={() => setActiveTab('GRADED')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('GRADED')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <BookOpen className="h-4 w-4" /> Đã chấm điểm
                   </button>
-                  <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                     <AlertCircle className="h-4 w-4" /> Quá hạn
                   </button>
                 </>
@@ -296,12 +296,12 @@ export function AssignmentsPageClient() {
               </button>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
               {userRole === 'STUDENT' && (
                 <select
                   value={assignmentType}
                   onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
-                  className="w-full sm:w-auto h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full sm:w-auto flex-1 sm:flex-none h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
                   style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                 >
                   <option value="ALL">Tất cả loại bài</option>
@@ -313,7 +313,7 @@ export function AssignmentsPageClient() {
                 <select
                   value={selectedClassCode}
                   onChange={(e) => setSelectedClassCode(e.target.value)}
-                  className="w-full sm:w-auto h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full sm:w-auto flex-1 sm:flex-none h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
                   style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                 >
                   <option value="">Tất cả lớp học</option>

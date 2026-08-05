@@ -2,7 +2,7 @@ import api from '@/lib/axios'
 import { NotificationResponse } from '@/types/notification'
 
 export const notificationService = {
-  getNotifications: async (page = 0, size = 10) => {
+  getNotifications: async (page = 0, size = 7) => {
     const { data } = await api.get<{ content: NotificationResponse[], totalElements: number, totalPages: number }>(`/notifications?page=${page}&size=${size}`)
     return data
   },
