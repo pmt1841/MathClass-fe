@@ -179,21 +179,21 @@ export function AssignmentForm({
 
     const currentTitle = (formValues.title || '').trim()
     const initialTitle = (initial.title || '').trim()
-    const titleChanged = currentTitle !== initialTitle && currentTitle !== ''
+    const titleChanged = currentTitle !== initialTitle
 
     const currentDesc = (formValues.description || '').trim()
     const initialDesc = (initial.description || '').trim()
-    const descChanged = currentDesc !== initialDesc && currentDesc !== ''
+    const descChanged = currentDesc !== initialDesc
 
     const currentContent = (formValues.content || '').trim()
     const initialContent = (initial.content || '').trim()
-    const contentChanged = currentContent !== initialContent && currentContent !== ''
+    const contentChanged = currentContent !== initialContent
 
-    const initialDrawingsCount = (initial.drawings || []).length
-    const drawingsChanged = drawings.length !== initialDrawingsCount
+    const initialDrawings = initial.drawings || []
+    const drawingsChanged = JSON.stringify(drawings) !== JSON.stringify(initialDrawings)
 
-    const initialImagesCount = (initial.images || []).length
-    const imagesChanged = images.length !== initialImagesCount
+    const initialImages = initial.images || []
+    const imagesChanged = JSON.stringify(images) !== JSON.stringify(initialImages)
 
     return titleChanged || descChanged || contentChanged || drawingsChanged || imagesChanged
   }, [formValues.title, formValues.description, formValues.content, drawings, images, defaultValues])
@@ -205,8 +205,14 @@ export function AssignmentForm({
 
   const shouldWarn = isFormDirty && !isSubmittedSuccessfully
 
+  const isPushedRef = React.useRef(false)
+
   const handleDraft = (data: AssignmentFormValues) => {
     setIsSubmittedSuccessfully(true)
+    if (isPushedRef.current) {
+      isPushedRef.current = false
+      window.history.back()
+    }
     onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     setLastSavedTime(new Date())
   }
@@ -214,6 +220,10 @@ export function AssignmentForm({
   const handlePublish = (data: AssignmentFormValues) => {
     if (onPublishClick) {
       setIsSubmittedSuccessfully(true)
+      if (isPushedRef.current) {
+        isPushedRef.current = false
+        window.history.back()
+      }
       onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
     }
   }
@@ -230,6 +240,10 @@ export function AssignmentForm({
   const handleLeaveConfirm = () => {
     setShowLeaveModal(false)
     setIsSubmittedSuccessfully(true)
+    if (isPushedRef.current) {
+      isPushedRef.current = false
+      window.history.back()
+    }
     router.push(backHref)
   }
 
@@ -253,13 +267,22 @@ export function AssignmentForm({
 
   // Handle Browser Back Arrow Button (popstate) to show custom showLeaveModal
   useEffect(() => {
-    if (!shouldWarn) return
+    if (!shouldWarn) {
+      if (isPushedRef.current) {
+        isPushedRef.current = false
+        window.history.back()
+      }
+      return
+    }
 
-    window.history.pushState({ isFormGuarded: true }, '', window.location.href)
+    if (!isPushedRef.current) {
+      window.history.pushState({ isFormGuarded: true }, '', window.location.href)
+      isPushedRef.current = true
+    }
 
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
+      isPushedRef.current = false
       if (shouldWarnRef.current) {
-        window.history.pushState({ isFormGuarded: true }, '', window.location.href)
         setShowLeaveModal(true)
       }
     }
