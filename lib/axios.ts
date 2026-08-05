@@ -36,6 +36,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any = null) => {
+  failedQueue.forEach((promise) => {
+    if (error) {
+      promise.reject(error);
+    } else {
+      promise.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -78,23 +95,42 @@ api.interceptors.response.use(
         // Bỏ qua nếu lỗi 401 xuất phát từ API login hoặc chính API refresh token
         const isAuthApi = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/refresh-token');
 
-        if (!isAuthApi && typeof window !== 'undefined' && !originalRequest._retry) {
-          originalRequest._retry = true;
-          try {
-            // Tự động gọi API gia hạn token
-            await api.post('/auth/refresh-token');
-            // Gia hạn thành công -> Gọi lại API ban đầu
-            return api(originalRequest);
-          } catch (refreshError) {
-            // Gia hạn thất bại -> Đẩy về trang đăng nhập
-            const isAlreadyLoginPage = window.location.pathname.includes('/login');
-            if (!isAlreadyLoginPage) {
-              authStorage.clearToken();
-              if (window.location.pathname !== '/') {
-                window.location.href = '/login';
+        if (!isAuthApi && typeof window !== 'undefined') {
+          if (isRefreshing) {
+            // Nếu đang trong quá trình refresh token từ 1 request khác, cho request này vào hàng đợi (Queue)
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then(() => api(originalRequest))
+              .catch((err) => Promise.reject(err));
+          }
+
+          if (!originalRequest._retry) {
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+              // Tự động gọi API gia hạn token (chỉ 1 request chạy thực tế)
+              await api.post('/auth/refresh-token');
+              // Thông báo cho tất cả các request trong hàng đợi rằng refresh token đã thành công
+              processQueue(null);
+              // Gia hạn thành công -> Gọi lại API ban đầu
+              return api(originalRequest);
+            } catch (refreshError) {
+              // Thông báo thất bại cho các request trong hàng đợi
+              processQueue(refreshError);
+              // Gia hạn thất bại -> Đẩy về trang đăng nhập
+              const isAlreadyLoginPage = window.location.pathname.includes('/login');
+              if (!isAlreadyLoginPage) {
+                authStorage.clearToken();
+                if (window.location.pathname !== '/') {
+                  window.location.href = '/login';
+                }
               }
+              return Promise.reject(refreshError);
+            } finally {
+              isRefreshing = false;
             }
-            return Promise.reject(refreshError);
           }
         }
       } else if (error.response.status === 403) {
