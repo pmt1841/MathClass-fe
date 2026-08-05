@@ -113,11 +113,12 @@ export const assignmentService = {
     return response.data
   },
 
-  uploadImage: async (formData: FormData) => {
+  uploadImage: async (formData: FormData, onProgress?: (progressEvent: any) => void) => {
     const response = await api.post('/assignments/images', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      onUploadProgress: onProgress
     })
     return response.data
   },

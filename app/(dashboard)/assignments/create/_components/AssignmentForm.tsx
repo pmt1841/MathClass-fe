@@ -319,7 +319,7 @@ export function AssignmentForm({
     }
   }
 
-  const handleImageUploadFromEditor = async (file: File) => {
+  const handleImageUploadFromEditor = async (file: File, onProgress?: (percent: number) => void) => {
     if (images.length >= 10) {
       toast.error('Chỉ được phép tải lên tối đa 10 ảnh.')
       return
@@ -341,20 +341,30 @@ export function AssignmentForm({
     formData.append('file', file)
 
     try {
-      const data = await assignmentService.uploadImage(formData)
+      const data = await assignmentService.uploadImage(formData, (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(percent)
+        }
+      })
       const { imageCode, imageUrl } = data
-      const newImages = [...images, { imageCode, imageUrl }]
-      setImages(newImages)
-      setValue('images', newImages, { shouldValidate: isSubmitted, shouldDirty: true })
+      setImages(prev => {
+        const updated = [...prev, { imageCode, imageUrl }]
+        setValue('images', updated, { shouldValidate: isSubmitted, shouldDirty: true })
+        return updated
+      })
 
       if (editorInstance) {
         editorInstance.chain().focus().setImage({ src: imageUrl, alt: imageCode }).run()
       } else {
         insertTextIntoEditor(imageCode)
       }
-      toast.success('Tải ảnh lên thành công')
     } catch (error: any) {
-      toast.error(error.response?.data || 'Có lỗi xảy ra khi tải ảnh lên')
+      const msg = typeof error.response?.data === 'string' 
+        ? error.response.data 
+        : error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tải ảnh lên'
+      toast.error(msg)
+      throw error
     } finally {
       setIsUploading(false)
     }
