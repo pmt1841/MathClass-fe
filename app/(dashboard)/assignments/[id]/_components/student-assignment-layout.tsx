@@ -24,6 +24,14 @@ import rehypeMarkComments from '@/lib/rehype-mark-comments'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CountdownTimer } from './countdown-timer'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -729,166 +737,159 @@ export function StudentAssignmentLayout({
       />
 
       {/* AI HINT MODAL */}
-      {showHintModal && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-amber-200 animate-pulse" />
-                <h3 className="text-lg font-bold">Trợ lý Gợi ý Tư duy AI</h3>
-                <span className="bg-amber-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-100">
-                  Đã dùng {totalUsed}/3 gợi ý
-                </span>
+      <Dialog open={showHintModal} onOpenChange={setShowHintModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] p-0 flex flex-col overflow-hidden border-slate-200 shadow-2xl rounded-2xl">
+          {/* Modal Header */}
+          <DialogHeader className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex flex-row items-center justify-between shrink-0 space-y-0">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 text-amber-200 animate-pulse" />
+              <DialogTitle className="text-lg font-bold text-white">Trợ lý Gợi ý Tư duy AI</DialogTitle>
+              <span className="bg-amber-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-100">
+                Đã dùng {totalUsed}/3 gợi ý
+              </span>
+            </div>
+            <DialogDescription className="sr-only">Lịch sử và danh sách các gợi ý tư duy AI cho bài tập</DialogDescription>
+          </DialogHeader>
+
+          {/* Modal Content */}
+          <div className="p-6 flex-1 overflow-y-auto space-y-4">
+            {hintError && (
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+                {hintError}
               </div>
+            )}
+
+            {isHintRequesting && (
+              <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
+                <Loader2 className="w-5 h-5 animate-spin text-amber-600 shrink-0" />
+                <div className="text-sm font-medium">
+                  AI đang đọc đề bài và tiến độ làm bài của bạn để soạn gợi ý bước tiếp theo...
+                </div>
+              </div>
+            )}
+
+            {hints.length === 0 && !isHintRequesting && !isHintLoading && (
+              <div className="py-10 text-center text-slate-500 space-y-2">
+                <Lightbulb className="w-10 h-10 mx-auto text-slate-300" />
+                <p className="text-sm font-medium">Bạn chưa sử dụng lượt gợi ý nào cho bài tập này.</p>
+              </div>
+            )}
+
+            {hints.map((h, idx) => (
+              <div key={h.id || idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">
+                    Gợi ý #{h.hintNumber}
+                  </span>
+                  {h.createdAt && (
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {formatDateTime(parseDateSafe(h.createdAt) || new Date())}
+                    </span>
+                  )}
+                </div>
+                <div className="prose prose-slate prose-sm max-w-none text-slate-800 leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath, remarkGfm]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                    components={markdownComponents}
+                  >
+                    {h.aiHintContent}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Modal Footer */}
+          <DialogFooter className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-row items-center justify-between shrink-0">
+            <span className="text-xs text-slate-500 font-medium">
+              Gợi ý chỉ hỗ trợ hướng tư duy, không cho đáp số trực tiếp.
+            </span>
+            <div className="flex items-center gap-3">
+              {!isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHintModal(false)
+                    setShowConfirmHintModal(true)
+                  }}
+                  className="px-3 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                  <span>Xin lượt gợi ý #{totalUsed + 1}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowHintModal(false)}
-                className="p-1 rounded-lg text-amber-100 hover:text-white hover:bg-amber-700/50 transition-colors"
+                className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors"
               >
-                <X className="w-5 h-5" />
+                Đóng
               </button>
             </div>
-
-            {/* Modal Content */}
-            <div className="p-6 flex-1 overflow-y-auto space-y-4">
-              {hintError && (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
-                  {hintError}
-                </div>
-              )}
-
-              {isHintRequesting && (
-                <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
-                  <Loader2 className="w-5 h-5 animate-spin text-amber-600 shrink-0" />
-                  <div className="text-sm font-medium">
-                    AI đang đọc đề bài và tiến độ làm bài của bạn để soạn gợi ý bước tiếp theo...
-                  </div>
-                </div>
-              )}
-
-              {hints.length === 0 && !isHintRequesting && !isHintLoading && (
-                <div className="py-10 text-center text-slate-500 space-y-2">
-                  <Lightbulb className="w-10 h-10 mx-auto text-slate-300" />
-                  <p className="text-sm font-medium">Bạn chưa sử dụng lượt gợi ý nào cho bài tập này.</p>
-                </div>
-              )}
-
-              {hints.map((h, idx) => (
-                <div key={h.id || idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">
-                      Gợi ý #{h.hintNumber}
-                    </span>
-                    {h.createdAt && (
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {formatDateTime(parseDateSafe(h.createdAt) || new Date())}
-                      </span>
-                    )}
-                  </div>
-                  <div className="prose prose-slate prose-sm max-w-none text-slate-800 leading-relaxed">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkMath, remarkGfm]}
-                      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
-                      components={markdownComponents}
-                    >
-                      {h.aiHintContent}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-slate-500 font-medium">
-                Gợi ý chỉ hỗ trợ hướng tư duy, không cho đáp số trực tiếp.
-              </span>
-              <div className="flex items-center gap-3">
-                {!isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowHintModal(false)
-                      setShowConfirmHintModal(true)
-                    }}
-                    className="px-3 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                    <span>Xin lượt gợi ý #{totalUsed + 1}</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowHintModal(false)}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Xác nhận Xin Gợi ý AI */}
-      {showConfirmHintModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 p-6 space-y-5 animate-in zoom-in-95 duration-200">
+      <Dialog open={showConfirmHintModal} onOpenChange={setShowConfirmHintModal}>
+        <DialogContent className="max-w-md p-6 space-y-5 rounded-2xl border-slate-100 shadow-2xl">
+          <DialogHeader className="p-0 space-y-0 text-left">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
                 <Lightbulb className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-800">Xác nhận xin Gợi ý Tư duy AI</h3>
+                <DialogTitle className="text-base font-bold text-slate-800">Xác nhận xin Gợi ý Tư duy AI</DialogTitle>
                 <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
                   Lượt {totalUsed + 1}/3
                 </span>
               </div>
             </div>
+            <DialogDescription className="sr-only">Xác nhận gửi yêu cầu xin gợi ý từ AI</DialogDescription>
+          </DialogHeader>
 
-            <div className="space-y-3 text-sm text-slate-600">
-              <p>
-                Bạn sắp sử dụng lượt gợi ý tư duy lần thứ <strong className="text-amber-800 font-bold">{totalUsed + 1}</strong> (còn lại {remainingHints} lượt).
-              </p>
+          <div className="space-y-3 text-sm text-slate-600">
+            <p>
+              Bạn sắp sử dụng lượt gợi ý tư duy lần thứ <strong className="text-amber-800 font-bold">{totalUsed + 1}</strong> (còn lại {remainingHints} lượt).
+            </p>
 
-              {remainingHints === 1 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Đây là lượt gợi ý cuối cùng cho bài tập này!</span>
-                </div>
-              )}
+            {remainingHints === 1 && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Đây là lượt gợi ý cuối cùng cho bài tập này!</span>
+              </div>
+            )}
 
-              <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
-                AI sẽ đọc tiến độ bài làm hiện tại của bạn để đưa ra gợi ý tư duy cho bước tiếp theo. Bạn đã sẵn sàng chưa?
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowConfirmHintModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Để mình thử lại
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setShowConfirmHintModal(false)
-                  setShowHintModal(true)
-                  const latestFullContent = embedDrawings(pureContent, studentDrawings)
-                  await executeRequestHint(assignment.id, latestFullContent)
-                }}
-                className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                <span>Nhận gợi ý ngay</span>
-              </button>
-            </div>
+            <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
+              AI sẽ đọc tiến độ bài làm hiện tại của bạn để đưa ra gợi ý tư duy cho bước tiếp theo. Bạn đã sẵn sàng chưa?
+            </p>
           </div>
-        </div>
-      )}
+
+          <DialogFooter className="p-0 flex flex-row items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowConfirmHintModal(false)}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              Để mình thử lại
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setShowConfirmHintModal(false)
+                setShowHintModal(true)
+                const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                await executeRequestHint(assignment.id, latestFullContent)
+              }}
+              className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+              <span>Nhận gợi ý ngay</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

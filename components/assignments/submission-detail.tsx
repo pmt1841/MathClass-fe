@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
 import { parseDateSafe } from '@/lib/utils'
-import { submissionHintApi } from '@/lib/api/submissionHint'
+import { submissionHintsService } from '@/services/submissionHintsService'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -70,7 +70,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const { data: hintHistory, isLoading: isHintLoading } = useQuery({
     queryKey: ['submission-hints', submissionId],
-    queryFn: () => submissionHintApi.getHintHistory(submissionId),
+    queryFn: () => submissionHintsService.getHintHistory(submissionId),
     enabled: !!submissionId,
   })
 
@@ -579,12 +579,15 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                       <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-md">
                         Gợi ý lượt #{hint.hintNumber}
                       </span>
-                      {hint.createdAt && (
-                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {format(parseDateSafe(hint.createdAt)!, 'HH:mm dd/MM/yyyy')}
-                        </span>
-                      )}
+                      {(() => {
+                        const parsed = hint.createdAt ? parseDateSafe(hint.createdAt) : null
+                        return parsed ? (
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {format(parsed, 'HH:mm dd/MM/yyyy')}
+                          </span>
+                        ) : null
+                      })()}
                     </div>
 
                     {hint.studentSnapshotContent && (

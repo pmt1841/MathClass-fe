@@ -26,7 +26,7 @@ export interface HintHistoryResponse {
   hints: SubmissionHintItemDTO[]
 }
 
-export const submissionHintApi = {
+export const submissionHintsService = {
   requestHint: async (assignmentId: number, currentContent: string): Promise<StudentHintResponse> => {
     const res = await api.post<StudentHintResponse>(`/submissions/assignments/${assignmentId}/hints`, { currentContent })
     return res.data
@@ -37,3 +37,6 @@ export const submissionHintApi = {
     return res.data
   }
 }
+
+// Export legacy alias for backward compatibility if referenced elsewhere
+export const submissionHintApi = submissionHintsService
