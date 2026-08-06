@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Sparkles, X, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
 import { parseDateSafe } from '@/lib/utils'
+import { submissionHintsService } from '@/services/submissionHintsService'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -63,8 +64,15 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
   const [navigatingSibling, setNavigatingSibling] = useState<number | null>(null)
+  const [showTeacherHintModal, setShowTeacherHintModal] = useState(false)
   const { user } = useAuth()
   const isTeacher = user?.role === 'TEACHER'
+
+  const { data: hintHistory, isLoading: isHintLoading } = useQuery({
+    queryKey: ['submission-hints', submissionId],
+    queryFn: () => submissionHintsService.getHintHistory(submissionId),
+    enabled: !!submissionId,
+  })
 
   const {
     comments = [],
@@ -395,6 +403,20 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
             <span className="font-semibold text-lg text-slate-800">{submission.studentName}</span>
             {getStatusBadge(submission.status)}
 
+            {/* Nút xem Lịch sử Gợi ý AI của học sinh cho Giáo viên */}
+            <button
+              type="button"
+              onClick={() => setShowTeacherHintModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all shadow-sm active:scale-95 ml-1"
+              title="Xem các lượt xin gợi ý AI của học sinh cho bài tập này"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+              <span>Gợi ý AI</span>
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
+                {hintHistory?.totalUsed || 0}/3
+              </span>
+            </button>
+
             {/* Sheet Siblings Navigation */}
             {assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && (
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
@@ -510,6 +532,94 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
         </PanelGroup>
       </div>
+
+      {/* Modal Lịch sử Gợi ý AI dành cho Giáo viên */}
+      {showTeacherHintModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white shrink-0">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-amber-200" />
+                <h3 className="text-lg font-bold">Lịch sử Gợi ý AI - {submission.studentName}</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-white/20 text-white backdrop-blur-md">
+                  Đã dùng {hintHistory?.totalUsed || 0}/3 gợi ý
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowTeacherHintModal(false)}
+                  className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {isHintLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                  <span className="text-sm">Đang tải lịch sử gợi ý...</span>
+                </div>
+              ) : !hintHistory?.hints || hintHistory.hints.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
+                  <Lightbulb className="w-12 h-12 text-amber-300 mb-3" />
+                  <p className="font-semibold text-slate-700">Học sinh chưa sử dụng lượt gợi ý nào</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                    Học sinh {submission.studentName} đã tự lực hoàn thành bài làm mà không cần đến sự trợ giúp của AI.
+                  </p>
+                </div>
+              ) : (
+                hintHistory.hints.map((hint) => (
+                  <div key={hint.id} className="border border-amber-200/80 rounded-xl bg-gradient-to-b from-amber-50/40 to-amber-50/10 p-4 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between pb-2 border-b border-amber-200/40">
+                      <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-md">
+                        Gợi ý lượt #{hint.hintNumber}
+                      </span>
+                      {(() => {
+                        const parsed = hint.createdAt ? parseDateSafe(hint.createdAt) : null
+                        return parsed ? (
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {format(parsed, 'HH:mm dd/MM/yyyy')}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
+
+                    {hint.studentSnapshotContent && (
+                      <div className="bg-white/80 border border-slate-200/80 rounded-lg p-3 text-xs text-slate-600">
+                        <span className="font-semibold text-slate-700 block mb-1">Tiến độ bài làm lúc xin gợi ý:</span>
+                        <div className="max-h-24 overflow-y-auto whitespace-pre-wrap font-mono text-[11px] text-slate-500 bg-slate-50 p-2 rounded">
+                          {hint.studentSnapshotContent || '[Chưa có nội dung]'}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-amber-100/50 border border-amber-200 rounded-lg p-3.5 text-sm text-slate-800 prose prose-amber max-w-none">
+                      <span className="font-bold text-amber-900 block mb-1 text-xs">Gợi ý từ AI:</span>
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
+                        {hint.aiHintContent}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-6 py-3 bg-slate-50 border-t border-slate-200 shrink-0 text-xs text-slate-500">
+              <span>Giúp giáo viên đánh giá mức độ tự lực của học sinh.</span>
+              <Button variant="outline" size="sm" onClick={() => setShowTeacherHintModal(false)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
