@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, CircleDot, Edit3, X, Type, FileText } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, CircleDot, Edit3, X, Type, FileText, Sparkles, Lightbulb, Loader2 } from 'lucide-react'
+import { useSubmissionHints } from '@/hooks/useSubmissionHints'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -88,8 +89,26 @@ export function StudentAssignmentLayout({
   onAutoSave
 }: StudentAssignmentLayoutProps) {
   const [activeTab, setActiveTab] = useState<'ASSIGNMENT' | 'PREVIEW'>('ASSIGNMENT')
+  const [showHintModal, setShowHintModal] = useState(false)
+  const [showConfirmHintModal, setShowConfirmHintModal] = useState(false)
 
   const { comments = [] } = useSubmissionComments(submissionId || 0)
+  const {
+    hints,
+    totalUsed,
+    remainingHints,
+    isLoading: isHintLoading,
+    isRequesting: isHintRequesting,
+    error: hintError,
+    fetchHistory: fetchHintHistory,
+    requestHint: executeRequestHint
+  } = useSubmissionHints(submissionId)
+
+  useEffect(() => {
+    if (submissionId) {
+      fetchHintHistory(submissionId)
+    }
+  }, [submissionId, fetchHintHistory])
 
   const memoizedComponents = useMemo(() => ({
     ...markdownComponents,
@@ -354,7 +373,7 @@ export function StudentAssignmentLayout({
 
   const searchParams = useSearchParams()
   const classCodeUrl = searchParams.get('classCode') || ''
-  
+
   const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
 
@@ -398,12 +417,12 @@ export function StudentAssignmentLayout({
                     href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
                     className={`
                       w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all shadow-sm
-                      ${isActive 
+                      ${isActive
                         ? isSubmitted
                           ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
-                          : 'ring-2 ring-primary ring-offset-1 bg-primary text-white' 
-                        : isSubmitted 
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' 
+                          : 'ring-2 ring-primary ring-offset-1 bg-primary text-white'
+                        : isSubmitted
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200'
                           : 'bg-slate-50 text-slate-600 hover:bg-slate-200 border border-slate-200'}
                     `}
                     title={sibling.title}
@@ -441,10 +460,43 @@ export function StudentAssignmentLayout({
             </span>
           )}
 
+          {/* Nút Gợi ý AI: Bấm để xin gợi ý mới (nếu chưa nộp) hoặc xem lại lịch sử (nếu đã nộp / hết lượt) */}
+          <button
+            type="button"
+            onClick={() => {
+              const canRequestNewHint = !isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0
+              if (canRequestNewHint && !isHintRequesting) {
+                setShowConfirmHintModal(true)
+              } else {
+                setShowHintModal(true)
+              }
+            }}
+            disabled={isHintRequesting}
+            className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+            title={
+              submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline
+                ? 'Xem lại lịch sử gợi ý AI đã dùng'
+                : remainingHints <= 0
+                  ? 'Đã dùng hết 3/3 lượt gợi ý (bấm để xem lại lịch sử)'
+                  : 'Bấm để nhận gợi ý tư duy cho bước tiếp theo'
+            }
+          >
+            {isHintRequesting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+            ) : (
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+            )}
+            <span>{submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline ? 'Gợi ý AI' : 'Cần gợi ý'}</span>
+            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
+              {totalUsed}/3
+            </span>
+          </button>
+
           {!isPastDeadline && !isGraded && (
             <>
               {submissionStatus !== 'SUBMITTED' ? (
                 <>
+
                   <button
                     onClick={() => {
                       if (saveTimeoutRef.current) {
@@ -675,6 +727,168 @@ export function StudentAssignmentLayout({
         onConfirm={handleConfirmJsxGraph}
         initialData={editingShape?.jsxGraphData}
       />
+
+      {/* AI HINT MODAL */}
+      {showHintModal && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-amber-200 animate-pulse" />
+                <h3 className="text-lg font-bold">Trợ lý Gợi ý Tư duy AI</h3>
+                <span className="bg-amber-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-100">
+                  Đã dùng {totalUsed}/3 gợi ý
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHintModal(false)}
+                className="p-1 rounded-lg text-amber-100 hover:text-white hover:bg-amber-700/50 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 flex-1 overflow-y-auto space-y-4">
+              {hintError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+                  {hintError}
+                </div>
+              )}
+
+              {isHintRequesting && (
+                <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
+                  <Loader2 className="w-5 h-5 animate-spin text-amber-600 shrink-0" />
+                  <div className="text-sm font-medium">
+                    AI đang đọc đề bài và tiến độ làm bài của bạn để soạn gợi ý bước tiếp theo...
+                  </div>
+                </div>
+              )}
+
+              {hints.length === 0 && !isHintRequesting && !isHintLoading && (
+                <div className="py-10 text-center text-slate-500 space-y-2">
+                  <Lightbulb className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-sm font-medium">Bạn chưa sử dụng lượt gợi ý nào cho bài tập này.</p>
+                </div>
+              )}
+
+              {hints.map((h, idx) => (
+                <div key={h.id || idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">
+                      Gợi ý #{h.hintNumber}
+                    </span>
+                    {h.createdAt && (
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {formatDateTime(parseDateSafe(h.createdAt) || new Date())}
+                      </span>
+                    )}
+                  </div>
+                  <div className="prose prose-slate prose-sm max-w-none text-slate-800 leading-relaxed">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                      components={markdownComponents}
+                    >
+                      {h.aiHintContent}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-medium">
+                Gợi ý chỉ hỗ trợ hướng tư duy, không cho đáp số trực tiếp.
+              </span>
+              <div className="flex items-center gap-3">
+                {!isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowHintModal(false)
+                      setShowConfirmHintModal(true)
+                    }}
+                    className="px-3 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <span>Xin lượt gợi ý #{totalUsed + 1}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowHintModal(false)}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác nhận Xin Gợi ý AI */}
+      {showConfirmHintModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <Lightbulb className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Xác nhận xin Gợi ý Tư duy AI</h3>
+                <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
+                  Lượt {totalUsed + 1}/3
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm text-slate-600">
+              <p>
+                Bạn sắp sử dụng lượt gợi ý tư duy lần thứ <strong className="text-amber-800 font-bold">{totalUsed + 1}</strong> (còn lại {remainingHints} lượt).
+              </p>
+
+              {remainingHints === 1 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Đây là lượt gợi ý cuối cùng cho bài tập này!</span>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
+                AI sẽ đọc tiến độ bài làm hiện tại của bạn để đưa ra gợi ý tư duy cho bước tiếp theo. Bạn đã sẵn sàng chưa?
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmHintModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Để mình thử lại
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowConfirmHintModal(false)
+                  setShowHintModal(true)
+                  const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                  await executeRequestHint(assignment.id, latestFullContent)
+                }}
+                className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                <span>Nhận gợi ý ngay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
