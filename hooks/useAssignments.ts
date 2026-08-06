@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
+import type { AssignmentTag } from '@/services/assignmentService'
 import type { AssignmentVisibility, OriginalAuthor } from '@/types'
 
 export interface Assignment {
@@ -22,6 +23,7 @@ export interface Assignment {
   maxScore?: number
   visibility?: AssignmentVisibility
   originalAuthor?: OriginalAuthor
+  tags?: AssignmentTag[]
 }
 
 interface FetchAssignmentsParams {
@@ -32,6 +34,9 @@ interface FetchAssignmentsParams {
   page?: number
   size?: number
   assignmentType?: 'ALL' | 'SINGLE' | 'SHEET'
+  gradeTagId?: number
+  subjectTagId?: number
+  difficultyTagId?: number
 }
 
 export interface AssignmentSheet extends Assignment {
@@ -39,14 +44,17 @@ export interface AssignmentSheet extends Assignment {
   items?: Assignment[];
 }
 
-export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode, page = 0, size = 6, assignmentType = 'ALL' }: FetchAssignmentsParams) {
+export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode, page = 0, size = 6, assignmentType = 'ALL', gradeTagId, subjectTagId, difficultyTagId }: FetchAssignmentsParams) {
   return useQuery({
-    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode, page, size, assignmentType],
+    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode, page, size, assignmentType, gradeTagId, subjectTagId, difficultyTagId],
     queryFn: async () => {
       const params: any = { page, size }
       if (searchQuery) {
         params.keyword = searchQuery
       }
+      if (gradeTagId) params.gradeTagId = gradeTagId
+      if (subjectTagId) params.subjectTagId = subjectTagId
+      if (difficultyTagId) params.difficultyTagId = difficultyTagId
 
       const sortByNewest = (list: AssignmentSheet[]) => {
         return list.sort((a, b) => {

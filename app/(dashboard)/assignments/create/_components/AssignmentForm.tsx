@@ -21,9 +21,10 @@ import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
 
 const TiptapEditor = dynamic(() => import('@/components/ui/tiptap'), { ssr: false })
 import { formatDateTime } from '@/lib/utils'
-import { assignmentService } from '@/services/assignmentService'
+import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 import { toast } from 'sonner'
 import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
+import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
 import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
 import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 
@@ -60,7 +61,8 @@ const assignmentSchema = z.object({
   description: z.string().optional().default(''),
   content: z.string().min(1, 'Nội dung bài tập không được để trống'),
   drawings: z.array(z.any()).optional(),
-  images: z.array(z.any()).optional()
+  images: z.array(z.any()).optional(),
+  tagIds: z.array(z.number()).optional()
 })
 
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
@@ -94,6 +96,7 @@ export function AssignmentForm({
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
   const [showSidebar, setShowSidebar] = useState(true)
+  const [availableTags, setAvailableTags] = useState<AssignmentTag[]>([])
 
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null)
@@ -138,8 +141,11 @@ export function AssignmentForm({
       content: '',
       drawings: [],
       images: []
+      , tagIds: []
     }
   })
+
+  useEffect(() => { assignmentService.getTags().then(setAvailableTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
 
   useEffect(() => {
     let mergedValues = defaultValues || { title: '', description: '', content: '', drawings: [] }
@@ -451,8 +457,8 @@ export function AssignmentForm({
         insertTextIntoEditor(imageCode)
       }
     } catch (error: any) {
-      const msg = typeof error.response?.data === 'string' 
-        ? error.response.data 
+      const msg = typeof error.response?.data === 'string'
+        ? error.response.data
         : error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tải ảnh lên'
       toast.error(msg)
       throw error
@@ -919,6 +925,12 @@ export function AssignmentForm({
             </div>
 
             <div className="h-px bg-slate-100 dark:bg-slate-850" />
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phân loại bài tập</h3>
+              <AssignmentTagSelector tags={availableTags} selectedIds={formValues.tagIds || []} onChange={tagIds => setValue('tagIds', tagIds, { shouldDirty: true })} />
+              <p className="text-xs text-slate-500">Cần đủ ba tag để đăng lên Thư viện cộng đồng.</p>
+            </div>
 
             {/* Section 2: Tài nguyên học liệu */}
             <div className="space-y-4">

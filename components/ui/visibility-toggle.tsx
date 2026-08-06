@@ -41,9 +41,9 @@ export function VisibilityToggle({ value, assignmentId, isSheet = false }: Visib
           ? '✅ Bài tập đã được công khai lên Thư viện'
           : '🔒 Bài tập đã chuyển về trạng thái riêng tư'
       )
-    } catch {
+    } catch (error: any) {
       setOptimistic(!checked) // Rollback nếu API lỗi
-      toast.error('Không thể cập nhật trạng thái. Vui lòng thử lại.')
+      toast.error(error.response?.data?.error || error.response?.data || 'Cần gắn đủ Khối lớp, Phân môn và Độ khó trước khi đăng lên Thư viện cộng đồng.')
     }
   }
 
