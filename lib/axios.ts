@@ -90,8 +90,14 @@ api.interceptors.response.use(
       }
 
       if (error.response.status === 401) {
-        // Bỏ qua nếu lỗi 401 xuất phát từ API login hoặc chính API refresh token
-        const isAuthApi = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/refresh-token');
+        // Bỏ qua nếu lỗi 401 xuất phát từ API login, refresh token hoặc logout.
+        // Đặc biệt quan trọng với /auth/logout: nếu để refresh-token can thiệp, Backend có thể
+        // cấp lại cookie HttpOnly mathclass_jwt khiến phiên "sống lại" sau khi đăng xuất
+        // (biểu hiện: logout xong vào /admin/users vẫn tự động đăng nhập).
+        const isAuthApi =
+          originalRequest?.url?.includes('/auth/login') ||
+          originalRequest?.url?.includes('/auth/refresh-token') ||
+          originalRequest?.url?.includes('/auth/logout');
 
         if (!isAuthApi && typeof window !== 'undefined') {
           if (isRefreshing) {

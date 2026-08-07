@@ -27,7 +27,7 @@ import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { logoutSuccess } from '@/lib/redux/features/authSlice'
 import { authStorage } from '@/lib/auth-storage'
-import api from '@/lib/axios'
+import { logoutSession } from '@/lib/logout'
 
 const formSchema = z.object({
   email: z.string().min(1, 'Email là bắt buộc').trim().toLowerCase().email('Email không hợp lệ'),
@@ -78,7 +78,7 @@ export default function AdminLoginForm() {
 
     authStorage.clearToken()
     authStorage.clearUserInfo()
-    api.post('/auth/logout').catch(() => {})
+    logoutSession()
 
     const params = new URLSearchParams(searchParams.toString())
     params.delete('reason')

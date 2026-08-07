@@ -6,6 +6,7 @@ import { store } from '@/lib/redux/store';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import { setAuth, setInitializing, logoutSuccess } from '@/lib/redux/features/authSlice';
 import api from '@/lib/axios';
+import { logoutSession } from '@/lib/logout';
 import { useQueryClient } from '@tanstack/react-query';
 import { PermissionRevokedModal } from '@/components/auth/permission-revoked-modal';
 import { authStorage } from '@/lib/auth-storage';
@@ -26,11 +27,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
    */
   const refreshProfile = useCallback(async () => {
     if (typeof window !== 'undefined' && !authStorage.isValidSession()) {
-      try {
-        await api.post('/auth/logout');
-      } catch (e) {
-        console.error('Logout error during session cleanup', e);
-      }
+      await logoutSession();
       authStorage.clearToken();
       authStorage.clearUserInfo();
       dispatch(logoutSuccess());

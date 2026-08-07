@@ -9,8 +9,8 @@ import { setAuth } from '@/lib/redux/features/authSlice'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { handleApiError } from '@/lib/utils/error-handler'
-import api from '@/lib/axios'
 import { authStorage } from '@/lib/auth-storage'
+import { logoutSession } from '@/lib/logout'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
@@ -40,7 +40,7 @@ export function SocialLoginButton({ provider, label, expectedRole, rememberMe = 
             const returnedRole = data.role || data.userRole || 'STUDENT';
 
             if (expectedRole && returnedRole !== expectedRole) {
-              api.post('/auth/logout').catch(() => {});
+              logoutSession();
               toast.error('Tài khoản Google không phù hợp với vai trò đã chọn. Vui lòng thử lại.');
               return;
             }

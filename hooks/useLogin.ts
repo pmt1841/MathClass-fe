@@ -7,9 +7,9 @@ import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { AxiosError } from 'axios'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { setAuth } from '@/lib/redux/features/authSlice'
-import api from '@/lib/axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { authStorage } from '@/lib/auth-storage'
+import { logoutSession } from '@/lib/logout'
 
 export function useLogin() {
   const [isLoading, setIsLoading] = useState(false)
@@ -29,7 +29,7 @@ export function useLogin() {
       const role = data.role || data.userRole || ROLES.STUDENT
 
       if (expectedRole && role !== expectedRole) {
-        await api.post('/auth/logout').catch(() => {})
+        await logoutSession()
         setLoginError('Tài khoản này không có quyền truy cập khu vực này. Vui lòng đăng nhập đúng cổng cho vai trò của bạn.')
         setIsLoading(false)
         return
