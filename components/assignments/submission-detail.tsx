@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Sparkles, X, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Sparkles, X, Clock, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -47,6 +47,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTextSelection } from '@/hooks/useTextSelection'
 import { SubmissionGradeForm, GradeFormValues } from './submission-grade-form'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useSubmissionAiGrading, AiGradingResult } from '@/hooks/useSubmissionAiGrading'
+import { AiGradingPanel } from './ai-grading-panel'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -65,8 +67,13 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null)
   const [navigatingSibling, setNavigatingSibling] = useState<number | null>(null)
   const [showTeacherHintModal, setShowTeacherHintModal] = useState(false)
+  // MAT-250: AI chấm sơ bộ — panel kết quả + dự thảo đang được áp dụng vào form chấm điểm
+  const [showAiGradingPanel, setShowAiGradingPanel] = useState(false)
+  const [aiDraft, setAiDraft] = useState<AiGradingResult | null>(null)
   const { user } = useAuth()
   const isTeacher = user?.role === 'TEACHER'
+
+  const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
 
   const { data: hintHistory, isLoading: isHintLoading } = useQuery({
     queryKey: ['submission-hints', submissionId],
@@ -158,6 +165,27 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const handleGradeSubmit = (values: GradeFormValues) => {
     gradeMutation.mutate(values)
+  }
+
+  // MAT-250: Bấm nút "AI chấm sơ bộ" → mở panel + chạy AI ngay
+  const handleRequestAiGrading = () => {
+    setShowAiGradingPanel(true)
+    resetAiGrading()
+    gradeWithAi({ submissionId, assignmentId }).catch(() => {
+      // Lỗi hiển thị trong panel qua aiGradingError
+    })
+  }
+
+  // MAT-250: Áp dụng dự thảo AI vào form chấm điểm (giáo viên vẫn sửa được trước khi lưu)
+  const handleUseAiDraft = (draft: AiGradingResult) => {
+    const maxScore = assignment?.maxScore || 10
+    const clampedScore = Math.max(0, Math.min(Number(draft.suggestedScore) || 0, maxScore))
+    setAiDraft({ ...draft, suggestedScore: clampedScore })
+    setShowAiGradingPanel(false)
+    toast({
+      title: 'Đã dùng dự thảo của AI',
+      description: 'Bạn có thể chỉnh sửa điểm và nhận xét trước khi bấm "Lưu điểm".',
+    })
   }
 
   const handleAddInlineComment = async (content: string) => {
@@ -417,6 +445,25 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               </span>
             </button>
 
+            {/* MAT-250: Nút AI chấm sơ bộ cho Giáo viên */}
+            {isTeacher && (
+              <button
+                type="button"
+                onClick={handleRequestAiGrading}
+                disabled={isAiGrading || submission.status === 'DRAFT'}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-all shadow-sm active:scale-95 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={
+                  submission.status === 'DRAFT'
+                    ? 'Học sinh chưa nộp bài — chưa thể chấm sơ bộ'
+                    : 'AI đối chiếu hình vẽ Canvas với hình mẫu và đề xuất điểm + nhận xét'
+                }
+              >
+                <Wand2 className="w-3.5 h-3.5 text-violet-500" />
+                <span>AI chấm sơ bộ</span>
+                {isAiGrading && <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-500" />}
+              </button>
+            )}
+
             {/* Sheet Siblings Navigation */}
             {assignment?.sheetSiblings && assignment.sheetSiblings.length > 0 && (
               <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 pl-4">
@@ -459,8 +506,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
           {isTeacher && (
             <SubmissionGradeForm
-              initialScore={submission.score ?? 0}
-              initialFeedback={submission.teacherFeedback ?? ''}
+              initialScore={aiDraft?.suggestedScore ?? submission.score ?? 0}
+              initialFeedback={aiDraft?.draftFeedback ?? submission.teacherFeedback ?? ''}
               isSubmitting={gradeMutation.isPending}
               isDraft={submission.status === 'DRAFT'}
               maxScore={assignment?.maxScore || 10}
@@ -620,6 +667,19 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
           </div>
         </div>
       )}
+
+      {/* MAT-250: Panel AI chấm sơ bộ cho Giáo viên */}
+      <AiGradingPanel
+        open={showAiGradingPanel}
+        isGrading={isAiGrading}
+        error={aiGradingError}
+        result={aiGradingResult}
+        studentName={submission.studentName}
+        maxScore={assignment?.maxScore || 10}
+        onClose={() => setShowAiGradingPanel(false)}
+        onRetry={handleRequestAiGrading}
+        onUseDraft={handleUseAiDraft}
+      />
     </div>
   )
 }

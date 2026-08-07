@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SubmissionDetail } from '@/components/assignments/submission-detail'
 import { submissionService } from '@/services/submissionService'
 import { assignmentService } from '@/services/assignmentService'
+import { submissionAiGradingService } from '@/services/submissionAiGradingService'
 
 vi.mock('@/services/submissionService', () => ({
   submissionService: {
@@ -15,6 +16,12 @@ vi.mock('@/services/submissionService', () => ({
 vi.mock('@/services/assignmentService', () => ({
   assignmentService: {
     getAssignmentById: vi.fn(),
+  },
+}))
+
+vi.mock('@/services/submissionAiGradingService', () => ({
+  submissionAiGradingService: {
+    submitAiGrading: vi.fn(),
   },
 }))
 
@@ -157,5 +164,53 @@ describe('SubmissionDetail', () => {
     // Grading form elements should be present
     expect(screen.getByText('Điểm:')).toBeInTheDocument()
     expect(screen.getByText(/Lưu điểm/)).toBeInTheDocument()
+  })
+
+  it('triggers AI grading and applies draft to the grade form', async () => {
+    vi.mocked(submissionService.getSubmissionById).mockResolvedValue({
+      ...mockSubmission,
+      status: 'SUBMITTED',
+      score: null,
+      teacherFeedback: undefined,
+    })
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
+
+    const aiResult = {
+      suggestedScore: 8.5,
+      draftFeedback: 'Nhận xét từ AI',
+      drawingIssues: [{ issue: 'Thiếu đường cao AH', detail: 'Cần kẻ AH vuông góc BC' }],
+    }
+    vi.mocked(submissionAiGradingService.submitAiGrading).mockResolvedValue(aiResult)
+
+    const queryClient = createQueryClient()
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SubmissionDetail submissionId={100} assignmentId={10} />
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Nguyen Van A')).toBeInTheDocument()
+    })
+
+    // Nút "AI chấm sơ bộ" hiển thị cho giáo viên
+    const aiButton = screen.getByRole('button', { name: /AI chấm sơ bộ/i })
+    expect(aiButton).toBeInTheDocument()
+    fireEvent.click(aiButton)
+
+    // Chờ kết quả AI hiển thị trong panel
+    await waitFor(() => {
+      expect(screen.getByText('Thiếu đường cao AH')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Nhận xét từ AI')).toBeInTheDocument()
+
+    // Áp dụng dự thảo AI vào form chấm điểm
+    fireEvent.click(screen.getByRole('button', { name: /Dùng điểm & nhận xét này/i }))
+
+    await waitFor(() => {
+      const scoreInput = screen.getByRole('spinbutton')
+      expect(scoreInput).toHaveValue(8.5)
+    })
   })
 })
