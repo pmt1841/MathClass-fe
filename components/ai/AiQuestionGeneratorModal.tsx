@@ -33,6 +33,7 @@ export function AiQuestionGeneratorModal({
   const [grade, setGrade] = useState<number>(9)
   const [difficulty, setDifficulty] = useState<string>('THONG_HIEU')
   const [topic, setTopic] = useState('')
+  const [includeCanvasDiagram, setIncludeCanvasDiagram] = useState<boolean>(true)
 
   const [isLoading, setIsLoading] = useState(false)
   const [generatedQuestion, setGeneratedQuestion] = useState<AiGeneratedQuestionDTO | null>(null)
@@ -54,7 +55,7 @@ export function AiQuestionGeneratorModal({
       grade,
       difficulty,
       topic: topic.trim() || undefined,
-      includeCanvasDiagram: true
+      includeCanvasDiagram
     }
 
     try {
@@ -175,8 +176,18 @@ export function AiQuestionGeneratorModal({
               </div>
             </div>
 
-            {/* Action Generate Button */}
-            <div className="flex items-center justify-end pt-1">
+            {/* Options Checkbox Row & Action Button */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includeCanvasDiagram}
+                  onChange={(e) => setIncludeCanvasDiagram(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 rounded-md cursor-pointer"
+                />
+                Kèm hình vẽ minh họa / đồ thị (nếu bài toán yêu cầu vẽ)
+              </label>
+
               <button
                 type="button"
                 disabled={isLoading}
