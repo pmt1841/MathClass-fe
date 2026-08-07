@@ -11,45 +11,54 @@
 - [📁 Cấu trúc thư mục](#-cấu-trúc-thư-mục)
 - [🚀 Hướng dẫn cài đặt & Chạy ứng dụng](#-hướng-dẫn-cài-đặt--chạy-ứng-dụng)
 - [🔑 Biến môi trường](#-biến-môi-trường)
-- [🛡 Phân quyền & Điều hướng (Middleware Proxy)](#-phân-quyền--điều-hướng-middleware-proxy)
+- [🛡 Phân quyền & Điều hướng (Proxy Middleware)](#-phân-quyền--điều-hướng-proxy-middleware)
 - [🧪 Kiểm thử & Đảm bảo chất lượng](#-kiểm-thử--đảm-bảo-chất-lượng)
+- [📚 Tài liệu bổ sung](#-tài-liệu-bổ-sung)
 
 ---
 
 ## ✨ Tính năng chính
 
 ### 🔐 1. Xác thực & Phân quyền (Authentication & Authorization)
-- **Đăng nhập & Đăng ký đa vai trò**: Hỗ trợ Học sinh (Student), Giáo viên (Teacher) và Quản trị viên (Admin).
+- **Đăng nhập & Đăng ký đa vai trò**: Học sinh (STUDENT), Giáo viên (TEACHER) và Quản trị viên (ADMIN).
 - **Google OAuth Integration**: Đăng nhập nhanh bằng tài khoản Google (`@react-oauth/google`).
-- **Quản lý phiên làm việc**: Xác thực qua JWT Token lưu trữ an toàn trong Cookie (`mathclass_jwt`, `mathclass_role`).
-- **Khôi phục tài khoản**: Quên mật khẩu, đặt lại mật khẩu và xác minh mã OTP qua Email.
+- **JWT trong HttpOnly Cookie**: Token do Backend set qua cookie `mathclass_jwt`; role lưu trong `mathclass_role`. Hỗ trợ "Ghi nhớ đăng nhập" (`mathclass_remember`).
+- **Tự động gia hạn token**: Axios interceptor xử lý 401 bằng hàng đợi refresh-token (mutex), kết hợp kiểm tra phiên theo tab (sessionStorage).
+- **Khôi phục tài khoản**: Quên mật khẩu, đặt lại mật khẩu, xác minh email qua OTP/token.
+- **Xử lý khóa tài khoản**: Backend trả `ACCOUNT_LOCKED` → tự động logout + hiển thị `AccountLockedModal`.
 
 ### 📚 2. Quản lý Lớp học (Classroom Management)
-- **Giáo viên**:
-  - Tạo lớp học mới, chỉnh sửa thông tin lớp, cấp mã tham gia lớp (Class Code).
-  - Duyệt hoặc từ chối danh sách học sinh xin vào lớp (Join Requests).
-  - Quản lý danh sách học sinh trong từng lớp.
-- **Học sinh**:
-  - Tìm kiếm lớp học, gửi yêu cầu tham gia lớp bằng mã truy cập.
-  - Xem danh sách các lớp đã tham gia và theo dõi thông báo từ giáo viên.
+- **Giáo viên**: Tạo/chỉnh sửa lớp, cấp mã tham gia (Class Code), duyệt/từ chối yêu cầu vào lớp, quản lý danh sách học sinh.
+- **Học sinh**: Tìm kiếm lớp bằng mã, gửi yêu cầu tham gia, xem danh sách lớp đã tham gia.
 
 ### 📝 3. Quản lý Bài tập & Nộp bài (Assignments & Submissions)
 - **Soạn thảo công thức & đồ thị toán học**:
-  - Tích hợp **MathLive** và **KaTeX** hỗ trợ gõ công thức toán học chuẩn LaTeX.
-  - Hỗ trợ **JSXGraph** để vẽ đồ thị hàm số và hình học tương tác.
-  - Trình soạn thảo văn bản phong phú **TipTap** hỗ trợ định dạng bảng, hình ảnh, liên kết và công thức.
+  - **MathLive** + **KaTeX** hỗ trợ gõ công thức LaTeX (`$...$`, `$$...$$`).
+  - **JSXGraph** vẽ đồ thị hàm số và hình học tương tác (lưu dạng `[SHAPE_x]`).
+  - **TipTap** rich-text editor (bảng, hình ảnh, liên kết, công thức).
+  - Upload ảnh minh họa (mã `[IMAGE_x]`), OCR trích xuất chữ từ ảnh.
 - **Giao bài & Nộp bài**:
-  - Giáo viên tạo bài tập với hạn nộp, loại bài tập và nội dung câu hỏi chi tiết.
-  - Học sinh làm bài trực tuyến, đính kèm bài giải/hình vẽ, xem điểm số và lời nhận xét của giáo viên.
+  - Giáo viên tạo bài tập/bài tập phiếu (Assignment Sheet), giao cho nhiều lớp kèm hạn nộp riêng.
+  - Học sinh làm bài online, vẽ hình bằng JSXGraph, lưu nháp hoặc nộp.
+  - Giáo viên chấm điểm, ghi feedback, **nhận xét bôi đen trực tiếp trên bài nộp** (submission comments).
+  - "Kho bài tập" quản lý theo trạng thái DRAFT / SINGLE / SHEET.
 
 ### 📊 4. Bảng điều khiển & Thống kê (Dashboard & Analytics)
-- Báo cáo kết quả học tập trực quan bằng biểu đồ tương tác **Recharts**.
-- Thống kê tiến độ hoàn thành bài tập, điểm trung bình và mức độ chuyên cần.
+- Dashboard riêng cho Giáo viên (lớp đang dạy, bài cần chấm, yêu cầu chờ duyệt, học sinh có nguy cơ) và Học sinh (bài chưa làm, điểm gần đây).
+- Báo cáo trực quan bằng biểu đồ **Recharts**.
 
-### 🛡 5. Trang Quản trị (Admin Portal)
-- Trang quản trị riêng biệt tại đường dẫn `/admin`.
-- Quản lý người dùng: Tìm kiếm, phân lại quyền (Roles), khóa/mở khóa tài khoản.
-- Kho tài nguyên cộng đồng (Community Repository) & Nhật ký hệ thống (System Logs).
+### 🛡 5. Trang Quản trị (Admin Portal - `/admin`)
+- Quản lý người dùng: tìm kiếm, lọc theo vai trò, khóa/mở khóa tài khoản.
+- Quản lý quyền hạn: gán permission cho từng role (`/admin/roles`), reset quyền mặc định.
+- Cấu hình AI Services: quản lý Provider (OpenAI-compatible, Gemini, Anthropic...), API Keys, định tuyến task sang model.
+- Nhật ký hệ thống (audit log) & Kho bài tập cộng đồng.
+
+### 📚 6. Thư viện bài tập (Library)
+- Tìm kiếm bài tập/phiếu bài tập công khai (`library:read`).
+- Clone bài về kho cá nhân, chỉnh visibility PRIVATE/PUBLIC (`library:clone`).
+
+### 🔔 7. Thông báo (Notifications)
+- Hộp thông báo trên Header, phân trang cuộn vô hạn, đếm chưa đọc, đánh dấu đã đọc.
 
 ---
 
@@ -58,85 +67,67 @@
 | Danh mục | Công nghệ |
 | :--- | :--- |
 | **Core Framework** | [Next.js 16 (App Router)](https://nextjs.org/), [React 19](https://react.dev/), [TypeScript 5.7](https://www.typescriptlang.org/) |
-| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI Primitives, Lucide Icons, Sonner (Toast) |
-| **State & Data Fetching** | Redux Toolkit, TanStack React Query v5, Axios |
+| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/), shadcn/ui (Radix UI Primitives), Lucide Icons, Sonner (Toast), Recharts |
+| **State & Data Fetching** | Redux Toolkit (chỉ auth), TanStack React Query v5, Axios |
 | **Form & Validation** | React Hook Form, Formik, Yup, Zod, `@hookform/resolvers` |
-| **Toán học & Editor** | MathLive, KaTeX, JSXGraph, TipTap Editor, React Markdown, Rehype/Remark |
-| **Testing** | Vitest, React Testing Library, Playwright (E2E Testing), MSW |
+| **Toán học & Editor** | MathLive, KaTeX, JSXGraph, TipTap Editor, React Markdown, Rehype/Remark, marked + Turndown |
+| **Testing** | Vitest, React Testing Library, Playwright (E2E), MSW |
 
 ---
 
 ## 📁 Cấu trúc thư mục
 
 ```text
-MathClass-ui/
-├── app/                  # Next.js App Router (Pages & Layouts)
-│   ├── (auth)/           # Route group xác thực: login, signup, forgot-password, verify
-│   ├── (dashboard)/      # Route group người dùng: home, classes, assignments, students, reports, profile
-│   ├── admin/            # Route group quản trị: /admin/login, /admin/users, /admin/roles, /admin/logs
-│   ├── forbidden/        # Trang báo lỗi 403 Forbidden
-│   ├── layout.tsx        # Root Layout của ứng dụng
-│   └── page.tsx          # Landing Page chính
-├── components/           # UI Components tái sử dụng
-│   ├── ui/               # Base components (Button, Dialog, Form, Input, Select...)
-│   ├── assignments/      # Components quản lý bài tập
-│   ├── auth/             # Components giao diện xác thực
-│   ├── dashboard/        # Components bảng điều khiển
-│   ├── landing/          # Components trang Landing Page
-│   ├── layout/           # Header, Sidebar, Footer, Navigation
-│   ├── profile/          # Components quản lý hồ sơ cá nhân
-│   └── submission/       # Components nộp bài & chấm điểm
-├── services/             # Axios API Services kết nối Backend Spring Boot
-│   ├── authService.ts
-│   ├── classroomService.ts
-│   ├── assignmentService.ts
-│   ├── submissionService.ts
-│   └── adminService.ts
-├── hooks/                # Custom React Hooks
-├── lib/                  # Utility functions, Axios client instance
+MathClass-fe/
+├── app/                  # Định tuyến Next.js App Router (Route Groups)
+│   ├── (auth)/           #   Login, signup, verify, forgot/reset password
+│   ├── (dashboard)/      #   Home, classes, assignments, students, reports, library, profile, settings
+│   └── admin/            #   users, roles, ai-config, logs, community-repo
+├── components/           # UI Components
+│   ├── ui/               #   Base shadcn/ui + chuyên toán (JSXGraph, KaTeX, TipTap...)
+│   ├── auth/             #   Form xác thực, modal khóa tài khoản...
+│   ├── assignments/      #   Publish modal, submission table/detail, comments...
+│   └── layout/           #   Header, Sidebar, Footer, NotificationPopover
+├── services/             # Axios API Services (kết nối Backend Spring Boot)
+├── hooks/                # Custom React Hooks (chủ yếu bọc React Query)
+├── lib/                  # axios.ts, auth-storage.ts, Redux store, editor-utils...
 ├── types/                # TypeScript Interfaces & Type definitions
-├── proxy.ts              # Route Guard Middleware xử lý điều hướng & phân quyền
-├── next.config.mjs       # Cấu hình Next.js (Redirects, Headers, Unoptimized Images)
-└── specs/                # Tài liệu quy định tính năng & bảo mật frontend
+├── proxy.ts              # Route Guard / Middleware phân quyền (Next.js 16)
+├── specs/                # Tài liệu quy định tính năng & bảo mật frontend
+├── docs/                 # Tài liệu kỹ thuật (kiến trúc, setup, hướng dẫn code)
+├── __tests__/            # Unit & Component tests (Vitest)
+├── e2e/                  # End-to-end tests (Playwright)
+└── next.config.mjs       # Cấu hình Next.js (Redirects, Headers, Unoptimized Images)
 ```
+
+> Xem chi tiết từng thư mục trong [docs/05-folder-structure.md](docs/05-folder-structure.md).
 
 ---
 
 ## 🚀 Hướng dẫn cài đặt & Chạy ứng dụng
 
 ### Yêu cầu hệ thống
-- **Node.js**: `>= 18.x` hoặc `>= 20.x`
+- **Node.js**: `>= 18.x` (khuyến nghị `>= 20.x`)
 - **npm**: `>= 9.x`
+- Backend Spring Boot (MathClass-service) đang chạy ở port **8080**
 
 ### Các bước khởi chạy
 
-1. **Di chuyển vào thư mục dự án frontend**:
-   ```bash
-   cd MathClass-ui
-   ```
+```bash
+# 1. Cài đặt dependencies
+npm install
 
-2. **Cài đặt các gói phụ thuộc (Dependencies)**:
-   ```bash
-   npm install
-   ```
+# 2. Cấu hình biến môi trường (từ .env.example)
+cp .env.example .env
 
-3. **Cấu hình biến môi trường**:
-   Tạo file `.env` từ file mẫu `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
+# 3. Chạy môi trường Development
+npm run dev
+# Mở http://localhost:3000
 
-4. **Chạy ứng dụng ở môi trường Development**:
-   ```bash
-   npm run dev
-   ```
-   Sau đó mở trình duyệt và truy cập [http://localhost:3000](http://localhost:3000).
-
-5. **Đóng gói & Chạy ở môi trường Production**:
-   ```bash
-   npm run build
-   npm run start
-   ```
+# 4. Đóng gói & chạy Production
+npm run build
+npm run start
+```
 
 ---
 
@@ -145,7 +136,8 @@ MathClass-ui/
 Các thông số cấu hình chính trong `.env`:
 
 ```env
-# Đường dẫn API Backend (Spring Boot Service)
+# Đường dẫn API Backend (Spring Boot Service).
+# Nếu chưa có tiền tố version, lib/axios.ts tự chèn /v1
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 
 # Google OAuth Client ID cho tính năng đăng nhập Google
@@ -154,35 +146,46 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id_here
 
 ---
 
-## 🛡 Phân quyền & Điều hướng (Middleware Proxy)
+## 🛡 Phân quyền & Điều hướng (Proxy Middleware)
 
-Bảo mật ứng dụng và kiểm soát quyền truy cập dựa trên file [`proxy.ts`](file:///d:/tien/codegym/Module_6/MathClass/MathClass-ui/proxy.ts):
+Bảo mật ứng dụng và kiểm soát quyền truy cập dựa trên file [`proxy.ts`](proxy.ts) (Next.js 16 Proxy/Middleware). Bảng route:
 
 | Loại Route | Đường dẫn | Quyền truy cập |
 | :--- | :--- | :--- |
 | **Public Routes** | `/`, `/login`, `/admin/login`, `/signup`, `/verify` | Tất cả người dùng |
-| **Protected Routes** | `/home`, `/classes`, `/assignments`, `/profile`, `/settings` | Yêu cầu Đăng nhập (JWT Token) |
+| **Protected Routes** | `/home`, `/classes`, `/assignments`, `/students`, `/reports`, `/settings`, `/profile`, `/admin` | Yêu cầu Đăng nhập (JWT Cookie) |
 | **Teacher Only** | `/classes/create`, `/students`, `/reports` | Người dùng có vai trò `TEACHER` |
 | **Student Only** | `/assignments/submit` | Người dùng có vai trò `STUDENT` |
 | **Admin Only** | `/admin/*` (Ngoại trừ `/admin/login`) | Người dùng có vai trò `ADMIN` |
+
+Ngoài tầng proxy, frontend còn kiểm tra quyền chi tiết (permission) bằng `PermissionGuard` / `RoutePermissionGuard` (ví dụ: `library:read`, `library:clone`). Xem chi tiết trong [docs/04-architecture.md](docs/04-architecture.md#3-phân-quyền--route-guard).
 
 ---
 
 ## 🧪 Kiểm thử & Đảm bảo chất lượng
 
-Dự án sẵn sàng cho quy trình CI/CD với các lệnh kiểm thử sau:
-
 - **Chạy Unit & Component Tests (Vitest)**:
   ```bash
   npm run test
   ```
-
 - **Chạy End-to-End Tests (Playwright)**:
   ```bash
   npm run test:e2e
   ```
-
-- **Kiểm tra Linting & Cú pháp mã nguồn (ESLint)**:
+- **Kiểm tra Linting & Cú pháp (ESLint)**:
   ```bash
   npm run lint
   ```
+
+---
+
+## 📚 Tài liệu bổ sung
+
+| Tài liệu | Mô tả |
+| :--- | :--- |
+| [docs/01-overview.md](docs/01-overview.md) | Tổng quan dự án |
+| [docs/02-setup-guide.md](docs/02-setup-guide.md) | Hướng dẫn cài đặt môi trường |
+| [docs/03-frontend-guide.md](docs/03-frontend-guide.md) | Quy chuẩn & hướng dẫn phát triển |
+| [docs/04-architecture.md](docs/04-architecture.md) | Kiến trúc ứng dụng (auth, RBAC, data fetching, API map) |
+| [docs/05-folder-structure.md](docs/05-folder-structure.md) | Cấu trúc thư mục chi tiết |
+
