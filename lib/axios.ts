@@ -74,18 +74,16 @@ api.interceptors.response.use(
           // Xóa sạch storage phía client
           authStorage.clearToken();
           authStorage.clearUserInfo();
+          authStorage.clearSessionCookies();
 
-          // Xóa các cookie không HttpOnly ở phía client
-          document.cookie = 'mathclass_jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0';
-          document.cookie = 'mathclass_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0';
-          document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0';
+          // Gọi API logout bất đồng bộ bằng instance axios gốc để Backend gửi Set-Cookie hủy HttpOnly Cookie mà không gây đệ quy interceptor.
+          // Lưu ý: phải dùng baseURL (đã tự chèn /v1) — nếu nối từ NEXT_PUBLIC_API_URL trực tiếp sẽ thiếu /v1 và bị 404.
+          axios.post(`${baseURL}/auth/logout`, {}, { withCredentials: true }).catch(() => { });
 
-          // Gọi API logout bất đồng bộ bằng instance axios gốc để Backend gửi Set-Cookie hủy HttpOnly Cookie mà không gây đệ quy interceptor
-          axios.post(`${process.env.NEXT_PUBLIC_API_URL || ''}/auth/logout`, {}, { withCredentials: true }).catch(() => { });
-
+          const isAdminPath = window.location.pathname.startsWith('/admin');
           const isAlreadyLoginPage = window.location.pathname.includes('/login');
           if (!isAlreadyLoginPage) {
-            window.location.href = '/login?reason=account_locked';
+            window.location.href = isAdminPath ? '/admin/login?reason=account_locked' : '/login?reason=account_locked';
           }
         }
         return Promise.reject(error);

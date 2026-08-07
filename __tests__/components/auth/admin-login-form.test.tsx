@@ -1,37 +1,27 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import LoginForm from '@/components/auth/login-form'
+import AdminLoginForm from '@/components/auth/admin-login-form'
 
 // Mock next/navigation
-let mockRole: string | null = 'STUDENT'
 let mockReason: string | null = null
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
-    get: (key: string) => {
-      if (key === 'role') return mockRole
-      if (key === 'reason') return mockReason
-      return null
-    },
+    get: (key: string) => (key === 'reason' ? mockReason : null),
     toString: () => (mockReason ? 'reason=account_locked' : ''),
   }),
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
   }),
-  usePathname: () => '/login',
+  usePathname: () => '/admin/login',
 }))
 
 // Mock Redux hooks
 vi.mock('@/lib/redux/hooks', () => ({
   useAppDispatch: () => vi.fn(),
   useAppSelector: vi.fn(),
-}))
-
-// Mock SocialLoginButton to isolate LoginForm testing
-vi.mock('@/components/auth/social-login-button', () => ({
-  SocialLoginButton: () => <div data-testid="social-login-button" />,
 }))
 
 // Mock custom hook useLogin
@@ -47,29 +37,27 @@ vi.mock('@/hooks/useLogin', () => ({
   }),
 }))
 
-describe('LoginForm Component', () => {
+describe('AdminLoginForm Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockIsLoading = false
     mockLoginError = null
-    mockRole = 'STUDENT'
     mockReason = null
   })
 
-  it('renders login form elements correctly', () => {
-    render(<LoginForm />)
+  it('renders admin login form elements correctly', () => {
+    render(<AdminLoginForm />)
 
-    expect(screen.getByRole('heading', { name: /Đăng nhập Học sinh/i })).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đăng nhập Hệ thống Quản trị' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('admin@mathclass.edu.vn')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeInTheDocument()
-    expect(screen.getByTestId('social-login-button')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đăng nhập Quản trị' })).toBeInTheDocument()
   })
 
   it('displays validation errors when submitting empty form', async () => {
-    render(<LoginForm />)
+    render(<AdminLoginForm />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập Quản trị' }))
 
     await waitFor(() => {
       expect(screen.getByText('Email là bắt buộc')).toBeInTheDocument()
@@ -78,46 +66,23 @@ describe('LoginForm Component', () => {
     expect(mockLogin).not.toHaveBeenCalled()
   })
 
-  it('submits form with valid data', async () => {
-    render(<LoginForm />)
+  it('submits form with ADMIN expected role', async () => {
+    render(<AdminLoginForm />)
 
-    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
-      target: { value: 'student@example.com' },
+    fireEvent.change(screen.getByPlaceholderText('admin@mathclass.edu.vn'), {
+      target: { value: 'admin@mathclass.edu.vn' },
     })
     fireEvent.change(screen.getByPlaceholderText('••••••••'), {
-      target: { value: 'password123' },
+      target: { value: 'admin123' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập Quản trị' }))
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith(
-        { email: 'student@example.com', password: 'password123' },
+        { email: 'admin@mathclass.edu.vn', password: 'admin123' },
         false,
-        'STUDENT'
-      )
-    })
-  })
-
-  it('does not restrict role when no explicit role is provided', async () => {
-    mockRole = null
-
-    render(<LoginForm />)
-
-    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
-      target: { value: 'teacher@example.com' },
-    })
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
-      target: { value: 'password123' },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
-
-    await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith(
-        { email: 'teacher@example.com', password: 'password123' },
-        false,
-        undefined
+        'ADMIN'
       )
     })
   })
@@ -125,7 +90,7 @@ describe('LoginForm Component', () => {
   it('opens account locked modal when reason=account_locked is present', async () => {
     mockReason = 'account_locked'
 
-    render(<LoginForm />)
+    render(<AdminLoginForm />)
 
     await waitFor(() => {
       expect(screen.getByText('Tài khoản của bạn đã bị khóa!')).toBeInTheDocument()
@@ -135,7 +100,7 @@ describe('LoginForm Component', () => {
   it('opens account locked modal when login fails with locked message', async () => {
     mockLoginError = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
 
-    render(<LoginForm />)
+    render(<AdminLoginForm />)
 
     await waitFor(() => {
       expect(screen.getByText('Tài khoản của bạn đã bị khóa!')).toBeInTheDocument()

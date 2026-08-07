@@ -30,7 +30,7 @@ export function useLogin() {
 
       if (expectedRole && role !== expectedRole) {
         await api.post('/auth/logout').catch(() => {})
-        setLoginError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+        setLoginError('Tài khoản này không có quyền truy cập khu vực này. Vui lòng đăng nhập đúng cổng cho vai trò của bạn.')
         setIsLoading(false)
         return
       }
@@ -38,17 +38,18 @@ export function useLogin() {
       // Xóa cache các query của tài khoản trước đó (nếu có)
       queryClient.clear()
 
-      // Cập nhật authStorage
+      // Cập nhật authStorage (sanitizeUserInfo sẽ lọc bỏ token trước khi lưu vào cookie user_info)
       authStorage.setToken('', role, rememberMe)
       authStorage.setUserInfo(data, rememberMe)
 
-      // Cập nhật Redux Store
+      // Cập nhật Redux Store — chỉ chọn các field cần thiết, KHÔNG spread toàn bộ response (tránh lưu token)
       dispatch(setAuth({
-        ...data,
         id: data.id || 0,
         email: data.email || credentials.email,
         fullName: data.fullName || '',
-        role: role
+        role: role,
+        avatarUrl: data.avatarUrl,
+        permissions: data.permissions,
       }))
 
       // Lưu cookie mathclass_role và mathclass_remember cho middleware nhận diện vai trò tức thì

@@ -10,15 +10,17 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { handleApiError } from '@/lib/utils/error-handler'
 import api from '@/lib/axios'
+import { authStorage } from '@/lib/auth-storage'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   provider: 'google'
   label: string
   expectedRole?: string
+  rememberMe?: boolean
 }
 
-export function SocialLoginButton({ provider, label, expectedRole, ...props }: SocialLoginButtonProps) {
+export function SocialLoginButton({ provider, label, expectedRole, rememberMe = false, ...props }: SocialLoginButtonProps) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
@@ -39,31 +41,32 @@ export function SocialLoginButton({ provider, label, expectedRole, ...props }: S
 
             if (expectedRole && returnedRole !== expectedRole) {
               api.post('/auth/logout').catch(() => {});
-              toast.error('Đăng nhập Google thất bại');
+              toast.error('Tài khoản Google không phù hợp với vai trò đã chọn. Vui lòng thử lại.');
               return;
             }
 
             // Xóa cache các query của tài khoản trước đó (nếu có)
             queryClient.clear()
 
-            // Dispatch user data to Redux Store
-            dispatch(setAuth({
+            const userInfo = {
               id: data.id || 0,
               email: data.email,
               fullName: data.fullName,
               role: returnedRole,
               avatarUrl: data.avatarUrl,
-              permissions: data.permissions
-            }))
-            if (typeof document !== 'undefined') {
-              const secureFlag = window.location.protocol === 'https:' ? '; Secure' : ''
-              document.cookie = `mathclass_role=${returnedRole}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${secureFlag}`
-              document.cookie = `mathclass_remember=true; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${secureFlag}`
+              permissions: data.permissions,
             }
 
+            // Dispatch user data to Redux Store (không chứa token)
+            dispatch(setAuth(userInfo))
+
+            // Đồng bộ cookie/storage với luồng email/password — tôn trọng lựa chọn "Giữ đăng nhập"
+            authStorage.setToken('', returnedRole, rememberMe)
+            authStorage.setUserInfo(userInfo, rememberMe)
+
             toast.success('Đăng nhập thành công')
-            router.refresh()
             router.push('/home')
+            router.refresh()
           },
           onError: (error) => {
             toast.error(handleApiError(error, 'Đăng nhập Google thất bại'))

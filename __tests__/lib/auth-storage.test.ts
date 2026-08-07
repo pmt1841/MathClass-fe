@@ -38,6 +38,36 @@ describe('authStorage', () => {
     expect(retrieved).toEqual(userInfo)
   })
 
+  it('sanitizeUserInfo strips sensitive token fields before storing in cookie', () => {
+    authStorage.setUserInfo({
+      id: 1,
+      email: 'a@b.com',
+      fullName: 'A',
+      role: 'TEACHER',
+      token: 'SECRET_JWT',
+      accessToken: 'SECRET_ACCESS',
+      refreshToken: 'SECRET_REFRESH',
+      password: 'secret',
+    }, true)
+
+    const retrieved = authStorage.getUserInfo()
+    expect(retrieved).toEqual({ id: 1, email: 'a@b.com', fullName: 'A', role: 'TEACHER' })
+    expect(retrieved.token).toBeUndefined()
+    expect(retrieved.accessToken).toBeUndefined()
+    expect(retrieved.refreshToken).toBeUndefined()
+    expect(retrieved.password).toBeUndefined()
+  })
+
+  it('clearSessionCookies removes all session cookies', () => {
+    authStorage.setToken('dummy', 'TEACHER', true)
+
+    authStorage.clearSessionCookies()
+
+    expect(document.cookie).not.toContain('user_role=')
+    expect(document.cookie).not.toContain('mathclass_role=')
+    expect(document.cookie).not.toContain('mathclass_remember=')
+  })
+
   it('clearToken and clearUserInfo clear cookies and storage entries', () => {
     authStorage.setUserInfo({ id: 1, name: 'Test' }, true)
     authStorage.setToken('dummy', 'TEACHER', true)

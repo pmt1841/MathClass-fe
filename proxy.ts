@@ -17,9 +17,10 @@ export function proxy(request: NextRequest) {
 
   const token = request.cookies.get('mathclass_jwt')?.value
 
-  // Đọc role từ cookie mathclass_role hoặc từ token payload (nếu có)
-  let userRole: string | null = request.cookies.get('mathclass_role')?.value || null
-  if (!userRole && token) {
+  // Đọc role — ưu tiên decode từ JWT payload (nguồn tin cậy), cookie mathclass_role chỉ dùng dự phòng.
+  // Lý do: cookie role do client tự đặt, không có chữ ký nên có thể bị giả mạo (vd: tự đặt role=ADMIN).
+  let userRole: string | null = null
+  if (token) {
     try {
       const parts = token.split('.')
       if (parts.length === 3) {
@@ -32,6 +33,9 @@ export function proxy(request: NextRequest) {
     } catch (e) {
       console.error('Error decoding token in middleware', e)
     }
+  }
+  if (!userRole) {
+    userRole = request.cookies.get('mathclass_role')?.value || null
   }
 
   // Loại trừ trang /admin/login khỏi các protected & admin-only routes
