@@ -328,13 +328,27 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                 }
               } else if (normType === 'functiongraph') {
                 let fg;
-                if (el.isVertical) {
-                  const num = parseFloat(el.parsedFunc);
-                  fg = board.create('line', [[num, 0], [num, 1]], attrs);
-                } else {
-                  fg = board.create('functiongraph', [el.parsedFunc || el.func], attrs);
+                const rawExpr = el.parsedFunc || el.func || el.formula || el.expression;
+                if (rawExpr) {
+                  if (el.isVertical) {
+                    const num = parseFloat(rawExpr);
+                    fg = board.create('line', [[num, 0], [num, 1]], attrs);
+                  } else {
+                    const jsExpr = rawExpr
+                      .toString()
+                      .replace(/\^/g, '**')
+                      .replace(/(\d)([a-zA-Z])/g, '$1*$2')
+                      .replace(/([a-zA-Z])(\d)/g, '$1*$2');
+
+                    const funcAttrs = {
+                      strokeColor: '#10b981',
+                      strokeWidth: 2.5,
+                      ...attrs
+                    };
+                    fg = board.create('functiongraph', [jsExpr], funcAttrs);
+                  }
+                  if (el.id && fg) fg.id = el.id;
                 }
-                if (el.id && fg) fg.id = el.id;
               }
             } catch (elementErr) {
               console.error(`[JsxGraphBoard] Error creating element (${el.type || 'unknown'}):`, elementErr, el)
@@ -475,9 +489,14 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
             });
           });
 
-          const existingPoints = jsxGraphData.elements.filter((el: any) => el.type === 'point');
+          const existingPoints = jsxGraphData.elements.filter((el: any) => (el.type || '').toString().toLowerCase() === 'point');
           const finalGhostPoints = intersections.filter(p => {
-            return !existingPoints.some((ep: any) => Math.abs(ep.parents[0] - p.x) < 0.05 && Math.abs(ep.parents[1] - p.y) < 0.05);
+            return !existingPoints.some((ep: any) => {
+              const epx = ep.x ?? ep.X ?? (Array.isArray(ep.parents) ? ep.parents[0] : undefined);
+              const epy = ep.y ?? ep.Y ?? (Array.isArray(ep.parents) ? ep.parents[1] : undefined);
+              if (epx === undefined || epy === undefined || isNaN(Number(epx)) || isNaN(Number(epy))) return false;
+              return Math.abs(Number(epx) - p.x) < 0.05 && Math.abs(Number(epy) - p.y) < 0.05;
+            });
           });
 
           finalGhostPoints.forEach(p => {

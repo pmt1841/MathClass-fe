@@ -21,6 +21,8 @@ export interface CanvasElementDTO {
   fromId?: string
   toId?: string
   style?: string
+  parsedFunc?: string
+  func?: string
 }
 
 export interface CanvasDataDTO {
