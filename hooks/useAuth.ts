@@ -5,9 +5,9 @@ import { ReactReduxContext } from 'react-redux'
 import { useRouter } from 'next/navigation'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { logoutSuccess } from '@/lib/redux/features/authSlice'
-import api from '@/lib/axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { authStorage } from '@/lib/auth-storage'
+import { logoutSession } from '@/lib/logout'
 
 function useReduxAuth(queryClient: any, router: any) {
   const user = useAppSelector((state) => state.auth.user)
@@ -16,11 +16,7 @@ function useReduxAuth(queryClient: any, router: any) {
   const dispatch = useAppDispatch()
 
   const logout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } catch (e) {
-      console.error('Logout error', e)
-    }
+    // 1. Xóa ngay state phía client để UI thoát đăng nhập tức thời
     if (typeof window !== 'undefined') {
       authStorage.clearToken()
       authStorage.clearUserInfo()
@@ -29,6 +25,11 @@ function useReduxAuth(queryClient: any, router: any) {
       queryClient.clear()
     }
     dispatch(logoutSuccess())
+
+    // 2. Gọi logout backend bằng axios gốc để xóa HttpOnly cookie mathclass_jwt
+    await logoutSession()
+
+    // 3. Về trang chủ
     router.push('/')
   }
 
@@ -58,18 +59,14 @@ export function useAuth() {
     isAuthenticated: !!fallbackUser,
     isInitializing: false,
     logout: async () => {
-      try {
-        await api.post('/auth/logout')
-      } catch (e) {
-        console.error('Logout error', e)
-      }
-      if (queryClient) {
-        queryClient.clear()
-      }
       if (typeof window !== 'undefined') {
         authStorage.clearToken()
         authStorage.clearUserInfo()
       }
+      if (queryClient) {
+        queryClient.clear()
+      }
+      await logoutSession()
     },
   }
 }

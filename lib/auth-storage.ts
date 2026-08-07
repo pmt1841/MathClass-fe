@@ -40,12 +40,32 @@ export const authStorage = {
     return true
   },
 
-  clearToken() {
+  /**
+   * Xóa toàn bộ cookie liên quan tới phiên đăng nhập.
+   * Lưu ý: `mathclass_jwt` là cookie HttpOnly do Backend set — JS không thể xóa trực tiếp,
+   * cookie này chỉ thực sự bị hủy khi Backend nhận được request logout (Set-Cookie hết hạn).
+   */
+  clearSessionCookies() {
     if (typeof window === 'undefined') return
     document.cookie = 'user_role=; path=/; max-age=0'
     document.cookie = 'mathclass_role=; path=/; max-age=0'
     document.cookie = 'mathclass_jwt=; path=/; max-age=0'
     document.cookie = 'mathclass_remember=; path=/; max-age=0'
+  },
+
+  /**
+   * Lọc bỏ các trường nhạy cảm (token, password...) trước khi lưu vào cookie `user_info`
+   * để tránh phơi bày JWT qua cookie không HttpOnly (phòng thủ XSS).
+   */
+  sanitizeUserInfo(userInfo: any): any {
+    if (!userInfo || typeof userInfo !== 'object') return userInfo
+    const { token, accessToken, refreshToken, idToken, password, ...safe } = userInfo
+    return safe
+  },
+
+  clearToken() {
+    if (typeof window === 'undefined') return
+    this.clearSessionCookies()
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
     localStorage.removeItem('auth_persistence')
@@ -56,7 +76,7 @@ export const authStorage = {
     if (typeof window === 'undefined') return
 
     const secureFlag = window.location.protocol === 'https:' ? '; Secure' : ''
-    const encodedData = encodeURIComponent(JSON.stringify(userInfo))
+    const encodedData = encodeURIComponent(JSON.stringify(this.sanitizeUserInfo(userInfo)))
     const cookieBase = `${AUTH_KEYS.USER_INFO}=${encodedData}; path=${COOKIE_OPTIONS.PATH}; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
 
     if (rememberMe) {

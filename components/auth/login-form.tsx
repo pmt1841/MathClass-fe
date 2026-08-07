@@ -27,10 +27,10 @@ import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { logoutSuccess } from '@/lib/redux/features/authSlice'
 import { authStorage } from '@/lib/auth-storage'
-import api from '@/lib/axios'
+import { logoutSession } from '@/lib/logout'
 
 const formSchema = z.object({
-  email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ'),
+  email: z.string().min(1, 'Email là bắt buộc').trim().toLowerCase().email('Email không hợp lệ'),
   password: z.string().min(1, 'Mật khẩu là bắt buộc'),
   rememberMe: z.boolean().default(false).optional(),
 })
@@ -43,6 +43,9 @@ export default function LoginForm() {
   const pathname = usePathname()
   const dispatch = useAppDispatch()
   const [role, setRole] = useState<string>(ROLES.STUDENT)
+  // Vai trò tường minh (?role= hoặc đã chọn role trước đó). Nếu null → KHÔNG giới hạn vai trò,
+  // tránh chặn nhầm người dùng hợp lệ (vd giáo viên mở thẳng /login nhưng role mặc định là STUDENT).
+  const [explicitRole, setExplicitRole] = useState<string | null>(null)
   /*
    * PHÁT HIỆN LÝ DO BỊ KHÓA:
    * State kiểm soát việc hiển thị Modal Cảnh báo khi người dùng bị văng từ hệ thống về trang Login với tham số ?reason=account_locked
@@ -52,8 +55,11 @@ export default function LoginForm() {
   const { login, isLoading, loginError } = useLogin()
 
   useEffect(() => {
-    const savedRole = searchParams.get('role') || sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE) || ROLES.STUDENT
+    const paramRole = searchParams.get('role')
+    const storedRole = sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE)
+    const savedRole = paramRole || storedRole || ROLES.STUDENT
     setRole(savedRole)
+    setExplicitRole(paramRole || storedRole)
 
     // Kiểm tra query parameter để mở Modal cảnh báo tài khoản bị khóa
     const reason = searchParams.get('reason')
@@ -80,7 +86,7 @@ export default function LoginForm() {
   const handleCloseLockedModal = () => {
     setShowLockedModal(false)
 
-    // Xóa sạch trạng thái Auth trong Redux và Storage
+    // Xóa sạch trạng thái Auth trong Redux và Storage (clearToken đã xóa toàn bộ cookie phiên)
     try {
       dispatch(logoutSuccess())
     } catch (e) {
@@ -90,14 +96,8 @@ export default function LoginForm() {
     authStorage.clearToken()
     authStorage.clearUserInfo()
 
-    if (typeof document !== 'undefined') {
-      document.cookie = 'mathclass_role=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'user_role=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'mathclass_jwt=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    }
-
-    // Gửi request ngầm logout tới backend để dọn cookie HttpOnly
-    api.post('/auth/logout').catch(() => {})
+    // Gửi request ngầm logout tới backend để dọn cookie HttpOnly (axios gốc, không qua interceptor)
+    logoutSession()
 
     const params = new URLSearchParams(searchParams.toString())
     params.delete('reason')
@@ -116,6 +116,9 @@ export default function LoginForm() {
     },
   })
 
+  // Theo dõi lựa chọn "Giữ đăng nhập" để truyền xuống Google Login cho nhất quán
+  const rememberMe = form.watch('rememberMe')
+
   useEffect(() => {
     const savedEmail = localStorage.getItem(AUTH_KEYS.REMEMBERED_EMAIL)
     if (savedEmail) {
@@ -124,7 +127,7 @@ export default function LoginForm() {
   }, [form])
 
   const onSubmit = async (values: FormValues) => {
-    await login({ email: values.email, password: values.password }, !!values.rememberMe, role)
+    await login({ email: values.email, password: values.password }, !!values.rememberMe, explicitRole || undefined)
   }
 
   return (
@@ -271,7 +274,7 @@ export default function LoginForm() {
 
         {/* Social Login */}
         <div className="w-full">
-          <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} />
+          <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} rememberMe={rememberMe} />
         </div>
       </div>
 

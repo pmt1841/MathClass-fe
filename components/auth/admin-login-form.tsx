@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useState, useEffect } from 'react'
 import { Mail, Calculator, ShieldCheck, Lock } from 'lucide-react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 import {
   Form,
@@ -19,12 +20,17 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { AccountLockedModal } from './account-locked-modal'
 
 import { useLogin } from '@/hooks/useLogin'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
+import { useAppDispatch } from '@/lib/redux/hooks'
+import { logoutSuccess } from '@/lib/redux/features/authSlice'
+import { authStorage } from '@/lib/auth-storage'
+import { logoutSession } from '@/lib/logout'
 
 const formSchema = z.object({
-  email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ'),
+  email: z.string().min(1, 'Email là bắt buộc').trim().toLowerCase().email('Email không hợp lệ'),
   password: z.string().min(1, 'Mật khẩu là bắt buộc'),
   rememberMe: z.boolean().default(false).optional(),
 })
@@ -33,6 +39,11 @@ type FormValues = z.infer<typeof formSchema>
 
 export default function AdminLoginForm() {
   const { login, isLoading, loginError } = useLogin()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const dispatch = useAppDispatch()
+  const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -42,6 +53,38 @@ export default function AdminLoginForm() {
       rememberMe: false,
     },
   })
+
+  // Tự động mở Modal cảnh báo khi bị khóa tài khoản (từ query param hoặc lỗi login)
+  useEffect(() => {
+    if (searchParams.get('reason') === 'account_locked') {
+      setShowLockedModal(true)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
+      setShowLockedModal(true)
+    }
+  }, [loginError])
+
+  const handleCloseLockedModal = () => {
+    setShowLockedModal(false)
+
+    try {
+      dispatch(logoutSuccess())
+    } catch (e) {
+      // ignore
+    }
+
+    authStorage.clearToken()
+    authStorage.clearUserInfo()
+    logoutSession()
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('reason')
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+    router.replace(newUrl)
+  }
 
   useEffect(() => {
     const savedEmail = localStorage.getItem(AUTH_KEYS.REMEMBERED_EMAIL)
@@ -135,6 +178,7 @@ export default function AdminLoginForm() {
                     <PasswordInput
                       {...field}
                       placeholder="••••••••"
+                      maxLength={256}
                       className="h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:border-primary rounded-xl"
                       autoComplete="current-password"
                     />
@@ -182,6 +226,9 @@ export default function AdminLoginForm() {
           </form>
         </Form>
       </div>
+
+      {/* ── Modal Cảnh báo Tài khoản bị khóa ─────────────────────────────── */}
+      <AccountLockedModal open={showLockedModal} onClose={handleCloseLockedModal} />
     </div>
   )
 }

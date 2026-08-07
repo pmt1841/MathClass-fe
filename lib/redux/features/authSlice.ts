@@ -27,7 +27,9 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     setAuth: (state, action: PayloadAction<UserProfile>) => {
-      state.user = action.payload;
+      // Lọc bỏ các trường nhạy cảm (token...) trước khi lưu vào store để tránh phơi bày JWT (phòng thủ XSS)
+      const { token, accessToken, refreshToken, idToken, password, ...safeUser } = action.payload as any;
+      state.user = safeUser as UserProfile;
       state.isAuthenticated = true;
       state.isInitializing = false;
     },

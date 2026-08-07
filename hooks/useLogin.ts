@@ -7,9 +7,9 @@ import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { AxiosError } from 'axios'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { setAuth } from '@/lib/redux/features/authSlice'
-import api from '@/lib/axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { authStorage } from '@/lib/auth-storage'
+import { logoutSession } from '@/lib/logout'
 
 export function useLogin() {
   const [isLoading, setIsLoading] = useState(false)
@@ -29,8 +29,8 @@ export function useLogin() {
       const role = data.role || data.userRole || ROLES.STUDENT
 
       if (expectedRole && role !== expectedRole) {
-        await api.post('/auth/logout').catch(() => {})
-        setLoginError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+        await logoutSession()
+        setLoginError('Tài khoản này không có quyền truy cập khu vực này. Vui lòng đăng nhập đúng cổng cho vai trò của bạn.')
         setIsLoading(false)
         return
       }
@@ -38,17 +38,18 @@ export function useLogin() {
       // Xóa cache các query của tài khoản trước đó (nếu có)
       queryClient.clear()
 
-      // Cập nhật authStorage
+      // Cập nhật authStorage (sanitizeUserInfo sẽ lọc bỏ token trước khi lưu vào cookie user_info)
       authStorage.setToken('', role, rememberMe)
       authStorage.setUserInfo(data, rememberMe)
 
-      // Cập nhật Redux Store
+      // Cập nhật Redux Store — chỉ chọn các field cần thiết, KHÔNG spread toàn bộ response (tránh lưu token)
       dispatch(setAuth({
-        ...data,
         id: data.id || 0,
         email: data.email || credentials.email,
         fullName: data.fullName || '',
-        role: role
+        role: role,
+        avatarUrl: data.avatarUrl,
+        permissions: data.permissions,
       }))
 
       // Lưu cookie mathclass_role và mathclass_remember cho middleware nhận diện vai trò tức thì

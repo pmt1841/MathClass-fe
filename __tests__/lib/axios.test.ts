@@ -31,4 +31,28 @@ describe('axios client (lib/axios.ts)', () => {
 
     expect(dispatchEventSpy).toHaveBeenCalled()
   })
+
+  it('does not trigger refresh-token flow when logout endpoint returns 401', async () => {
+    const requestedUrls: string[] = []
+
+    api.defaults.adapter = async (config) => {
+      requestedUrls.push(config.url || '')
+      return Promise.reject({
+        config,
+        response: { status: 401, data: {}, headers: {} },
+      })
+    }
+
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Expected rejection
+    }
+
+    // Logout phải được gọi NHƯNG không được kích hoạt refresh-token
+    // (nếu không, backend có thể cấp lại cookie HttpOnly → phiên "sống lại" sau logout)
+    expect(requestedUrls).toContain('/auth/logout')
+    expect(requestedUrls).not.toContain('/auth/refresh-token')
+    expect(requestedUrls).toEqual(['/auth/logout'])
+  })
 })

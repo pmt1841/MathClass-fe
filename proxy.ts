@@ -17,9 +17,14 @@ export function proxy(request: NextRequest) {
 
   const token = request.cookies.get('mathclass_jwt')?.value
 
-  // Đọc role từ cookie mathclass_role hoặc từ token payload (nếu có)
-  let userRole: string | null = request.cookies.get('mathclass_role')?.value || null
-  if (!userRole && token) {
+  /*
+   * Kiểm tra cấu trúc token: chỉ coi là "hợp lệ" khi có đúng 3 phần (header.payload.signature)
+   * và payload decode ra JSON hợp lệ. Token rác / không parse được → coi như CHƯA đăng nhập.
+   * (Không thể verify chữ ký ở đây vì không có secret — verify thật nằm ở Backend API.)
+   */
+  let isTokenValid = false
+  let userRole: string | null = null
+  if (token) {
     try {
       const parts = token.split('.')
       if (parts.length === 3) {
@@ -28,10 +33,15 @@ export function proxy(request: NextRequest) {
         if (rawRole) {
           userRole = rawRole.replace('ROLE_', '')
         }
+        isTokenValid = true
       }
     } catch (e) {
       console.error('Error decoding token in middleware', e)
     }
+  }
+  // Fallback: role từ cookie (cho token cũ chưa có claim role — sau khi Backend deploy claim role thì JWT là nguồn chính)
+  if (!userRole) {
+    userRole = request.cookies.get('mathclass_role')?.value || null
   }
 
   // Loại trừ trang /admin/login khỏi các protected & admin-only routes
@@ -44,16 +54,20 @@ export function proxy(request: NextRequest) {
   // Kiểm tra tham số lý do khóa tài khoản để cho phép truy cập trang login hiển thị Modal cảnh báo
   const isAccountLockedReason = request.nextUrl.searchParams.get('reason') === 'account_locked'
 
-  // 1. Redirect unauthenticated users away from protected routes
-  if (isProtectedRoute && !token) {
+  // 1. Redirect chưa đăng nhập (không token HOẶC token rác/không parse được) khỏi protected routes
+  if (isProtectedRoute && !isTokenValid) {
     const redirectUrl = isAdminRoute ? '/admin/login' : '/'
     return NextResponse.redirect(new URL(redirectUrl, request.url))
   }
 
-  // 1b. Admin routes: must be logged in. Only redirect to forbidden if userRole is explicitly non-ADMIN.
+  // 1b. Admin routes: FAIL-CLOSED — chỉ cho qua khi xác định được role ADMIN.
+  //     Trước đây khi userRole = null (token rác/token không có claim role) thì check
+  //     `userRole !== 'ADMIN'` bị bỏ qua → token rác vẫn vào được /admin/*. Đã sửa.
   if (isAdminRoute) {
-    if (!token) return NextResponse.redirect(new URL('/admin/login', request.url))
-    if (userRole && userRole !== 'ADMIN') return NextResponse.redirect(new URL('/forbidden', request.url))
+    if (!isTokenValid) return NextResponse.redirect(new URL('/admin/login', request.url))
+    if (userRole !== 'ADMIN') {
+      return NextResponse.redirect(new URL(userRole ? '/forbidden' : '/admin/login', request.url))
+    }
   }
 
   /*
@@ -62,7 +76,7 @@ export function proxy(request: NextRequest) {
    * Nếu không tích chọn "Ghi nhớ đăng nhập", để Client JS (AuthInitializer) kiểm tra tab session active để xử lý hủy phiên khi mở tab mới.
    */
   const isRemembered = request.cookies.get('mathclass_remember')?.value === 'true'
-  if (!isAccountLockedReason && token && isRemembered && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
+  if (!isAccountLockedReason && isTokenValid && isRemembered && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
     const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
@@ -70,17 +84,17 @@ export function proxy(request: NextRequest) {
   const fallbackUrl = '/home'
 
   // 3. Role-based access: teacher-only routes
-  if (isTeacherRoute && token && userRole && userRole !== 'TEACHER') {
+  if (isTeacherRoute && isTokenValid && userRole && userRole !== 'TEACHER') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
   // 4. Role-based access: student-only routes
-  if (isStudentRoute && token && userRole && userRole !== 'STUDENT') {
+  if (isStudentRoute && isTokenValid && userRole && userRole !== 'STUDENT') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
-  // 5. Role-based access: admin-only routes
-  if (isAdminRoute && token && userRole && userRole !== 'ADMIN') {
+  // 5. Role-based access: admin-only routes (bổ trợ cho check 1b — fail-closed)
+  if (isAdminRoute && isTokenValid && userRole && userRole !== 'ADMIN') {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
