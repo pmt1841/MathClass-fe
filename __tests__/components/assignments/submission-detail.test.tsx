@@ -5,6 +5,7 @@ import { SubmissionDetail } from '@/components/assignments/submission-detail'
 import { submissionService } from '@/services/submissionService'
 import { assignmentService } from '@/services/assignmentService'
 import { submissionAiGradingService } from '@/services/submissionAiGradingService'
+import { aiFeatureService } from '@/services/aiFeatureService'
 
 vi.mock('@/services/submissionService', () => ({
   submissionService: {
@@ -24,6 +25,16 @@ vi.mock('@/services/submissionAiGradingService', () => ({
     submitAiGrading: vi.fn(),
   },
 }))
+
+vi.mock('@/services/aiFeatureService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/aiFeatureService')>('@/services/aiFeatureService')
+  return {
+    ...actual,
+    aiFeatureService: {
+      getFeatures: vi.fn(),
+    },
+  }
+})
 
 // Mock ReactMarkdown since it can be problematic in jsdom
 vi.mock('react-markdown', () => ({
@@ -87,6 +98,15 @@ describe('SubmissionDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
+    // Mặc định: admin đã bật tính năng AI chấm sơ bộ
+    vi.mocked(aiFeatureService.getFeatures).mockResolvedValue({
+      ASSIGNMENT_GRADING: true,
+      STUDENT_HINT: true,
+      QUESTION_GEN: true,
+      CANVAS_LATEX: true,
+      CONTENT_SUMMARIZATION: true,
+      ERROR_ANALYSIS: true,
+    })
   })
 
   it('renders loading state initially', () => {
@@ -212,5 +232,39 @@ describe('SubmissionDetail', () => {
       const scoreInput = screen.getByRole('spinbutton')
       expect(scoreInput).toHaveValue(8.5)
     })
+  })
+
+  it('hides AI grading button when admin has not enabled the feature', async () => {
+    vi.mocked(submissionService.getSubmissionById).mockResolvedValue({
+      ...mockSubmission,
+      status: 'SUBMITTED',
+      score: null,
+      teacherFeedback: undefined,
+    })
+    vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
+    // Admin chưa bật tính năng AI chấm sơ bộ
+    vi.mocked(aiFeatureService.getFeatures).mockResolvedValue({
+      ASSIGNMENT_GRADING: false,
+      STUDENT_HINT: false,
+      QUESTION_GEN: false,
+      CANVAS_LATEX: false,
+      CONTENT_SUMMARIZATION: false,
+      ERROR_ANALYSIS: false,
+    })
+
+    const queryClient = createQueryClient()
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SubmissionDetail submissionId={100} assignmentId={10} />
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Nguyen Van A')).toBeInTheDocument()
+    })
+
+    // Nút "AI chấm sơ bộ" KHÔNG hiển thị khi tính năng chưa được bật
+    expect(screen.queryByRole('button', { name: /AI chấm sơ bộ/i })).not.toBeInTheDocument()
   })
 })

@@ -49,6 +49,7 @@ import { SubmissionGradeForm, GradeFormValues } from './submission-grade-form'
 import { handleApiError } from '@/lib/utils/error-handler'
 import { useSubmissionAiGrading, AiGradingResult } from '@/hooks/useSubmissionAiGrading'
 import { AiGradingPanel } from './ai-grading-panel'
+import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -74,6 +75,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
   const isTeacher = user?.role === 'TEACHER'
 
   const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
+
+  // MAT-250: Chỉ hiển thị nút "AI chấm sơ bộ" khi admin đã cấu hình + bật task ASSIGNMENT_GRADING
+  const { data: aiFeatures } = useAiFeatures()
+  const aiGradingEnabled = aiFeatures?.[AI_FEATURE_TASKS.ASSIGNMENT_GRADING] === true
 
   const { data: hintHistory, isLoading: isHintLoading } = useQuery({
     queryKey: ['submission-hints', submissionId],
@@ -445,8 +450,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               </span>
             </button>
 
-            {/* MAT-250: Nút AI chấm sơ bộ cho Giáo viên */}
-            {isTeacher && (
+            {/* MAT-250: Nút AI chấm sơ bộ cho Giáo viên (chỉ hiển thị khi admin bật tính năng) */}
+            {isTeacher && aiGradingEnabled && (
               <button
                 type="button"
                 onClick={handleRequestAiGrading}
