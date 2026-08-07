@@ -125,7 +125,7 @@ export default function AdminLoginForm() {
               Đăng nhập Hệ thống Quản trị
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Nhập thông tin quản trị để truy cập Dashboard
+              Nhập thông tin quản trị để truy cập
             </p>
           </div>
         </div>
@@ -135,8 +135,8 @@ export default function AdminLoginForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             {/* Error Message Alert */}
             {loginError && (
-              <div 
-                role="alert" 
+              <div
+                role="alert"
                 className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-destructive text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200"
               >
                 {loginError}
