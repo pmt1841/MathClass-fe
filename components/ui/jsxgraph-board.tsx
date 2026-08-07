@@ -153,6 +153,60 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
 
         // Reconstruct elements (Sort points first so references like centerId/pointId exist in newPointMap)
         if (jsxGraphData.elements && Array.isArray(jsxGraphData.elements)) {
+          // Pre-pass: Check if point coordinates are on a large/pixel scale (> 15) and scale them down to standard Cartesian bounds
+          const allPoints: { el: any; x: number; y: number }[] = []
+          jsxGraphData.elements.forEach((el: any) => {
+            const normType = (el.type || '').toString().toLowerCase()
+            if (normType === 'point') {
+              let px = el.x ?? el.X ?? (Array.isArray(el.parents) && typeof el.parents[0] === 'number' ? el.parents[0] : undefined)
+              let py = el.y ?? el.Y ?? (Array.isArray(el.parents) && typeof el.parents[1] === 'number' ? el.parents[1] : undefined)
+              if (px !== undefined && py !== undefined && !isNaN(Number(px)) && !isNaN(Number(py))) {
+                allPoints.push({ el, x: Number(px), y: Number(py) })
+              }
+            }
+          })
+
+          if (allPoints.length > 0) {
+            const xs = allPoints.map(p => p.x)
+            const ys = allPoints.map(p => p.y)
+            const minX = Math.min(...xs), maxX = Math.max(...xs)
+            const minY = Math.min(...ys), maxY = Math.max(...ys)
+            const spanX = maxX - minX
+            const spanY = maxY - minY
+            const maxSpan = Math.max(spanX, spanY)
+            const maxAbs = Math.max(Math.abs(minX), Math.abs(maxX), Math.abs(minY), Math.abs(maxY))
+
+            if (maxSpan > 15 || maxAbs > 15) {
+              const targetSpan = 8
+              const scaleFactor = maxSpan > 0 ? targetSpan / maxSpan : 1
+              const centerX = (minX + maxX) / 2
+              const centerY = (minY + maxY) / 2
+
+              allPoints.forEach(p => {
+                const newX = Math.round((p.x - centerX) * scaleFactor * 10) / 10
+                const newY = Math.round((p.y - centerY) * scaleFactor * 10) / 10
+                p.el.x = newX
+                p.el.y = newY
+                p.el.X = newX
+                p.el.Y = newY
+                if (Array.isArray(p.el.parents) && typeof p.el.parents[0] === 'number') {
+                  p.el.parents = [newX, newY]
+                }
+              })
+
+              jsxGraphData.elements.forEach((el: any) => {
+                if ((el.type || '').toString().toLowerCase() === 'circle') {
+                  if (typeof el.radius === 'number') {
+                    el.radius = Math.round(el.radius * scaleFactor * 10) / 10
+                  }
+                  if (typeof el.rad === 'number') {
+                    el.rad = Math.round(el.rad * scaleFactor * 10) / 10
+                  }
+                }
+              })
+            }
+          }
+
           const pointCoords: { x: number; y: number }[] = []
 
           const sortedElements = [...jsxGraphData.elements].sort((a: any, b: any) => {
