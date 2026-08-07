@@ -23,3 +23,5 @@ Chào mừng bạn đến với module Frontend của dự án **MathClass** - H
 
 1. [Hướng dẫn Cài đặt Môi trường (Setup Guide)](02-setup-guide.md)
 2. [Quy chuẩn và Hướng dẫn Code (Frontend Guide)](03-frontend-guide.md)
+3. [Kiến trúc Ứng dụng (Architecture)](04-architecture.md)
+4. [Cấu trúc Thư mục Chi tiết (Folder Structure)](05-folder-structure.md)
