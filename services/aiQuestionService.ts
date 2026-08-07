@@ -53,7 +53,7 @@ export const aiQuestionService = {
    * Gọi API Backend /api/v1/ai/generate-question để sinh câu hỏi bằng AI (Gemini 2.0)
    */
   async generateQuestion(dto: GenerateQuestionRequestDTO): Promise<AiGeneratedQuestionDTO> {
-    const response = await axiosInstance.post<ApiResponse<AiGeneratedQuestionDTO>>('/ai/generate-question', dto)
-    return response.data.result
+    const response = await axiosInstance.post<AiGeneratedQuestionDTO>('/ai/generate-question', dto)
+    return response.data
   }
 }
