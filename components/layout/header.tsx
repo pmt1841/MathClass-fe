@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { NotificationPopover } from './NotificationPopover'
 import { useAuth } from '@/hooks/useAuth'
+import { CreditBalanceBadge } from '@/components/credits/credit-balance-badge'
 
 export function DashboardHeader() {
   const { user, logout } = useAuth()
@@ -39,6 +40,8 @@ export function DashboardHeader() {
           </Link>
 
           <div className="flex items-center gap-3">
+            {role !== 'ADMIN' && <CreditBalanceBadge />}
+
             <NotificationPopover />
 
             <div className="relative">

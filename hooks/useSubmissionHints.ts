@@ -5,7 +5,7 @@ import {
   StudentHintResponse,
   HintHistoryResponse
 } from '@/services/submissionHintsService'
-import { handleApiError } from '@/lib/utils/error-handler'
+import { handleApiError, isInsufficientCredit } from '@/lib/utils/error-handler'
 
 export type { SubmissionHintItemDTO, StudentHintResponse, HintHistoryResponse }
 
@@ -63,6 +63,9 @@ export function useSubmissionHints(submissionId?: number | null) {
       ? handleApiError(requestHintMutation.error, 'Không thể gửi yêu cầu gợi ý lúc này. Vui lòng thử lại sau.')
       : null
 
+  // MAT-255: người dùng hết credit AI → FE hiển thị CTA "Mua thêm credit"
+  const insufficientCredit = isInsufficientCredit(requestHintMutation.error)
+
   return {
     hints,
     totalUsed,
@@ -70,6 +73,7 @@ export function useSubmissionHints(submissionId?: number | null) {
     isLoading: historyQuery.isLoading,
     isRequesting: requestHintMutation.isPending,
     error: errorMessage,
+    insufficientCredit,
     latestHint: requestHintMutation.data || null,
     fetchHistory,
     requestHint

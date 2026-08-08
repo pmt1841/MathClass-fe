@@ -74,7 +74,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
   const { user } = useAuth()
   const isTeacher = user?.role === 'TEACHER'
 
-  const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
+  const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, insufficientCredit: aiGradingInsufficientCredit, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
 
   // MAT-250: Chỉ hiển thị nút "AI chấm sơ bộ" khi admin đã cấu hình + bật task ASSIGNMENT_GRADING
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
@@ -683,6 +683,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
         open={showAiGradingPanel}
         isGrading={isAiGrading}
         error={aiGradingError}
+        insufficientCredit={aiGradingInsufficientCredit}
         result={aiGradingResult}
         studentName={submission.studentName}
         maxScore={assignment?.maxScore || 10}

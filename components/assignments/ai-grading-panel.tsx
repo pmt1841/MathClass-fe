@@ -4,6 +4,7 @@ import React from 'react'
 import { Loader2, Sparkles, X, Check, AlertTriangle, Wand2, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AiGradingResult } from '@/services/submissionAiGradingService'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -18,6 +19,7 @@ interface AiGradingPanelProps {
   open: boolean
   isGrading: boolean
   error: string | null
+  insufficientCredit?: boolean
   result: AiGradingResult | null
   studentName: string
   maxScore: number
@@ -41,6 +43,7 @@ export function AiGradingPanel({
   open,
   isGrading,
   error,
+  insufficientCredit = false,
   result,
   studentName,
   maxScore,
@@ -88,7 +91,24 @@ export function AiGradingPanel({
             </div>
           )}
 
-          {error && !isGrading && (
+          {error && !isGrading && insufficientCredit && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                <p className="text-sm font-medium text-amber-800">
+                  Bạn đã hết credit AI. Vui lòng mua thêm credit để sử dụng tính năng AI chấm sơ bộ.
+                </p>
+              </div>
+              <Link href="/credits" passHref>
+                <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700">
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                  Mua thêm credit
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {error && !isGrading && !insufficientCredit && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="flex-1">{error}</div>
