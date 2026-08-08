@@ -32,7 +32,7 @@ import {
   aiConfigService,
 } from '@/services/aiConfigService'
 import { ModelInputWithFetch } from '@/components/admin/ai-config/ModelInputWithFetch'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 
 interface TaskMetadata {
   taskCode: string
@@ -75,7 +75,6 @@ const SYSTEM_TASKS: TaskMetadata[] = [
 ]
 
 export function TaskRoutingTab() {
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [initialTaskConfigs, setInitialTaskConfigs] = useState<Record<string, TaskConfig | null>>({})
@@ -115,10 +114,8 @@ export function TaskRoutingTab() {
       setInitialTaskConfigs(initialMap)
       setTaskConfigs(currentMap)
     } catch (err: any) {
-      toast({
-        title: 'Lỗi nạp cấu hình Task',
+      toast.error('Lỗi nạp cấu hình Task', {
         description: err.response?.data?.message || err.message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -165,19 +162,15 @@ export function TaskRoutingTab() {
   const handleSaveTaskConfig = async (taskCode: string) => {
     const config = taskConfigs[taskCode]
     if (!config || !config.providerId || config.providerId === 0) {
-      toast({
-        title: 'Chưa chọn Provider',
+      toast.error('Chưa chọn Provider', {
         description: 'Vui lòng chọn Provider cho tác vụ trước khi lưu.',
-        variant: 'destructive',
       })
       return
     }
 
     if (!config.model.trim()) {
-      toast({
-        title: 'Chưa nhập Model',
+      toast.error('Chưa nhập Model', {
         description: 'Vui lòng nhập hoặc chọn Model AI cho tác vụ.',
-        variant: 'destructive',
       })
       return
     }
@@ -196,15 +189,12 @@ export function TaskRoutingTab() {
       setTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
       setInitialTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
 
-      toast({
-        title: '⚡ Lưu cấu hình Task thành công!',
+      toast.success('⚡ Lưu cấu hình Task thành công!', {
         description: `Đã cập nhật định tuyến cho tác vụ thành công.`,
       })
     } catch (err: any) {
-      toast({
-        title: 'Lưu thất bại',
+      toast.error('Lưu thất bại', {
         description: err.response?.data?.message || err.message,
-        variant: 'destructive',
       })
     } finally {
       setSavingTask(null)
@@ -219,15 +209,16 @@ export function TaskRoutingTab() {
    * Chỉ thay đổi field `enabled`, không ghi đè các field khác đang được chỉnh sửa dở.
    */
   const handleToggleTask = async (taskCode: string, newEnabled: boolean) => {
+    // Chống spam click khi request cho task này chưa hoàn tất
+    if (savingTask === taskCode) return
+
     const config = taskConfigs[taskCode]
     if (!config) return
 
     // Bật tính năng khi chưa chọn Provider/Model -> chặn với thông báo rõ ràng
     if (newEnabled && (!config.providerId || config.providerId === 0 || !config.model.trim())) {
-      toast({
-        title: 'Chưa thể bật tính năng',
+      toast.error('Chưa thể bật tính năng', {
         description: 'Vui lòng chọn Provider và Model AI trước khi bật tính năng này.',
-        variant: 'destructive',
       })
       return
     }
@@ -279,10 +270,15 @@ export function TaskRoutingTab() {
       // Làm mới trạng thái /ai/features để giao diện GV/HS phản ánh ngay
       queryClient.invalidateQueries({ queryKey: ['ai-features'] })
 
-      toast({
-        title: newEnabled ? '✅ Đã bật tính năng' : '⏻ Đã tắt tính năng',
-        description: `Task ${taskCode} ${newEnabled ? 'được bật' : 'đã bị tắt'}. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
-      })
+      if (newEnabled) {
+        toast.success('✅ Đã bật tính năng', {
+          description: `Task ${taskCode} đã được bật. Giao diện Giáo viên/Học sinh sẽ hiển thị nút tương ứng ngay lập tức.`,
+        })
+      } else {
+        toast.success('⏻ Đã tắt tính năng', {
+          description: `Task ${taskCode} đã bị tắt. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
+        })
+      }
     } catch (err: any) {
       // ── 3. ROLLBACK về trạng thái cũ khi lưu thất bại ──
       setTaskConfigs((prev) => ({
@@ -293,10 +289,8 @@ export function TaskRoutingTab() {
         ...prev,
         [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: prevEnabled } : prev[taskCode],
       }))
-      toast({
-        title: 'Cập nhật thất bại',
+      toast.error('Cập nhật thất bại', {
         description: err.response?.data?.message || err.message,
-        variant: 'destructive',
       })
     } finally {
       setSavingTask(null)
@@ -375,10 +369,8 @@ export function TaskRoutingTab() {
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={cfg.enabled}
-                      disabled={isSaving}
                       onCheckedChange={(val) => handleToggleTask(t.taskCode, val)}
                     />
-                    {isSaving && <Spinner className="h-4 w-4" />}
                   </div>
                 </div>
               </CardHeader>

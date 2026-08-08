@@ -5,9 +5,10 @@ import { TaskRoutingTab } from '@/components/admin/ai-config/TaskRoutingTab'
 import { aiConfigService, TaskConfig } from '@/services/aiConfigService'
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
-const { toastMock, updateTaskConfigMock, getTaskConfigMock, getProvidersMock, invalidateQueriesMock } =
+const { toastSuccessMock, toastErrorMock, updateTaskConfigMock, getTaskConfigMock, getProvidersMock, invalidateQueriesMock } =
   vi.hoisted(() => ({
-    toastMock: vi.fn(),
+    toastSuccessMock: vi.fn(),
+    toastErrorMock: vi.fn(),
     updateTaskConfigMock: vi.fn(),
     getTaskConfigMock: vi.fn(),
     getProvidersMock: vi.fn(),
@@ -26,8 +27,11 @@ vi.mock('@/services/aiConfigService', async () => {
   }
 })
 
-vi.mock('@/components/ui/use-toast', () => ({
-  useToast: () => ({ toast: toastMock }),
+vi.mock('sonner', () => ({
+  toast: {
+    success: toastSuccessMock,
+    error: toastErrorMock,
+  },
 }))
 
 vi.mock('@tanstack/react-query', async () => {
@@ -101,8 +105,9 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
       )
     })
 
-    expect(toastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ title: expect.stringContaining('Đã tắt tính năng') })
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      expect.stringContaining('Đã tắt tính năng'),
+      expect.anything()
     )
     expect(invalidateQueriesMock).toHaveBeenCalledWith({ queryKey: ['ai-features'] })
   })
@@ -126,8 +131,9 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
       )
     })
 
-    expect(toastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ title: expect.stringContaining('Đã bật tính năng') })
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      expect.stringContaining('Đã bật tính năng'),
+      expect.anything()
     )
     expect(invalidateQueriesMock).toHaveBeenCalledWith({ queryKey: ['ai-features'] })
   })
@@ -146,8 +152,9 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
     // Không gọi API vì chưa có providerId/model
     expect(updateTaskConfigMock).not.toHaveBeenCalled()
     await waitFor(() => {
-      expect(toastMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringContaining('Chưa thể bật tính năng'), variant: 'destructive' })
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining('Chưa thể bật tính năng'),
+        expect.anything()
       )
     })
   })
@@ -162,8 +169,9 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
     fireEvent.click(switches[0])
 
     await waitFor(() => {
-      expect(toastMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Cập nhật thất bại', variant: 'destructive' })
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        'Cập nhật thất bại',
+        expect.anything()
       )
     })
 
@@ -205,8 +213,9 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
       updatedAt: '2026-08-08T08:05:00',
     })
     await waitFor(() => {
-      expect(toastMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringContaining('Đã tắt tính năng') })
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        expect.stringContaining('Đã tắt tính năng'),
+        expect.anything()
       )
     })
   })

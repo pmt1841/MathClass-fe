@@ -4,6 +4,7 @@
 import * as React from 'react'
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
+import { toast as sonnerToast } from 'sonner'
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -139,20 +140,23 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, 'id'>
 
-function toast({ ...props }: Toast) {
+/**
+ * MAT-254: Delegate sang hệ thống toast Sonner (đã mount `<Toaster />` ở root layout).
+ *
+ * Trước đây hàm này chỉ push vào memoryState của shadcn reducer, NHƯNG shadcn `<Toaster />`
+ * không được mount ở bất kỳ đâu trong app → toast không bao giờ hiển thị.
+ * Giờ `toast({ title, description, variant })` được map sang `sonnerToast.success/error`
+ * để hiển thị đúng trên Sonner Toaster của app.
+ */
+function toast({ title, description, variant, ...props }: Toast) {
+  // Vẫn dispatch để giữ tương thích với `useToast()` / `toaster.tsx` nếu có nơi dùng
   const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: 'UPDATE_TOAST',
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id })
-
   dispatch({
     type: 'ADD_TOAST',
     toast: {
       ...props,
+      title,
+      description,
       id,
       open: true,
       onOpenChange: (open) => {
@@ -161,8 +165,24 @@ function toast({ ...props }: Toast) {
     },
   })
 
+  const message = title as React.ReactNode
+  const opts = { description: description as React.ReactNode }
+
+  if (variant === 'destructive') {
+    sonnerToast.error(message, opts)
+  } else {
+    sonnerToast.success(message, opts)
+  }
+
+  const update = (next: ToasterToast) =>
+    dispatch({
+      type: 'UPDATE_TOAST',
+      toast: { ...next, id },
+    })
+  const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id })
+
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }
