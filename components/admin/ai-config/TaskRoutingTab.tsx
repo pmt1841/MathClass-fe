@@ -212,11 +212,11 @@ export function TaskRoutingTab() {
   }
 
   /**
-   * MAT-254: Bật/Tắt nhanh tính năng AI (Feature Flag).
+   * MAT-254: Bật/Tắt nhanh tính năng AI (Feature Flag) — OPTIMISTIC UPDATE.
    *
-   * Switch được bấm sẽ tự động lưu ngay lên server (không cần bấm nút "Lưu cấu hình Task"),
-   * hiển thị toast thành công/thất bại và invalidate cache /ai/features để giao diện
-   * Giáo viên/Học sinh ẩn/hiện nút tương ứng ngay lập tức (tránh chờ stale 5 phút).
+   * UI phản hồi ngay lập tức khi bấm Switch (không chờ backend trả về để tránh giật),
+   * sau đó gửi request lên server ở nền. Nếu thất bại, tự động rollback về trạng thái cũ.
+   * Chỉ thay đổi field `enabled`, không ghi đè các field khác đang được chỉnh sửa dở.
    */
   const handleToggleTask = async (taskCode: string, newEnabled: boolean) => {
     const config = taskConfigs[taskCode]
@@ -232,19 +232,49 @@ export function TaskRoutingTab() {
       return
     }
 
+    const prevEnabled = config.enabled
+
+    // ── 1. OPTIMISTIC UI: cập nhật ngay lập tức (không await) → Switch không giật ──
+    setTaskConfigs((prev) => ({
+      ...prev,
+      [taskCode]: { ...prev[taskCode], enabled: newEnabled },
+    }))
+    setInitialTaskConfigs((prev) => ({
+      ...prev,
+      [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: newEnabled } : prev[taskCode],
+    }))
+
+    // ── 2. Chuẩn bị payload dựa trên config ĐÃ LƯU (tránh ghi đè thay đổi đang gõ dở) ──
+    const persisted = initialTaskConfigs[taskCode]
+    const payload = persisted
+      ? {
+          providerId: persisted.providerId,
+          model: persisted.model,
+          temperature: persisted.temperature,
+          maxToken: persisted.maxToken,
+          enabled: newEnabled,
+        }
+      : {
+          providerId: config.providerId,
+          model: config.model.trim(),
+          temperature: config.temperature,
+          maxToken: config.maxToken,
+          enabled: newEnabled,
+        }
+
     setSavingTask(taskCode)
     try {
-      const updated = await aiConfigService.updateTaskConfig(taskCode, {
-        providerId: config.providerId,
-        model: config.model.trim(),
-        temperature: config.temperature,
-        maxToken: config.maxToken,
-        enabled: newEnabled,
-      })
+      const updated = await aiConfigService.updateTaskConfig(taskCode, payload)
 
-      // Cập nhật cả state hiển thị và state lưu ban đầu -> hết dirty
-      setTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
-      setInitialTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
+      // Chốt theo kết quả server (chỉ merge field enabled để giữ nguyên chỉnh sửa đang dở)
+      setTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...prev[taskCode], enabled: updated.enabled, updatedAt: updated.updatedAt },
+      }))
+      setInitialTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...updated },
+      }))
 
       // Làm mới trạng thái /ai/features để giao diện GV/HS phản ánh ngay
       queryClient.invalidateQueries({ queryKey: ['ai-features'] })
@@ -254,10 +284,14 @@ export function TaskRoutingTab() {
         description: `Task ${taskCode} ${newEnabled ? 'được bật' : 'đã bị tắt'}. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
       })
     } catch (err: any) {
-      // Rollback về trạng thái cũ khi lưu thất bại
+      // ── 3. ROLLBACK về trạng thái cũ khi lưu thất bại ──
       setTaskConfigs((prev) => ({
         ...prev,
-        [taskCode]: { ...prev[taskCode], enabled: !newEnabled },
+        [taskCode]: { ...prev[taskCode], enabled: prevEnabled },
+      }))
+      setInitialTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: prevEnabled } : prev[taskCode],
       }))
       toast({
         title: 'Cập nhật thất bại',

@@ -172,4 +172,66 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
       expect(screen.getAllByRole('switch')[0]).toHaveAttribute('data-state', 'checked')
     })
   })
+
+  it('OPTIMISTIC: Switch đổi trạng thái ngay lập tức trước khi backend trả về (không giật)', async () => {
+    // API chưa resolve (mô phỏng độ trễ mạng)
+    let resolveUpdate!: (value: any) => void
+    updateTaskConfigMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveUpdate = resolve
+      })
+    )
+    renderTab()
+
+    const switches = await screen.findAllByRole('switch')
+    expect(switches[0]).toHaveAttribute('data-state', 'checked')
+
+    fireEvent.click(switches[0])
+
+    // Ngay sau click, UI phải đổi sang TẮT dù API chưa resolve
+    await waitFor(() => {
+      expect(screen.getAllByRole('switch')[0]).toHaveAttribute('data-state', 'unchecked')
+    })
+    expect(updateTaskConfigMock).toHaveBeenCalledTimes(1)
+
+    // Sau đó backend trả về thành công -> giữ trạng thái mới
+    resolveUpdate({
+      task: 'ASSIGNMENT_GRADING',
+      providerId: 1,
+      model: 'gemini-2.5-flash',
+      temperature: 0.7,
+      maxToken: 2048,
+      enabled: false,
+      updatedAt: '2026-08-08T08:05:00',
+    })
+    await waitFor(() => {
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: expect.stringContaining('Đã tắt tính năng') })
+      )
+    })
+  })
+
+  it('payload gửi lên server dùng config ĐÃ LƯU, không ghi đè thay đổi đang gõ dở', async () => {
+    renderTab()
+
+    // Admin đang sửa Model mới (chưa lưu) — field editable luôn bật
+    const modelInput = (await screen.findAllByTestId('model-input'))[0]
+    fireEvent.change(modelInput, { target: { value: 'gpt-4o-mới' } })
+
+    // Bấm Switch để bật/tắt (chỉ thay đổi enabled)
+    const switches = await screen.findAllByRole('switch')
+    fireEvent.click(switches[0])
+
+    await waitFor(() => {
+      expect(updateTaskConfigMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ enabled: false, model: 'gemini-2.5-flash' })
+      )
+    })
+    // Model đang gõ dở KHÔNG được gửi lên (dùng config đã lưu)
+    expect(updateTaskConfigMock).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ model: 'gpt-4o-mới' })
+    )
+  })
 })
