@@ -77,8 +77,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
   const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
 
   // MAT-250: Chỉ hiển thị nút "AI chấm sơ bộ" khi admin đã cấu hình + bật task ASSIGNMENT_GRADING
+  // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
   const { data: aiFeatures } = useAiFeatures()
   const aiGradingEnabled = aiFeatures?.[AI_FEATURE_TASKS.ASSIGNMENT_GRADING] === true
+  const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
 
   const { data: hintHistory, isLoading: isHintLoading } = useQuery({
     queryKey: ['submission-hints', submissionId],
@@ -436,19 +438,22 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
             <span className="font-semibold text-lg text-slate-800">{submission.studentName}</span>
             {getStatusBadge(submission.status)}
 
-            {/* Nút xem Lịch sử Gợi ý AI của học sinh cho Giáo viên */}
-            <button
-              type="button"
-              onClick={() => setShowTeacherHintModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all shadow-sm active:scale-95 ml-1"
-              title="Xem các lượt xin gợi ý AI của học sinh cho bài tập này"
-            >
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>Gợi ý AI</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
-                {hintHistory?.totalUsed || 0}/3
-              </span>
-            </button>
+            {/* Nút xem Lịch sử Gợi ý AI của học sinh cho Giáo viên.
+                MAT-254: Ẩn nút khi admin tắt task STUDENT_HINT (fail-closed). */}
+            {studentHintEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowTeacherHintModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all shadow-sm active:scale-95 ml-1"
+                title="Xem các lượt xin gợi ý AI của học sinh cho bài tập này"
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <span>Gợi ý AI</span>
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
+                  {hintHistory?.totalUsed || 0}/3
+                </span>
+              </button>
+            )}
 
             {/* MAT-250: Nút AI chấm sơ bộ cho Giáo viên (chỉ hiển thị khi admin bật tính năng) */}
             {isTeacher && aiGradingEnabled && (

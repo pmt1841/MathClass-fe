@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +32,7 @@ import {
   aiConfigService,
 } from '@/services/aiConfigService'
 import { ModelInputWithFetch } from '@/components/admin/ai-config/ModelInputWithFetch'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 
 interface TaskMetadata {
   taskCode: string
@@ -74,7 +75,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
 ]
 
 export function TaskRoutingTab() {
-  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [initialTaskConfigs, setInitialTaskConfigs] = useState<Record<string, TaskConfig | null>>({})
   const [taskConfigs, setTaskConfigs] = useState<Record<string, TaskConfig>>({})
@@ -96,7 +97,8 @@ export function TaskRoutingTab() {
           initialMap[t.taskCode] = { ...cfg }
           currentMap[t.taskCode] = { ...cfg }
         } catch {
-          // Chưa được cấu hình trong CSDL -> Để trống providerId (0) và model ("")
+          // Chưa được cấu hình trong CSDL -> Để trống providerId (0), model ("") và mặc định TẮT
+          // (khớp với /ai/features: task chưa cấu hình => enabled=false)
           initialMap[t.taskCode] = null
           currentMap[t.taskCode] = {
             task: t.taskCode,
@@ -104,7 +106,7 @@ export function TaskRoutingTab() {
             model: '',
             temperature: 0.7,
             maxToken: 2048,
-            enabled: true,
+            enabled: false,
           }
         }
       }
@@ -112,10 +114,8 @@ export function TaskRoutingTab() {
       setInitialTaskConfigs(initialMap)
       setTaskConfigs(currentMap)
     } catch (err: any) {
-      toast({
-        title: 'Lỗi nạp cấu hình Task',
+      toast.error('Lỗi nạp cấu hình Task', {
         description: err.response?.data?.message || err.message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -162,19 +162,15 @@ export function TaskRoutingTab() {
   const handleSaveTaskConfig = async (taskCode: string) => {
     const config = taskConfigs[taskCode]
     if (!config || !config.providerId || config.providerId === 0) {
-      toast({
-        title: 'Chưa chọn Provider',
+      toast.error('Chưa chọn Provider', {
         description: 'Vui lòng chọn Provider cho tác vụ trước khi lưu.',
-        variant: 'destructive',
       })
       return
     }
 
     if (!config.model.trim()) {
-      toast({
-        title: 'Chưa nhập Model',
+      toast.error('Chưa nhập Model', {
         description: 'Vui lòng nhập hoặc chọn Model AI cho tác vụ.',
-        variant: 'destructive',
       })
       return
     }
@@ -193,15 +189,108 @@ export function TaskRoutingTab() {
       setTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
       setInitialTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
 
-      toast({
-        title: '⚡ Lưu cấu hình Task thành công!',
+      toast.success('⚡ Lưu cấu hình Task thành công!', {
         description: `Đã cập nhật định tuyến cho tác vụ thành công.`,
       })
     } catch (err: any) {
-      toast({
-        title: 'Lưu thất bại',
+      toast.error('Lưu thất bại', {
         description: err.response?.data?.message || err.message,
-        variant: 'destructive',
+      })
+    } finally {
+      setSavingTask(null)
+    }
+  }
+
+  /**
+   * MAT-254: Bật/Tắt nhanh tính năng AI (Feature Flag) — OPTIMISTIC UPDATE.
+   *
+   * UI phản hồi ngay lập tức khi bấm Switch (không chờ backend trả về để tránh giật),
+   * sau đó gửi request lên server ở nền. Nếu thất bại, tự động rollback về trạng thái cũ.
+   * Chỉ thay đổi field `enabled`, không ghi đè các field khác đang được chỉnh sửa dở.
+   */
+  const handleToggleTask = async (taskCode: string, newEnabled: boolean) => {
+    // Chống spam click khi request cho task này chưa hoàn tất
+    if (savingTask === taskCode) return
+
+    const config = taskConfigs[taskCode]
+    if (!config) return
+
+    // Bật tính năng khi chưa chọn Provider/Model -> chặn với thông báo rõ ràng
+    if (newEnabled && (!config.providerId || config.providerId === 0 || !config.model.trim())) {
+      toast.error('Chưa thể bật tính năng', {
+        description: 'Vui lòng chọn Provider và Model AI trước khi bật tính năng này.',
+      })
+      return
+    }
+
+    const prevEnabled = config.enabled
+
+    // ── 1. OPTIMISTIC UI: cập nhật ngay lập tức (không await) → Switch không giật ──
+    setTaskConfigs((prev) => ({
+      ...prev,
+      [taskCode]: { ...prev[taskCode], enabled: newEnabled },
+    }))
+    setInitialTaskConfigs((prev) => ({
+      ...prev,
+      [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: newEnabled } : prev[taskCode],
+    }))
+
+    // ── 2. Chuẩn bị payload dựa trên config ĐÃ LƯU (tránh ghi đè thay đổi đang gõ dở) ──
+    const persisted = initialTaskConfigs[taskCode]
+    const payload = persisted
+      ? {
+          providerId: persisted.providerId,
+          model: persisted.model,
+          temperature: persisted.temperature,
+          maxToken: persisted.maxToken,
+          enabled: newEnabled,
+        }
+      : {
+          providerId: config.providerId,
+          model: config.model.trim(),
+          temperature: config.temperature,
+          maxToken: config.maxToken,
+          enabled: newEnabled,
+        }
+
+    setSavingTask(taskCode)
+    try {
+      const updated = await aiConfigService.updateTaskConfig(taskCode, payload)
+
+      // Chốt theo kết quả server (chỉ merge field enabled để giữ nguyên chỉnh sửa đang dở)
+      setTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...prev[taskCode], enabled: updated.enabled, updatedAt: updated.updatedAt },
+      }))
+      setInitialTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...updated },
+      }))
+
+      // Làm mới trạng thái /ai/features để giao diện GV/HS phản ánh ngay
+      queryClient.invalidateQueries({ queryKey: ['ai-features'] })
+
+      if (newEnabled) {
+        toast.success('✅ Đã bật tính năng', {
+          description: `Task ${taskCode} đã được bật. Giao diện Giáo viên/Học sinh sẽ hiển thị nút tương ứng ngay lập tức.`,
+        })
+      } else {
+        toast.success('⏻ Đã tắt tính năng', {
+          description: `Task ${taskCode} đã bị tắt. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
+        })
+      }
+    } catch (err: any) {
+      // ── 3. ROLLBACK về trạng thái cũ khi lưu thất bại ──
+      setTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...prev[taskCode], enabled: prevEnabled },
+      }))
+      setInitialTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: prevEnabled } : prev[taskCode],
+      }))
+      toast.error('Cập nhật thất bại', {
+        description: err.response?.data?.message || err.message,
       })
     } finally {
       setSavingTask(null)
@@ -243,7 +332,7 @@ export function TaskRoutingTab() {
             model: '',
             temperature: 0.7,
             maxToken: 2048,
-            enabled: true,
+            enabled: false,
           }
           const isConfigured = !!initialTaskConfigs[t.taskCode]
           const dirty = isTaskDirty(t.taskCode)
@@ -280,7 +369,7 @@ export function TaskRoutingTab() {
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={cfg.enabled}
-                      onCheckedChange={(val) => handleUpdateTaskField(t.taskCode, 'enabled', val)}
+                      onCheckedChange={(val) => handleToggleTask(t.taskCode, val)}
                     />
                   </div>
                 </div>
@@ -295,7 +384,6 @@ export function TaskRoutingTab() {
                       onValueChange={(val) =>
                         handleUpdateTaskField(t.taskCode, 'providerId', parseInt(val) || 0)
                       }
-                      disabled={!cfg.enabled}
                     >
                       <SelectTrigger className="h-9 text-xs">
                         <SelectValue placeholder="Vui lòng chọn Provider..." />
@@ -319,7 +407,6 @@ export function TaskRoutingTab() {
                       providerId={cfg.providerId}
                       value={cfg.model}
                       onChange={(val) => handleUpdateTaskField(t.taskCode, 'model', val)}
-                      disabled={!cfg.enabled}
                       placeholder="Vui lòng chọn hoặc gõ tên Model..."
                     />
                   </div>
@@ -340,7 +427,6 @@ export function TaskRoutingTab() {
                     onValueChange={(vals) =>
                       handleUpdateTaskField(t.taskCode, 'temperature', vals[0])
                     }
-                    disabled={!cfg.enabled}
                   />
                 </div>
 
@@ -354,7 +440,6 @@ export function TaskRoutingTab() {
                     onChange={(e) =>
                       handleUpdateTaskField(t.taskCode, 'maxToken', parseInt(e.target.value) || 1024)
                     }
-                    disabled={!cfg.enabled}
                   />
                 </div>
               </CardContent>
@@ -363,7 +448,7 @@ export function TaskRoutingTab() {
                 <Button
                   size="sm"
                   onClick={() => handleSaveTaskConfig(t.taskCode)}
-                  disabled={!cfg.enabled || !dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
+                  disabled={!dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
                 >
                   {isSaving ? (
                     <Spinner className="mr-1.5 h-3.5 w-3.5" />

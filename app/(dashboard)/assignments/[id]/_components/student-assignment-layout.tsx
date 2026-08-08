@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, CircleDot, Edit3, X, Type, FileText, Sparkles, Lightbulb, Loader2 } from 'lucide-react'
 import { useSubmissionHints } from '@/hooks/useSubmissionHints'
+import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -101,6 +102,10 @@ export function StudentAssignmentLayout({
   const [showConfirmHintModal, setShowConfirmHintModal] = useState(false)
 
   const { comments = [] } = useSubmissionComments(submissionId || 0)
+  // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
+  const { data: aiFeatures } = useAiFeatures()
+  const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
+
   const {
     hints,
     totalUsed,
@@ -468,37 +473,40 @@ export function StudentAssignmentLayout({
             </span>
           )}
 
-          {/* Nút Gợi ý AI: Bấm để xin gợi ý mới (nếu chưa nộp) hoặc xem lại lịch sử (nếu đã nộp / hết lượt) */}
-          <button
-            type="button"
-            onClick={() => {
-              const canRequestNewHint = !isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0
-              if (canRequestNewHint && !isHintRequesting) {
-                setShowConfirmHintModal(true)
-              } else {
-                setShowHintModal(true)
+          {/* Nút Gợi ý AI: Bấm để xin gợi ý mới (nếu chưa nộp) hoặc xem lại lịch sử (nếu đã nộp / hết lượt).
+              MAT-254: Ẩn nút khi admin chưa bật task STUDENT_HINT (fail-closed). */}
+          {studentHintEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                const canRequestNewHint = !isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0
+                if (canRequestNewHint && !isHintRequesting) {
+                  setShowConfirmHintModal(true)
+                } else {
+                  setShowHintModal(true)
+                }
+              }}
+              disabled={isHintRequesting}
+              className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+              title={
+                submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline
+                  ? 'Xem lại lịch sử gợi ý AI đã dùng'
+                  : remainingHints <= 0
+                    ? 'Đã dùng hết 3/3 lượt gợi ý (bấm để xem lại lịch sử)'
+                    : 'Bấm để nhận gợi ý tư duy cho bước tiếp theo'
               }
-            }}
-            disabled={isHintRequesting}
-            className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 active:scale-95 disabled:opacity-50"
-            title={
-              submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline
-                ? 'Xem lại lịch sử gợi ý AI đã dùng'
-                : remainingHints <= 0
-                  ? 'Đã dùng hết 3/3 lượt gợi ý (bấm để xem lại lịch sử)'
-                  : 'Bấm để nhận gợi ý tư duy cho bước tiếp theo'
-            }
-          >
-            {isHintRequesting ? (
-              <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-            ) : (
-              <Lightbulb className="w-4 h-4 text-amber-500" />
-            )}
-            <span>{submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline ? 'Gợi ý AI' : 'Cần gợi ý'}</span>
-            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
-              {totalUsed}/3
-            </span>
-          </button>
+            >
+              {isHintRequesting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+              ) : (
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+              )}
+              <span>{submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline ? 'Gợi ý AI' : 'Cần gợi ý'}</span>
+              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
+                {totalUsed}/3
+              </span>
+            </button>
+          )}
 
           {!isPastDeadline && !isGraded && (
             <>
@@ -736,7 +744,8 @@ export function StudentAssignmentLayout({
         initialData={editingShape?.jsxGraphData}
       />
 
-      {/* AI HINT MODAL */}
+      {/* AI HINT MODAL — MAT-254: chỉ hiển thị khi admin bật task STUDENT_HINT */}
+      {studentHintEnabled && (
       <Dialog open={showHintModal} onOpenChange={setShowHintModal}>
         <DialogContent className="max-w-2xl max-h-[85vh] p-0 flex flex-col overflow-hidden border-slate-200 shadow-2xl rounded-2xl">
           {/* Modal Header */}
@@ -830,8 +839,10 @@ export function StudentAssignmentLayout({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
 
-      {/* Modal Xác nhận Xin Gợi ý AI */}
+      {/* Modal Xác nhận Xin Gợi ý AI — MAT-254: chỉ hiển thị khi admin bật task STUDENT_HINT */}
+      {studentHintEnabled && (
       <Dialog open={showConfirmHintModal} onOpenChange={setShowConfirmHintModal}>
         <DialogContent className="max-w-md p-6 space-y-5 rounded-2xl border-slate-100 shadow-2xl">
           <DialogHeader className="p-0 space-y-0 text-left">
@@ -890,6 +901,7 @@ export function StudentAssignmentLayout({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   )
 }
