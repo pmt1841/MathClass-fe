@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Library,
+  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -57,6 +58,11 @@ const navItems: NavItem[] = [
     label: 'Thư viện bài tập',
     href: '/library',
     permission: 'library:read',
+  },
+  {
+    icon: Zap,
+    label: 'Nạp credit AI',
+    href: '/credits',
   },
 ]
 

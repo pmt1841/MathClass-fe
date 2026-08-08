@@ -3,7 +3,7 @@ import {
   submissionAiGradingService,
   AiGradingResult
 } from '@/services/submissionAiGradingService'
-import { handleApiError } from '@/lib/utils/error-handler'
+import { handleApiError, isInsufficientCredit } from '@/lib/utils/error-handler'
 
 export type { AiGradingResult, DrawingIssue } from '@/services/submissionAiGradingService'
 
@@ -26,10 +26,14 @@ export function useSubmissionAiGrading() {
     ? handleApiError(mutation.error, 'AI tạm thời không thể chấm sơ bộ bài này. Vui lòng thử lại sau.')
     : null
 
+  // MAT-255: người dùng hết credit AI → FE hiển thị CTA "Mua thêm credit"
+  const insufficientCredit = isInsufficientCredit(mutation.error)
+
   return {
     result: mutation.data || null,
     isGrading: mutation.isPending,
     error: errorMessage,
+    insufficientCredit,
     gradeWithAi: mutation.mutateAsync,
     reset: mutation.reset,
   }

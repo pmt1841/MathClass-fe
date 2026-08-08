@@ -33,6 +33,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -113,6 +114,7 @@ export function StudentAssignmentLayout({
     isLoading: isHintLoading,
     isRequesting: isHintRequesting,
     error: hintError,
+    insufficientCredit: isHintInsufficientCredit,
     fetchHistory: fetchHintHistory,
     requestHint: executeRequestHint
   } = useSubmissionHints(submissionId)
@@ -762,11 +764,24 @@ export function StudentAssignmentLayout({
 
           {/* Modal Content */}
           <div className="p-6 flex-1 overflow-y-auto space-y-4">
-            {hintError && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
-                {hintError}
-              </div>
-            )}
+            {hintError &&
+              (isHintInsufficientCredit ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                  <p className="text-sm font-medium text-amber-800">
+                    Bạn đã dùng hết credit AI trong ngày. Vui lòng mua thêm credit để tiếp tục sử dụng tính năng gợi ý.
+                  </p>
+                  <Link href="/credits" passHref>
+                    <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700">
+                      <Sparkles className="mr-1.5 h-4 w-4" />
+                      Mua thêm credit
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+                  {hintError}
+                </div>
+              ))}
 
             {isHintRequesting && (
               <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
