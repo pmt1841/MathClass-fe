@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,6 +76,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
 
 export function TaskRoutingTab() {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [initialTaskConfigs, setInitialTaskConfigs] = useState<Record<string, TaskConfig | null>>({})
   const [taskConfigs, setTaskConfigs] = useState<Record<string, TaskConfig>>({})
@@ -96,7 +98,8 @@ export function TaskRoutingTab() {
           initialMap[t.taskCode] = { ...cfg }
           currentMap[t.taskCode] = { ...cfg }
         } catch {
-          // Chưa được cấu hình trong CSDL -> Để trống providerId (0) và model ("")
+          // Chưa được cấu hình trong CSDL -> Để trống providerId (0), model ("") và mặc định TẮT
+          // (khớp với /ai/features: task chưa cấu hình => enabled=false)
           initialMap[t.taskCode] = null
           currentMap[t.taskCode] = {
             task: t.taskCode,
@@ -104,7 +107,7 @@ export function TaskRoutingTab() {
             model: '',
             temperature: 0.7,
             maxToken: 2048,
-            enabled: true,
+            enabled: false,
           }
         }
       }
@@ -208,6 +211,64 @@ export function TaskRoutingTab() {
     }
   }
 
+  /**
+   * MAT-254: Bật/Tắt nhanh tính năng AI (Feature Flag).
+   *
+   * Switch được bấm sẽ tự động lưu ngay lên server (không cần bấm nút "Lưu cấu hình Task"),
+   * hiển thị toast thành công/thất bại và invalidate cache /ai/features để giao diện
+   * Giáo viên/Học sinh ẩn/hiện nút tương ứng ngay lập tức (tránh chờ stale 5 phút).
+   */
+  const handleToggleTask = async (taskCode: string, newEnabled: boolean) => {
+    const config = taskConfigs[taskCode]
+    if (!config) return
+
+    // Bật tính năng khi chưa chọn Provider/Model -> chặn với thông báo rõ ràng
+    if (newEnabled && (!config.providerId || config.providerId === 0 || !config.model.trim())) {
+      toast({
+        title: 'Chưa thể bật tính năng',
+        description: 'Vui lòng chọn Provider và Model AI trước khi bật tính năng này.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSavingTask(taskCode)
+    try {
+      const updated = await aiConfigService.updateTaskConfig(taskCode, {
+        providerId: config.providerId,
+        model: config.model.trim(),
+        temperature: config.temperature,
+        maxToken: config.maxToken,
+        enabled: newEnabled,
+      })
+
+      // Cập nhật cả state hiển thị và state lưu ban đầu -> hết dirty
+      setTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
+      setInitialTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
+
+      // Làm mới trạng thái /ai/features để giao diện GV/HS phản ánh ngay
+      queryClient.invalidateQueries({ queryKey: ['ai-features'] })
+
+      toast({
+        title: newEnabled ? '✅ Đã bật tính năng' : '⏻ Đã tắt tính năng',
+        description: `Task ${taskCode} ${newEnabled ? 'được bật' : 'đã bị tắt'}. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
+      })
+    } catch (err: any) {
+      // Rollback về trạng thái cũ khi lưu thất bại
+      setTaskConfigs((prev) => ({
+        ...prev,
+        [taskCode]: { ...prev[taskCode], enabled: !newEnabled },
+      }))
+      toast({
+        title: 'Cập nhật thất bại',
+        description: err.response?.data?.message || err.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingTask(null)
+    }
+  }
+
   const getTemperatureLabel = (temp: number) => {
     if (temp <= 0.2) return `${temp} (Rất chính xác / Logic)`
     if (temp <= 0.7) return `${temp} (Cân bằng logic & linh hoạt)`
@@ -243,7 +304,7 @@ export function TaskRoutingTab() {
             model: '',
             temperature: 0.7,
             maxToken: 2048,
-            enabled: true,
+            enabled: false,
           }
           const isConfigured = !!initialTaskConfigs[t.taskCode]
           const dirty = isTaskDirty(t.taskCode)
@@ -280,8 +341,10 @@ export function TaskRoutingTab() {
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={cfg.enabled}
-                      onCheckedChange={(val) => handleUpdateTaskField(t.taskCode, 'enabled', val)}
+                      disabled={isSaving}
+                      onCheckedChange={(val) => handleToggleTask(t.taskCode, val)}
                     />
+                    {isSaving && <Spinner className="h-4 w-4" />}
                   </div>
                 </div>
               </CardHeader>
@@ -295,7 +358,6 @@ export function TaskRoutingTab() {
                       onValueChange={(val) =>
                         handleUpdateTaskField(t.taskCode, 'providerId', parseInt(val) || 0)
                       }
-                      disabled={!cfg.enabled}
                     >
                       <SelectTrigger className="h-9 text-xs">
                         <SelectValue placeholder="Vui lòng chọn Provider..." />
@@ -319,7 +381,6 @@ export function TaskRoutingTab() {
                       providerId={cfg.providerId}
                       value={cfg.model}
                       onChange={(val) => handleUpdateTaskField(t.taskCode, 'model', val)}
-                      disabled={!cfg.enabled}
                       placeholder="Vui lòng chọn hoặc gõ tên Model..."
                     />
                   </div>
@@ -340,7 +401,6 @@ export function TaskRoutingTab() {
                     onValueChange={(vals) =>
                       handleUpdateTaskField(t.taskCode, 'temperature', vals[0])
                     }
-                    disabled={!cfg.enabled}
                   />
                 </div>
 
@@ -354,7 +414,6 @@ export function TaskRoutingTab() {
                     onChange={(e) =>
                       handleUpdateTaskField(t.taskCode, 'maxToken', parseInt(e.target.value) || 1024)
                     }
-                    disabled={!cfg.enabled}
                   />
                 </div>
               </CardContent>
@@ -363,7 +422,7 @@ export function TaskRoutingTab() {
                 <Button
                   size="sm"
                   onClick={() => handleSaveTaskConfig(t.taskCode)}
-                  disabled={!cfg.enabled || !dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
+                  disabled={!dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
                 >
                   {isSaving ? (
                     <Spinner className="mr-1.5 h-3.5 w-3.5" />
