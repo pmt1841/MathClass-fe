@@ -202,7 +202,7 @@ export function ProviderTab() {
     }
   }
 
-  const handleVerifyKey = async (keyId: number) => {
+  const handleVerifyKey = async (providerId: number, keyId: number) => {
     setVerifyingKeyId(keyId)
     try {
       const res = await aiConfigService.verifyKey(keyId)
@@ -214,10 +214,12 @@ export function ProviderTab() {
       } else {
         toast({
           title: '❌ Key không hợp lệ hoặc hết Quota',
-          description: res.message || res.errorCode || 'Kiểm tra thất bại',
+          description: (res.message || res.errorCode || 'Kiểm tra thất bại') + ' - Trạng thái Key đã được chuyển thành INACTIVE.',
           variant: 'destructive',
         })
       }
+      await loadKeysForProvider(providerId)
+      await loadProviders()
     } catch (err: any) {
       toast({
         title: 'Lỗi kiểm tra Key',
@@ -397,7 +399,7 @@ export function ProviderTab() {
                           <TableHeader>
                             <TableRow className="bg-slate-50 text-xs">
                               <TableHead>Tên Key / Ghi chú</TableHead>
-                              <TableHead className="w-[180px]">API Key (Che mờ)</TableHead>
+                              <TableHead className="w-[180px]">API Key</TableHead>
                               <TableHead className="w-[100px] text-center">Ưu tiên</TableHead>
                               <TableHead className="w-[120px]">Sử dụng cuối</TableHead>
                               <TableHead className="w-[110px] text-center">Trạng thái</TableHead>
@@ -446,7 +448,7 @@ export function ProviderTab() {
                                     size="sm"
                                     className="h-7 px-2 text-[11px]"
                                     disabled={verifyingKeyId === k.id}
-                                    onClick={() => handleVerifyKey(k.id)}
+                                    onClick={() => handleVerifyKey(p.id, k.id)}
                                   >
                                     {verifyingKeyId === k.id ? (
                                       <Spinner className="h-3 w-3 mr-1" />
