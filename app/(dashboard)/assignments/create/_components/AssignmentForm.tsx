@@ -13,7 +13,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
-import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings, Upload, FileText } from 'lucide-react'
+import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, ImagePlus, Bold, Italic, Underline, Settings, Upload, FileText, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
@@ -24,6 +24,8 @@ import { formatDateTime } from '@/lib/utils'
 import { assignmentService } from '@/services/assignmentService'
 import { toast } from 'sonner'
 import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
+import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
+import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 
 export const embedDrawings = (content: string, drawings: any[]) => {
   if (!drawings || drawings.length === 0) return content
@@ -115,6 +117,9 @@ export function AssignmentForm({
     isOpen: false,
     mode: 'image'
   })
+
+  // AI Generator Modal State
+  const [showAiModal, setShowAiModal] = useState(false)
 
   const {
     register,
@@ -553,6 +558,58 @@ export function AssignmentForm({
     }
   }
 
+  const handleInsertAiQuestion = (question: AiGeneratedQuestionDTO) => {
+    if (question.title && (!formValues.title || !formValues.title.trim())) {
+      setValue('title', question.title, { shouldValidate: true, shouldDirty: true })
+    }
+
+    let formattedContent = question.content
+
+    // Automatically register AI-generated canvasData as a drawing if present
+    if (question.canvasData?.elements && question.canvasData.elements.length > 0) {
+      const existingIndices = drawings
+        .map(d => parseInt(d.shapeCode.replace('SHAPE_', '')))
+        .filter(n => !isNaN(n))
+
+      let nextIndex = 1
+      while (existingIndices.includes(nextIndex)) {
+        nextIndex++
+      }
+
+      const shapeCode = `SHAPE_${nextIndex}`
+      const newDrawing = {
+        shapeCode,
+        jsxGraphData: question.canvasData,
+        width: '100%',
+        height: '300'
+      }
+
+      const updatedDrawings = [...drawings, newDrawing]
+      setDrawings(updatedDrawings)
+      setValue('drawings', updatedDrawings, { shouldValidate: true, shouldDirty: true })
+
+      formattedContent += `\n\n[${shapeCode}|100%x300]`
+    }
+
+    if (question.explanation) {
+      formattedContent += `\n\n**Lời giải chi tiết:**\n${question.explanation}`
+    }
+
+    if (editorInstance) {
+      const htmlToInsert = markdownToHtml(formattedContent)
+      const currentHtml = editorInstance.getHTML()
+      if (!currentHtml || currentHtml === '<p></p>') {
+        editorInstance.commands.setContent(htmlToInsert)
+      } else {
+        editorInstance.commands.setContent(currentHtml + '<p></p>' + htmlToInsert)
+      }
+    }
+
+    const currentMd = formValues.content || ''
+    const newMd = currentMd ? `${currentMd}\n\n${formattedContent}` : formattedContent
+    setValue('content', newMd, { shouldValidate: true, shouldDirty: true })
+  }
+
   // Render function for Content with JSXGraph replacing
   const renderContentWithDrawings = (content: string) => {
     if (!content) return null
@@ -737,8 +794,16 @@ export function AssignmentForm({
                 </div>
 
                 {/* Content Separator Label */}
-                <div className="mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-indigo-500/20 active:scale-98 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Dùng AI sinh đề bài
+                  </button>
                 </div>
 
                 {/* LaTeX Toolbar is embedded inside CKEditor Component */}
@@ -1042,6 +1107,13 @@ export function AssignmentForm({
         initialData={editingShape?.jsxGraphData}
         initialWidth={editingShape ? drawings.find(d => d.shapeCode === editingShape.shapeCode)?.width : undefined}
         initialHeight={editingShape ? drawings.find(d => d.shapeCode === editingShape.shapeCode)?.height : undefined}
+      />
+
+      {/* AI Question Generator Modal */}
+      <AiQuestionGeneratorModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        onInsertQuestion={handleInsertAiQuestion}
       />
     </div>
   )
