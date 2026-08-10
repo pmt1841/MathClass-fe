@@ -31,6 +31,8 @@ export function useAdminLogs(
   return useQuery({
     queryKey: ['admin-logs', page, level, resourceType, startDate, endDate, size],
     queryFn: () => adminService.getLogs(page, level, resourceType, startDate, endDate, size),
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 

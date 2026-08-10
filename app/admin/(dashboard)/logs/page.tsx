@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Info, RotateCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { parseDateSafe } from '@/lib/utils'
 
@@ -58,7 +58,7 @@ export default function AdminLogsPage() {
     return isEnd ? `${cleanDate}T23:59:59` : `${cleanDate}T00:00:00`
   }
 
-  const { data, isLoading } = useAdminLogs(
+  const { data, isLoading, refetch } = useAdminLogs(
     page,
     level === 'ALL' ? undefined : level,
     resourceType === 'ALL' ? undefined : resourceType,
@@ -138,6 +138,7 @@ export default function AdminLogsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Tất cả danh mục</SelectItem>
+            <SelectItem value="AI_CONFIG">AI_CONFIG (Cấu hình AI)</SelectItem>
             <SelectItem value="USER">USER (Người dùng)</SelectItem>
             <SelectItem value="ROLE">ROLE (Phân quyền)</SelectItem>
             <SelectItem value="COMMUNITY_REPO">COMMUNITY_REPO (Kho tài nguyên)</SelectItem>
@@ -173,6 +174,18 @@ export default function AdminLogsPage() {
 
         <Button
           variant="outline"
+          onClick={() => {
+            refetch()
+          }}
+          disabled={isLoading}
+          title="Cập nhật danh sách nhật ký mới nhất"
+        >
+          <RotateCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+          Làm mới
+        </Button>
+
+        <Button
+          variant="ghost"
           onClick={() => {
             setStartDate('')
             setEndDate('')
