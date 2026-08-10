@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Sparkles, Loader2, RefreshCw, CheckCircle, X, HelpCircle, BookOpen, Layers, Target } from 'lucide-react'
+import { Sparkles, Loader2, RefreshCw, CheckCircle, X, HelpCircle, BookOpen, Layers, Target, PlusCircle, Replace } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -21,7 +21,7 @@ const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').the
 interface AiQuestionGeneratorModalProps {
   isOpen: boolean
   onClose: () => void
-  onInsertQuestion: (question: AiGeneratedQuestionDTO) => void
+  onInsertQuestion: (question: AiGeneratedQuestionDTO, mode: 'append' | 'replace') => void
 }
 
 export function AiQuestionGeneratorModal({
@@ -41,14 +41,23 @@ export function AiQuestionGeneratorModal({
 
   if (!isOpen) return null
 
+  const handleReset = () => {
+    setPrompt('')
+    setTopic('')
+    setGeneratedQuestion(null)
+    setActiveTab('content')
+    toast.info('Đã xóa dữ liệu và làm mới')
+  }
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast.error('Vui lòng nhập nội dung yêu cầu (Prompt) bài toán')
+      toast.error('Vui lòng nhập nội dung yêu cầu bài toán')
       return
     }
 
     setIsLoading(true)
     setGeneratedQuestion(null)
+    setActiveTab('content')
 
     const requestDTO: GenerateQuestionRequestDTO = {
       prompt: prompt.trim(),
@@ -61,19 +70,41 @@ export function AiQuestionGeneratorModal({
     try {
       const result = await aiQuestionService.generateQuestion(requestDTO)
       setGeneratedQuestion(result)
+      setActiveTab('content')
       toast.success('Sinh đề bài toán bằng AI thành công!')
     } catch (error: any) {
-      const errorMsg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi gọi AI'
-      toast.error(errorMsg)
+      const serverMsg = error?.response?.data?.message || error?.message || ''
+      const lower = serverMsg.toLowerCase()
+      if (
+        !serverMsg ||
+        lower.includes('key') ||
+        lower.includes('quota') ||
+        lower.includes('429') ||
+        lower.includes('resource_exhausted') ||
+        lower.includes('exceeded') ||
+        lower.includes('http') ||
+        lower.includes('exception') ||
+        lower.includes('gemini') ||
+        lower.includes('openai') ||
+        lower.includes('lỗi chi tiết')
+      ) {
+        toast.error('Hệ thống đang bảo trì. Vui lòng thử lại sau!')
+      } else {
+        toast.error(serverMsg)
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleApply = () => {
+  const handleApply = (mode: 'append' | 'replace' = 'append') => {
     if (!generatedQuestion) return
-    onInsertQuestion(generatedQuestion)
-    toast.success('Đã điền đề bài toán vào trình soạn thảo!')
+    onInsertQuestion(generatedQuestion, mode)
+    if (mode === 'replace') {
+      toast.success('Đã thay thế nội dung bài tập!')
+    } else {
+      toast.success('Đã bổ sung bài toán vào trình soạn thảo!')
+    }
     onClose()
   }
 
@@ -91,7 +122,7 @@ export function AiQuestionGeneratorModal({
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 Trợ lý Sinh Đề Toán AI
                 <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-800">
-                  {generatedQuestion?.model ? generatedQuestion.model : 'AI Assistant'}
+                  AI Assistant
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -113,10 +144,12 @@ export function AiQuestionGeneratorModal({
           <div className="space-y-4 bg-slate-50 dark:bg-slate-850/50 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
             {/* Prompt Textarea */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                Yêu cầu / Ý tưởng đề bài toán (Prompt)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                  Yêu cầu / Ý tưởng đề bài toán
+                </label>
+              </div>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -188,24 +221,37 @@ export function AiQuestionGeneratorModal({
                 Kèm hình vẽ minh họa / đồ thị (nếu bài toán yêu cầu vẽ)
               </label>
 
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={handleGenerate}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-indigo-500/25 active:scale-98 transition-all disabled:opacity-60 cursor-pointer"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Đang sinh đề...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Sinh đề bằng AI
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleReset}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-60"
+                  title="Xóa tất cả nội dung cũ"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  Làm mới
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleGenerate}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-indigo-500/25 active:scale-98 transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Đang sinh đề...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Sinh đề bằng AI
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -273,9 +319,9 @@ export function AiQuestionGeneratorModal({
                   rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
                   components={markdownComponents}
                 >
-                  {activeTab === 'content'
-                    ? generatedQuestion.content
-                    : generatedQuestion.explanation || ''}
+                  {activeTab === 'explanation' && generatedQuestion.explanation
+                    ? generatedQuestion.explanation
+                    : generatedQuestion.content}
                 </ReactMarkdown>
               </div>
 
@@ -322,14 +368,27 @@ export function AiQuestionGeneratorModal({
           </button>
 
           {generatedQuestion && (
-            <button
-              type="button"
-              onClick={handleApply}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-emerald-600/20 active:scale-98 transition-all cursor-pointer"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Chèn vào bài tập (Fill into TipTap)
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleApply('replace')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50 text-xs font-bold rounded-xl active:scale-98 transition-all cursor-pointer"
+                title="Xóa nội dung cũ trong trình soạn thảo và thay bằng bài toán mới này"
+              >
+                <Replace className="w-4 h-4" />
+                Thay thế bài tập hiện tại
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleApply('append')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-emerald-600/20 active:scale-98 transition-all cursor-pointer"
+                title="Chèn thêm bài toán này nối tiếp dưới nội dung hiện tại"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Bổ sung vào bài tập
+              </button>
+            </div>
           )}
         </div>
       </div>

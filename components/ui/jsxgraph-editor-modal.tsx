@@ -34,6 +34,199 @@ interface JsxGraphEditorModalProps {
 
 type ToolType = 'select' | 'point' | 'line' | 'circle' | 'function'
 
+export function normalizeCanvasElements(rawElements: any[]): any[] {
+  if (!Array.isArray(rawElements)) return []
+
+  const allPoints: { el: any; x: number; y: number }[] = []
+  rawElements.forEach(el => {
+    const normType = (el.type || '').toString().toLowerCase()
+    if (normType === 'point') {
+      const px = el.x ?? el.X ?? (Array.isArray(el.parents) && typeof el.parents[0] === 'number' ? el.parents[0] : undefined)
+      const py = el.y ?? el.Y ?? (Array.isArray(el.parents) && typeof el.parents[1] === 'number' ? el.parents[1] : undefined)
+      if (px !== undefined && py !== undefined && !isNaN(Number(px)) && !isNaN(Number(py))) {
+        allPoints.push({ el, x: Number(px), y: Number(py) })
+      }
+    }
+  })
+
+  if (allPoints.length > 0) {
+    const xs = allPoints.map(p => p.x)
+    const ys = allPoints.map(p => p.y)
+    const minX = Math.min(...xs), maxX = Math.max(...xs)
+    const minY = Math.min(...ys), maxY = Math.max(...ys)
+    const maxSpan = Math.max(maxX - minX, maxY - minY)
+    const maxAbs = Math.max(Math.abs(minX), Math.abs(maxX), Math.abs(minY), Math.abs(maxY))
+
+    if (maxSpan > 15 || maxAbs > 15) {
+      const targetSpan = 8
+      const scaleFactor = maxSpan > 0 ? targetSpan / maxSpan : 1
+      const centerX = (minX + maxX) / 2
+      const centerY = (minY + maxY) / 2
+
+      allPoints.forEach(p => {
+        const newX = Math.round((p.x - centerX) * scaleFactor * 10) / 10
+        const newY = Math.round((p.y - centerY) * scaleFactor * 10) / 10
+        p.el.x = newX
+        p.el.y = newY
+        p.el.parents = [newX, newY]
+      })
+    }
+  }
+
+  const pointMap: Record<string, string> = {}
+  const normalizedPoints: any[] = []
+
+  rawElements.forEach((el, idx) => {
+    const normType = (el.type || '').toString().toLowerCase()
+    if (normType === 'point') {
+      let x = el.x ?? el.X ?? (Array.isArray(el.parents) ? el.parents[0] : 0)
+      let y = el.y ?? el.Y ?? (Array.isArray(el.parents) ? el.parents[1] : 0)
+      x = Number(x) || 0
+      y = Number(y) || 0
+
+      const pointId = el.id || `p_${idx}_${Date.now()}`
+      const pointName = el.attributes?.name || el.label || el.name || pointId
+
+      const keys = [el.id, el.label, el.name, pointName].filter(Boolean)
+      keys.forEach(k => { pointMap[k] = pointId })
+
+      normalizedPoints.push({
+        type: 'point',
+        id: pointId,
+        parents: [x, y],
+        attributes: {
+          size: el.attributes?.size || 4,
+          name: pointName,
+          withLabel: true,
+          showInfobox: true,
+          highlight: true,
+          ...(el.attributes || {})
+        }
+      })
+    }
+  })
+
+  const normalizedOthers: any[] = []
+  rawElements.forEach((el, idx) => {
+    const normType = (el.type || '').toString().toLowerCase()
+    if (normType === 'point') return
+
+    if (normType === 'segment' || normType === 'line') {
+      const fromKey = el.fromId || el.startId || el.from || el.start || (Array.isArray(el.parents) ? el.parents[0] : null)
+      const toKey = el.toId || el.endId || el.to || el.end || (Array.isArray(el.parents) ? el.parents[1] : null)
+
+      let fromId = pointMap[fromKey] || fromKey
+      let toId = pointMap[toKey] || toKey
+
+      if (!fromId && typeof fromKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === fromKey.toLowerCase())
+        if (found) fromId = pointMap[found]
+      }
+      if (!toId && typeof toKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === toKey.toLowerCase())
+        if (found) toId = pointMap[found]
+      }
+
+      if (fromId && toId) {
+        normalizedOthers.push({
+          type: 'segment',
+          id: el.id || `seg_${idx}_${Date.now()}`,
+          parents: [fromId, toId],
+          attributes: {
+            strokeColor: el.attributes?.strokeColor || '#3b82f6',
+            strokeWidth: el.attributes?.strokeWidth || 2,
+            ...(el.attributes || {})
+          }
+        })
+      }
+    } else if (normType === 'circle') {
+      const centerKey = el.centerId || el.center || el.centerPoint || (Array.isArray(el.parents) ? el.parents[0] : null)
+      let radOrPointKey = el.radius ?? el.rad ?? el.pointId ?? el.point ?? el.pointOnCircle ?? (Array.isArray(el.parents) ? el.parents[1] : null)
+
+      let centerId = pointMap[centerKey] || centerKey
+      let pointId = typeof radOrPointKey === 'string' ? (pointMap[radOrPointKey] || radOrPointKey) : null
+
+      if (!centerId && typeof centerKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === centerKey.toLowerCase())
+        if (found) centerId = pointMap[found]
+      }
+
+      if (typeof radOrPointKey === 'number' || (typeof radOrPointKey === 'string' && !isNaN(Number(radOrPointKey)))) {
+        const r = Number(radOrPointKey)
+        const centerPt = normalizedPoints.find(p => p.id === centerId)
+        if (centerPt) {
+          const px = centerPt.parents[0] + r
+          const py = centerPt.parents[1]
+          const createdPointId = `p_circle_rad_${idx}`
+          normalizedPoints.push({
+            type: 'point',
+            id: createdPointId,
+            parents: [px, py],
+            attributes: { size: 3, name: '', withLabel: false, showInfobox: false }
+          })
+          pointId = createdPointId
+        }
+      }
+
+      if (!pointId && typeof radOrPointKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === radOrPointKey.toLowerCase())
+        if (found) pointId = pointMap[found]
+      }
+
+      if (!pointId && normalizedPoints.length > 1) {
+        const otherPoint = normalizedPoints.find(p => p.id !== centerId)
+        if (otherPoint) pointId = otherPoint.id
+      }
+
+      if (centerId && pointId) {
+        normalizedOthers.push({
+          type: 'circle',
+          id: el.id || `circ_${idx}_${Date.now()}`,
+          parents: [centerId, pointId],
+          attributes: {
+            strokeColor: el.attributes?.strokeColor || '#ef4444',
+            strokeWidth: el.attributes?.strokeWidth || 2,
+            fillColor: el.attributes?.fillColor || '#ef4444',
+            fillOpacity: el.attributes?.fillOpacity || 0.1,
+            ...(el.attributes || {})
+          }
+        })
+      }
+    } else if (normType === 'functiongraph') {
+      const rawExpr = el.parsedFunc || el.func || el.formula || el.expression || ''
+      let parsedFunc = rawExpr.toString().replace(/\^/g, '**')
+      let isVertical = Boolean(el.isVertical)
+
+      if (parsedFunc.includes('=')) {
+        const parts = parsedFunc.split('=')
+        const left = parts[0].trim()
+        const right = parts.slice(1).join('=').trim()
+        if (left === 'x') {
+          isVertical = true
+          parsedFunc = right
+        } else {
+          parsedFunc = right
+        }
+      }
+
+      normalizedOthers.push({
+        type: 'functiongraph',
+        id: el.id || `fg_${idx}_${Date.now()}`,
+        func: rawExpr,
+        parsedFunc,
+        isVertical,
+        attributes: {
+          strokeColor: el.attributes?.strokeColor || '#10b981',
+          strokeWidth: el.attributes?.strokeWidth || 2,
+          ...(el.attributes || {})
+        }
+      })
+    }
+  })
+
+  return [...normalizedPoints, ...normalizedOthers]
+}
+
 export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, initialWidth, initialHeight }: JsxGraphEditorModalProps) {
   const boardRef = useRef<HTMLDivElement>(null)
   const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
@@ -65,8 +258,6 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
   const [editingFunctionId, setEditingFunctionId] = useState<string | null>(null)
   const mfRef = useRef<any>(null)
   const [errorModal, setErrorModal] = useState<string | null>(null)
-
-
 
   // Ghost Intersection Point State
   const [selectedGhostPoint, setSelectedGhostPoint] = useState<{ x: number, y: number, scrX: number, scrY: number } | null>(null)
@@ -121,7 +312,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     setTimeout(() => {
       if (boardRef.current) {
         if (initialData && initialData.elements) {
-          const startingState = { elements: initialData.elements, selectedPointIds: [] };
+          const normalizedElements = normalizeCanvasElements(initialData.elements)
+          const startingState = { elements: normalizedElements, selectedPointIds: [] };
           setHistory([startingState]);
           initBoardWithState(startingState);
         } else {
@@ -351,6 +543,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         const attrs = el.attributes || { size: 4, name: '', withLabel: false, showInfobox: true, highlight: true }
         const p = b.create('point', el.parents, { ...attrs, id: el.id })
         newPointMap[el.id] = p
+        if (attrs.name) newPointMap[attrs.name] = p
       } else if (el.type === 'segment') {
         if (newPointMap[el.parents[0]] && newPointMap[el.parents[1]]) {
           const attrs = { ...(el.attributes || { strokeColor: '#3b82f6', strokeWidth: 2 }) }

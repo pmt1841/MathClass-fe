@@ -27,6 +27,8 @@ import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-
 import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
 import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 
+import { normalizeCanvasElements } from '@/components/ui/jsxgraph-editor-modal'
+
 export const embedDrawings = (content: string, drawings: any[]) => {
   if (!drawings || drawings.length === 0) return content
   let newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
@@ -558,16 +560,29 @@ export function AssignmentForm({
     }
   }
 
-  const handleInsertAiQuestion = (question: AiGeneratedQuestionDTO) => {
-    if (question.title && (!formValues.title || !formValues.title.trim())) {
-      setValue('title', question.title, { shouldValidate: true, shouldDirty: true })
+  const handleInsertAiQuestion = (question: AiGeneratedQuestionDTO, mode: 'append' | 'replace' = 'append') => {
+    if (mode === 'replace') {
+      if (question.title) {
+        setValue('title', question.title, { shouldValidate: true, shouldDirty: true })
+      }
+    } else {
+      if (question.title && (!formValues.title || !formValues.title.trim())) {
+        setValue('title', question.title, { shouldValidate: true, shouldDirty: true })
+      }
     }
 
     let formattedContent = question.content
 
     // Automatically register AI-generated canvasData as a drawing if present
     if (question.canvasData?.elements && question.canvasData.elements.length > 0) {
-      const existingIndices = drawings
+      const normalizedElements = normalizeCanvasElements(question.canvasData.elements)
+      const normalizedCanvasData = {
+        ...question.canvasData,
+        elements: normalizedElements
+      }
+
+      const baseDrawings = mode === 'replace' ? [] : drawings
+      const existingIndices = baseDrawings
         .map(d => parseInt(d.shapeCode.replace('SHAPE_', '')))
         .filter(n => !isNaN(n))
 
@@ -579,16 +594,19 @@ export function AssignmentForm({
       const shapeCode = `SHAPE_${nextIndex}`
       const newDrawing = {
         shapeCode,
-        jsxGraphData: question.canvasData,
+        jsxGraphData: normalizedCanvasData,
         width: '100%',
         height: '300'
       }
 
-      const updatedDrawings = [...drawings, newDrawing]
+      const updatedDrawings = [...baseDrawings, newDrawing]
       setDrawings(updatedDrawings)
       setValue('drawings', updatedDrawings, { shouldValidate: true, shouldDirty: true })
 
       formattedContent += `\n\n[${shapeCode}|100%x300]`
+    } else if (mode === 'replace') {
+      setDrawings([])
+      setValue('drawings', [], { shouldValidate: true, shouldDirty: true })
     }
 
     if (question.explanation) {
@@ -597,17 +615,25 @@ export function AssignmentForm({
 
     if (editorInstance) {
       const htmlToInsert = markdownToHtml(formattedContent)
-      const currentHtml = editorInstance.getHTML()
-      if (!currentHtml || currentHtml === '<p></p>') {
+      if (mode === 'replace') {
         editorInstance.commands.setContent(htmlToInsert)
       } else {
-        editorInstance.commands.setContent(currentHtml + '<p></p>' + htmlToInsert)
+        const currentHtml = editorInstance.getHTML()
+        if (!currentHtml || currentHtml === '<p></p>') {
+          editorInstance.commands.setContent(htmlToInsert)
+        } else {
+          editorInstance.commands.setContent(currentHtml + '<p></p>' + htmlToInsert)
+        }
       }
     }
 
-    const currentMd = formValues.content || ''
-    const newMd = currentMd ? `${currentMd}\n\n${formattedContent}` : formattedContent
-    setValue('content', newMd, { shouldValidate: true, shouldDirty: true })
+    if (mode === 'replace') {
+      setValue('content', formattedContent, { shouldValidate: true, shouldDirty: true })
+    } else {
+      const currentMd = formValues.content || ''
+      const newMd = currentMd ? `${currentMd}\n\n${formattedContent}` : formattedContent
+      setValue('content', newMd, { shouldValidate: true, shouldDirty: true })
+    }
   }
 
   // Render function for Content with JSXGraph replacing
