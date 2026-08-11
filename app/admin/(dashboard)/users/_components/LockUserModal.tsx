@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,15 @@ export function LockUserModal({
   const [selectedPreset, setSelectedPreset] = useState<string>(LOCK_REASON_PRESETS[0])
   const [customReason, setCustomReason] = useState<string>('')
   const [error, setError] = useState<string>('')
+
+  // Reset state mỗi khi mở Modal để tránh lưu vết dữ liệu của tài khoản cũ
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPreset(LOCK_REASON_PRESETS[0])
+      setCustomReason('')
+      setError('')
+    }
+  }, [isOpen])
 
   const handlePresetChange = (value: string) => {
     setSelectedPreset(value)
@@ -92,15 +101,16 @@ export function LockUserModal({
           </Label>
 
           <RadioGroup value={selectedPreset} onValueChange={handlePresetChange} className="space-y-2">
-            {LOCK_REASON_PRESETS.map((preset) => (
+            {LOCK_REASON_PRESETS.map((preset, index) => (
               <div key={preset} className="flex items-center space-x-2">
-                <RadioGroupItem value={preset} id={`reason-${preset}`} />
-                <Label htmlFor={`reason-${preset}`} className="text-sm font-normal text-slate-700 cursor-pointer">
+                <RadioGroupItem value={preset} id={`lock-reason-${index}`} />
+                <Label htmlFor={`lock-reason-${index}`} className="text-sm font-normal text-slate-700 cursor-pointer">
                   {preset === 'OTHER' ? 'Khác (Tự nhập lý do chi tiết)' : preset}
                 </Label>
               </div>
             ))}
           </RadioGroup>
+
 
           {selectedPreset === 'OTHER' && (
             <div className="space-y-1 pt-1">

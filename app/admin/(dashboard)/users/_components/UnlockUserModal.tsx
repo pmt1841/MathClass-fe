@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,15 @@ export function UnlockUserModal({
   const [selectedPreset, setSelectedPreset] = useState<string>(UNLOCK_REASON_PRESETS[0])
   const [customReason, setCustomReason] = useState<string>('')
   const [error, setError] = useState<string>('')
+
+  // Reset state mỗi khi mở Modal để tránh lưu vết dữ liệu của tài khoản cũ
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPreset(UNLOCK_REASON_PRESETS[0])
+      setCustomReason('')
+      setError('')
+    }
+  }, [isOpen])
 
   const handlePresetChange = (value: string) => {
     setSelectedPreset(value)
@@ -90,10 +99,10 @@ export function UnlockUserModal({
           </Label>
 
           <RadioGroup value={selectedPreset} onValueChange={handlePresetChange} className="space-y-2">
-            {UNLOCK_REASON_PRESETS.map((preset) => (
+            {UNLOCK_REASON_PRESETS.map((preset, index) => (
               <div key={preset} className="flex items-center space-x-2">
-                <RadioGroupItem value={preset} id={`unlock-reason-${preset}`} />
-                <Label htmlFor={`unlock-reason-${preset}`} className="text-sm font-normal text-slate-700 cursor-pointer">
+                <RadioGroupItem value={preset} id={`unlock-reason-${index}`} />
+                <Label htmlFor={`unlock-reason-${index}`} className="text-sm font-normal text-slate-700 cursor-pointer">
                   {preset === 'NONE'
                     ? 'Không đính kèm lý do (Gửi email thông báo khôi phục cơ bản)'
                     : preset === 'OTHER'
@@ -103,6 +112,7 @@ export function UnlockUserModal({
               </div>
             ))}
           </RadioGroup>
+
 
           {selectedPreset === 'OTHER' && (
             <div className="space-y-1 pt-1">
