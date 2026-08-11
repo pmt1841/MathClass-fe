@@ -28,6 +28,8 @@ import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminUser } from '@/types'
 import { StatusSwitch } from './status-switch'
+import { LockUserModal } from './LockUserModal'
+import { UnlockUserModal } from './UnlockUserModal'
 
 // ── Role Badge ─────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: AdminUser['role'] }) {
@@ -71,6 +73,10 @@ export function UsersClient() {
   // Track which userId is currently being toggled (for per-switch loading)
   const [pendingUserId, setPendingUserId] = useState<number | null>(null)
 
+  // State quản lý Modal Khóa & Mở khóa tài khoản
+  const [userToLock, setUserToLock] = useState<AdminUser | null>(null)
+  const [userToUnlock, setUserToUnlock] = useState<AdminUser | null>(null)
+
   const debouncedSearch = useDebounce(search, 300)
 
   const { data, isLoading } = useAdminUsers(
@@ -85,15 +91,33 @@ export function UsersClient() {
 
   const handleStatusToggle = (userId: number, currentIsActive: boolean) => {
     if (pendingUserId !== null) return // block if another request is in-flight
+
+    const targetUser = data?.content.find((u) => u.id === userId)
+    if (!targetUser) return
+
+    if (currentIsActive) {
+      // Nếu đang hoạt động -> Yêu cầu mở Modal nhập lý do khóa
+      setUserToLock(targetUser)
+    } else {
+      // Nếu đang bị khóa -> Mở Modal mở khóa tài khoản
+      setUserToUnlock(targetUser)
+    }
+  }
+
+  const handleConfirmLock = (reason: string) => {
+    if (!userToLock) return
+    const userId = userToLock.id
     setPendingUserId(userId)
     updateUserStatus.mutate(
-      { userId, isActive: !currentIsActive },
+      { userId, isActive: false, reason },
       {
         onSuccess: () => {
-          toast.success('Cập nhật trạng thái người dùng thành công!')
+          toast.success('Đã khóa tài khoản thành công và đang gửi email thông báo!')
+          setUserToLock(null)
         },
-        onError: () => {
-          toast.error('Không thể thay đổi trạng thái. Vui lòng thử lại!')
+        onError: (err: any) => {
+          const message = err?.response?.data?.message || 'Khóa tài khoản thất bại. Vui lòng thử lại!'
+          toast.error(message)
         },
         onSettled: () => {
           setPendingUserId(null)
@@ -101,6 +125,30 @@ export function UsersClient() {
       }
     )
   }
+
+  const handleConfirmUnlock = (reason?: string) => {
+    if (!userToUnlock) return
+    const userId = userToUnlock.id
+    setPendingUserId(userId)
+    updateUserStatus.mutate(
+      { userId, isActive: true, reason },
+      {
+        onSuccess: () => {
+          toast.success('Đã mở khóa tài khoản thành công và gửi email thông báo!')
+          setUserToUnlock(null)
+        },
+        onError: (err: any) => {
+          const message = err?.response?.data?.message || 'Không thể mở khóa tài khoản. Vui lòng thử lại!'
+          toast.error(message)
+        },
+        onSettled: () => {
+          setPendingUserId(null)
+        },
+      }
+    )
+  }
+
+
 
   const handleSearchChange = (value: string) => {
     setSearch(value)
@@ -286,6 +334,28 @@ export function UsersClient() {
           </Button>
         </div>
       )}
+
+      {/* ── Lock User Modal ── */}
+      <LockUserModal
+        isOpen={!!userToLock}
+        onClose={() => setUserToLock(null)}
+        onConfirm={handleConfirmLock}
+        userFullName={userToLock?.fullName}
+        userEmail={userToLock?.email}
+        isPending={pendingUserId !== null}
+      />
+
+      {/* ── Unlock User Modal ── */}
+      <UnlockUserModal
+        isOpen={!!userToUnlock}
+        onClose={() => setUserToUnlock(null)}
+        onConfirm={handleConfirmUnlock}
+        userFullName={userToUnlock?.fullName}
+        userEmail={userToUnlock?.email}
+        isPending={pendingUserId !== null}
+      />
     </div>
   )
 }
+
+
