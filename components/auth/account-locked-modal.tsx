@@ -9,18 +9,39 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { ShieldAlert, AlertTriangle } from 'lucide-react'
+import { ShieldAlert, AlertTriangle, Clock, Info } from 'lucide-react'
 
 interface AccountLockedModalProps {
   open: boolean
   onClose: () => void
+  lockReason?: string
+  lockedAt?: string
 }
 
 /**
  * Component Modal Cảnh Báo Tài Khoản Bị Khóa (Account Locked Modal)
- * Hiển thị thông báo khi người dùng bị Quản trị viên vô hiệu hóa khỏi hệ thống Math Class.
+ * Hiển thị thông báo khi người dùng bị Quản trị viên vô hiệu hóa khỏi hệ thống Math Class kèm lý do bị khóa và thời điểm khóa.
  */
-export function AccountLockedModal({ open, onClose }: AccountLockedModalProps) {
+export function AccountLockedModal({ open, onClose, lockReason, lockedAt }: AccountLockedModalProps) {
+  const formattedLockedAt = lockedAt
+    ? new Date(lockedAt).toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+    : null
+
+  const cleanLockReason = lockReason
+    ? lockReason
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+    : 'Vi phạm tiêu chuẩn sử dụng và quy định của hệ thống.'
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md border-destructive/30">
@@ -37,11 +58,32 @@ export function AccountLockedModal({ open, onClose }: AccountLockedModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 flex items-start gap-2.5 my-1">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-          <span>
-            Nếu bạn tin rằng đây là sự nhầm lẫn hoặc cần hỗ trợ mở lại tài khoản, vui lòng liên hệ trực tiếp với bộ phận Quản trị viên.
-          </span>
+        {/* Khối hiển thị Lý do bị khóa chi tiết */}
+        <div className="space-y-2.5 my-1">
+          <div className="rounded-lg bg-red-50/80 border border-red-200 p-3.5 space-y-2">
+            <div className="flex items-center gap-2 text-red-800 font-semibold text-xs uppercase tracking-wider">
+              <Info className="h-4 w-4 text-red-600 shrink-0" />
+              <span>Lý do khóa tài khoản:</span>
+            </div>
+            <p className="text-sm text-red-950 font-medium leading-relaxed pl-6">
+              {cleanLockReason}
+            </p>
+
+
+            {formattedLockedAt && (
+              <div className="flex items-center gap-1.5 text-xs text-red-700/80 pt-1 border-t border-red-100">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                <span>Thời điểm khóa: {formattedLockedAt}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 flex items-start gap-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <span>
+              Nếu bạn tin rằng đây là sự nhầm lẫn hoặc cần hỗ trợ mở lại tài khoản, vui lòng liên hệ trực tiếp với bộ phận Quản trị viên qua email support@mathclass.edu.vn.
+            </span>
+          </div>
         </div>
 
         <DialogFooter className="sm:justify-center">

@@ -33,10 +33,11 @@ export const adminService = {
     return response.data
   },
 
-  updateUserStatus: async (userId: number, isActive: boolean) => {
-    const response = await api.patch<{ message: string }>(`/admin/users/${userId}/status`, { isActive })
+  updateUserStatus: async (userId: number, isActive: boolean, reason?: string) => {
+    const response = await api.patch<{ message: string }>(`/admin/users/${userId}/status`, { isActive, reason })
     return response.data
   },
+
 
   getLogs: async (page: number, level?: string, resourceType?: string, startDate?: string, endDate?: string, size: number = 10) => {
     const params = new URLSearchParams()

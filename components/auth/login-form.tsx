@@ -51,6 +51,8 @@ export default function LoginForm() {
    * State kiểm soát việc hiển thị Modal Cảnh báo khi người dùng bị văng từ hệ thống về trang Login với tham số ?reason=account_locked
    */
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
+  const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
+  const [lockedAt, setLockedAt] = useState<string | undefined>(undefined)
 
   const { login, isLoading, loginError } = useLogin()
 
@@ -64,6 +66,16 @@ export default function LoginForm() {
     // Kiểm tra query parameter để mở Modal cảnh báo tài khoản bị khóa
     const reason = searchParams.get('reason')
     if (reason === 'account_locked') {
+      const savedInfo = sessionStorage.getItem('locked_account_info')
+      if (savedInfo) {
+        try {
+          const parsed = JSON.parse(savedInfo)
+          if (parsed.lockReason) setLockedReason(parsed.lockReason)
+          if (parsed.lockedAt) setLockedAt(parsed.lockedAt)
+        } catch (e) {
+          // ignore
+        }
+      }
       setShowLockedModal(true)
     }
   }, [searchParams])
@@ -71,10 +83,16 @@ export default function LoginForm() {
   /*
    * TỰ ĐỘNG BẬT MODAL KHI ĐĂNG NHẬP THẤT BẠI DO BỊ KHÓA:
    * Nếu người dùng cố tình nhập thông tin đăng nhập của một tài khoản đã bị khóa,
-   * thông báo lỗi từ backend trả về cũng sẽ kích hoạt hiển thị Modal Cảnh Báo.
+   * thông báo lỗi từ backend trả về cũng sẽ kích hoạt hiển thị Modal Cảnh Báo kèm lý do.
    */
   useEffect(() => {
     if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
+      if (loginError.includes('Lý do: ')) {
+        const parts = loginError.split('Lý do: ')
+        if (parts[1]) {
+          setLockedReason(parts[1].trim())
+        }
+      }
       setShowLockedModal(true)
     }
   }, [loginError])
@@ -85,6 +103,9 @@ export default function LoginForm() {
    */
   const handleCloseLockedModal = () => {
     setShowLockedModal(false)
+    setLockedReason(undefined)
+    setLockedAt(undefined)
+    sessionStorage.removeItem('locked_account_info')
 
     // Xóa sạch trạng thái Auth trong Redux và Storage (clearToken đã xóa toàn bộ cookie phiên)
     try {
@@ -104,6 +125,7 @@ export default function LoginForm() {
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
     router.replace(newUrl)
   }
+
 
   const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : role === ROLES.ADMIN ? ' Quản trị viên' : ''
 
@@ -279,7 +301,13 @@ export default function LoginForm() {
       </div>
 
       {/* ── Modal Cảnh báo Tài khoản bị khóa (Tách biệt Component) ───────────── */}
-      <AccountLockedModal open={showLockedModal} onClose={handleCloseLockedModal} />
+      <AccountLockedModal
+        open={showLockedModal}
+        onClose={handleCloseLockedModal}
+        lockReason={lockedReason}
+        lockedAt={lockedAt}
+      />
     </div>
   )
 }
+

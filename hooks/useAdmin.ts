@@ -12,13 +12,14 @@ export function useUpdateUserStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) =>
-      adminService.updateUserStatus(userId, isActive),
+    mutationFn: ({ userId, isActive, reason }: { userId: number; isActive: boolean; reason?: string }) =>
+      adminService.updateUserStatus(userId, isActive, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
 }
+
 
 export function useAdminLogs(
   page: number,

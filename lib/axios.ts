@@ -76,6 +76,21 @@ api.interceptors.response.use(
           authStorage.clearUserInfo();
           authStorage.clearSessionCookies();
 
+          // Lưu vết thông tin lý do bị khóa và thời điểm khóa để Modal ở Login hiển thị
+          if (responseData?.lockReason || responseData?.lockedAt) {
+            try {
+              sessionStorage.setItem(
+                'locked_account_info',
+                JSON.stringify({
+                  lockReason: responseData?.lockReason,
+                  lockedAt: responseData?.lockedAt,
+                })
+              )
+            } catch (e) {
+              // ignore
+            }
+          }
+
           // Gọi API logout bất đồng bộ bằng instance axios gốc để Backend gửi Set-Cookie hủy HttpOnly Cookie mà không gây đệ quy interceptor.
           // Lưu ý: phải dùng baseURL (đã tự chèn /v1) — nếu nối từ NEXT_PUBLIC_API_URL trực tiếp sẽ thiếu /v1 và bị 404.
           axios.post(`${baseURL}/auth/logout`, {}, { withCredentials: true }).catch(() => { });
@@ -86,6 +101,7 @@ api.interceptors.response.use(
             window.location.href = isAdminPath ? '/admin/login?reason=account_locked' : '/login?reason=account_locked';
           }
         }
+
         return Promise.reject(error);
       }
 
