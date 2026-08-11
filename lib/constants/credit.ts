@@ -4,7 +4,6 @@ export const CREDIT_TASK_LABELS: Record<string, string> = {
   CANVAS_LATEX: 'Chuyển ảnh chữ viết tay → LaTeX',
   QUESTION_GEN: 'Sinh đề',
   ASSIGNMENT_GRADING: 'Chấm bài tự động',
-  CONTENT_SUMMARIZATION: 'Tóm tắt nội dung',
   ERROR_ANALYSIS: 'Phân tích lỗi sai',
 }
 

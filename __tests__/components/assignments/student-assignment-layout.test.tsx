@@ -12,7 +12,6 @@ vi.mock('@/hooks/useAiFeatures', () => ({
     STUDENT_HINT: 'STUDENT_HINT',
     QUESTION_GEN: 'QUESTION_GEN',
     CANVAS_LATEX: 'CANVAS_LATEX',
-    CONTENT_SUMMARIZATION: 'CONTENT_SUMMARIZATION',
     ERROR_ANALYSIS: 'ERROR_ANALYSIS',
   },
   useAiFeatures: () => ({
@@ -21,7 +20,6 @@ vi.mock('@/hooks/useAiFeatures', () => ({
       STUDENT_HINT: studentHintEnabled,
       QUESTION_GEN: true,
       CANVAS_LATEX: true,
-      CONTENT_SUMMARIZATION: true,
       ERROR_ANALYSIS: true,
     },
   }),

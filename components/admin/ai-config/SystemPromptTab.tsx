@@ -33,7 +33,7 @@ import { PromptPreviewRenderDialog } from '@/components/admin/ai-config/PromptPr
 import { useToast } from '@/components/ui/use-toast'
 
 const SYSTEM_TASKS = [
-  { code: 'HINT_EXPLANATION', title: 'Gợi ý giải toán' },
+  { code: 'STUDENT_HINT', title: 'Gợi ý tư duy làm bài' },
   { code: 'LATEX_CANVAS_FORMAT', title: 'Định dạng LaTeX / Canvas' },
   { code: 'SUBMISSION_GRADING', title: 'Chấm bài Tự luận AI' },
   { code: 'QUESTION_GEN', title: 'Sinh Đề thi & Bài tập' },

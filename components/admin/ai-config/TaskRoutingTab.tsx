@@ -21,7 +21,7 @@ import {
   FileText,
   CheckSquare,
   Palette,
-  BookOpen,
+  Lightbulb,
   AlertTriangle,
   Save,
   Sparkles,
@@ -61,10 +61,10 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     icon: Palette,
   },
   {
-    taskCode: 'CONTENT_SUMMARIZATION',
-    title: 'Tóm tắt & Gợi ý Nội dung Học tập',
-    description: 'Tóm tắt bài giảng, đưa ra lộ trình ôn tập và gợi ý bài tập tương tự.',
-    icon: BookOpen,
+    taskCode: 'STUDENT_HINT',
+    title: 'Gợi ý Tư duy Làm bài',
+    description: 'Đưa ra gợi ý định hướng từng bước theo phương pháp Socratic, không cho đáp án trực tiếp.',
+    icon: Lightbulb,
   },
   {
     taskCode: 'ERROR_ANALYSIS',
@@ -239,19 +239,19 @@ export function TaskRoutingTab() {
     const persisted = initialTaskConfigs[taskCode]
     const payload = persisted
       ? {
-          providerId: persisted.providerId,
-          model: persisted.model,
-          temperature: persisted.temperature,
-          maxToken: persisted.maxToken,
-          enabled: newEnabled,
-        }
+        providerId: persisted.providerId,
+        model: persisted.model,
+        temperature: persisted.temperature,
+        maxToken: persisted.maxToken,
+        enabled: newEnabled,
+      }
       : {
-          providerId: config.providerId,
-          model: config.model.trim(),
-          temperature: config.temperature,
-          maxToken: config.maxToken,
-          enabled: newEnabled,
-        }
+        providerId: config.providerId,
+        model: config.model.trim(),
+        temperature: config.temperature,
+        maxToken: config.maxToken,
+        enabled: newEnabled,
+      }
 
     setSavingTask(taskCode)
     try {
@@ -381,9 +381,19 @@ export function TaskRoutingTab() {
                     <Label className="text-xs">Nhà cung cấp (Provider)</Label>
                     <Select
                       value={cfg.providerId ? cfg.providerId.toString() : '0'}
-                      onValueChange={(val) =>
-                        handleUpdateTaskField(t.taskCode, 'providerId', parseInt(val) || 0)
-                      }
+                      onValueChange={(val) => {
+                        const newProviderId = parseInt(val) || 0
+                        if (newProviderId !== cfg.providerId) {
+                          setTaskConfigs((prev) => ({
+                            ...prev,
+                            [t.taskCode]: {
+                              ...prev[t.taskCode],
+                              providerId: newProviderId,
+                              model: '', // Reset model khi thay đổi Provider
+                            },
+                          }))
+                        }
+                      }}
                     >
                       <SelectTrigger className="h-9 text-xs">
                         <SelectValue placeholder="Vui lòng chọn Provider..." />
@@ -437,9 +447,10 @@ export function TaskRoutingTab() {
                     className="h-9 text-xs font-mono"
                     placeholder="2048"
                     value={cfg.maxToken}
-                    onChange={(e) =>
-                      handleUpdateTaskField(t.taskCode, 'maxToken', parseInt(e.target.value) || 1024)
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value
+                      handleUpdateTaskField(t.taskCode, 'maxToken', val === '' ? '' : parseInt(val) || 2048)
+                    }}
                   />
                 </div>
               </CardContent>
