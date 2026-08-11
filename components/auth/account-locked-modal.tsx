@@ -33,6 +33,15 @@ export function AccountLockedModal({ open, onClose, lockReason, lockedAt }: Acco
       })
     : null
 
+  const cleanLockReason = lockReason
+    ? lockReason
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+    : 'Vi phạm tiêu chuẩn sử dụng và quy định của hệ thống.'
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent showCloseButton={false} className="sm:max-w-md border-destructive/30">
@@ -57,8 +66,9 @@ export function AccountLockedModal({ open, onClose, lockReason, lockedAt }: Acco
               <span>Lý do khóa tài khoản:</span>
             </div>
             <p className="text-sm text-red-950 font-medium leading-relaxed pl-6">
-              {lockReason || 'Vi phạm tiêu chuẩn sử dụng và quy định của hệ thống.'}
+              {cleanLockReason}
             </p>
+
 
             {formattedLockedAt && (
               <div className="flex items-center gap-1.5 text-xs text-red-700/80 pt-1 border-t border-red-100">
