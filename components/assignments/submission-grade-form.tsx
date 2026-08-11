@@ -9,8 +9,8 @@ import { Save } from 'lucide-react'
 
 export const createGradeSchema = (maxScore: number = 10) => z.object({
   score: z
-    .string()
-    .min(1, 'Vui lòng nhập điểm số')
+    .union([z.string(), z.number()])
+    .refine((val) => val !== '' && val !== null && val !== undefined, { message: 'Vui lòng nhập điểm số' })
     .refine((val) => !isNaN(Number(val)), { message: 'Điểm phải là một số hợp lệ' })
     .refine((val) => Number(val) >= 0, { message: 'Điểm tối thiểu là 0' })
     .refine((val) => Number(val) <= maxScore, { message: `Điểm tối đa là ${maxScore}` })
@@ -78,6 +78,8 @@ export function SubmissionGradeForm({
                     max={maxScore}
                     className="w-20 h-8 text-center font-bold bg-white focus-visible:ring-blue-500"
                     {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
               </FormItem>

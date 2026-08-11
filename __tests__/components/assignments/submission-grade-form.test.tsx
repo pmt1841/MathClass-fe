@@ -7,14 +7,19 @@ describe('SubmissionGradeForm Component & Schema', () => {
   describe('createGradeSchema validation', () => {
     const schema = createGradeSchema(10)
 
-    it('validates correct grade scores', () => {
+    it('validates correct grade scores (string and number, including 0)', () => {
       expect(schema.safeParse({ score: '8.5', teacherFeedback: 'Tốt' }).success).toBe(true)
+      expect(schema.safeParse({ score: 8.5, teacherFeedback: 'Tốt' }).success).toBe(true)
+      expect(schema.safeParse({ score: '0', teacherFeedback: '' }).success).toBe(true)
+      expect(schema.safeParse({ score: 0, teacherFeedback: '' }).success).toBe(true)
       expect(schema.safeParse({ score: '10', teacherFeedback: '' }).success).toBe(true)
     })
 
     it('rejects negative or over max score', () => {
       expect(schema.safeParse({ score: '-1' }).success).toBe(false)
+      expect(schema.safeParse({ score: -1 }).success).toBe(false)
       expect(schema.safeParse({ score: '11' }).success).toBe(false)
+      expect(schema.safeParse({ score: 11 }).success).toBe(false)
     })
   })
 
@@ -43,6 +48,35 @@ describe('SubmissionGradeForm Component & Schema', () => {
         expect(onSubmitMock).toHaveBeenCalledWith(
           expect.objectContaining({
             score: 9,
+          }),
+          expect.anything()
+        )
+      })
+    })
+
+    it('allows re-grading with score 0 or same score without changing input', async () => {
+      const onSubmitMock = vi.fn()
+
+      render(
+        <SubmissionGradeForm
+          initialScore={0}
+          initialFeedback=""
+          isSubmitting={false}
+          isDraft={false}
+          maxScore={10}
+          onSubmit={onSubmitMock}
+        />
+      )
+
+      const input = screen.getByRole('spinbutton')
+      expect(input).toHaveValue(0)
+
+      fireEvent.click(screen.getByRole('button', { name: /Lưu điểm/i }))
+
+      await waitFor(() => {
+        expect(onSubmitMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            score: 0,
           }),
           expect.anything()
         )
