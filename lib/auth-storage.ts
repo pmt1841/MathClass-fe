@@ -23,7 +23,6 @@ export const authStorage = {
       document.cookie = roleCookieBase
       document.cookie = `mathclass_remember=; path=/; max-age=0; SameSite=${COOKIE_OPTIONS.SAME_SITE}${secureFlag}`
       localStorage.setItem('auth_persistence', 'session')
-      sessionStorage.setItem('tab_session_active', 'true')
     }
 
     // Clear old storage to prevent stale data
@@ -33,11 +32,10 @@ export const authStorage = {
 
   isValidSession(): boolean {
     if (typeof window === 'undefined') return true
-    const isSession = localStorage.getItem('auth_persistence') === 'session'
-    if (isSession && !sessionStorage.getItem('tab_session_active')) {
-      return false
-    }
-    return true
+    // Phiên đăng nhập hợp lệ khi vẫn còn Cookie user_info hoặc mathclass_role
+    const hasUserInfoCookie = !!this.getCookie(AUTH_KEYS.USER_INFO)
+    const hasRoleCookie = !!this.getCookie('user_role') || !!this.getCookie('mathclass_role')
+    return hasUserInfoCookie || hasRoleCookie
   },
 
   /**
@@ -69,7 +67,6 @@ export const authStorage = {
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
     localStorage.removeItem('auth_persistence')
-    sessionStorage.removeItem('tab_session_active')
   },
 
   setUserInfo(userInfo: any, rememberMe: boolean) {

@@ -75,6 +75,7 @@ export function useLogin() {
       } else {
         router.push('/home')
       }
+      return true
 
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>
@@ -83,6 +84,7 @@ export function useLogin() {
       } else {
         setLoginError('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
       }
+      return false
     } finally {
       setIsLoading(false)
     }

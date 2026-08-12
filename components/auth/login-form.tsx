@@ -28,6 +28,8 @@ import { useAppDispatch } from '@/lib/redux/hooks'
 import { logoutSuccess } from '@/lib/redux/features/authSlice'
 import { authStorage } from '@/lib/auth-storage'
 import { logoutSession } from '@/lib/logout'
+import { useAuthChannel } from '@/hooks/useAuthChannel'
+import { AccountConflictModal } from './account-conflict-modal'
 
 const formSchema = z.object({
   email: z.string().min(1, 'Email là bắt buộc').trim().toLowerCase().email('Email không hợp lệ'),
@@ -42,17 +44,19 @@ export default function LoginForm() {
   const router = useRouter()
   const pathname = usePathname()
   const dispatch = useAppDispatch()
+  const { broadcastEvent } = useAuthChannel()
+
   const [role, setRole] = useState<string>(ROLES.STUDENT)
-  // Vai trò tường minh (?role= hoặc đã chọn role trước đó). Nếu null → KHÔNG giới hạn vai trò,
-  // tránh chặn nhầm người dùng hợp lệ (vd giáo viên mở thẳng /login nhưng role mặc định là STUDENT).
   const [explicitRole, setExplicitRole] = useState<string | null>(null)
-  /*
-   * PHÁT HIỆN LÝ DO BỊ KHÓA:
-   * State kiểm soát việc hiển thị Modal Cảnh báo khi người dùng bị văng từ hệ thống về trang Login với tham số ?reason=account_locked
-   */
+  
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
   const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
   const [lockedAt, setLockedAt] = useState<string | undefined>(undefined)
+
+  // State kiểm soát Modal Xung đột đăng nhập đa tài khoản
+  const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
+  const [existingUser, setExistingUser] = useState<any>(null)
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
 
   const { login, isLoading, loginError } = useLogin()
 
@@ -80,11 +84,6 @@ export default function LoginForm() {
     }
   }, [searchParams])
 
-  /*
-   * TỰ ĐỘNG BẬT MODAL KHI ĐĂNG NHẬP THẤT BẠI DO BỊ KHÓA:
-   * Nếu người dùng cố tình nhập thông tin đăng nhập của một tài khoản đã bị khóa,
-   * thông báo lỗi từ backend trả về cũng sẽ kích hoạt hiển thị Modal Cảnh Báo kèm lý do.
-   */
   useEffect(() => {
     if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
       if (loginError.includes('Lý do: ')) {
@@ -97,17 +96,12 @@ export default function LoginForm() {
     }
   }, [loginError])
 
-  /**
-   * Đóng Modal, xóa sạch Redux Auth State & Cookie còn đọng lại trên trình duyệt
-   * và loại bỏ tham số ?reason=account_locked để giữ người dùng an toàn tại trang Login chuẩn bị đăng nhập lại.
-   */
   const handleCloseLockedModal = () => {
     setShowLockedModal(false)
     setLockedReason(undefined)
     setLockedAt(undefined)
     sessionStorage.removeItem('locked_account_info')
 
-    // Xóa sạch trạng thái Auth trong Redux và Storage (clearToken đã xóa toàn bộ cookie phiên)
     try {
       dispatch(logoutSuccess())
     } catch (e) {
@@ -116,8 +110,6 @@ export default function LoginForm() {
 
     authStorage.clearToken()
     authStorage.clearUserInfo()
-
-    // Gửi request ngầm logout tới backend để dọn cookie HttpOnly (axios gốc, không qua interceptor)
     logoutSession()
 
     const params = new URLSearchParams(searchParams.toString())
@@ -125,7 +117,6 @@ export default function LoginForm() {
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
     router.replace(newUrl)
   }
-
 
   const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : role === ROLES.ADMIN ? ' Quản trị viên' : ''
 
@@ -138,7 +129,6 @@ export default function LoginForm() {
     },
   })
 
-  // Theo dõi lựa chọn "Giữ đăng nhập" để truyền xuống Google Login cho nhất quán
   const rememberMe = form.watch('rememberMe')
 
   useEffect(() => {
@@ -148,8 +138,45 @@ export default function LoginForm() {
     }
   }, [form])
 
+  const executeActualLogin = async (values: FormValues) => {
+    const res = await login({ email: values.email, password: values.password }, !!values.rememberMe, explicitRole || undefined)
+    if (res) {
+      broadcastEvent('LOGIN', res)
+    }
+  }
+
   const onSubmit = async (values: FormValues) => {
-    await login({ email: values.email, password: values.password }, !!values.rememberMe, explicitRole || undefined)
+    // PRE-LOGIN CHECK: Kiểm tra xem trình duyệt đã tồn tại phiên tài khoản khác hay chưa
+    const currentUser = authStorage.getUserInfo()
+    if (currentUser && currentUser.email && currentUser.email.toLowerCase() !== values.email.toLowerCase()) {
+      setExistingUser(currentUser)
+      setPendingValues(values)
+      setShowConflictModal(true)
+      return
+    }
+
+    await executeActualLogin(values)
+  }
+
+  const handleContinueAsCurrent = () => {
+    setShowConflictModal(false)
+    const isAdmin = existingUser?.role === 'ADMIN' || existingUser?.roles?.includes('ROLE_ADMIN')
+    router.push(isAdmin ? '/admin/users' : '/home')
+  }
+
+  const handleSwitchAccount = async () => {
+    setShowConflictModal(false)
+    // Đăng xuất tài khoản cũ ngầm
+    await logoutSession()
+    authStorage.clearToken()
+    authStorage.clearUserInfo()
+    dispatch(logoutSuccess())
+    broadcastEvent('LOGOUT')
+
+    if (pendingValues) {
+      await executeActualLogin(pendingValues)
+      setPendingValues(null)
+    }
   }
 
   return (
@@ -306,6 +333,15 @@ export default function LoginForm() {
         onClose={handleCloseLockedModal}
         lockReason={lockedReason}
         lockedAt={lockedAt}
+      />
+
+      {/* ── Modal Cảnh báo Xung đột Đăng nhập Đa Tài khoản ───────────── */}
+      <AccountConflictModal
+        open={showConflictModal}
+        currentUser={existingUser}
+        attemptedEmail={pendingValues?.email || ''}
+        onContinueAsCurrent={handleContinueAsCurrent}
+        onSwitchAccount={handleSwitchAccount}
       />
     </div>
   )
