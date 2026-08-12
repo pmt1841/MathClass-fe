@@ -35,8 +35,11 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
+import { normalizeAiGeometryJson } from '@/lib/jsxgraph-utils'
+
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
+const HandwritingSketchModal = dynamic(() => import('@/components/assignments/HandwritingSketchModal').then(mod => mod.HandwritingSketchModal), { ssr: false })
 
 export const extractDrawings = (content: string) => {
   if (!content) return { content: '', extractedDrawings: [] }
@@ -101,11 +104,13 @@ export function StudentAssignmentLayout({
   const [activeTab, setActiveTab] = useState<'ASSIGNMENT' | 'PREVIEW'>('ASSIGNMENT')
   const [showHintModal, setShowHintModal] = useState(false)
   const [showConfirmHintModal, setShowConfirmHintModal] = useState(false)
+  const [showHandwritingModal, setShowHandwritingModal] = useState(false)
 
   const { comments = [] } = useSubmissionComments(submissionId || 0)
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
   const { data: aiFeatures } = useAiFeatures()
   const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
+  const handwritingEnabled = aiFeatures?.[AI_FEATURE_TASKS.CANVAS_LATEX] === true || aiFeatures?.[AI_FEATURE_TASKS.HANDWRITING_LATEX] === true || aiFeatures?.[AI_FEATURE_TASKS.SKETCH_GEOMETRY] === true
 
   const {
     hints,
@@ -150,7 +155,7 @@ export function StudentAssignmentLayout({
               </div>
             </div>
             <div className="prose prose-slate prose-sm max-w-none mt-2">
-              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]} components={markdownComponents}>
+              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, rehypeKatex, [rehypeSanitize, sanitizeSchema]]} components={markdownComponents}>
                 {comment.content}
               </ReactMarkdown>
             </div>
@@ -162,15 +167,15 @@ export function StudentAssignmentLayout({
 
   const submissionRehypePlugins = useMemo(() => [
     rehypeRaw,
-    [rehypeSanitize, sanitizeSchema],
     rehypeKatex,
+    [rehypeSanitize, sanitizeSchema],
     ...(comments.length > 0 ? [[rehypeMarkComments, { comments, activeCommentId: null }]] : [])
   ], [comments])
 
   const baseRehypePlugins = useMemo(() => [
     rehypeRaw,
-    [rehypeSanitize, sanitizeSchema],
-    rehypeKatex
+    rehypeKatex,
+    [rehypeSanitize, sanitizeSchema]
   ], [])
 
   const [studentDrawings, setStudentDrawings] = useState<any[]>([])
@@ -615,18 +620,33 @@ export function StudentAssignmentLayout({
                   <Edit3 className="w-3.5 h-3.5" /> Bài làm của bạn
                 </div>
                 {!isReadOnly && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setEditingShape(null);
-                      setShowJsxGraphModal(true);
-                    }}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
-                  >
-                    <CircleDot className="w-3.5 h-3.5" />
-                    Thêm hình vẽ và đồ thị
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {handwritingEnabled && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowHandwritingModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded flex items-center gap-1.5 hover:bg-purple-100 transition-colors shadow-sm border border-purple-200"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        Vẽ tự do / Tải ảnh chữ viết
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setEditingShape(null);
+                        setShowJsxGraphModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm border border-blue-200"
+                    >
+                      <CircleDot className="w-3.5 h-3.5" />
+                      Thêm hình vẽ và đồ thị
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -916,6 +936,25 @@ export function StudentAssignmentLayout({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
+
+      {showHandwritingModal && (
+        <HandwritingSketchModal
+          isOpen={showHandwritingModal}
+          onClose={() => setShowHandwritingModal(false)}
+          onInsertLatex={(latex) => {
+            handleInsertLatex(latex)
+          }}
+          onInsertGeometry={(geometryJson) => {
+            try {
+              const parsed = JSON.parse(geometryJson)
+              const normalized = normalizeAiGeometryJson(parsed)
+              handleConfirmJsxGraph(normalized)
+            } catch {
+              handleInsertLatex(`\n\`\`\`json\n${geometryJson}\n\`\`\`\n`)
+            }
+          }}
+        />
       )}
     </div>
   )
