@@ -21,6 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { AccountLockedModal } from './account-locked-modal'
+import { AccountConflictModal } from './account-conflict-modal'
+import { useAuthChannel } from '@/hooks/useAuthChannel'
 
 import { useLogin } from '@/hooks/useLogin'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
@@ -43,7 +45,14 @@ export default function AdminLoginForm() {
   const router = useRouter()
   const pathname = usePathname()
   const dispatch = useAppDispatch()
+  const { broadcastEvent } = useAuthChannel()
+
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
+
+  // State kiểm soát Modal Xung đột đăng nhập đa tài khoản
+  const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
+  const [existingUser, setExistingUser] = useState<any>(null)
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -93,12 +102,47 @@ export default function AdminLoginForm() {
     }
   }, [form])
 
-  const onSubmit = async (values: FormValues) => {
-    await login(
+  const executeActualLogin = async (values: FormValues) => {
+    const success = await login(
       { email: values.email, password: values.password },
       !!values.rememberMe,
       ROLES.ADMIN
     )
+    if (success) {
+      broadcastEvent('LOGIN')
+    }
+  }
+
+  const onSubmit = async (values: FormValues) => {
+    const currentUser = authStorage.getUserInfo()
+    if (currentUser && currentUser.email && currentUser.email.toLowerCase() !== values.email.toLowerCase()) {
+      setExistingUser(currentUser)
+      setPendingValues(values)
+      setShowConflictModal(true)
+      return
+    }
+
+    await executeActualLogin(values)
+  }
+
+  const handleContinueAsCurrent = () => {
+    setShowConflictModal(false)
+    const isAdmin = existingUser?.role === 'ADMIN' || existingUser?.roles?.includes('ROLE_ADMIN')
+    router.push(isAdmin ? '/admin/users' : '/home')
+  }
+
+  const handleSwitchAccount = async () => {
+    setShowConflictModal(false)
+    await logoutSession()
+    authStorage.clearToken()
+    authStorage.clearUserInfo()
+    dispatch(logoutSuccess())
+    broadcastEvent('LOGOUT')
+
+    if (pendingValues) {
+      await executeActualLogin(pendingValues)
+      setPendingValues(null)
+    }
   }
 
   return (
@@ -229,6 +273,15 @@ export default function AdminLoginForm() {
 
       {/* ── Modal Cảnh báo Tài khoản bị khóa ─────────────────────────────── */}
       <AccountLockedModal open={showLockedModal} onClose={handleCloseLockedModal} />
+
+      {/* ── Modal Cảnh báo Xung đột Đăng nhập Đa Tài khoản ───────────── */}
+      <AccountConflictModal
+        open={showConflictModal}
+        currentUser={existingUser}
+        attemptedEmail={pendingValues?.email || ''}
+        onContinueAsCurrent={handleContinueAsCurrent}
+        onSwitchAccount={handleSwitchAccount}
+      />
     </div>
   )
 }

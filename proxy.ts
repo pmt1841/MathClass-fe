@@ -71,12 +71,12 @@ export function proxy(request: NextRequest) {
   }
 
   /*
-   * XỬ LÝ VÒNG LẶP CHUYỂN HƯỚNG & KIỂM TRA MEMORY SESSION:
-   * Chỉ tự động chuyển hướng người dùng đã đăng nhập từ / hoặc /login về /home nếu chọn "Ghi nhớ đăng nhập" (mathclass_remember=true).
-   * Nếu không tích chọn "Ghi nhớ đăng nhập", để Client JS (AuthInitializer) kiểm tra tab session active để xử lý hủy phiên khi mở tab mới.
+   * TỰ ĐỘNG NHẬN PHIÊN ĐĂNG NHẬP (CROSS-TAB SESSION SHARING):
+   * Nếu trình duyệt đã có Token hợp lệ (do Tab 1 đã đăng nhập), bất kể có tích "Giữ đăng nhập" hay không,
+   * khi Tab 2 mở các đường dẫn công khai (/, /login, /admin/login, /signup), Middleware sẽ tự động
+   * chuyển hướng Tab 2 vào Trang chủ (/home hoặc /admin/users).
    */
-  const isRemembered = request.cookies.get('mathclass_remember')?.value === 'true'
-  if (!isAccountLockedReason && isTokenValid && isRemembered && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
+  if (!isAccountLockedReason && isTokenValid && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
     const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
