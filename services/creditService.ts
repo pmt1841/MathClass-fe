@@ -82,4 +82,8 @@ export const creditService = {
     const res = await api.post<CreditPurchaseOrder>(`/credits/purchase/${orderId}/complete`)
     return res.data
   },
+
+  refundTask: async (task: string): Promise<void> => {
+    await api.post('/credits/refund-task', null, { params: { task } })
+  },
 }

@@ -42,9 +42,18 @@ export const submissionAiGradingService = {
    * Gọi backend chạy AI chấm sơ bộ cho 1 bài nộp.
    * @param submissionId ID bài nộp của học sinh
    * @param assignmentId ID bài tập (để backend lấy hình mẫu + maxScore)
+   * @param options Cấu hình thêm (như AbortSignal để hủy request)
    */
-  submitAiGrading: async (submissionId: number, assignmentId: number): Promise<AiGradingResult> => {
-    const res = await api.post<AiGradingResult>(`/submissions/${submissionId}/ai-grading`, { assignmentId })
+  submitAiGrading: async (
+    submissionId: number,
+    assignmentId: number,
+    options?: { signal?: AbortSignal }
+  ): Promise<AiGradingResult> => {
+    const res = await api.post<AiGradingResult>(
+      `/submissions/${submissionId}/ai-grading`,
+      { assignmentId },
+      { signal: options?.signal }
+    )
     return res.data
   }
 }
