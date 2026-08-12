@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { HomeClient } from '@/app/(dashboard)/home/_components/home-client'
+import { authStorage } from '@/lib/auth-storage'
 
 // Mock the child components so we don't render the whole heavy dashboard
 vi.mock('@/app/(dashboard)/home/_components/student-client', () => ({
@@ -13,13 +14,14 @@ vi.mock('@/app/(dashboard)/home/_components/teacher-client', () => ({
 
 describe('HomeClient', () => {
   beforeEach(() => {
-    // Clear localStorage and sessionStorage before each test
+    // Clear localStorage and cookies before each test
+    authStorage.clearUserInfo()
     window.localStorage.clear()
     window.sessionStorage.clear()
   })
 
   it('renders StudentDashboardClient when role is STUDENT', async () => {
-    window.localStorage.setItem('user_info', JSON.stringify({ role: 'STUDENT' }))
+    authStorage.setUserInfo({ role: 'STUDENT' }, true)
     
     render(<HomeClient />)
     
@@ -31,7 +33,7 @@ describe('HomeClient', () => {
   })
 
   it('renders TeacherDashboardClient when role is TEACHER', async () => {
-    window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
+    authStorage.setUserInfo({ role: 'TEACHER' }, true)
     
     render(<HomeClient />)
     

@@ -27,7 +27,7 @@ describe('authStorage', () => {
   it('setToken handles session mode when rememberMe is false', () => {
     authStorage.setToken('dummy-token', 'STUDENT', false)
     expect(localStorage.getItem('auth_persistence')).toBe('session')
-    expect(sessionStorage.getItem('tab_session_active')).toBe('true')
+    expect(document.cookie).toContain('user_role=STUDENT')
   })
 
   it('setUserInfo and getUserInfo work with cookies', () => {
