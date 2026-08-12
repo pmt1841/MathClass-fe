@@ -110,7 +110,7 @@ export function StudentAssignmentLayout({
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
   const { data: aiFeatures } = useAiFeatures()
   const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
-  const handwritingEnabled = aiFeatures?.[AI_FEATURE_TASKS.CANVAS_LATEX] === true || aiFeatures?.[AI_FEATURE_TASKS.HANDWRITING_LATEX] === true || aiFeatures?.[AI_FEATURE_TASKS.SKETCH_GEOMETRY] === true
+  const handwritingEnabled = aiFeatures?.[AI_FEATURE_TASKS.CANVAS_LATEX] === true
 
   const {
     hints,

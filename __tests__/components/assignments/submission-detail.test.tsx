@@ -104,8 +104,6 @@ describe('SubmissionDetail', () => {
       STUDENT_HINT: true,
       QUESTION_GEN: true,
       CANVAS_LATEX: true,
-      HANDWRITING_LATEX: true,
-      SKETCH_GEOMETRY: true,
       ERROR_ANALYSIS: true,
     })
   })
@@ -249,8 +247,6 @@ describe('SubmissionDetail', () => {
       STUDENT_HINT: false,
       QUESTION_GEN: false,
       CANVAS_LATEX: false,
-      HANDWRITING_LATEX: false,
-      SKETCH_GEOMETRY: false,
       ERROR_ANALYSIS: false,
     })
 

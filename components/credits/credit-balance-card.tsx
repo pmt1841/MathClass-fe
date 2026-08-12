@@ -69,7 +69,9 @@ export function CreditBalanceCard() {
             </div>
           ) : (
             <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-              {(data?.costs || []).map((cost) => (
+              {(data?.costs || [])
+                .filter((cost) => cost.task !== 'HANDWRITING_LATEX' && cost.task !== 'SKETCH_GEOMETRY')
+                .map((cost) => (
                 <li key={cost.task} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                   <span className="text-slate-700">{getCreditTaskLabel(cost.task)}</span>
                   <div className="text-right">
