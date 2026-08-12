@@ -8,7 +8,7 @@ let studentHintEnabled = true
 
 vi.mock('@/hooks/useAiFeatures', () => ({
   AI_FEATURE_TASKS: {
-    ASSIGNMENT_GRADING: 'ASSIGNMENT_GRADING',
+    SUBMISSION_GRADING: 'SUBMISSION_GRADING',
     STUDENT_HINT: 'STUDENT_HINT',
     QUESTION_GEN: 'QUESTION_GEN',
     CANVAS_LATEX: 'CANVAS_LATEX',
@@ -16,7 +16,7 @@ vi.mock('@/hooks/useAiFeatures', () => ({
   },
   useAiFeatures: () => ({
     data: {
-      ASSIGNMENT_GRADING: true,
+      SUBMISSION_GRADING: true,
       STUDENT_HINT: studentHintEnabled,
       QUESTION_GEN: true,
       CANVAS_LATEX: true,

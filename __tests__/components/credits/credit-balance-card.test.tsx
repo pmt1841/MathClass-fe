@@ -11,7 +11,7 @@ vi.mock('@/hooks/useCredits', () => ({
       totalSpent: 3,
       costs: [
         { task: 'STUDENT_HINT', costPerCall: 1, tokensPerCredit: 1000 },
-        { task: 'ASSIGNMENT_GRADING', costPerCall: 5, tokensPerCredit: 1000 },
+        { task: 'SUBMISSION_GRADING', costPerCall: 5, tokensPerCredit: 1000 },
       ],
     },
     isLoading: false,

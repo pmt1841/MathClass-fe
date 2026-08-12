@@ -49,7 +49,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     icon: FileText,
   },
   {
-    taskCode: 'ASSIGNMENT_GRADING',
+    taskCode: 'SUBMISSION_GRADING',
     title: 'Chấm bài Tự luận AI',
     description: 'Phân tích lời giải bài tập học sinh, chấm điểm và gợi ý lời nhận xét.',
     icon: CheckSquare,

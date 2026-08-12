@@ -76,10 +76,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const { result: aiGradingResult, isGrading: isAiGrading, error: aiGradingError, insufficientCredit: aiGradingInsufficientCredit, gradeWithAi, reset: resetAiGrading } = useSubmissionAiGrading()
 
-  // MAT-250: Chỉ hiển thị nút "AI chấm sơ bộ" khi admin đã cấu hình + bật task ASSIGNMENT_GRADING
+  // MAT-250: Chỉ hiển thị nút "AI chấm sơ bộ" khi admin đã cấu hình + bật task SUBMISSION_GRADING
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
   const { data: aiFeatures } = useAiFeatures()
-  const aiGradingEnabled = aiFeatures?.[AI_FEATURE_TASKS.ASSIGNMENT_GRADING] === true
+  const aiGradingEnabled = aiFeatures?.[AI_FEATURE_TASKS.SUBMISSION_GRADING] === true
   const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
 
   const { data: hintHistory, isLoading: isHintLoading } = useQuery({
