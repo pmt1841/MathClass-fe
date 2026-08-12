@@ -60,16 +60,31 @@ export function useTextEditor({ textareaRef, content, onChange }: UseTextEditorP
     const isInsideMath = (countDoubleDollar % 2 !== 0) || (countSingleDollar % 2 !== 0)
 
     // Replace { } with {selectedText} if user highlighted text
-    let cmd = latexCommand
+    let cmd = latexCommand.trim()
+
+    // Strip outer $ or $$ from cmd if present to prevent double-wrapping
+    cmd = cmd.replace(/^\$\$?/, '').replace(/\$\$?$/, '').trim()
+
     if (selectedText && cmd.includes('{ }')) {
       cmd = cmd.replace('{ }', `{${selectedText}}`)
     }
 
-    const isMathBlock = cmd.includes('\\begin')
+    // Auto-wrap multi-line equations with \\ in \begin{aligned} environment if not already in an environment
+    if (cmd.includes('\\\\') && !cmd.includes('\\begin{')) {
+      cmd = `\\begin{aligned}\n${cmd}\n\\end{aligned}`
+    }
+
+    const isMathBlock = cmd.includes('\\begin') || cmd.includes('\\\\') || cmd.includes('\n')
     let insertText = cmd
 
     if (!isInsideMath) {
-      insertText = isMathBlock ? `$$ \n${cmd} \n$$` : `$$ ${cmd} $$`
+      const needsLeadingNewline = before.length > 0 && !before.endsWith('\n')
+      const prefixPadding = before.trimEnd().endsWith('$$') ? '\n\n' : (isMathBlock && needsLeadingNewline ? '\n' : '')
+      const suffixPadding = after.trimStart().startsWith('$$') ? '\n\n' : (isMathBlock && !after.startsWith('\n') ? '\n' : '')
+
+      insertText = isMathBlock
+        ? `${prefixPadding}$$\n${cmd}\n$$${suffixPadding}`
+        : `${prefixPadding}$$ ${cmd} $$${suffixPadding}`
     }
 
     const newVal = before + insertText + after

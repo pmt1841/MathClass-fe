@@ -32,13 +32,11 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
       if (boardRef.current && jsxGraphData) {
         // Init board
         const boundingbox = jsxGraphData.boundingbox || [-5, 5, 5, -5]
-        const axis = jsxGraphData.axis !== undefined ? jsxGraphData.axis : true
-        const grid = jsxGraphData.grid !== undefined ? jsxGraphData.grid : true
 
         board = JXG.JSXGraph.initBoard(boardRef.current.id, {
           boundingbox: boundingbox,
-          axis: axis,
-          grid: grid ? { gridX: 1, gridY: 1 } : false,
+          axis: true,
+          grid: { gridX: 1, gridY: 1 },
           defaultAxes: {
             x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
             y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
@@ -260,8 +258,16 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
               } else if ((normType === 'segment' || normType === 'line') && !el.isVertical) {
                 const fromKey = el.fromId || el.startId || el.from || el.start || (parents ? parents[0] : null)
                 const toKey = el.toId || el.endId || el.to || el.end || (parents ? parents[1] : null)
-                const p1 = newPointMap[fromKey] || fromKey
-                const p2 = newPointMap[toKey] || toKey
+                let p1 = newPointMap[fromKey]
+                if (!p1 && typeof fromKey === 'string') {
+                  const foundKey = Object.keys(newPointMap).find(k => k.toLowerCase() === fromKey.toLowerCase())
+                  if (foundKey) p1 = newPointMap[foundKey]
+                }
+                let p2 = newPointMap[toKey]
+                if (!p2 && typeof toKey === 'string') {
+                  const foundKey = Object.keys(newPointMap).find(k => k.toLowerCase() === toKey.toLowerCase())
+                  if (foundKey) p2 = newPointMap[foundKey]
+                }
                 if (p1 && p2) {
                   board.create(normType, [p1, p2], attrs)
                 }
@@ -345,9 +351,31 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                       strokeWidth: 2.5,
                       ...attrs
                     };
-                    fg = board.create('functiongraph', [jsExpr], funcAttrs);
+                    let fn: any;
+                    try {
+                      if (board.jc) {
+                        fn = board.jc.snippet(jsExpr, true, 'x');
+                      } else {
+                        const isSafeMathExpr = /^[0-9xX\+\-\*\/\^\(\)\.\,\sMath\w]+$/.test(jsExpr)
+                          && !jsExpr.includes('window')
+                          && !jsExpr.includes('document')
+                          && !jsExpr.includes('eval')
+                          && !jsExpr.includes('fetch');
+                        if (isSafeMathExpr) {
+                          fn = new Function('x', `return ${jsExpr}`);
+                        } else {
+                          fn = jsExpr;
+                        }
+                      }
+                    } catch {
+                      fn = jsExpr;
+                    }
+                    fg = board.create('functiongraph', [fn], funcAttrs);
                   }
-                  if (el.id && fg) fg.id = el.id;
+                  if (el.id && fg) {
+                    fg.id = el.id;
+                    board.objects[el.id] = fg;
+                  }
                 }
               }
             } catch (elementErr) {

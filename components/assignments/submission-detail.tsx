@@ -296,7 +296,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               )}
             </div>
             <div className="prose prose-sm prose-slate max-w-none mt-2">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, rehypeKatex, [rehypeSanitize, sanitizeSchema]]}>
                 {comment.content}
               </ReactMarkdown>
             </div>
