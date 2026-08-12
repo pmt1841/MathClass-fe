@@ -6,6 +6,7 @@ import { submissionService } from '@/services/submissionService'
 import { assignmentService } from '@/services/assignmentService'
 import { submissionAiGradingService } from '@/services/submissionAiGradingService'
 import { aiFeatureService } from '@/services/aiFeatureService'
+import { authStorage } from '@/lib/auth-storage'
 
 vi.mock('@/services/submissionService', () => ({
   submissionService: {
@@ -97,7 +98,7 @@ const mockSubmission = {
 describe('SubmissionDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
+    authStorage.setUserInfo({ role: 'TEACHER' }, true)
     // Mặc định: admin đã bật tính năng AI chấm sơ bộ
     vi.mocked(aiFeatureService.getFeatures).mockResolvedValue({
       ASSIGNMENT_GRADING: true,

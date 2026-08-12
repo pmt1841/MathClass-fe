@@ -24,21 +24,26 @@ export function useAuthChannel(onAuthEvent?: (payload: AuthEventPayload) => void
     }
 
     // 1. Dùng BroadcastChannel (Ưu tiên)
+    let hasBroadcast = false
     try {
       if ('BroadcastChannel' in window) {
         const channel = new BroadcastChannel(CHANNEL_NAME)
         channel.postMessage(payload)
         channel.close()
+        hasBroadcast = true
       }
     } catch (e) {
       console.warn('BroadcastChannel failed, fallback to localStorage', e)
     }
 
-    // 2. Fallback qua localStorage event (Dành cho trình duyệt/môi trường không hỗ trợ BroadcastChannel)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-    } catch (e) {
-      // ignore
+    // 2. Fallback qua localStorage event (Chỉ kích hoạt khi không có BroadcastChannel)
+    if (!hasBroadcast) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+        localStorage.removeItem(STORAGE_KEY) // Trigger signal tức thì và dọn dẹp rác ngay lập tức
+      } catch (e) {
+        // ignore
+      }
     }
   }, [])
 
