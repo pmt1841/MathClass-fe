@@ -9,6 +9,8 @@ import { PublishAssignmentModal } from '@/components/assignments/publish-assignm
 import { useAuth } from '@/hooks/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { handleApiError } from '@/lib/utils/error-handler'
+
 export function CreateAssignmentPageClient() {
   const router = useRouter()
   const { user, isInitializing } = useAuth()
@@ -110,8 +112,7 @@ export function CreateAssignmentPageClient() {
       router.push('/assignments')
     } catch (err: any) {
       console.error('Error publishing assignment:', err)
-      const msg = err.response?.data || 'Có lỗi xảy ra khi đăng bài'
-      toast.error(typeof msg === 'string' ? msg : 'Không thể đăng bài tập')
+      toast.error(handleApiError(err, 'Không thể giao bài tập'))
     } finally {
       setIsSubmitting(false)
     }

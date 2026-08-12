@@ -59,7 +59,7 @@ const createQueryClient = () =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 const configuredTask: TaskConfig = {
-  task: 'ASSIGNMENT_GRADING',
+  task: 'SUBMISSION_GRADING',
   providerId: 1,
   model: 'gemini-2.5-flash',
   temperature: 0.7,
@@ -204,7 +204,7 @@ describe('TaskRoutingTab — MAT-254 Feature Flag toggle', () => {
 
     // Sau đó backend trả về thành công -> giữ trạng thái mới
     resolveUpdate({
-      task: 'ASSIGNMENT_GRADING',
+      task: 'SUBMISSION_GRADING',
       providerId: 1,
       model: 'gemini-2.5-flash',
       temperature: 0.7,

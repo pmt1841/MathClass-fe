@@ -57,7 +57,7 @@ const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').the
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
-  description: z.string().min(1, 'Mô tả bài tập không được để trống'),
+  description: z.string().optional().default(''),
   content: z.string().min(1, 'Nội dung bài tập không được để trống'),
   drawings: z.array(z.any()).optional(),
   images: z.array(z.any()).optional()
@@ -904,7 +904,7 @@ export function AssignmentForm({
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông tin chung</h3>
               <div className="space-y-1 relative">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mô tả ngắn gọn</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mô tả ngắn gọn (Tùy chọn)</label>
                 <textarea
                   {...register('description')}
                   placeholder="Mô tả tóm tắt nội dung bài tập này cho học sinh..."

@@ -100,11 +100,10 @@ describe('SubmissionDetail', () => {
     window.localStorage.setItem('user_info', JSON.stringify({ role: 'TEACHER' }))
     // Mặc định: admin đã bật tính năng AI chấm sơ bộ
     vi.mocked(aiFeatureService.getFeatures).mockResolvedValue({
-      ASSIGNMENT_GRADING: true,
+      SUBMISSION_GRADING: true,
       STUDENT_HINT: true,
       QUESTION_GEN: true,
       CANVAS_LATEX: true,
-      CONTENT_SUMMARIZATION: true,
       ERROR_ANALYSIS: true,
     })
   })
@@ -244,11 +243,10 @@ describe('SubmissionDetail', () => {
     vi.mocked(assignmentService.getAssignmentById).mockResolvedValue(mockAssignment)
     // Admin chưa bật tính năng AI chấm sơ bộ
     vi.mocked(aiFeatureService.getFeatures).mockResolvedValue({
-      ASSIGNMENT_GRADING: false,
+      SUBMISSION_GRADING: false,
       STUDENT_HINT: false,
       QUESTION_GEN: false,
       CANVAS_LATEX: false,
-      CONTENT_SUMMARIZATION: false,
       ERROR_ANALYSIS: false,
     })
 

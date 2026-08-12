@@ -4,19 +4,34 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
   submissionAiGradingService,
-  AiGradingResult
+  AiGradingResult,
 } from '@/services/submissionAiGradingService'
-import { handleApiError, isInsufficientCredit } from '@/lib/utils/error-handler'
 
-import { creditService } from '@/services/creditService'
-
-export type { AiGradingResult, DrawingIssue } from '@/services/submissionAiGradingService'
+export interface UseAiGradingWithBackgroundReturn {
+  isPanelOpen: boolean
+  isConfirmOpen: boolean
+  isGrading: boolean
+  isMinimized: boolean
+  result: AiGradingResult | null
+  error: string | null
+  insufficientCredit: boolean
+  triggerAiGrading: (
+    submissionId: number,
+    assignmentId: number,
+    studentName: string
+  ) => Promise<void>
+  handleCloseRequest: () => void
+  handleMinimize: () => void
+  handleCancelGrading: () => void
+  handleContinueViewing: () => void
+  openPanelManually: () => void
+  closePanelManually: () => void
+}
 
 /**
- * Hook gọi AI chấm sơ bộ bài làm của học sinh.
- * Hỗ trợ ẩn cửa sổ (chạy ngầm) và hủy tiến trình qua AbortController.
+ * Hook quản lý tiến trình AI Chấm sơ bộ với khả năng chạy ngầm và hủy tiến trình.
  */
-export function useSubmissionAiGrading() {
+export function useAiGradingWithBackground(): UseAiGradingWithBackgroundReturn {
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
@@ -28,6 +43,7 @@ export function useSubmissionAiGrading() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const isMinimizedRef = useRef(false)
 
+  // Cleanup abort controller when unmounting
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -36,24 +52,9 @@ export function useSubmissionAiGrading() {
     }
   }, [])
 
-  const gradeWithAi = useCallback(
-    async (params: { submissionId: number; assignmentId: number; studentName?: string; forceRefetch?: boolean }) => {
-      const { submissionId, assignmentId, studentName = 'học sinh', forceRefetch = false } = params
-
-      // 1. Nếu AI đang chạy (dù đang xem hay đang ẩn ngầm) → mở lại Popup B để người dùng chọn lại
-      if (isGrading) {
-        setIsConfirmOpen(true)
-        return
-      }
-
-      // 2. Nếu đã có kết quả và không ép buộc chạy lại → mở lại Popup A với kết quả hiện có
-      if (result && !forceRefetch) {
-        setIsPanelOpen(true)
-        setIsMinimized(false)
-        isMinimizedRef.current = false
-        return
-      }
-
+  const triggerAiGrading = useCallback(
+    async (submissionId: number, assignmentId: number, studentName: string) => {
+      // Abort any existing ongoing request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
@@ -81,7 +82,7 @@ export function useSubmissionAiGrading() {
         setIsGrading(false)
 
         if (isMinimizedRef.current) {
-          toast.success(`AI đã chấm sơ bộ xong bài làm của ${studentName}!`, {
+          toast.success(`AI đã chấm sơ bộ xong bài làm của ${studentName || 'học sinh'}!`, {
             action: {
               label: 'Xem kết quả',
               onClick: () => {
@@ -94,13 +95,21 @@ export function useSubmissionAiGrading() {
           })
         }
       } catch (err: any) {
+        // Ignore intentional abort cancellations
         if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
           return
         }
 
-        const isCreditErr = isInsufficientCredit(err)
-        setInsufficientCredit(isCreditErr)
-        const errorMessage = handleApiError(err, 'AI tạm thời không thể chấm sơ bộ bài này. Vui lòng thử lại sau.')
+        const isCreditErr =
+          err?.response?.status === 402 ||
+          err?.response?.data?.message?.includes('credit') ||
+          err?.message?.includes('credit')
+
+        setInsufficientCredit(Boolean(isCreditErr))
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Có lỗi xảy ra khi gọi AI chấm bài.'
 
         setError(errorMessage)
         setIsGrading(false)
@@ -110,7 +119,7 @@ export function useSubmissionAiGrading() {
         }
       }
     },
-    [isGrading, result]
+    []
   )
 
   const handleCloseRequest = useCallback(() => {
@@ -145,36 +154,22 @@ export function useSubmissionAiGrading() {
     isMinimizedRef.current = false
     setResult(null)
     setError(null)
-
-    // Hoàn lại credit cho người dùng khi bấm Hủy tiến trình AI chấm bài
-    creditService.refundTask('SUBMISSION_GRADING').catch(() => {
-      // Ignore refund call error in UI thread
-    })
-
-    toast('Đã hủy tiến trình AI chấm bài và hoàn lại credit.')
+    toast('Đã hủy tiến trình AI chấm bài.')
   }, [])
 
   const handleContinueViewing = useCallback(() => {
     setIsConfirmOpen(false)
+  }, [])
+
+  const openPanelManually = useCallback(() => {
     setIsPanelOpen(true)
     setIsMinimized(false)
     isMinimizedRef.current = false
   }, [])
 
-  const reset = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
-    setIsGrading(false)
-    setIsPanelOpen(false)
-    setIsConfirmOpen(false)
-    setIsMinimized(false)
-    isMinimizedRef.current = false
-    setResult(null)
-    setError(null)
-    setInsufficientCredit(false)
-  }, [])
+  const closePanelManually = useCallback(() => {
+    handleCloseRequest()
+  }, [handleCloseRequest])
 
   return {
     isPanelOpen,
@@ -184,12 +179,12 @@ export function useSubmissionAiGrading() {
     result,
     error,
     insufficientCredit,
-    gradeWithAi,
+    triggerAiGrading,
     handleCloseRequest,
     handleMinimize,
     handleCancelGrading,
     handleContinueViewing,
-    setIsPanelOpen,
-    reset,
+    openPanelManually,
+    closePanelManually,
   }
 }
