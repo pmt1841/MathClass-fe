@@ -81,7 +81,7 @@ export const authStorage = {
     } else {
       document.cookie = cookieBase
     }
-    
+
     // Clear old storages to ensure strict adherence to cookies
     localStorage.removeItem(AUTH_KEYS.USER_INFO)
     sessionStorage.removeItem(AUTH_KEYS.USER_INFO)
