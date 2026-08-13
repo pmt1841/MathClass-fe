@@ -43,7 +43,12 @@ export function VisibilityToggle({ value, assignmentId, isSheet = false }: Visib
       )
     } catch (error: any) {
       setOptimistic(!checked) // Rollback nếu API lỗi
-      toast.error(error.response?.data?.error || error.response?.data || 'Cần gắn đủ Khối lớp, Phân môn và Độ khó trước khi đăng lên Thư viện cộng đồng.')
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        (typeof error.response?.data === 'string' ? error.response.data : undefined) ||
+        'Cần gắn đủ Khối lớp, Phân môn và Độ khó trước khi đăng lên Thư viện cộng đồng.'
+      toast.error(errorMessage)
     }
   }
 

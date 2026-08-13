@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers, GitFork, User } from 'lucide-react'
+import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers, GitFork, User, Loader2 } from 'lucide-react'
 import { AssignmentSheet } from '@/hooks/useAssignments'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
@@ -52,27 +52,71 @@ export function AssignmentCard({
   const [tagEditorOpen, setTagEditorOpen] = useState(false)
   const [availableTags, setAvailableTags] = useState<AssignmentTag[]>([])
   const [tagIds, setTagIds] = useState(assignment.tags?.map(tag => tag.id) || [])
+  const [isSavingTags, setIsSavingTags] = useState(false)
   const queryClient = useQueryClient()
 
   const openTagEditor = async () => {
-    if (assignment.visibility === 'PUBLIC') { toast.error('Bài đang được chia sẻ trong Thư viện cộng đồng. Vui lòng chuyển về Riêng tư trước khi chỉnh sửa tag.'); return }
-    try { setAvailableTags(await assignmentService.getTags()); setTagEditorOpen(true) } catch { toast.error('Không thể tải danh sách tag') }
+    if (assignment.visibility === 'PUBLIC') {
+      toast.error('Bài đang được chia sẻ trong Thư viện cộng đồng. Vui lòng chuyển về Riêng tư trước khi chỉnh sửa tag.')
+      return
+    }
+    try {
+      setAvailableTags(await assignmentService.getTags())
+      setTagIds(assignment.tags?.map(tag => tag.id) || [])
+      setTagEditorOpen(true)
+    } catch {
+      toast.error('Không thể tải danh sách tag')
+    }
   }
+
   const saveTags = async () => {
     try {
+      setIsSavingTags(true)
       const detail = await assignmentService.getAssignmentById(assignment.id)
       await assignmentService.updateAssignment(assignment.id, {
         title: detail.title,
         description: detail.description,
         content: detail.content,
+        drawings: detail.drawings || [],
+        images: detail.images || [],
         tagIds,
       })
       await queryClient.invalidateQueries({ queryKey: ['assignments'] })
       setTagEditorOpen(false)
       toast.success('Đã cập nhật tag')
-    } catch (error: any) { toast.error(error.response?.data?.error || 'Không thể cập nhật tag') }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật tag')
+    } finally {
+      setIsSavingTags(false)
+    }
   }
-  const tagEditor = !isSheet && isTeacher && !isLibraryMode ? <Popover open={tagEditorOpen} onOpenChange={setTagEditorOpen}><PopoverTrigger asChild><button type="button" onClick={openTagEditor} className="text-left"><AssignmentTagPills tags={assignment.tags} /></button></PopoverTrigger><PopoverContent className="w-80 space-y-3"><p className="font-bold text-sm">Phân loại bài tập</p><AssignmentTagSelector tags={availableTags} selectedIds={tagIds} onChange={setTagIds} /><div className="flex justify-end"><button onClick={saveTags} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Lưu tag</button></div></PopoverContent></Popover> : <AssignmentTagPills tags={assignment.tags} />
+
+  const tagEditor = !isSheet && isTeacher && !isLibraryMode ? (
+    <Popover open={tagEditorOpen} onOpenChange={setTagEditorOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" onClick={openTagEditor} className="text-left">
+          <AssignmentTagPills tags={assignment.tags} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 space-y-3">
+        <p className="font-bold text-sm">Phân loại bài tập</p>
+        <AssignmentTagSelector tags={availableTags} selectedIds={tagIds} onChange={setTagIds} />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={saveTags}
+            disabled={isSavingTags}
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isSavingTags && <Loader2 className="h-4 w-4 animate-spin" />}
+            Lưu tag
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  ) : (
+    <AssignmentTagPills tags={assignment.tags} />
+  )
 
   if (isHorizontal) {
     return (

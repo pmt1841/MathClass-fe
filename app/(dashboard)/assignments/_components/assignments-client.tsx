@@ -296,8 +296,40 @@ export function AssignmentsPageClient() {
                 />
               </div>
               <Popover>
-                <PopoverTrigger asChild><button className="relative flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Filter className="h-4 w-4" />Bộ lọc{Object.values(tagFilters).some(Boolean) && <span className="rounded-full bg-primary px-1.5 text-xs text-white">{Object.values(tagFilters).filter(Boolean).length}</span>}</button></PopoverTrigger>
-                <PopoverContent align="end" className="w-80 space-y-3 p-4"><p className="text-sm font-bold">Lọc bài tập</p><AssignmentTagSelector tags={tags} selectedIds={Object.values(tagFilters).filter((id): id is number => Boolean(id))} onChange={ids => setTagFilters(Object.fromEntries(ids.map(id => [tags.find(tag => tag.id === id)?.type || '', id])))} /><button onClick={() => setTagFilters({})} className="text-sm font-semibold text-primary">Xóa bộ lọc</button></PopoverContent>
+                <PopoverTrigger asChild>
+                  <button className="relative flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <Filter className="h-4 w-4" />
+                    Bộ lọc
+                    {Object.values(tagFilters).some(Boolean) && (
+                      <span className="rounded-full bg-primary px-1.5 text-xs text-white">
+                        {Object.values(tagFilters).filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 space-y-3 p-4">
+                  <p className="text-sm font-bold">Lọc bài tập</p>
+                  <AssignmentTagSelector
+                    tags={tags}
+                    selectedIds={Object.values(tagFilters).filter((id): id is number => Boolean(id))}
+                    onChange={(ids) => {
+                      const newFilters: Record<string, number> = {}
+                      ids.forEach((id) => {
+                        const tag = tags.find((t) => t.id === id)
+                        if (tag?.type) {
+                          newFilters[tag.type] = id
+                        }
+                      })
+                      setTagFilters(newFilters)
+                    }}
+                  />
+                  <button
+                    onClick={() => setTagFilters({})}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </PopoverContent>
               </Popover>
             </div>
 
