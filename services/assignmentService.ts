@@ -11,6 +11,8 @@ export interface AssignmentDrawing {
   shapeCode: string
   jsxGraphData: string
 }
+export type TagType = 'GRADE' | 'SUBJECT' | 'DIFFICULTY'
+export interface AssignmentTag { id: number; name: string; type: TagType }
 
 export interface SheetSiblingDto {
   id: number
@@ -45,6 +47,7 @@ export interface AssignmentResponse {
   sheetId?: number
   sheetTitle?: string
   sheetSiblings?: SheetSiblingDto[]
+  tags?: AssignmentTag[]
 }
 
 export interface GetAssignmentsParams {
@@ -53,6 +56,9 @@ export interface GetAssignmentsParams {
   keyword?: string
   page?: number
   size?: number
+  gradeTagId?: number
+  subjectTagId?: number
+  difficultyTagId?: number
 }
 
 export interface PublishPayload {
@@ -60,6 +66,7 @@ export interface PublishPayload {
 }
 
 export const assignmentService = {
+  getTags: async () => (await api.get<AssignmentTag[]>('/tags')).data,
   getAssignmentById: async (assignmentId: number) => {
     const response = await api.get<AssignmentResponse>(`/assignments/${assignmentId}`)
     return response.data

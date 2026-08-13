@@ -54,7 +54,8 @@ export function EditAssignmentPageClient() {
           description: data.description || '',
           content: data.content || '',
           drawings: data.drawings || [],
-          images: data.images || []
+          images: data.images || [],
+          tagIds: data.tags?.map(tag => tag.id) || []
         })
       } catch (err: any) {
         console.error('Error fetching assignment:', err)

@@ -1,8 +1,14 @@
 import Link from 'next/link'
-import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers, GitFork, User } from 'lucide-react'
+import { Clock, CheckCircle, Edit, Trash2, Send, ChevronDown, Layers, GitFork, User, Loader2 } from 'lucide-react'
 import { AssignmentSheet } from '@/hooks/useAssignments'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { AssignmentTagPills } from '@/components/assignments/assignment-tag-pills'
+import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
+import { assignmentService, AssignmentTag } from '@/services/assignmentService'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { VisibilityToggle } from '@/components/ui/visibility-toggle'
 import { useState } from 'react'
 
@@ -43,6 +49,74 @@ export function AssignmentCard({
   const isSheet = assignment.type === 'SHEET'
   const isLibraryMode = mode === 'library'
   const [expanded, setExpanded] = useState(false)
+  const [tagEditorOpen, setTagEditorOpen] = useState(false)
+  const [availableTags, setAvailableTags] = useState<AssignmentTag[]>([])
+  const [tagIds, setTagIds] = useState(assignment.tags?.map(tag => tag.id) || [])
+  const [isSavingTags, setIsSavingTags] = useState(false)
+  const queryClient = useQueryClient()
+
+  const openTagEditor = async () => {
+    if (assignment.visibility === 'PUBLIC') {
+      toast.error('Bài đang được chia sẻ trong Thư viện cộng đồng. Vui lòng chuyển về Riêng tư trước khi chỉnh sửa tag.')
+      return
+    }
+    try {
+      setAvailableTags(await assignmentService.getTags())
+      setTagIds(assignment.tags?.map(tag => tag.id) || [])
+      setTagEditorOpen(true)
+    } catch {
+      toast.error('Không thể tải danh sách tag')
+    }
+  }
+
+  const saveTags = async () => {
+    try {
+      setIsSavingTags(true)
+      const detail = await assignmentService.getAssignmentById(assignment.id)
+      await assignmentService.updateAssignment(assignment.id, {
+        title: detail.title,
+        description: detail.description,
+        content: detail.content,
+        drawings: detail.drawings || [],
+        images: detail.images || [],
+        tagIds,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      setTagEditorOpen(false)
+      toast.success('Đã cập nhật tag')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật tag')
+    } finally {
+      setIsSavingTags(false)
+    }
+  }
+
+  const tagEditor = !isSheet && isTeacher && !isLibraryMode ? (
+    <Popover open={tagEditorOpen} onOpenChange={setTagEditorOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" onClick={openTagEditor} className="text-left">
+          <AssignmentTagPills tags={assignment.tags} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 space-y-3">
+        <p className="font-bold text-sm">Phân loại bài tập</p>
+        <AssignmentTagSelector tags={availableTags} selectedIds={tagIds} onChange={setTagIds} />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={saveTags}
+            disabled={isSavingTags}
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isSavingTags && <Loader2 className="h-4 w-4 animate-spin" />}
+            Lưu tag
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  ) : (
+    <AssignmentTagPills tags={assignment.tags} />
+  )
 
   if (isHorizontal) {
     return (
@@ -207,6 +281,7 @@ export function AssignmentCard({
                     {i + 1}
                   </span>
                   <span className="truncate">{item.title}</span>
+                  <AssignmentTagPills tags={item.tags} />
                   {item.maxScore !== undefined && item.maxScore !== null && (
                     <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
                       {item.maxScore} đ
@@ -284,6 +359,7 @@ export function AssignmentCard({
         }`} />
 
       <div className="p-6 flex-1 flex flex-col cursor-pointer" onClick={() => isSheet && setExpanded(!expanded)}>
+        {!isSheet && <div className="mb-3">{tagEditor}</div>}
         <div className="flex items-start justify-between gap-4 mb-3">
           <h3 className="font-bold text-foreground text-lg line-clamp-2 leading-tight flex items-center gap-2">
             {isSheet && <Layers className="h-5 w-5 text-indigo-500 flex-shrink-0" />}
@@ -352,6 +428,7 @@ export function AssignmentCard({
             <div key={item.id} className="bg-white p-3 rounded-lg border border-slate-200 text-sm flex items-center justify-between shadow-sm">
               <div className="font-medium text-slate-700 flex-1 truncate pr-2 flex items-center gap-2">
                 <span className="truncate">{i + 1}. {item.title}</span>
+                <AssignmentTagPills tags={item.tags} />
                 {item.maxScore !== undefined && item.maxScore !== null && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 flex-shrink-0">
                     {item.maxScore} đ

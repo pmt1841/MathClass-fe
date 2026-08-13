@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle } from 'lucide-react'
+import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle, Filter } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
@@ -32,7 +34,7 @@ import {
 import { AssignmentCard } from './assignment-card'
 import { parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
-import { assignmentService } from '@/services/assignmentService'
+import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 
 export function AssignmentsPageClient() {
   const router = useRouter()
@@ -62,6 +64,11 @@ export function AssignmentsPageClient() {
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedClassCode, setSelectedClassCode] = useState<string>('')
+  const [tags, setTags] = useState<AssignmentTag[]>([])
+  const [tagFilters, setTagFilters] = useState<Record<string, number | undefined>>({})
+
+  useEffect(() => { assignmentService.getTags().then(setTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
+  useEffect(() => { setPage(0) }, [tagFilters])
 
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null)
@@ -91,6 +98,7 @@ export function AssignmentsPageClient() {
     page,
     size: 6,
     assignmentType
+    ,gradeTagId: tagFilters.GRADE, subjectTagId: tagFilters.SUBJECT, difficultyTagId: tagFilters.DIFFICULTY
   })
 
   const assignments = assignmentsData?.items || []
@@ -287,6 +295,42 @@ export function AssignmentsPageClient() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
                 />
               </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="relative flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <Filter className="h-4 w-4" />
+                    Bộ lọc
+                    {Object.values(tagFilters).some(Boolean) && (
+                      <span className="rounded-full bg-primary px-1.5 text-xs text-white">
+                        {Object.values(tagFilters).filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 space-y-3 p-4">
+                  <p className="text-sm font-bold">Lọc bài tập</p>
+                  <AssignmentTagSelector
+                    tags={tags}
+                    selectedIds={Object.values(tagFilters).filter((id): id is number => Boolean(id))}
+                    onChange={(ids) => {
+                      const newFilters: Record<string, number> = {}
+                      ids.forEach((id) => {
+                        const tag = tags.find((t) => t.id === id)
+                        if (tag?.type) {
+                          newFilters[tag.type] = id
+                        }
+                      })
+                      setTagFilters(newFilters)
+                    }}
+                  />
+                  <button
+                    onClick={() => setTagFilters({})}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="flex items-center gap-3 w-full 2xl:w-auto justify-between 2xl:justify-end">
