@@ -250,58 +250,13 @@ export function AssignmentsPageClient() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
 
-          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
-            <div className="flex bg-slate-200/50 p-1 rounded-xl w-full xl:w-auto overflow-x-auto max-w-full">
-              {userRole === 'TEACHER' ? (
-                <>
-                  <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Edit className="h-4 w-4" /> Bản nháp
-                  </button>
-                  <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <BookOpen className="h-4 w-4" /> Bài tập lẻ
-                  </button>
-                  <button onClick={() => setActiveTab('SHEET')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Layers className="h-4 w-4" /> Phiếu bài tập
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setActiveTab('PENDING')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Clock className="h-4 w-4" /> Chưa nộp
-                  </button>
-                  <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <CheckCircle className="h-4 w-4" /> Đã nộp
-                  </button>
-                  <button onClick={() => setActiveTab('GRADED')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <BookOpen className="h-4 w-4" /> Đã chấm điểm
-                  </button>
-                  <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <AlertCircle className="h-4 w-4" /> Quá hạn
-                  </button>
-                </>
-              )}
-            </div>
-
-            {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && selectedAssignments.length > 0 && (
-              <button
-                onClick={() => {
-                  setPublishingTarget(null)
-                  setSheetModalAssignmentIds(selectedAssignments)
-                  setPublishSheetModalOpen(true)
-                }}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200"
-              >
-                <Layers className="h-4 w-4" />
-                Giao {selectedAssignments.length} bài thành phiếu
-              </button>
-            )}
-
-            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
+          <div className="flex flex-col 2xl:flex-row gap-4 items-stretch 2xl:items-center justify-between">
+            <div className="flex flex-col sm:flex-row flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-3 w-full 2xl:w-auto shrink-0 justify-end">
               {userRole === 'STUDENT' && (
                 <select
                   value={assignmentType}
                   onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
-                  className="w-full sm:w-auto flex-1 sm:flex-none h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full sm:w-44 h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate shrink-0"
                   style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                 >
                   <option value="ALL">Tất cả loại bài</option>
@@ -313,7 +268,7 @@ export function AssignmentsPageClient() {
                 <select
                   value={selectedClassCode}
                   onChange={(e) => setSelectedClassCode(e.target.value)}
-                  className="w-full sm:w-auto flex-1 sm:flex-none h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full sm:w-48 h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate shrink-0"
                   style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                 >
                   <option value="">Tất cả lớp học</option>
@@ -322,7 +277,7 @@ export function AssignmentsPageClient() {
                   ))}
                 </select>
               )}
-              <div className="relative w-full sm:w-80">
+              <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
@@ -332,6 +287,53 @@ export function AssignmentsPageClient() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full 2xl:w-auto justify-between 2xl:justify-end">
+              <div className="flex bg-slate-200/60 p-1 rounded-xl w-full 2xl:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-w-full shrink-0">
+                {userRole === 'TEACHER' ? (
+                  <>
+                    <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <Edit className="h-4 w-4" /> Bản nháp
+                    </button>
+                    <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <BookOpen className="h-4 w-4" /> Bài tập lẻ
+                    </button>
+                    <button onClick={() => setActiveTab('SHEET')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <Layers className="h-4 w-4" /> Phiếu bài tập
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setActiveTab('PENDING')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <Clock className="h-4 w-4" /> Chưa nộp
+                    </button>
+                    <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <CheckCircle className="h-4 w-4" /> Đã nộp
+                    </button>
+                    <button onClick={() => setActiveTab('GRADED')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <BookOpen className="h-4 w-4" /> Đã chấm điểm
+                    </button>
+                    <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                      <AlertCircle className="h-4 w-4" /> Quá hạn
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && selectedAssignments.length > 0 && (
+                <button
+                  onClick={() => {
+                    setPublishingTarget(null)
+                    setSheetModalAssignmentIds(selectedAssignments)
+                    setPublishSheetModalOpen(true)
+                  }}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200 shrink-0"
+                >
+                  <Layers className="h-4 w-4" />
+                  Giao {selectedAssignments.length} bài thành phiếu
+                </button>
+              )}
             </div>
           </div>
 
