@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PermissionRevokedModal } from '@/components/auth/permission-revoked-modal';
 import { authStorage } from '@/lib/auth-storage';
 import { useAuthChannel, AuthEventPayload } from '@/hooks/useAuthChannel';
+import { tabLifecycleService } from '@/lib/tabLifecycleService';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -79,6 +80,27 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       }
     }
   }, [dispatch, queryClient, refreshProfile]));
+
+  // Quản lý vòng đời Tab & Dọn dẹp phiên khi đóng Tab cuối cùng (không tích Ghi nhớ đăng nhập)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const tabId = tabLifecycleService.generateTabId()
+    tabLifecycleService.registerTab(tabId)
+
+    const handleUnload = () => {
+      tabLifecycleService.cleanupSessionIfLastTab(tabId)
+    }
+
+    window.addEventListener('beforeunload', handleUnload)
+    window.addEventListener('pagehide', handleUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload)
+      window.removeEventListener('pagehide', handleUnload)
+      tabLifecycleService.unregisterTab(tabId)
+    }
+  }, [])
 
   useEffect(() => {
     const handlePermissionRevoked = (e: Event) => {
