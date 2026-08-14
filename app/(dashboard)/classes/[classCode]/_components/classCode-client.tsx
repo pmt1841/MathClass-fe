@@ -46,12 +46,13 @@ export function ClassDetailPageClient() {
   const [activeTab, setActiveTab] = useState<TabType>('students')
 
   const { user } = useAuth()
+  const isStudent = user?.role === 'STUDENT' || user?.userRole === 'STUDENT'
 
   useEffect(() => {
-    if (user?.role === 'STUDENT' || user?.userRole === 'STUDENT') {
+    if (isStudent) {
       router.replace(`/classes/${classCode}/student`)
     }
-  }, [user, classCode, router])
+  }, [isStudent, classCode, router])
 
   const { data: classroom, isLoading: loadingClass } = useClassDetail(classCode)
   const updateMutation = useUpdateClassroom(classCode)
@@ -60,7 +61,7 @@ export function ClassDetailPageClient() {
   const { data: pendingRequests } = useQuery({
     queryKey: ['pending-requests', classCode],
     queryFn: () => joinRequestService.getPendingRequests(classCode),
-    enabled: !!classCode,
+    enabled: !!classCode && !isStudent,
     refetchInterval: 5000, // Tự động cập nhật mỗi 5 giây
   })
 
@@ -125,6 +126,14 @@ export function ClassDetailPageClient() {
       })
     },
   })
+
+  if (isStudent) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div>

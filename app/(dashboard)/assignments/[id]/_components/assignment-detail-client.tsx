@@ -166,7 +166,11 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   const navigateBack = () => {
     if (from === 'class' && classCode) {
-      router.push(`/classes/${classCode}`)
+      if (userRole === 'STUDENT') {
+        router.push(`/classes/${classCode}/student`)
+      } else {
+        router.push(`/classes/${classCode}`)
+      }
     } else {
       router.push('/assignments')
     }
