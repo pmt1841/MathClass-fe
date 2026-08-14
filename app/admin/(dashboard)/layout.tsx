@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
-import { Users, Shield, FileText, Database, Cpu } from 'lucide-react'
+import { Users, Shield, FileText, Database, Cpu, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 const adminNavItems = [
@@ -29,6 +29,11 @@ const adminNavItems = [
     icon: FileText,
     label: 'Nhật ký hệ thống',
     href: '/admin/logs',
+  },
+  {
+    icon: AlertTriangle,
+    label: 'Quản lý Báo cáo lỗi',
+    href: '/admin/bug-reports',
   },
   {
     icon: Database,
