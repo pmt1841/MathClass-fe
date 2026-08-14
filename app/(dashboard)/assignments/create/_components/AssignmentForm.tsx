@@ -62,7 +62,8 @@ const assignmentSchema = z.object({
   content: z.string().min(1, 'Nội dung bài tập không được để trống'),
   drawings: z.array(z.any()).optional(),
   images: z.array(z.any()).optional(),
-  tagIds: z.array(z.number()).optional()
+  tagIds: z.array(z.number()).optional(),
+  allowResubmit: z.boolean().optional().default(false)
 })
 
 export type AssignmentFormValues = z.infer<typeof assignmentSchema>
@@ -140,15 +141,16 @@ export function AssignmentForm({
       description: '',
       content: '',
       drawings: [],
-      images: []
-      , tagIds: []
+      images: [],
+      tagIds: [],
+      allowResubmit: false
     }
   })
 
   useEffect(() => { assignmentService.getTags().then(setAvailableTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
 
   useEffect(() => {
-    let mergedValues = defaultValues || { title: '', description: '', content: '', drawings: [] }
+    let mergedValues = defaultValues || { title: '', description: '', content: '', drawings: [], allowResubmit: false }
     if (mergedValues.content) {
       const { content, extractedDrawings } = extractDrawings(mergedValues.content)
       mergedValues = { ...mergedValues, content }
@@ -188,7 +190,7 @@ export function AssignmentForm({
   const [isSubmittedSuccessfully, setIsSubmittedSuccessfully] = useState(false)
 
   const isFormDirty = React.useMemo(() => {
-    const initial = defaultValues || { title: '', description: '', content: '', drawings: [], images: [] }
+    const initial = defaultValues || { title: '', description: '', content: '', drawings: [], images: [], allowResubmit: false }
 
     const currentTitle = (formValues.title || '').trim()
     const initialTitle = (initial.title || '').trim()
@@ -208,8 +210,10 @@ export function AssignmentForm({
     const initialImages = initial.images || []
     const imagesChanged = JSON.stringify(images) !== JSON.stringify(initialImages)
 
-    return titleChanged || descChanged || contentChanged || drawingsChanged || imagesChanged
-  }, [formValues.title, formValues.description, formValues.content, drawings, images, defaultValues])
+    const allowResubmitChanged = Boolean(formValues.allowResubmit) !== Boolean(initial.allowResubmit)
+
+    return titleChanged || descChanged || contentChanged || drawingsChanged || imagesChanged || allowResubmitChanged
+  }, [formValues.title, formValues.description, formValues.content, formValues.allowResubmit, drawings, images, defaultValues])
 
   // Reset isSubmittedSuccessfully if user modifies any input field after submit
   useEffect(() => {
@@ -931,6 +935,8 @@ export function AssignmentForm({
               <AssignmentTagSelector tags={availableTags} selectedIds={formValues.tagIds || []} onChange={tagIds => setValue('tagIds', tagIds, { shouldDirty: true })} />
               <p className="text-xs text-slate-500">Cần đủ ba tag để đăng lên Thư viện cộng đồng.</p>
             </div>
+
+            <div className="h-px bg-slate-100 dark:bg-slate-850" />
 
             {/* Section 2: Tài nguyên học liệu */}
             <div className="space-y-4">

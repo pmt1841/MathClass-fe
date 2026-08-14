@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Sparkles, X, Clock, Wand2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Sparkles, X, Clock, Wand2, History } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -117,6 +117,28 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     enabled: !!submissionId,
   })
 
+  const { data: versions = [] } = useQuery({
+    queryKey: ['submission-versions', submissionId],
+    queryFn: () => submissionService.getSubmissionVersions(submissionId),
+    enabled: !!submissionId,
+  })
+
+  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null)
+
+  const activeVersion = useMemo(() => {
+    if (!versions || versions.length === 0) return null
+    if (selectedVersionNumber === null) {
+      return versions[versions.length - 1]
+    }
+    return versions.find(v => v.versionNumber === selectedVersionNumber) || versions[versions.length - 1]
+  }, [versions, selectedVersionNumber])
+
+  const isViewingOlderVersion = useMemo(() => {
+    if (!versions || versions.length <= 1) return false
+    if (selectedVersionNumber === null) return false
+    return selectedVersionNumber !== versions[versions.length - 1].versionNumber
+  }, [versions, selectedVersionNumber])
+
   const { data: assignment, isLoading: isAssignLoading } = useQuery({
     queryKey: ['assignment', assignmentId],
     queryFn: () => assignmentService.getAssignmentById(assignmentId),
@@ -172,6 +194,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
         [assignmentId]: 'GRADED'
       }))
       queryClient.invalidateQueries({ queryKey: ['submission', submissionId] })
+      queryClient.invalidateQueries({ queryKey: ['submission-versions', submissionId] })
       queryClient.invalidateQueries({ queryKey: ['sheet-sibling-statuses'] })
     },
     onError: (err) => {
@@ -488,8 +511,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   submission.status === 'DRAFT'
                     ? 'Học sinh chưa nộp bài — chưa thể chấm sơ bộ'
                     : isAiGrading
-                    ? 'AI đang chấm ngầm — bấm để mở tùy chọn quản lý tiến trình'
-                    : 'AI đối chiếu hình vẽ Canvas với hình mẫu và đề xuất điểm + nhận xét'
+                      ? 'AI đang chấm ngầm — bấm để mở tùy chọn quản lý tiến trình'
+                      : 'AI đối chiếu hình vẽ Canvas với hình mẫu và đề xuất điểm + nhận xét'
                 }
               >
                 {isAiGrading ? (
@@ -499,6 +522,35 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 )}
                 <span>{isAiGrading ? 'AI đang chấm...' : 'AI chấm sơ bộ'}</span>
               </button>
+            )}
+
+            {/* Version Switcher */}
+            {versions.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 ml-2">
+                <span className="text-[11px] font-bold text-slate-500 px-2 flex items-center gap-1">
+                  <History className="w-3.5 h-3.5 text-slate-400" />
+                  Lần nộp:
+                </span>
+                {versions.map((ver, idx) => {
+                  const isLatest = idx === versions.length - 1
+                  const isSelected = selectedVersionNumber === ver.versionNumber || (selectedVersionNumber === null && isLatest)
+
+                  return (
+                    <button
+                      key={ver.id || ver.versionNumber}
+                      type="button"
+                      onClick={() => setSelectedVersionNumber(ver.versionNumber)}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${isSelected
+                          ? 'bg-white text-primary shadow-xs font-bold border border-slate-200/80'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                      title={ver.submittedAt ? `Nộp lúc ${format(parseDateSafe(ver.submittedAt)!, 'dd/MM/yyyy HH:mm')}` : undefined}
+                    >
+                      Lần {ver.versionNumber} {isLatest ? '(Mới nhất)' : ''}
+                    </button>
+                  )
+                })}
+              </div>
             )}
 
             {/* Sheet Siblings Navigation */}
@@ -563,11 +615,34 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
             <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between shrink-0">
               <h3 className="font-semibold text-slate-700 flex items-center gap-2">
                 Bài làm của học sinh
+                {activeVersion && (
+                  <span className="text-xs font-normal text-slate-500">
+                    (Lần nộp {activeVersion.versionNumber})
+                  </span>
+                )}
               </h3>
               <div className="text-xs text-slate-500 font-medium">
-                Nộp lúc: {submission.submittedAt && parseDateSafe(submission.submittedAt) ? format(parseDateSafe(submission.submittedAt)!, 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
+                Nộp lúc: {(activeVersion?.submittedAt || submission.submittedAt) && parseDateSafe(activeVersion?.submittedAt || submission.submittedAt) ? format(parseDateSafe(activeVersion?.submittedAt || submission.submittedAt)!, 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
               </div>
             </div>
+
+            {isViewingOlderVersion && activeVersion && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Đang xem lịch sử <strong>Lần nộp {activeVersion.versionNumber}</strong> (Đã chấm: <strong>{activeVersion.score !== null && activeVersion.score !== undefined ? `${activeVersion.score} điểm` : 'Chưa chấm'}</strong>).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedVersionNumber(null)}
+                  className="text-xs font-bold text-amber-900 hover:underline cursor-pointer ml-2"
+                >
+                  Xem lần nộp mới nhất
+                </button>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-6">
               <div
@@ -581,8 +656,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   onAddComment={handleAddInlineComment}
                   onClose={clearSelection}
                 />
-                {submission.content
-                  ? renderContentWithDrawings(submission.content, true)
+                {(isViewingOlderVersion && activeVersion ? activeVersion.content : submission.content)
+                  ? renderContentWithDrawings((isViewingOlderVersion && activeVersion ? activeVersion.content : submission.content), true)
                   : <p className="text-slate-400 italic">Bài nộp trống</p>
                 }
               </div>

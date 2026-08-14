@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
+import { normalizeKatexDelimiters } from '@/lib/utils'
 import { aiQuestionService, AiGeneratedQuestionDTO, GenerateQuestionRequestDTO } from '@/services/aiQuestionService'
 import dynamic from 'next/dynamic'
 
@@ -69,7 +70,12 @@ export function AiQuestionGeneratorModal({
 
     try {
       const result = await aiQuestionService.generateQuestion(requestDTO)
-      setGeneratedQuestion(result)
+      const normalizedResult: AiGeneratedQuestionDTO = {
+        ...result,
+        content: normalizeKatexDelimiters(result.content),
+        explanation: result.explanation ? normalizeKatexDelimiters(result.explanation) : result.explanation
+      }
+      setGeneratedQuestion(normalizedResult)
       setActiveTab('content')
       toast.success('Sinh đề bài toán bằng AI thành công!')
     } catch (error: any) {

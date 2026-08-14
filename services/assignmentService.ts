@@ -48,6 +48,7 @@ export interface AssignmentResponse {
   sheetTitle?: string
   sheetSiblings?: SheetSiblingDto[]
   tags?: AssignmentTag[]
+  allowResubmit?: boolean
 }
 
 export interface GetAssignmentsParams {
@@ -135,6 +136,13 @@ export const assignmentService = {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
+    })
+    return response.data
+  },
+
+  toggleAllowResubmit: async (assignmentId: number, allowResubmit: boolean) => {
+    const response = await api.patch<AssignmentResponse>(`/assignments/${assignmentId}/allow-resubmit`, null, {
+      params: { allowResubmit }
     })
     return response.data
   }

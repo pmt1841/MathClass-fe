@@ -11,6 +11,20 @@ export interface SubmissionResponse {
   score: number | null
   submittedAt: string | null
   updatedAt: string
+  versionNumber?: number
+  totalVersions?: number
+  allowResubmit?: boolean
+}
+
+export interface SubmissionVersionResponse {
+  id: number
+  submissionId: number
+  versionNumber: number
+  content: string
+  score: number | null
+  teacherFeedback?: string | null
+  submittedAt: string | null
+  createdAt: string
 }
 
 export interface SubmissionCommentResponse {
@@ -98,6 +112,19 @@ export const submissionService = {
 
   getSubmissionById: async (submissionId: number) => {
     const response = await api.get<SubmissionResponse>(`/submissions/${submissionId}`)
+    return response.data
+  },
+
+  resubmitSubmission: async (submissionId: number, content: string, status: 'SUBMITTED' = 'SUBMITTED') => {
+    const response = await api.post<SubmissionResponse>(`/submissions/${submissionId}/resubmit`, {
+      content,
+      status
+    })
+    return response.data
+  },
+
+  getSubmissionVersions: async (submissionId: number) => {
+    const response = await api.get<SubmissionVersionResponse[]>(`/submissions/${submissionId}/versions`)
     return response.data
   },
 

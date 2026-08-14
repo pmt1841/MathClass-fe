@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, CircleDot, Edit3, X, Type, FileText, Sparkles, Lightbulb, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Save, Send, Eye, XCircle, CheckCircle, Check, CircleDot, Edit3, X, Type, FileText, Sparkles, Lightbulb, Loader2, History, RotateCcw } from 'lucide-react'
 import { useSubmissionHints } from '@/hooks/useSubmissionHints'
+import { submissionService, SubmissionVersionResponse } from '@/services/submissionService'
 import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
@@ -20,6 +21,7 @@ import { useSearchParams } from 'next/navigation'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { useTextEditor } from '@/hooks/use-text-editor'
 import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
 import rehypeMarkComments from '@/lib/rehype-mark-comments'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -75,6 +77,11 @@ interface StudentAssignmentLayoutProps {
   onSaveDraft: () => void
   onSubmit: () => void
   onUnsubmit: () => void
+  isEditingResubmit?: boolean
+  onStartResubmit?: () => void
+  onCancelResubmit?: () => void
+  onResubmit?: () => void
+  allowResubmit?: boolean
   submissionStatus: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'LATE' | null
   submissionScore: number | null
   teacherFeedback: string
@@ -94,6 +101,11 @@ export function StudentAssignmentLayout({
   onSaveDraft,
   onSubmit,
   onUnsubmit,
+  isEditingResubmit = false,
+  onStartResubmit,
+  onCancelResubmit,
+  onResubmit,
+  allowResubmit = false,
   submissionStatus,
   submissionScore,
   teacherFeedback,
@@ -105,6 +117,43 @@ export function StudentAssignmentLayout({
   const [showHintModal, setShowHintModal] = useState(false)
   const [showConfirmHintModal, setShowConfirmHintModal] = useState(false)
   const [showHandwritingModal, setShowHandwritingModal] = useState(false)
+
+  // Danh sách các phiên bản bài nộp (Snapshots)
+  const { data: versions = [] } = useQuery({
+    queryKey: ['submission-versions', submissionId],
+    queryFn: () => submissionService.getSubmissionVersions(submissionId || 0),
+    enabled: !!submissionId,
+  })
+
+  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null)
+
+  // Tự động chuyển về phiên bản mới nhất khi nộp bài lại hoặc khi số lượng version thay đổi
+  useEffect(() => {
+    setSelectedVersionNumber(null)
+  }, [submissionStatus, isEditingResubmit, versions.length])
+
+  const activeVersion = useMemo(() => {
+    if (!versions || versions.length === 0) return null
+    if (selectedVersionNumber === null) {
+      return versions[versions.length - 1]
+    }
+    return versions.find(v => v.versionNumber === selectedVersionNumber) || versions[versions.length - 1]
+  }, [versions, selectedVersionNumber])
+
+  const isViewingOlderVersion = useMemo(() => {
+    if (!versions || versions.length <= 1) return false
+    if (selectedVersionNumber === null) return false
+    return selectedVersionNumber !== versions[versions.length - 1].versionNumber
+  }, [versions, selectedVersionNumber])
+
+  const olderVersionData = useMemo(() => {
+    if (!isViewingOlderVersion || !activeVersion) return null
+    return extractDrawings(activeVersion.content || '')
+  }, [isViewingOlderVersion, activeVersion])
+
+  const effectiveScore = isViewingOlderVersion && activeVersion ? activeVersion.score : submissionScore
+  const effectiveFeedback = isViewingOlderVersion && activeVersion ? (activeVersion.teacherFeedback || '') : teacherFeedback
+  const effectiveIsReadOnly = isViewingOlderVersion || isReadOnly
 
   const { comments = [] } = useSubmissionComments(submissionId || 0)
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
@@ -129,6 +178,13 @@ export function StudentAssignmentLayout({
       fetchHintHistory(submissionId)
     }
   }, [submissionId, fetchHintHistory])
+
+  // Tự động chuyển sang tab XEM TRƯỚC BÀI LÀM khi bài đã có nhận xét hoặc đã chấm để học sinh thấy ngay các đoạn tô vàng
+  useEffect(() => {
+    if (submissionStatus === 'GRADED' || comments.length > 0) {
+      setActiveTab('PREVIEW')
+    }
+  }, [submissionStatus, comments.length])
 
   const memoizedComponents = useMemo(() => ({
     ...markdownComponents,
@@ -211,6 +267,10 @@ export function StudentAssignmentLayout({
     }, 300)
     return () => clearTimeout(timer)
   }, [pureContent])
+
+  const displayPureContent = isViewingOlderVersion && olderVersionData ? olderVersionData.content : pureContent
+  const displayDrawings = isViewingOlderVersion && olderVersionData ? olderVersionData.extractedDrawings : studentDrawings
+  const displayPreviewContent = isViewingOlderVersion && olderVersionData ? olderVersionData.content : debouncedContent
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -400,30 +460,32 @@ export function StudentAssignmentLayout({
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">
       {/* TOOLBAR */}
-      <div className="h-14 bg-white border-b border-border px-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
-        <div className="flex items-center gap-4">
+      <div className="h-14 bg-white border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 shrink-0 shadow-sm z-10">
+        {/* Left: Back button & Breadcrumb */}
+        <div className="flex items-center gap-2 min-w-0 flex-shrink">
           <button
             onClick={onBack}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 hover:shadow-sm hover:text-slate-900 transition-all"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 hover:shadow-sm hover:text-slate-900 transition-all shrink-0"
             title="Quay lại"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500 font-medium">
-            <span className="hover:text-slate-800 transition-colors cursor-pointer" onClick={onBack}>
+          <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-500 font-medium truncate min-w-0">
+            <span className="hover:text-slate-800 transition-colors cursor-pointer shrink-0 truncate max-w-[120px] 2xl:max-w-[180px]" onClick={onBack} title={fromText}>
               {fromText}
             </span>
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-            <span className="text-slate-900 truncate max-w-[250px]" title={assignment.title}>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span className="text-slate-900 truncate max-w-[100px] lg:max-w-[160px] xl:max-w-[220px] 2xl:max-w-[320px]" title={assignment.title}>
               {assignment.title}
             </span>
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center gap-6 pointer-events-none">
+        {/* Center: Sheet Siblings & Countdown Timer */}
+        <div className="flex items-center gap-2 shrink-0">
           {/* Nav Buttons for Sheet */}
           {assignment.sheetSiblings && assignment.sheetSiblings.length > 0 && (
-            <div className="flex items-center gap-1.5 pointer-events-auto">
+            <div className="flex items-center gap-1">
               {assignment.sheetSiblings.map((sibling: any, idx: number) => {
                 const isActive = sibling.id === assignment.id
                 const isSubmitted = isActive
@@ -436,7 +498,7 @@ export function StudentAssignmentLayout({
                     replace
                     href={`/assignments/${sibling.id}?classCode=${classCodeUrl}&from=${searchParams.get('from') || 'class'}`}
                     className={`
-                      w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all shadow-sm
+                      w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md text-xs sm:text-sm font-bold transition-all shadow-xs shrink-0
                       ${isActive
                         ? isSubmitted
                           ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-600 text-white'
@@ -455,28 +517,67 @@ export function StudentAssignmentLayout({
           )}
 
           {assignment.deadline && !isGraded && (
-            <div className="pointer-events-auto">
+            <div className="shrink-0">
               <CountdownTimer deadline={assignment.deadline} />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right Section: AutoSave, Version Switcher, Score, Hints, Actions */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {isSavingExternal ? (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-amber-600 font-medium mr-2">
+            <span className="hidden xl:flex items-center gap-1.5 text-xs text-amber-600 font-medium whitespace-nowrap">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Đang lưu nháp...
+              <span>Đang lưu...</span>
             </span>
           ) : lastSavedExternal ? (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-medium mr-2">
+            <span className="hidden xl:flex items-center gap-1.5 text-xs text-emerald-600 font-medium whitespace-nowrap" title={`Đã lưu tự động (${formatDateTime(lastSavedExternal)})`}>
               <Check className="h-3 w-3" />
-              Đã lưu ({formatDateTime(lastSavedExternal)})
+              <span className="hidden 2xl:inline">Đã lưu ({formatDateTime(lastSavedExternal)})</span>
+              <span className="2xl:hidden">Đã lưu</span>
             </span>
           ) : null}
 
-          {isGraded && (
-            <span className="text-sm font-semibold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200">
-              Điểm của bạn: {submissionScore}
+          {/* Version Switcher */}
+          {versions.length > 1 && (
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+              <span className="text-[11px] font-bold text-slate-500 px-1.5 sm:px-2 flex items-center gap-1 whitespace-nowrap">
+                <History className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Lần nộp:</span>
+              </span>
+              {versions.map((ver, idx) => {
+                const isLatest = idx === versions.length - 1
+                const isSelected = selectedVersionNumber === ver.versionNumber || (selectedVersionNumber === null && isLatest)
+
+                return (
+                  <button
+                    key={ver.id || ver.versionNumber}
+                    type="button"
+                    onClick={() => {
+                      if (isEditingResubmit) {
+                        onCancelResubmit?.()
+                      }
+                      setSelectedVersionNumber(ver.versionNumber)
+                    }}
+                    className={`px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-white text-primary shadow-xs font-bold border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    }`}
+                    title={ver.submittedAt ? `Lần ${ver.versionNumber} - Nộp lúc ${formatDateTime(parseDateSafe(ver.submittedAt)!)}` : undefined}
+                  >
+                    Lần {ver.versionNumber} {isLatest ? <span className="hidden 2xl:inline">(Mới nhất)</span> : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {effectiveScore !== null && effectiveScore !== undefined && (
+            <span className="text-xs sm:text-sm font-semibold text-emerald-700 bg-emerald-100 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-emerald-200 whitespace-nowrap shrink-0">
+              <span className="hidden sm:inline">Điểm của bạn: </span>
+              <span className="sm:hidden">Điểm: </span>
+              {effectiveScore}
             </span>
           )}
 
@@ -494,7 +595,7 @@ export function StudentAssignmentLayout({
                 }
               }}
               disabled={isHintRequesting}
-              className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-all border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 active:scale-95 disabled:opacity-50 shrink-0 whitespace-nowrap"
               title={
                 submissionStatus === 'SUBMITTED' || isGraded || isPastDeadline
                   ? 'Xem lại lịch sử gợi ý AI đã dùng'
@@ -515,12 +616,21 @@ export function StudentAssignmentLayout({
             </button>
           )}
 
-          {!isPastDeadline && !isGraded && (
+          {!isPastDeadline && !isViewingOlderVersion && (
             <>
-              {submissionStatus !== 'SUBMITTED' ? (
-                <>
-
+              {isEditingResubmit ? (
+                <div className="flex items-center gap-2 shrink-0">
                   <button
+                    type="button"
+                    onClick={onCancelResubmit}
+                    disabled={isSavingExternal}
+                    className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 bg-slate-100 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50 shrink-0 whitespace-nowrap"
+                  >
+                    <X className="w-4 h-4" />
+                    Hủy sửa
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       if (saveTimeoutRef.current) {
                         clearTimeout(saveTimeoutRef.current)
@@ -529,48 +639,55 @@ export function StudentAssignmentLayout({
                       isDirtyRef.current = false
                       const latestFullContent = embedDrawings(pureContent, studentDrawings)
                       setSubmissionContent(latestFullContent)
-                      onSaveDraft()
+                      onResubmit?.()
                     }}
                     disabled={isSavingExternal}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 shadow-sm transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-primary text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-primary/90 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0 whitespace-nowrap"
                   >
-                    <Save className="w-4 h-4" />
-                    Lưu nháp
+                    <RotateCcw className="w-4 h-4" />
+                    Nộp lại bài (Lần {versions.length + 1}/3)
                   </button>
-                  <button
-                    onClick={() => {
-                      if (saveTimeoutRef.current) {
-                        clearTimeout(saveTimeoutRef.current)
-                        saveTimeoutRef.current = null
-                      }
-                      isDirtyRef.current = false
-                      const latestFullContent = embedDrawings(pureContent, studentDrawings)
-                      setSubmissionContent(latestFullContent)
-                      onSubmit()
-                    }}
-                    disabled={isSavingExternal}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 shadow-sm active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4" />
-                    Nộp bài
-                  </button>
-                </>
+                </div>
               ) : (
-                <button
-                  onClick={() => {
-                    if (saveTimeoutRef.current) {
-                      clearTimeout(saveTimeoutRef.current)
-                      saveTimeoutRef.current = null
-                    }
-                    isDirtyRef.current = false
-                    onUnsubmit()
-                  }}
-                  disabled={isSavingExternal}
-                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Hủy nộp bài
-                </button>
+                <>
+                  {allowResubmit && (isGraded || submissionStatus === 'SUBMITTED') && (
+                    versions.length >= 3 ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 bg-slate-100 text-slate-500 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 shrink-0 whitespace-nowrap" title="Bạn đã sử dụng hết tối đa 3 lần nộp bài">
+                        <RotateCcw className="w-4 h-4" />
+                        Đã hết lượt làm lại (3/3)
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={onStartResubmit}
+                        className="flex items-center gap-2 px-3.5 py-1.5 sm:py-2 bg-primary text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-primary/90 shadow-sm active:scale-95 transition-all shrink-0 whitespace-nowrap"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Làm lại bài ({versions.length}/3)
+                      </button>
+                    )
+                  )}
+
+                  {!isGraded && submissionStatus !== 'SUBMITTED' && (
+                    <button
+                      onClick={() => {
+                        if (saveTimeoutRef.current) {
+                          clearTimeout(saveTimeoutRef.current)
+                          saveTimeoutRef.current = null
+                        }
+                        isDirtyRef.current = false
+                        const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                        setSubmissionContent(latestFullContent)
+                        onSubmit()
+                      }}
+                      disabled={isSavingExternal}
+                      className="flex items-center gap-2 px-4 py-1.5 sm:py-2 bg-emerald-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-emerald-700 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0 whitespace-nowrap"
+                    >
+                      <Send className="w-4 h-4" />
+                      Nộp bài
+                    </button>
+                  )}
+                </>
               )}
             </>
           )}
@@ -594,32 +711,51 @@ export function StudentAssignmentLayout({
               {assignment.description}
             </p>
           )}
-          {teacherFeedback && (
+          {effectiveFeedback && (
             <div className="mt-2 bg-sky-50 border border-sky-200 p-3 rounded-lg">
               <h4 className="text-sky-800 font-semibold mb-1 flex items-center gap-2 text-sm">
                 <span className="w-4 h-4 rounded-full bg-sky-200 flex items-center justify-center text-sky-800 text-[10px]">i</span>
-                Nhận xét từ giáo viên
+                Nhận xét từ giáo viên {isViewingOlderVersion && activeVersion ? `(Lần nộp ${activeVersion.versionNumber})` : ''}
               </h4>
               <div className="prose prose-slate prose-sm max-w-none text-sky-900">
                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]} components={markdownComponents}>
-                  {teacherFeedback}
+                  {effectiveFeedback}
                 </ReactMarkdown>
               </div>
             </div>
           )}
         </div>
 
+        {/* Older version banner */}
+        {isViewingOlderVersion && activeVersion && (
+          <div className="bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs text-amber-800 flex items-center justify-between shrink-0 shadow-xs">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                Đang xem lịch sử <strong>Lần nộp {activeVersion.versionNumber}</strong> (Đã chấm: <strong>{activeVersion.score !== null && activeVersion.score !== undefined ? `${activeVersion.score} điểm` : 'Chưa chấm'}</strong>).
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedVersionNumber(null)}
+              className="text-xs font-bold text-amber-900 hover:underline cursor-pointer ml-2"
+            >
+              Xem lần nộp mới nhất
+            </button>
+          </div>
+        )}
+
         {/* ROW 2: Editor and Preview Split */}
         <div className="flex-1 min-h-0 relative">
           <PanelGroup direction="horizontal" className="h-full w-full">
 
             {/* EDITOR */}
-            <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${isReadOnly ? 'bg-slate-50 opacity-90 border-slate-200' : 'border-border focus-within:border-primary'}`}>
+            <Panel defaultSize={50} minSize={20} className={`bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden mr-2 focus-within:ring-2 focus-within:ring-primary/15 transition-all ${effectiveIsReadOnly ? 'bg-slate-50 opacity-90 border-slate-200' : 'border-border focus-within:border-primary'}`}>
               <div className="bg-slate-50 px-4 py-2 border-b border-border text-xs font-semibold text-slate-600 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <Edit3 className="w-3.5 h-3.5" /> Bài làm của bạn
+                  <Edit3 className="w-3.5 h-3.5" /> Bài làm của bạn {isViewingOlderVersion && activeVersion ? `(Lần nộp ${activeVersion.versionNumber})` : ''}
                 </div>
-                {!isReadOnly && (
+                {!effectiveIsReadOnly && (
                   <div className="flex items-center gap-2">
                     {handwritingEnabled && (
                       <button
@@ -650,24 +786,24 @@ export function StudentAssignmentLayout({
                 )}
               </div>
 
-              {!isReadOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
+              {!effectiveIsReadOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
 
               {/* Danh sách hình vẽ của học sinh */}
-              {studentDrawings.length > 0 && (
+              {displayDrawings.length > 0 && (
                 <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
                   <span className="text-xs font-semibold text-slate-500 mr-1">Hình vẽ của bạn:</span>
-                  {studentDrawings.map(d => (
+                  {displayDrawings.map(d => (
                     <div key={d.shapeCode} className="flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md overflow-hidden group">
                       <button
                         type="button"
                         onClick={() => handleInsertDrawing(d.shapeCode)}
                         className="px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
                         title={`Chèn ${d.shapeCode} vào văn bản`}
-                        disabled={isReadOnly}
+                        disabled={effectiveIsReadOnly}
                       >
                         {d.shapeCode}
                       </button>
-                      {!isReadOnly && (
+                      {!effectiveIsReadOnly && (
                         <>
                           <div className="w-px h-4 bg-slate-200"></div>
                           <button
@@ -694,11 +830,11 @@ export function StudentAssignmentLayout({
               )}
               <textarea
                 ref={textareaRef}
-                value={pureContent}
+                value={displayPureContent}
                 onChange={handleContentChange}
-                readOnly={isReadOnly}
-                placeholder={isReadOnly ? "Bài nộp đã khóa." : "Nhập nội dung bài làm..."}
-                className={`flex-1 w-full p-4 text-sm outline-none resize-none font-mono leading-relaxed ${isReadOnly ? 'bg-transparent text-slate-500 cursor-not-allowed' : 'bg-transparent'}`}
+                readOnly={effectiveIsReadOnly}
+                placeholder={effectiveIsReadOnly ? "Bài nộp đã khóa." : "Nhập nội dung bài làm..."}
+                className={`flex-1 w-full p-4 text-sm outline-none resize-none font-mono leading-relaxed ${effectiveIsReadOnly ? 'bg-transparent text-slate-500 cursor-not-allowed' : 'bg-transparent'}`}
               />
             </Panel>
 
@@ -728,6 +864,11 @@ export function StudentAssignmentLayout({
                     }`}
                 >
                   <Eye className="w-3.5 h-3.5" /> XEM TRƯỚC BÀI LÀM
+                  {comments.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      {comments.length} nhận xét
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -742,8 +883,8 @@ export function StudentAssignmentLayout({
                   </>
                 ) : (
                   <>
-                    {debouncedContent ? (
-                      renderContentWithDrawings(debouncedContent, studentDrawings, true)
+                    {displayPreviewContent ? (
+                      renderContentWithDrawings(displayPreviewContent, displayDrawings, true)
                     ) : (
                       <p className="text-muted-foreground italic text-sm mt-0">Bài làm của bạn sẽ hiển thị ở đây...</p>
                     )}
@@ -768,174 +909,174 @@ export function StudentAssignmentLayout({
 
       {/* AI HINT MODAL — MAT-254: chỉ hiển thị khi admin bật task STUDENT_HINT */}
       {studentHintEnabled && (
-      <Dialog open={showHintModal} onOpenChange={setShowHintModal}>
-        <DialogContent className="max-w-2xl max-h-[85vh] p-0 flex flex-col overflow-hidden border-slate-200 shadow-2xl rounded-2xl">
-          {/* Modal Header */}
-          <DialogHeader className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex flex-row items-center justify-between shrink-0 space-y-0">
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-amber-200 animate-pulse" />
-              <DialogTitle className="text-lg font-bold text-white">Trợ lý Gợi ý Tư duy AI</DialogTitle>
-              <span className="bg-amber-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-100">
-                Đã dùng {totalUsed}/3 gợi ý
-              </span>
-            </div>
-            <DialogDescription className="sr-only">Lịch sử và danh sách các gợi ý tư duy AI cho bài tập</DialogDescription>
-          </DialogHeader>
+        <Dialog open={showHintModal} onOpenChange={setShowHintModal}>
+          <DialogContent className="max-w-2xl max-h-[85vh] p-0 flex flex-col overflow-hidden border-slate-200 shadow-2xl rounded-2xl">
+            {/* Modal Header */}
+            <DialogHeader className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex flex-row items-center justify-between shrink-0 space-y-0">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-amber-200 animate-pulse" />
+                <DialogTitle className="text-lg font-bold text-white">Trợ lý Gợi ý Tư duy AI</DialogTitle>
+                <span className="bg-amber-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold text-amber-100">
+                  Đã dùng {totalUsed}/3 gợi ý
+                </span>
+              </div>
+              <DialogDescription className="sr-only">Lịch sử và danh sách các gợi ý tư duy AI cho bài tập</DialogDescription>
+            </DialogHeader>
 
-          {/* Modal Content */}
-          <div className="p-6 flex-1 overflow-y-auto space-y-4">
-            {hintError &&
-              (isHintInsufficientCredit ? (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
-                  <p className="text-sm font-medium text-amber-800">
-                    Bạn đã dùng hết credit AI trong ngày. Vui lòng mua thêm credit để tiếp tục sử dụng tính năng gợi ý.
-                  </p>
-                  <Link href="/credits" passHref>
-                    <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700">
-                      <Sparkles className="mr-1.5 h-4 w-4" />
-                      Mua thêm credit
-                    </Button>
-                  </Link>
+            {/* Modal Content */}
+            <div className="p-6 flex-1 overflow-y-auto space-y-4">
+              {hintError &&
+                (isHintInsufficientCredit ? (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                    <p className="text-sm font-medium text-amber-800">
+                      Bạn đã dùng hết credit AI trong ngày. Vui lòng mua thêm credit để tiếp tục sử dụng tính năng gợi ý.
+                    </p>
+                    <Link href="/credits" passHref>
+                      <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700">
+                        <Sparkles className="mr-1.5 h-4 w-4" />
+                        Mua thêm credit
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+                    {hintError}
+                  </div>
+                ))}
+
+              {isHintRequesting && (
+                <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
+                  <Loader2 className="w-5 h-5 animate-spin text-amber-600 shrink-0" />
+                  <div className="text-sm font-medium">
+                    AI đang đọc đề bài và tiến độ làm bài của bạn để soạn gợi ý bước tiếp theo...
+                  </div>
                 </div>
-              ) : (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
-                  {hintError}
+              )}
+
+              {hints.length === 0 && !isHintRequesting && !isHintLoading && (
+                <div className="py-10 text-center text-slate-500 space-y-2">
+                  <Lightbulb className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-sm font-medium">Bạn chưa sử dụng lượt gợi ý nào cho bài tập này.</p>
+                </div>
+              )}
+
+              {hints.map((h, idx) => (
+                <div key={h.id || idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">
+                      Gợi ý #{h.hintNumber}
+                    </span>
+                    {h.createdAt && (
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {formatDateTime(parseDateSafe(h.createdAt) || new Date())}
+                      </span>
+                    )}
+                  </div>
+                  <div className="prose prose-slate prose-sm max-w-none text-slate-800 leading-relaxed">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                      components={markdownComponents}
+                    >
+                      {h.aiHintContent}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               ))}
+            </div>
 
-            {isHintRequesting && (
-              <div className="p-6 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
-                <Loader2 className="w-5 h-5 animate-spin text-amber-600 shrink-0" />
-                <div className="text-sm font-medium">
-                  AI đang đọc đề bài và tiến độ làm bài của bạn để soạn gợi ý bước tiếp theo...
-                </div>
-              </div>
-            )}
-
-            {hints.length === 0 && !isHintRequesting && !isHintLoading && (
-              <div className="py-10 text-center text-slate-500 space-y-2">
-                <Lightbulb className="w-10 h-10 mx-auto text-slate-300" />
-                <p className="text-sm font-medium">Bạn chưa sử dụng lượt gợi ý nào cho bài tập này.</p>
-              </div>
-            )}
-
-            {hints.map((h, idx) => (
-              <div key={h.id || idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">
-                    Gợi ý #{h.hintNumber}
-                  </span>
-                  {h.createdAt && (
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {formatDateTime(parseDateSafe(h.createdAt) || new Date())}
-                    </span>
-                  )}
-                </div>
-                <div className="prose prose-slate prose-sm max-w-none text-slate-800 leading-relaxed">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath, remarkGfm]}
-                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
-                    components={markdownComponents}
+            {/* Modal Footer */}
+            <DialogFooter className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-row items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-medium">
+                Gợi ý chỉ hỗ trợ hướng tư duy, không cho đáp số trực tiếp.
+              </span>
+              <div className="flex items-center gap-3">
+                {!isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowHintModal(false)
+                      setShowConfirmHintModal(true)
+                    }}
+                    className="px-3 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
                   >
-                    {h.aiHintContent}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Modal Footer */}
-          <DialogFooter className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-row items-center justify-between shrink-0">
-            <span className="text-xs text-slate-500 font-medium">
-              Gợi ý chỉ hỗ trợ hướng tư duy, không cho đáp số trực tiếp.
-            </span>
-            <div className="flex items-center gap-3">
-              {!isPastDeadline && !isGraded && submissionStatus !== 'SUBMITTED' && remainingHints > 0 && (
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <span>Xin lượt gợi ý #{totalUsed + 1}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowHintModal(false)
-                    setShowConfirmHintModal(true)
-                  }}
-                  className="px-3 py-2 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
+                  onClick={() => setShowHintModal(false)}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                  <span>Xin lượt gợi ý #{totalUsed + 1}</span>
+                  Đóng
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowHintModal(false)}
-                className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Modal Xác nhận Xin Gợi ý AI — MAT-254: chỉ hiển thị khi admin bật task STUDENT_HINT */}
       {studentHintEnabled && (
-      <Dialog open={showConfirmHintModal} onOpenChange={setShowConfirmHintModal}>
-        <DialogContent className="max-w-md p-6 space-y-5 rounded-2xl border-slate-100 shadow-2xl">
-          <DialogHeader className="p-0 space-y-0 text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                <Lightbulb className="w-6 h-6 text-amber-600" />
+        <Dialog open={showConfirmHintModal} onOpenChange={setShowConfirmHintModal}>
+          <DialogContent className="max-w-md p-6 space-y-5 rounded-2xl border-slate-100 shadow-2xl">
+            <DialogHeader className="p-0 space-y-0 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <Lightbulb className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-slate-800">Xác nhận xin Gợi ý Tư duy AI</DialogTitle>
+                  <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
+                    Lượt {totalUsed + 1}/3
+                  </span>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-base font-bold text-slate-800">Xác nhận xin Gợi ý Tư duy AI</DialogTitle>
-                <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
-                  Lượt {totalUsed + 1}/3
-                </span>
-              </div>
+              <DialogDescription className="sr-only">Xác nhận gửi yêu cầu xin gợi ý từ AI</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 text-sm text-slate-600">
+              <p>
+                Bạn sắp sử dụng lượt gợi ý tư duy lần thứ <strong className="text-amber-800 font-bold">{totalUsed + 1}</strong> (còn lại {remainingHints} lượt).
+              </p>
+
+              {remainingHints === 1 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Đây là lượt gợi ý cuối cùng cho bài tập này!</span>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
+                AI sẽ đọc tiến độ bài làm hiện tại của bạn để đưa ra gợi ý tư duy cho bước tiếp theo. Bạn đã sẵn sàng chưa?
+              </p>
             </div>
-            <DialogDescription className="sr-only">Xác nhận gửi yêu cầu xin gợi ý từ AI</DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-3 text-sm text-slate-600">
-            <p>
-              Bạn sắp sử dụng lượt gợi ý tư duy lần thứ <strong className="text-amber-800 font-bold">{totalUsed + 1}</strong> (còn lại {remainingHints} lượt).
-            </p>
-
-            {remainingHints === 1 && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Đây là lượt gợi ý cuối cùng cho bài tập này!</span>
-              </div>
-            )}
-
-            <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
-              AI sẽ đọc tiến độ bài làm hiện tại của bạn để đưa ra gợi ý tư duy cho bước tiếp theo. Bạn đã sẵn sàng chưa?
-            </p>
-          </div>
-
-          <DialogFooter className="p-0 flex flex-row items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowConfirmHintModal(false)}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-            >
-              Để mình thử lại
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                setShowConfirmHintModal(false)
-                setShowHintModal(true)
-                const latestFullContent = embedDrawings(pureContent, studentDrawings)
-                await executeRequestHint(assignment.id, latestFullContent)
-              }}
-              className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-              <span>Nhận gợi ý ngay</span>
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="p-0 flex flex-row items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmHintModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Để mình thử lại
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowConfirmHintModal(false)
+                  setShowHintModal(true)
+                  const latestFullContent = embedDrawings(pureContent, studentDrawings)
+                  await executeRequestHint(assignment.id, latestFullContent)
+                }}
+                className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                <span>Nhận gợi ý ngay</span>
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {showHandwritingModal && (

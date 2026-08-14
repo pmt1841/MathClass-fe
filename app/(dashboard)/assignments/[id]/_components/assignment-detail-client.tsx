@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ChevronRight, Send, Save, Users, XCircle, CheckCircle } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Send, Save, Users, XCircle, CheckCircle, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
 import remarkGfm from 'remark-gfm'
@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -58,6 +59,7 @@ interface AssignmentDetail {
   sheetId?: number
   sheetTitle?: string
   sheetSiblings?: SheetSiblingDto[]
+  allowResubmit?: boolean
 }
 
 export function AssignmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
@@ -74,6 +76,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [showUnsubmitModal, setShowUnsubmitModal] = useState(false)
+  const [showResubmitModal, setShowResubmitModal] = useState(false)
+  const [isEditingResubmit, setIsEditingResubmit] = useState(false)
+  const queryClient = useQueryClient()
   const { user, isInitializing } = useAuth()
   const [userRole, setUserRole] = useState<string>('STUDENT')
 
@@ -90,6 +95,13 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   // Teacher grade states
   const [gradingSubmissionId, setGradingSubmissionId] = useState<number | null>(null)
   const [gradingScore, setGradingScore] = useState<string>('')
+
+  // Student versions state
+  const { data: submissionVersions = [] } = useQuery({
+    queryKey: ['submission-versions', submissionId],
+    queryFn: () => submissionService.getSubmissionVersions(submissionId || 0),
+    enabled: !!submissionId,
+  })
 
   const isSavingExternalRef = useRef(isSavingExternal)
   useEffect(() => {
@@ -179,7 +191,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const handleBackClick = () => {
     const pastDeadline = assignment?.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
     const graded = submissionScore !== null
-    const readOnly = pastDeadline || userRole !== 'STUDENT' || graded || submissionStatus === 'SUBMITTED'
+    const readOnly = pastDeadline || userRole !== 'STUDENT' || (!isEditingResubmit && (graded || submissionStatus === 'SUBMITTED'))
 
     if (readOnly) {
       navigateBack()
@@ -249,9 +261,12 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     try {
       setIsSavingExternal(true)
       const res = await saveOrUpdateSubmission(submissionContent, 'SUBMITTED')
+      const targetSubId = submissionId || res.id
       if (!submissionId) setSubmissionId(res.id)
       setSubmissionStatus('SUBMITTED')
       setLastSavedExternal(new Date())
+      queryClient.invalidateQueries({ queryKey: ['submission-versions', targetSubId] })
+      queryClient.invalidateQueries({ queryKey: ['submission-versions'] })
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
       toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
@@ -271,6 +286,32 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       setShowUnsubmitModal(false)
     } catch (error: any) {
       toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi hủy nộp bài.')
+    } finally {
+      setIsSavingExternal(false)
+    }
+  }
+
+  const handleResubmitConfirm = async () => {
+    if (!submissionId) return;
+    if (!submissionContent.trim()) {
+      toast.error('Vui lòng nhập nội dung trước khi nộp lại.')
+      return;
+    }
+    try {
+      setIsSavingExternal(true)
+      const res = await submissionService.resubmitSubmission(submissionId, submissionContent)
+      setSubmissionStatus('SUBMITTED')
+      setSubmissionScore(null)
+      setSubmissionTeacherFeedback('')
+      setIsEditingResubmit(false)
+      setShowResubmitModal(false)
+      setLastSavedExternal(new Date())
+      queryClient.invalidateQueries({ queryKey: ['submission-versions', submissionId] })
+      queryClient.invalidateQueries({ queryKey: ['submission-versions'] })
+      const nextVerNum = (submissionVersions?.length ?? 1) + 1
+      toast.success(`Đã làm lại bài thành công! (Lần ${nextVerNum}/3)`)
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi làm lại bài.')
     } finally {
       setIsSavingExternal(false)
     }
@@ -310,7 +351,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
 
   const isPastDeadline = assignment.deadline ? Date.now() > (parseDateSafe(assignment.deadline)?.getTime() ?? Infinity) : false
   const isGraded = submissionScore !== null
-  const isReadOnly = isPastDeadline || userRole !== 'STUDENT' || isGraded || submissionStatus === 'SUBMITTED'
+  const isReadOnly = isPastDeadline || userRole !== 'STUDENT' || (!isEditingResubmit && (isGraded || submissionStatus === 'SUBMITTED'))
 
   if (userRole === 'STUDENT') {
     return (
@@ -326,6 +367,11 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
           onUnsubmit={() => setShowUnsubmitModal(true)}
+          isEditingResubmit={isEditingResubmit}
+          onStartResubmit={() => setIsEditingResubmit(true)}
+          onCancelResubmit={() => setIsEditingResubmit(false)}
+          onResubmit={() => setShowResubmitModal(true)}
+          allowResubmit={assignment.allowResubmit}
           submissionStatus={submissionStatus}
           submissionScore={submissionScore}
           teacherFeedback={submissionTeacherFeedback}
@@ -384,6 +430,38 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
                 >
                   Đồng ý hủy nộp
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showResubmitModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+                  <RotateCcw className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  Xác nhận làm lại bài ({submissionVersions ? Math.min(submissionVersions.length + 1, 3) : 2}/3)
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Bản làm mới sẽ được gửi lên giáo viên để chấm lại. Lịch sử các lần nộp và điểm trước đây của bạn vẫn được lưu lại đầy đủ (Tối đa 3 lần nộp bài).
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
+                <button
+                  onClick={() => setShowResubmitModal(false)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleResubmitConfirm}
+                  disabled={isSavingExternal}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+                >
+                  Đồng ý làm lại bài
                 </button>
               </div>
             </div>
@@ -459,41 +537,18 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
             </span>
           )}
           {userRole === 'STUDENT' && !isPastDeadline && !isGraded && (
-            <>
-              {submissionStatus !== 'SUBMITTED' ? (
-                <PermissionGuard permission="submission:submit">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleSaveDraft}
-                      disabled={isSavingExternal}
-                      className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all disabled:opacity-50"
-                    >
-                      <Save className="h-4 w-4" />
-                      Lưu nháp
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isSavingExternal}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      Nộp bài
-                    </button>
-                  </div>
-                </PermissionGuard>
-              ) : (
-                <PermissionGuard permission="submission:submit">
-                  <button
-                    onClick={() => setShowUnsubmitModal(true)}
-                    disabled={isSavingExternal}
-                    className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 text-sm font-semibold rounded-lg hover:bg-rose-100 shadow-sm transition-all disabled:opacity-50"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Hủy nộp bài
-                  </button>
-                </PermissionGuard>
-              )}
-            </>
+            submissionStatus !== 'SUBMITTED' && (
+              <PermissionGuard permission="submission:submit">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSavingExternal}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/95 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                  Nộp bài
+                </button>
+              </PermissionGuard>
+            )
           )}
           {userRole === 'STUDENT' && isPastDeadline && !isGraded && (
             <span className="text-sm font-medium text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
