@@ -115,8 +115,9 @@ export const submissionService = {
     return response.data
   },
 
-  resubmitSubmission: async (submissionId: number, content: string, status: 'SUBMITTED' = 'SUBMITTED') => {
+  resubmitSubmission: async (submissionId: number, content: string, status: 'SUBMITTED' = 'SUBMITTED', assignmentId?: number) => {
     const response = await api.post<SubmissionResponse>(`/submissions/${submissionId}/resubmit`, {
+      assignmentId,
       content,
       status
     })

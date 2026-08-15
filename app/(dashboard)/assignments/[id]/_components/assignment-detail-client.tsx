@@ -234,6 +234,19 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const getErrorMessage = (error: any, defaultMsg: string): string => {
+    if (!error) return defaultMsg
+    if (typeof error === 'string') return error
+    if (typeof error.response?.data?.message === 'string') return error.response.data.message
+    if (typeof error.response?.data === 'string') return error.response.data
+    if (error.response?.data?.errors && typeof error.response.data.errors === 'object') {
+      const vals = Object.values(error.response.data.errors)
+      if (vals.length > 0) return vals.join(', ')
+    }
+    if (typeof error.message === 'string') return error.message
+    return defaultMsg
+  }
+
   const handleSaveDraft = async () => {
     if (!submissionContent.trim()) {
       toast.error('Vui lòng nhập nội dung trước khi lưu.')
@@ -247,7 +260,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       setLastSavedExternal(new Date())
       toast.success('Đã lưu nháp thành công')
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi lưu nháp.')
+      toast.error(getErrorMessage(error, 'Có lỗi xảy ra khi lưu nháp.'))
     } finally {
       setIsSavingExternal(false)
     }
@@ -269,7 +282,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       queryClient.invalidateQueries({ queryKey: ['submission-versions'] })
       toast.success('Đã nộp bài thành công!')
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi nộp bài.')
+      toast.error(getErrorMessage(error, 'Có lỗi xảy ra khi nộp bài.'))
     } finally {
       setIsSavingExternal(false)
     }
@@ -285,7 +298,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       toast.success('Đã hủy nộp bài. Bạn có thể sửa và nộp lại.')
       setShowUnsubmitModal(false)
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi hủy nộp bài.')
+      toast.error(getErrorMessage(error, 'Có lỗi xảy ra khi hủy nộp bài.'))
     } finally {
       setIsSavingExternal(false)
     }
@@ -299,7 +312,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
     }
     try {
       setIsSavingExternal(true)
-      const res = await submissionService.resubmitSubmission(submissionId, submissionContent)
+      const res = await submissionService.resubmitSubmission(submissionId, submissionContent, 'SUBMITTED', assignmentId)
       setSubmissionStatus('SUBMITTED')
       setSubmissionScore(null)
       setSubmissionTeacherFeedback('')
@@ -307,11 +320,10 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       setShowResubmitModal(false)
       setLastSavedExternal(new Date())
       queryClient.invalidateQueries({ queryKey: ['submission-versions', submissionId] })
-      queryClient.invalidateQueries({ queryKey: ['submission-versions'] })
-      const nextVerNum = (submissionVersions?.length ?? 1) + 1
+      const nextVerNum = res?.versionNumber ?? ((submissionVersions?.length ?? 1) + 1)
       toast.success(`Đã làm lại bài thành công! (Lần ${nextVerNum}/3)`)
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi làm lại bài.')
+      toast.error(getErrorMessage(error, 'Có lỗi xảy ra khi làm lại bài.'))
     } finally {
       setIsSavingExternal(false)
     }
@@ -332,7 +344,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       // Update local list
       setTeacherSubmissions(prev => prev.map(s => s.id === subId ? { ...s, score: res.score, updatedAt: res.updatedAt } : s))
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data || 'Có lỗi xảy ra khi chấm điểm.')
+      toast.error(getErrorMessage(error, 'Có lỗi xảy ra khi chấm điểm.'))
     }
   }
 
