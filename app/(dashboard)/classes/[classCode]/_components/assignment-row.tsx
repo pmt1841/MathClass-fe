@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ClipboardList, Clock, Pencil, Send, ListChecks } from 'lucide-react'
+import { ClipboardList, Clock, Pencil, Send, ListChecks, RotateCcw } from 'lucide-react'
 import { Assignment } from '@/types'
 import { formatDateTime } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { assignmentService } from '@/services/assignmentService'
+import { toast } from 'sonner'
 
 export function AssignmentRow({
   assignment,
@@ -15,6 +17,27 @@ export function AssignmentRow({
   const router = useRouter()
   const params = useParams()
   const classCode = params.classCode as string
+
+  const [allowResubmit, setAllowResubmit] = useState<boolean>(assignment.allowResubmit ?? false)
+  const [isToggling, setIsToggling] = useState(false)
+
+  const handleToggleResubmit = async () => {
+    try {
+      setIsToggling(true)
+      const nextVal = !allowResubmit
+      await assignmentService.toggleAllowResubmit(assignment.id, nextVal)
+      setAllowResubmit(nextVal)
+      if (nextVal) {
+        toast.success(`Đã bật cho phép nộp lại bài "${assignment.title}"`)
+      } else {
+        toast.info(`Đã tắt cho phép nộp lại bài "${assignment.title}"`)
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể thay đổi quyền nộp lại bài')
+    } finally {
+      setIsToggling(false)
+    }
+  }
 
   const statusConfig = {
     DRAFT: {
@@ -68,7 +91,28 @@ export function AssignmentRow({
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <div className="flex items-center gap-2 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity duration-150">
+        {assignment.status !== 'DRAFT' && (
+          <PermissionGuard permission="assignment:update">
+            <button
+              type="button"
+              onClick={handleToggleResubmit}
+              disabled={isToggling}
+              className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                allowResubmit
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+              }`}
+              title={allowResubmit ? 'Bấm để tắt cho phép học sinh nộp lại' : 'Bấm để bật cho phép học sinh nộp lại'}
+            >
+              <RotateCcw className={`h-3.5 w-3.5 ${allowResubmit ? 'text-blue-600 animate-spin-reverse' : 'text-slate-400'}`} />
+              <span className="hidden md:inline">
+                {allowResubmit ? 'Cho nộp lại: Bật' : 'Cho nộp lại: Tắt'}
+              </span>
+            </button>
+          </PermissionGuard>
+        )}
+
         {assignment.status !== 'DRAFT' && (
           <button
             id={`view-submissions-${assignment.id}`}

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil } from 'lucide-react'
+import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil, RotateCcw } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
 import { toast } from 'sonner'
 import { Assignment } from '@/types'
@@ -228,44 +228,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                     </summary>
                     <div className="p-4 bg-slate-50/50 border-b border-slate-200 space-y-2">
                       {assignment.items?.map((item: any, i: number) => (
-                        <div key={item.id} className="group flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all ml-12">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <span className="text-sm font-semibold text-slate-500 w-5">{i + 1}.</span>
-                            <div className="flex-1 min-w-0 flex items-center gap-2">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{item.title}</p>
-                              {item.maxScore !== undefined && item.maxScore !== null && (
-                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
-                                  {item.maxScore} đ
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <span className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 flex-shrink-0">
-                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            Đã giao
-                          </span>
-
-                          <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-
-
-                            <PermissionGuard permission="assignment:update">
-                              <button
-                                onClick={() => {
-                                  const url = classCode
-                                    ? `/assignments/${item.id}/edit?returnUrl=/classes/${classCode}`
-                                    : `/assignments/${item.id}/edit`
-                                  router.push(url)
-                                }}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
-                                title="Chỉnh sửa bài tập"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Sửa
-                              </button>
-                            </PermissionGuard>
-                          </div>
-                        </div>
+                        <SheetItemRow key={item.id} item={item} index={i} classCode={classCode} />
                       ))}
                     </div>
                   </details>
@@ -301,13 +264,17 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                 <button
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${page === i ? 'bg-primary text-white' : 'border border-border bg-white text-slate-600 hover:bg-slate-100'}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
+                    page === i
+                      ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                      : 'border border-border bg-white text-slate-600 hover:bg-slate-100'
+                  }`}
                 >
                   {i + 1}
                 </button>
               ))}
               <button
-                disabled={page === totalPages - 1}
+                disabled={page >= totalPages - 1}
                 onClick={() => setPage(page + 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
               >
@@ -330,5 +297,87 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
         />
       )}
     </>
+  )
+}
+
+function SheetItemRow({ item, index, classCode }: { item: any; index: number; classCode: string }) {
+  const router = useRouter()
+  const [allowResubmit, setAllowResubmit] = useState<boolean>(item.allowResubmit ?? false)
+  const [isToggling, setIsToggling] = useState(false)
+
+  const handleToggleResubmit = async () => {
+    try {
+      setIsToggling(true)
+      const nextVal = !allowResubmit
+      await assignmentService.toggleAllowResubmit(item.id, nextVal)
+      setAllowResubmit(nextVal)
+      if (nextVal) {
+        toast.success(`Đã bật cho phép nộp lại bài "${item.title}"`)
+      } else {
+        toast.info(`Đã tắt cho phép nộp lại bài "${item.title}"`)
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể thay đổi quyền nộp lại bài')
+    } finally {
+      setIsToggling(false)
+    }
+  }
+
+  return (
+    <div key={item.id} className="group flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all ml-4 sm:ml-12">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="text-sm font-semibold text-slate-500 w-5">{index + 1}.</span>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-800 truncate">{item.title}</p>
+          {item.maxScore !== undefined && item.maxScore !== null && (
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
+              {item.maxScore} đ
+            </span>
+          )}
+        </div>
+      </div>
+
+      <span className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 flex-shrink-0">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        Đã giao
+      </span>
+
+      <div className="flex items-center gap-2 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity duration-150">
+        <PermissionGuard permission="assignment:update">
+          <button
+            type="button"
+            onClick={handleToggleResubmit}
+            disabled={isToggling}
+            className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+              allowResubmit
+                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+            }`}
+            title={allowResubmit ? 'Bấm để tắt cho phép học sinh nộp lại' : 'Bấm để bật cho phép học sinh nộp lại'}
+          >
+            <RotateCcw className={`h-3.5 w-3.5 ${allowResubmit ? 'text-blue-600' : 'text-slate-400'}`} />
+            <span className="hidden md:inline">
+              {allowResubmit ? 'Cho nộp lại: Bật' : 'Cho nộp lại: Tắt'}
+            </span>
+          </button>
+        </PermissionGuard>
+
+        <PermissionGuard permission="assignment:update">
+          <button
+            onClick={() => {
+              const url = classCode
+                ? `/assignments/${item.id}/edit?returnUrl=/classes/${classCode}`
+                : `/assignments/${item.id}/edit`
+              router.push(url)
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
+            title="Chỉnh sửa bài tập"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Sửa
+          </button>
+        </PermissionGuard>
+      </div>
+    </div>
   )
 }
