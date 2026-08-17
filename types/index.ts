@@ -37,6 +37,7 @@ export interface Assignment {
   maxScore?: number
   visibility?: AssignmentVisibility
   originalAuthor?: OriginalAuthor
+  allowResubmit?: boolean
 }
 
 export interface MyClassroom {

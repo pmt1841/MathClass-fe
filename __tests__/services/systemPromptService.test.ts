@@ -39,21 +39,19 @@ describe('systemPromptService', () => {
     expect(result).toEqual(mockPrompts)
   })
 
-  it('createPrompt gọi API POST /system-prompts với dữ liệu hợp lệ', async () => {
-    const newPromptData = {
-      code: 'PROMPT_TEST',
-      name: 'Prompt Test',
-      taskCode: 'HINT_EXPLANATION',
-      defaultContent: 'Test {{var}}',
-      allowedVariables: ['var'],
+  it('updatePrompt gọi API PUT /system-prompts/{id} với dữ liệu cập nhật', async () => {
+    const updateData = {
+      name: 'Prompt Test Updated',
+      currentContent: 'Test {{var}} updated',
+      changeReason: 'Lý do cập nhật',
     }
-    const mockCreated = { id: 2, ...newPromptData, currentContent: 'Test {{var}}', status: 'ACTIVE' }
-    ;(api.post as any).mockResolvedValue({ data: mockCreated })
+    const mockUpdated = { id: 1, ...updateData, code: 'PROMPT_SOLVE_HINT', status: 'ACTIVE' }
+    ;(api.put as any).mockResolvedValue({ data: mockUpdated })
 
-    const result = await systemPromptService.createPrompt(newPromptData)
+    const result = await systemPromptService.updatePrompt(1, updateData)
 
-    expect(api.post).toHaveBeenCalledWith('/system-prompts', newPromptData)
-    expect(result).toEqual(mockCreated)
+    expect(api.put).toHaveBeenCalledWith('/system-prompts/1', updateData)
+    expect(result).toEqual(mockUpdated)
   })
 
   it('resetToDefault gọi API POST /system-prompts/{id}/reset', async () => {
@@ -76,4 +74,30 @@ describe('systemPromptService', () => {
     expect(api.post).toHaveBeenCalledWith('/system-prompts/render', renderReq)
     expect(result).toEqual(mockRenderRes)
   })
+
+  it('testExecutePrompt gọi API POST /system-prompts/test-execute', async () => {
+    const testReq = {
+      promptCode: 'PROMPT_SOLVE_HINT',
+      taskCode: 'HINT_EXPLANATION',
+      variables: { subject: 'Đại số 10' },
+    }
+    const mockTestRes = {
+      promptCode: 'PROMPT_SOLVE_HINT',
+      taskCode: 'HINT_EXPLANATION',
+      renderedPrompt: 'Prompt render...',
+      aiResponse: 'Phản hồi từ AI...',
+      executionTimeMs: 450,
+      providerCode: 'GEMINI',
+      modelName: 'gemini-1.5-flash',
+      usedVariables: ['subject'],
+      success: true,
+    }
+    ;(api.post as any).mockResolvedValue({ data: mockTestRes })
+
+    const result = await systemPromptService.testExecutePrompt(testReq)
+
+    expect(api.post).toHaveBeenCalledWith('/system-prompts/test-execute', testReq)
+    expect(result).toEqual(mockTestRes)
+  })
 })
+

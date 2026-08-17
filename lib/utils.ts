@@ -56,3 +56,24 @@ export function formatDistanceToNowSafe(dateInput: Date | string | number | null
   if (!d) return '';
   return dateFnsFormatDistanceToNow(d, { locale: vi, ...options });
 }
+
+export function normalizeKatexDelimiters(content: string): string {
+  if (!content) return ''
+  let result = content
+
+  // 1. Chuyển \( ... \) thành $...$
+  result = result.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
+
+  // 2. Chuyển \[ ... \] thành $$...$$
+  result = result.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
+
+  // 3. Khắc phục lỗi JSON parser biến \text{cm} thành Tab + ext hoặc extcm (ví dụ 6extcm -> 6\text{ cm})
+  result = result.replace(/[\t\u0009]ext\{?/g, '\\text{')
+  result = result.replace(/(\d)\s*ext\s*\{?([a-zA-Z]+)\}?/g, '$1\\text{ $2}')
+  result = result.replace(/(\d)\s*\\?text\{\s*([a-zA-Z]+)\}/g, '$1\\text{ $2}')
+
+  // 4. Khắc phục lỗi AI lồng dấu đô-la
+  result = result.replace(/\$([a-zA-ZÀ-ỹ\s]+?)\s*\$([^$\n]+?)\$\$/g, '($1 $$$2$$)')
+
+  return result
+}

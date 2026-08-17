@@ -247,16 +247,17 @@ export function ProviderTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">Danh sách Nhà cung cấp AI (Providers)</h3>
+          <h3 className="text-base sm:text-lg font-semibold">Danh sách Nhà cung cấp AI (Providers)</h3>
           <p className="text-xs text-muted-foreground">
             Quản lý tập trung các AI Provider, định nghĩa chiến lược failover và danh sách API Keys.
           </p>
         </div>
 
         <Button
+          className="w-full sm:w-auto"
           onClick={() => {
             setSelectedProvider(null)
             setProviderModalOpen(true)
@@ -268,13 +269,13 @@ export function ProviderTab() {
       </div>
 
       {providers.length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-muted-foreground">
+        <div className="rounded-lg border bg-white p-6 sm:p-8 text-center text-xs sm:text-sm text-muted-foreground">
           Chưa có Nhà cung cấp AI nào được cấu hình. Hãy bấm nút "Thêm Provider mới" ở trên.
         </div>
       ) : (
         <Accordion
           type="multiple"
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
           onValueChange={(values) => {
             values.forEach((val) => {
               const providerId = parseInt(val)
@@ -292,35 +293,37 @@ export function ProviderTab() {
               <AccordionItem
                 key={p.id}
                 value={p.id.toString()}
-                className="rounded-lg border bg-white shadow-sm overflow-hidden px-4"
+                className="rounded-lg border bg-white shadow-sm overflow-hidden px-3 sm:px-4"
               >
-                <div className="flex items-center justify-between py-2">
-                  <AccordionTrigger className="hover:no-underline py-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold text-sm">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 py-2">
+                  <AccordionTrigger className="hover:no-underline py-2 flex-1 text-left">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold text-xs sm:text-sm">
                         {p.code.substring(0, 3)}
                       </div>
 
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-base">{p.name}</span>
-                          <Badge variant="outline" className="font-mono text-[11px]">
+                      <div className="text-left min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="font-semibold text-sm sm:text-base">{p.name}</span>
+                          <Badge variant="outline" className="font-mono text-[10px] sm:text-[11px]">
                             {p.code}
                           </Badge>
                         </div>
-                        <span className="text-xs text-muted-foreground font-mono">{p.baseUrl}</span>
+                        <span className="text-[11px] sm:text-xs text-muted-foreground font-mono truncate block max-w-[280px] sm:max-w-md">
+                          {p.baseUrl}
+                        </span>
                       </div>
                     </div>
                   </AccordionTrigger>
 
-                  <div className="flex items-center gap-3 ml-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 pb-1 lg:pb-0" onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant="secondary"
-                      className={
+                      className={`text-[11px] ${
                         p.strategy === 'PRIORITY'
                           ? 'bg-purple-100 text-purple-700 border-purple-200'
                           : 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                      }
+                      }`}
                     >
                       <Zap className="mr-1 h-3 w-3" />
                       {p.strategy}
@@ -328,11 +331,11 @@ export function ProviderTab() {
 
                     <Badge
                       variant={p.status === 'ACTIVE' ? 'outline' : 'destructive'}
-                      className={
+                      className={`text-[11px] ${
                         p.status === 'ACTIVE'
                           ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
                           : ''
-                      }
+                      }`}
                     >
                       {p.status === 'ACTIVE' ? (
                         <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -345,6 +348,7 @@ export function ProviderTab() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-8 text-xs"
                       onClick={() => {
                         setSelectedProvider(p)
                         setProviderModalOpen(true)
@@ -357,7 +361,7 @@ export function ProviderTab() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                       onClick={() => handleDeleteProvider(p.id, p.name)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -365,6 +369,7 @@ export function ProviderTab() {
 
                     <Button
                       size="sm"
+                      className="h-8 text-xs"
                       onClick={() => {
                         setTargetProviderForKey(p)
                         setKeyModalOpen(true)
@@ -394,8 +399,8 @@ export function ProviderTab() {
                         Chưa có API Key nào cho Provider này. Bấm "+ Thêm Key" để bổ sung.
                       </div>
                     ) : (
-                      <div className="rounded-md border overflow-hidden">
-                        <Table>
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table className="min-w-[620px]">
                           <TableHeader>
                             <TableRow className="bg-slate-50 text-xs">
                               <TableHead>Tên Key / Ghi chú</TableHead>

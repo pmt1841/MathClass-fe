@@ -39,7 +39,7 @@ export interface SystemPromptUpdateRequest {
   name: string
   currentContent: string
   description?: string
-  status: SystemPromptStatus
+  status?: SystemPromptStatus
   changeReason?: string
 }
 
@@ -58,6 +58,27 @@ export interface RenderPromptResponse {
   usedVariables: string[]
 }
 
+export interface PromptTestExecuteRequest {
+  promptCode?: string
+  taskCode?: string
+  customContent?: string
+  variables?: Record<string, any>
+}
+
+export interface PromptTestExecuteResponse {
+  promptCode?: string
+  taskCode: string
+  renderedPrompt: string
+  aiResponse?: string | null
+  executionTimeMs: number
+  providerCode: string
+  modelName: string
+  completionTokens?: number | null
+  usedVariables: string[]
+  success: boolean
+  errorMessage?: string | null
+}
+
 export const systemPromptService = {
   async getAllPrompts(params?: { taskCode?: string; status?: string; search?: string }): Promise<SystemPrompt[]> {
     const res = await api.get<{ data: SystemPrompt[] }>('/system-prompts', { params })
@@ -66,11 +87,6 @@ export const systemPromptService = {
 
   async getPromptById(id: number): Promise<SystemPrompt> {
     const res = await api.get<SystemPrompt>(`/system-prompts/${id}`)
-    return res.data
-  },
-
-  async createPrompt(data: SystemPromptCreateRequest): Promise<SystemPrompt> {
-    const res = await api.post<SystemPrompt>('/system-prompts', data)
     return res.data
   },
 
@@ -94,12 +110,14 @@ export const systemPromptService = {
     return res.data
   },
 
-  async deletePrompt(id: number): Promise<void> {
-    await api.delete(`/system-prompts/${id}`)
-  },
-
   async renderPrompt(data: RenderPromptRequest): Promise<RenderPromptResponse> {
     const res = await api.post<RenderPromptResponse>('/system-prompts/render', data)
     return res.data
   },
+
+  async testExecutePrompt(data: PromptTestExecuteRequest): Promise<PromptTestExecuteResponse> {
+    const res = await api.post<PromptTestExecuteResponse>('/system-prompts/test-execute', data)
+    return res.data
+  },
 }
+
