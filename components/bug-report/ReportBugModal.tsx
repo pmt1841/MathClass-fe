@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -70,6 +70,8 @@ export function ReportBugModal({
   const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; url?: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const imageFilesRef = useRef(imageFiles)
+  imageFilesRef.current = imageFiles
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -80,6 +82,17 @@ export function ReportBugModal({
     },
   })
 
+  // Cleanup Blob Object URLs khi unmount
+  useEffect(() => {
+    return () => {
+      imageFilesRef.current.forEach((item) => {
+        if (item.preview) {
+          URL.revokeObjectURL(item.preview)
+        }
+      })
+    }
+  }, [])
+
   useEffect(() => {
     if (open) {
       form.reset({
@@ -87,7 +100,15 @@ export function ReportBugModal({
         errorType: 'LOGIN_ACCOUNT',
         description: '',
       })
-      setImageFiles([])
+      // Thu hồi toàn bộ preview URL cũ trước khi reset
+      setImageFiles((prev) => {
+        prev.forEach((item) => {
+          if (item.preview) {
+            URL.revokeObjectURL(item.preview)
+          }
+        })
+        return []
+      })
     }
   }, [open, defaultEmail, form])
 
@@ -123,7 +144,9 @@ export function ReportBugModal({
   const handleRemoveImage = (index: number) => {
     setImageFiles((prev) => {
       const updated = [...prev]
-      URL.revokeObjectURL(updated[index].preview)
+      if (updated[index]?.preview) {
+        URL.revokeObjectURL(updated[index].preview)
+      }
       updated.splice(index, 1)
       return updated
     })
