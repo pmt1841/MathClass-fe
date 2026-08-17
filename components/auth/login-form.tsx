@@ -5,8 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Mail } from 'lucide-react'
+import { Mail, AlertTriangle } from 'lucide-react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { ReportBugModal } from '@/components/bug-report/ReportBugModal'
 
 import {
   Form,
@@ -52,6 +53,9 @@ export default function LoginForm() {
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
   const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
   const [lockedAt, setLockedAt] = useState<string | undefined>(undefined)
+
+  // State kiểm soát Modal Báo cáo lỗi hệ thống
+  const [showReportModal, setShowReportModal] = useState<boolean>(false)
 
   // State kiểm soát Modal Xung đột đăng nhập đa tài khoản
   const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
@@ -325,7 +329,26 @@ export default function LoginForm() {
         <div className="w-full">
           <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} rememberMe={rememberMe} />
         </div>
+
+        {/* Nút Báo cáo sự cố hệ thống cho Guest */}
+        <div className="text-center pt-2">
+          <button
+            type="button"
+            onClick={() => setShowReportModal(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Gặp sự cố? Báo cáo lỗi hệ thống
+          </button>
+        </div>
       </div>
+
+      {/* Modal Báo cáo lỗi cho Guest */}
+      <ReportBugModal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        isAuthenticated={false}
+      />
 
       {/* ── Modal Cảnh báo Tài khoản bị khóa (Tách biệt Component) ───────────── */}
       <AccountLockedModal

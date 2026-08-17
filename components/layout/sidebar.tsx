@@ -10,19 +10,22 @@ import {
   ChevronRight,
   Library,
   Zap,
+  AlertTriangle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { ReportBugModal } from '@/components/bug-report/ReportBugModal'
 
-interface NavItem {
+export interface NavItem {
   icon: React.ElementType
   label: string
   href: string
   roles?: ('TEACHER' | 'STUDENT')[]
   permission?: string
   badge?: string
+  isAction?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -49,7 +52,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: BarChart3,
-    label: 'Báo cáo & Thống kê',
+    label: 'Báo cáo sử dụng',
     href: '/reports',
     roles: ['TEACHER'],
   },
@@ -64,6 +67,12 @@ const navItems: NavItem[] = [
     label: 'Nạp credit AI',
     href: '/credits',
   },
+  {
+    icon: AlertTriangle,
+    label: 'Báo cáo sự cố',
+    href: '#report-bug',
+    isAction: true,
+  },
 ]
 
 interface SidebarProps {
@@ -74,9 +83,9 @@ interface SidebarProps {
 export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const { user } = useAuth()
 
-  
   useEffect(() => {
     const checkScreenSize = () => {
       if (window.innerWidth < 1024) {
@@ -86,13 +95,8 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
       }
     }
 
-    // Set initial state
     checkScreenSize()
-
-    // Add event listener
     window.addEventListener('resize', checkScreenSize)
-    
-    // Cleanup
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
@@ -110,61 +114,91 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
 
   const isActive = (href: string) => {
     if (href === '/' || href === '/home') {
-      return pathname === href;
+      return pathname === href
     }
 
     if (pathname.includes('/submissions')) {
-      if (href === '/classes') return true;
-      if (href === '/assignments') return false;
+      if (href === '/classes') return true
+      if (href === '/assignments') return false
     }
 
-    return pathname === href || pathname.startsWith(`${href}/`);
-  };
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   return (
-    <aside
-      className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'
+    <>
+      <aside
+        className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${
+          collapsed ? 'w-16' : 'w-64'
         }`}
-    >
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors"
       >
-        {collapsed ? (
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
-        )}
-      </button>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors"
+        >
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </button>
 
-      <div className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
-        {visibleItems.map((item) => {
-          const Icon = item.icon
-          const active = isActive(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${collapsed ? 'justify-center' : ''
-                } ${active
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        <div className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
+          {visibleItems.map((item) => {
+            const Icon = item.icon
+            const active = !item.isAction && isActive(item.href)
+
+            if (item.isAction) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => setShowReportModal(true)}
+                  title={collapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left ${
+                    collapsed ? 'justify-center' : ''
+                  } text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0 text-destructive" />
+                  {!collapsed && <span className="flex-1 font-semibold">{item.label}</span>}
+                </button>
+              )
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                  collapsed ? 'justify-center' : ''
+                } ${
+                  active
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
-            >
-              <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
-              {!collapsed && (
-                <span className="flex-1">{item.label}</span>
-              )}
-              {!collapsed && item.badge && (
-                <span className="rounded-full bg-accent text-accent-foreground text-xs font-bold px-2 py-0.5">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          )
-        })}
-      </div>
-    </aside>
+              >
+                <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                {!collapsed && <span className="flex-1">{item.label}</span>}
+                {!collapsed && item.badge && (
+                  <span className="rounded-full bg-accent text-accent-foreground text-xs font-bold px-2 py-0.5">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </aside>
+
+      {/* Modal Báo cáo sự cố hệ thống */}
+      <ReportBugModal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        defaultEmail={user?.email || ''}
+        defaultName={user?.fullName || ''}
+        isAuthenticated={!!user}
+      />
+    </>
   )
 }
