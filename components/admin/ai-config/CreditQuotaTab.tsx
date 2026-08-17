@@ -68,7 +68,7 @@ const ROLE_LABELS: Record<string, string> = {
  */
 export function CreditQuotaTab() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <CostPerTaskSection />
       <DefaultCreditsSection />
       <PackagesSection />
@@ -125,11 +125,11 @@ function CostPerTaskSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Coins className="h-5 w-5 text-amber-500" />
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <Coins className="h-5 w-5 text-amber-500 shrink-0" />
           Chi phí Credit theo Tác vụ AI
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Credit trừ theo token đầu ra của mỗi lượt gọi AI: 1 credit = N token (cột Token/credit), tối thiểu bằng phí cột đầu.
         </CardDescription>
       </CardHeader>
@@ -140,16 +140,17 @@ function CostPerTaskSection() {
             <Skeleton className="h-9 w-full" />
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tác vụ AI</TableHead>
-                <TableHead className="w-28">Phí tối thiểu</TableHead>
-                <TableHead className="w-28">Token/credit</TableHead>
-                <TableHead className="w-24">Áp dụng</TableHead>
-                <TableHead className="w-28 text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[580px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tác vụ AI</TableHead>
+                  <TableHead className="w-28">Phí tối thiểu</TableHead>
+                  <TableHead className="w-28">Token/credit</TableHead>
+                  <TableHead className="w-24">Áp dụng</TableHead>
+                  <TableHead className="w-28 text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {(configs || []).map((config) => {
                 const draft = draftFor(config.task, config.costPerCall, config.tokensPerCredit, config.enabled)
@@ -225,6 +226,7 @@ function CostPerTaskSection() {
               })}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -258,11 +260,11 @@ function DefaultCreditsSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserCog className="h-5 w-5 text-blue-500" />
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <UserCog className="h-5 w-5 text-blue-500 shrink-0" />
           Credit mặc định khi tạo tài khoản
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Số credit tự động cấp cho người dùng mới theo vai trò (tài khoản cũ được backfill khi khởi động).
         </CardDescription>
       </CardHeader>
@@ -273,14 +275,14 @@ function DefaultCreditsSection() {
             <Skeleton className="h-9 w-full" />
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {(defaults || []).map((def) => {
               const value = drafts[def.role] ?? def.defaultCredits
               const dirty = value !== def.defaultCredits
               return (
                 <div key={def.role} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                   <p className="text-sm font-semibold text-slate-800">{ROLE_LABELS[def.role] ?? def.role}</p>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Input
                       type="number"
                       min={0}
@@ -385,15 +387,17 @@ function PackagesSection() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-emerald-500" />
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Coins className="h-5 w-5 text-emerald-500 shrink-0" />
             Gói nạp Credit
           </CardTitle>
-          <CardDescription>Người dùng chọn gói để nạp credit khi hết hạn mức.</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
+            Người dùng chọn gói để nạp credit khi hết hạn mức.
+          </CardDescription>
         </div>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" className="w-full sm:w-auto" onClick={openCreate}>
           <Plus className="mr-1.5 h-4 w-4" /> Thêm gói
         </Button>
       </CardHeader>
@@ -404,52 +408,54 @@ function PackagesSection() {
             <Skeleton className="h-9 w-full" />
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tên gói</TableHead>
-                <TableHead className="w-24">Số credit</TableHead>
-                <TableHead className="w-28">Giá</TableHead>
-                <TableHead className="w-24">Trạng thái</TableHead>
-                <TableHead className="w-28 text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(packages || []).map((pkg) => (
-                <TableRow key={pkg.id}>
-                  <TableCell className="font-medium">{pkg.name}</TableCell>
-                  <TableCell>{pkg.credits}</TableCell>
-                  <TableCell>{formatVnd(pkg.price)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        pkg.enabled
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }
-                    >
-                      {pkg.enabled ? 'Đang bán' : 'Đã tắt'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(pkg)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => handleDelete(pkg)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[520px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tên gói</TableHead>
+                  <TableHead className="w-24">Số credit</TableHead>
+                  <TableHead className="w-28">Giá</TableHead>
+                  <TableHead className="w-24">Trạng thái</TableHead>
+                  <TableHead className="w-28 text-right">Thao tác</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {(packages || []).map((pkg) => (
+                  <TableRow key={pkg.id}>
+                    <TableCell className="font-medium">{pkg.name}</TableCell>
+                    <TableCell>{pkg.credits}</TableCell>
+                    <TableCell>{formatVnd(pkg.price)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          pkg.enabled
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }
+                      >
+                        {pkg.enabled ? 'Đang bán' : 'Đã tắt'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(pkg)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => handleDelete(pkg)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>{editing ? 'Sửa gói credit' : 'Thêm gói credit'}</DialogTitle>
             <DialogDescription>
@@ -549,17 +555,17 @@ function AdjustAndLedgerSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ReceiptText className="h-5 w-5 text-slate-500" />
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <ReceiptText className="h-5 w-5 text-slate-500 shrink-0" />
           Điều chỉnh Credit & Sổ cái giao dịch
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Admin cộng/trừ credit thủ công cho người dùng (ví dụ hoàn tiền lỗi hệ thống) và tra cứu sổ cái.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Form điều chỉnh */}
-        <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-4">
+        <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label className="text-xs">User ID</Label>
             <Input
@@ -599,9 +605,9 @@ function AdjustAndLedgerSection() {
         </div>
 
         {/* Bộ lọc + sổ cái */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm font-semibold text-slate-800">Sổ cái giao dịch</p>
-          <div className="w-44">
+          <div className="w-full sm:w-44">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Lọc theo loại" />
@@ -626,41 +632,43 @@ function AdjustAndLedgerSection() {
         ) : (transactions || []).length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Chưa có giao dịch nào.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User ID</TableHead>
-                <TableHead>Thời gian</TableHead>
-                <TableHead>Loại</TableHead>
-                <TableHead>Nội dung</TableHead>
-                <TableHead className="text-right">Số credit</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(transactions || []).map((txn) => (
-                <TableRow key={txn.id}>
-                  <TableCell className="font-mono text-xs">#{txn.userId}</TableCell>
-                  <TableCell className="text-xs text-slate-500">
-                    {new Date(txn.createdAt).toLocaleString('vi-VN')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-slate-100 text-slate-700">{txn.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-600">
-                    {txn.description || (txn.task ? getCreditTaskLabel(txn.task) : '') || '—'}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-bold ${
-                      (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {(txn.amount ?? 0) >= 0 ? '+' : ''}
-                    {txn.amount}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[550px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Thời gian</TableHead>
+                  <TableHead>Loại</TableHead>
+                  <TableHead>Nội dung</TableHead>
+                  <TableHead className="text-right">Số credit</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {(transactions || []).map((txn) => (
+                  <TableRow key={txn.id}>
+                    <TableCell className="font-mono text-xs">#{txn.userId}</TableCell>
+                    <TableCell className="text-xs text-slate-500">
+                      {new Date(txn.createdAt).toLocaleString('vi-VN')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-slate-100 text-slate-700">{txn.type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">
+                      {txn.description || (txn.task ? getCreditTaskLabel(txn.task) : '') || '—'}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-bold ${
+                        (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}
+                    >
+                      {(txn.amount ?? 0) >= 0 ? '+' : ''}
+                      {txn.amount}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

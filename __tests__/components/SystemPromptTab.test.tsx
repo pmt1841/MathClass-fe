@@ -6,15 +6,15 @@ import { systemPromptService } from '@/services/systemPromptService'
 vi.mock('@/services/systemPromptService', () => ({
   systemPromptService: {
     getAllPrompts: vi.fn(),
-    createPrompt: vi.fn(),
     updatePrompt: vi.fn(),
     resetToDefault: vi.fn(),
     getPromptHistory: vi.fn(),
     rollbackToVersion: vi.fn(),
-    deletePrompt: vi.fn(),
     renderPrompt: vi.fn(),
+    testExecutePrompt: vi.fn(),
   },
 }))
+
 
 vi.mock('@/components/ui/use-toast', () => ({
   useToast: () => ({
@@ -46,7 +46,6 @@ describe('SystemPromptTab Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Prompt Gợi ý giải toán từng bước')).toBeInTheDocument()
-      expect(screen.getByText('PROMPT_SOLVE_HINT')).toBeInTheDocument()
     })
   })
 

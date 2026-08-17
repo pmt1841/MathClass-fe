@@ -27,6 +27,7 @@ import {
   ProviderCreateRequest,
   ProviderUpdateRequest,
 } from '@/services/aiConfigService'
+import { useToast } from '@/components/ui/use-toast'
 
 interface ProviderDialogProps {
   open: boolean
@@ -43,10 +44,11 @@ export function ProviderDialog({
   onSubmitCreate,
   onSubmitUpdate,
 }: ProviderDialogProps) {
+  const { toast } = useToast()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
-  const [protocol, setProtocol] = useState<ProviderProtocol>('OPENAI_COMPATIBLE')
+  const [protocol, setProtocol] = useState<ProviderProtocol | ''>('')
   const [authHeaderName, setAuthHeaderName] = useState('')
   const [authHeaderPrefix, setAuthHeaderPrefix] = useState('')
   const [authQueryParam, setAuthQueryParam] = useState('')
@@ -74,8 +76,8 @@ export function ProviderDialog({
     } else {
       setCode('')
       setName('')
-      setBaseUrl('https://')
-      setProtocol('OPENAI_COMPATIBLE')
+      setBaseUrl('')
+      setProtocol('')
       setAuthHeaderName('')
       setAuthHeaderPrefix('')
       setAuthQueryParam('')
@@ -88,6 +90,16 @@ export function ProviderDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!protocol) {
+      toast({
+        title: 'Chưa chọn giao thức',
+        description: 'Vui lòng chọn giao thức API (Protocol) cho Provider.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSubmitting(true)
     try {
       if (isEdit && provider) {
@@ -124,13 +136,16 @@ export function ProviderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-[95vw] sm:max-w-[540px] max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
               {isEdit ? `Chỉnh sửa Provider: ${provider?.name}` : 'Thêm Nhà cung cấp AI (Provider)'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {isEdit
                 ? 'Cập nhật thông tin cấu hình nhà cung cấp dịch vụ AI.'
                 : 'Thêm nhà cung cấp dịch vụ AI mới vào hệ thống (Mã provider viết hoa, duy nhất).'}
@@ -180,13 +195,15 @@ export function ProviderDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="protocol">Giao thức API (Protocol)</Label>
+              <Label htmlFor="protocol">
+                Giao thức API (Protocol) <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={protocol}
                 onValueChange={(val: ProviderProtocol) => setProtocol(val)}
               >
                 <SelectTrigger id="protocol" className="h-9 text-xs">
-                  <SelectValue placeholder="Chọn giao thức" />
+                  <SelectValue placeholder="-- Chọn giao thức API --" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="OPENAI_COMPATIBLE" className="text-xs">
