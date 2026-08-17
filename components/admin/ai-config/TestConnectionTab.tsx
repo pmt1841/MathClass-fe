@@ -30,7 +30,6 @@ import {
   TestConnectionResponse,
   aiConfigService,
 } from '@/services/aiConfigService'
-import { ModelInputWithFetch } from '@/components/admin/ai-config/ModelInputWithFetch'
 import { useToast } from '@/components/ui/use-toast'
 
 export function TestConnectionTab() {
@@ -38,7 +37,6 @@ export function TestConnectionTab() {
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [selectedProviderId, setSelectedProviderId] = useState<string>('')
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
 
   const [testing, setTesting] = useState(false)
@@ -94,7 +92,6 @@ export function TestConnectionTab() {
       const res = await aiConfigService.testConnection({
         providerCode: selectedProvider.code,
         apiKey,
-        model: model.trim() || undefined,
         baseUrl: baseUrl.trim() || selectedProvider.baseUrl,
         protocol: selectedProvider.protocol,
         authHeaderName: selectedProvider.authHeaderName,
@@ -129,18 +126,18 @@ export function TestConnectionTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <FlaskConical className="h-5 w-5 text-purple-600" />
+        <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+          <FlaskConical className="h-5 w-5 text-purple-600 shrink-0" />
           Công cụ Kiểm tra Kết nối Trực tiếp (Test Connection Bench)
         </h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Thử nghiệm kết nối thực tế tới Provider với API Key và Giao thức đã cấu hình.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Form nhập dữ liệu bên trái */}
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
@@ -194,17 +191,6 @@ export function TestConnectionTab() {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tên Model AI (Tùy chọn)</Label>
-                <ModelInputWithFetch
-                  providerId={selectedProvider?.id || 0}
-                  value={model}
-                  onChange={(val) => setModel(val)}
-                  disabled={providers.length === 0}
-                  placeholder="gemini-1.5-flash, gpt-4o..."
                 />
               </div>
 

@@ -54,11 +54,11 @@ export function ApiKeyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Thêm API Key cho {providerName || 'Provider'}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Thêm API Key cho {providerName || 'Provider'}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Nhập API Key dạng plaintext. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.
             </DialogDescription>
           </DialogHeader>

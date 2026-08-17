@@ -312,18 +312,18 @@ export function TaskRoutingTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-amber-500" />
+        <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-amber-500 shrink-0" />
           Định tuyến Tác vụ Hệ thống (Task Routing)
         </h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Phân công nhà cung cấp, phiên bản Model AI và các tham số tối ưu cho từng loại tác vụ chuyên biệt.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {SYSTEM_TASKS.map((t) => {
           const Icon = t.icon
           const cfg = taskConfigs[t.taskCode] || {
@@ -341,14 +341,14 @@ export function TaskRoutingTab() {
           return (
             <Card key={t.taskCode} className="shadow-sm hover:shadow transition-shadow border">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                      <Icon className="h-5 w-5" />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-base font-semibold">{t.title}</CardTitle>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <CardTitle className="text-sm sm:text-base font-semibold">{t.title}</CardTitle>
                         <Badge
                           variant="outline"
                           className={
@@ -360,13 +360,13 @@ export function TaskRoutingTab() {
                           {isConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'}
                         </Badge>
                       </div>
-                      <CardDescription className="text-xs line-clamp-1 mt-0.5">
+                      <CardDescription className="text-xs line-clamp-2 mt-0.5">
                         {t.description}
                       </CardDescription>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
                     <Switch
                       checked={cfg.enabled}
                       onCheckedChange={(val) => handleToggleTask(t.taskCode, val)}
@@ -458,6 +458,7 @@ export function TaskRoutingTab() {
               <CardFooter className="pt-2 flex justify-end">
                 <Button
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => handleSaveTaskConfig(t.taskCode)}
                   disabled={!dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
                 >
