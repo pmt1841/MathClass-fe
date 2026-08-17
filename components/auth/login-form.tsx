@@ -335,9 +335,9 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={() => setShowReportModal(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive hover:text-destructive/80 hover:underline transition-colors"
           >
-            <AlertTriangle className="h-3.5 w-3.5" />
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
             Gặp sự cố? Báo cáo lỗi hệ thống
           </button>
         </div>

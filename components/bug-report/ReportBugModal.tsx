@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { AlertTriangle, Upload, X, Loader2, Image as ImageIcon, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, Upload, X, Loader2, Image as ImageIcon, CheckCircle2, KeyRound, Mail } from 'lucide-react'
 
 import {
   Dialog,
@@ -44,10 +44,12 @@ const ERROR_TYPE_OPTIONS: { value: BugErrorType; label: string }[] = [
 
 const formSchema = z.object({
   email: z.string().trim().email('Email không hợp lệ').min(1, 'Email là bắt buộc'),
-  errorType: z.enum(['LOGIN_ACCOUNT', 'UI_KATEX', 'SUBMISSION_PROBLEM', 'PERFORMANCE', 'OTHER'], {
-    required_error: 'Vui lòng chọn loại lỗi sự cố',
-  }),
+  errorType: z.string({
+    required_error: 'Vui lòng chọn loại lỗi bạn gặp phải',
+  }).min(1, 'Vui lòng chọn loại lỗi bạn gặp phải'),
   description: z.string().optional(),
+  otp: z.string().optional(),
+  website: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -70,17 +72,45 @@ export function ReportBugModal({
   const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; url?: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpCooldown, setOtpCooldown] = useState(0)
+
   const imageFilesRef = useRef(imageFiles)
   imageFilesRef.current = imageFiles
+
+  const formLoadedAtRef = useRef<number>(Date.now())
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: defaultEmail,
-      errorType: 'LOGIN_ACCOUNT',
+      errorType: '',
       description: '',
+      otp: '',
+      website: '',
     },
   })
+
+  // Đếm ngược 60s Cooldown gửi OTP cho Guest
+  useEffect(() => {
+    const checkCooldown = () => {
+      const savedTime = localStorage.getItem('bug_report_otp_cooldown')
+      if (savedTime) {
+        const remaining = Math.ceil((parseInt(savedTime, 10) - Date.now()) / 1000)
+        if (remaining > 0) {
+          setOtpCooldown(remaining)
+        } else {
+          setOtpCooldown(0)
+          localStorage.removeItem('bug_report_otp_cooldown')
+        }
+      }
+    }
+
+    checkCooldown()
+    const interval = setInterval(checkCooldown, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Cleanup Blob Object URLs khi unmount
   useEffect(() => {
@@ -95,12 +125,14 @@ export function ReportBugModal({
 
   useEffect(() => {
     if (open) {
+      formLoadedAtRef.current = Date.now()
       form.reset({
         email: defaultEmail,
-        errorType: 'LOGIN_ACCOUNT',
+        errorType: '',
         description: '',
+        otp: '',
+        website: '',
       })
-      // Thu hồi toàn bộ preview URL cũ trước khi reset
       setImageFiles((prev) => {
         prev.forEach((item) => {
           if (item.preview) {
@@ -109,8 +141,34 @@ export function ReportBugModal({
         })
         return []
       })
+      setOtpSent(false)
     }
   }, [open, defaultEmail, form])
+
+  const handleSendOtp = async () => {
+    const email = form.getValues('email')
+    if (!email || !z.string().email().safeParse(email).success) {
+      form.setError('email', { message: 'Vui lòng nhập địa chỉ Email hợp lệ để nhận mã OTP' })
+      return
+    }
+
+    setSendingOtp(true)
+    try {
+      const res = await bugReportService.sendPublicOtp(email)
+      toast.success(res?.message || 'Mã OTP 6 số đã được gửi đến email của bạn! Vui lòng kiểm tra hòm thư.')
+      setOtpSent(true)
+      const expireTime = Date.now() + 60000
+      localStorage.setItem('bug_report_otp_cooldown', expireTime.toString())
+      setOtpCooldown(60)
+    } catch (err: any) {
+      console.warn('Lỗi gửi mã OTP:', err?.response?.data?.message || err?.message)
+      const msg = err?.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại địa chỉ email.'
+      toast.error(msg)
+      form.setError('email', { message: msg })
+    } finally {
+      setSendingOtp(false)
+    }
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -153,6 +211,13 @@ export function ReportBugModal({
   }
 
   const onSubmit = async (values: FormValues) => {
+    if (!isAuthenticated) {
+      if (!values.otp || values.otp.trim().length !== 6) {
+        form.setError('otp', { message: 'Vui lòng nhập mã OTP xác thực 6 số đã gửi về email' })
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       // 1. Upload ảnh đính kèm nếu có
@@ -187,6 +252,9 @@ export function ReportBugModal({
         errorType: values.errorType as BugErrorType,
         description: values.description || undefined,
         imageUrls: uploadedUrls,
+        otp: !isAuthenticated ? values.otp?.trim() : undefined,
+        website: values.website || undefined,
+        formLoadedAt: formLoadedAtRef.current,
       }
 
       if (isAuthenticated) {
@@ -198,8 +266,9 @@ export function ReportBugModal({
       toast.success('Cảm ơn bạn! Báo cáo lỗi đã được gửi thành công đến Quản trị viên.')
       onClose()
     } catch (error: any) {
-      console.error('Submit report error:', error)
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi gửi báo cáo sự cố')
+      console.warn('Submit report error:', error?.response?.data?.message || error?.message)
+      const msg = error?.response?.data?.message || 'Có lỗi xảy ra khi gửi báo cáo sự cố'
+      toast.error(msg)
     } finally {
       setIsSubmitting(false)
       setUploadingImage(false)
@@ -226,8 +295,18 @@ export function ReportBugModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pt-3">
-            {/* Field Email */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
+            {/* Honeypot Field (Bẫy ẩn đánh lừa Bot tự động điền) */}
+            <input
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="opacity-0 absolute -left-[9999px] pointer-events-none"
+              {...form.register('website')}
+            />
+
+            {/* Field Email & Nút Gửi OTP cho Guest */}
             <FormField
               control={form.control}
               name="email"
@@ -236,14 +315,36 @@ export function ReportBugModal({
                   <FormLabel className="font-semibold">
                     Email liên hệ <span className="text-destructive">*</span>
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="you@example.com"
-                      disabled={isAuthenticated}
-                      className={isAuthenticated ? 'bg-muted text-muted-foreground' : ''}
-                      {...field}
-                    />
-                  </FormControl>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input
+                        placeholder="you@example.com"
+                        disabled={isAuthenticated}
+                        className={isAuthenticated ? 'bg-muted text-muted-foreground' : ''}
+                        {...field}
+                      />
+                    </FormControl>
+                    {!isAuthenticated && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={sendingOtp || otpCooldown > 0}
+                        onClick={handleSendOtp}
+                        className="whitespace-nowrap shrink-0 font-medium"
+                      >
+                        {sendingOtp ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : otpCooldown > 0 ? (
+                          <span>Gửi lại ({otpCooldown}s)</span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-4 w-4" />
+                            <span>{otpSent ? 'Gửi lại OTP' : 'Gửi mã OTP'}</span>
+                          </div>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   {isAuthenticated && (
                     <p className="text-xs text-muted-foreground">
                       Tự động sử dụng Email tài khoản đang đăng nhập của bạn.
@@ -254,6 +355,38 @@ export function ReportBugModal({
               )}
             />
 
+            {/* Field Mã OTP (chỉ hiển thị khi chưa đăng nhập) */}
+            {!isAuthenticated && (
+              <FormField
+                control={form.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold flex items-center justify-between">
+                      <span>Mã xác thực OTP (6 chữ số) <span className="text-destructive">*</span></span>
+                      {otpSent && (
+                        <span className="text-xs text-emerald-600 font-normal">
+                          ✓ Đã gửi mã về email của bạn
+                        </span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Nhập 6 chữ số OTP (ví dụ: 582910)"
+                          maxLength={6}
+                          className="pl-9 font-mono tracking-widest text-base font-semibold"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Field Loại lỗi */}
             <FormField
               control={form.control}
@@ -263,7 +396,7 @@ export function ReportBugModal({
                   <FormLabel className="font-semibold">
                     Lựa chọn loại lỗi <span className="text-destructive">*</span>
                   </FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn loại lỗi bạn gặp phải" />
@@ -294,7 +427,7 @@ export function ReportBugModal({
                   <FormControl>
                     <Textarea
                       placeholder="Chi tiết về các bước xảy ra lỗi hoặc thông tin bổ sung giúp giải quyết nhanh hơn..."
-                      rows={4}
+                      rows={3}
                       className="resize-none"
                       {...field}
                     />
