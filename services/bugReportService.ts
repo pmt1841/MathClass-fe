@@ -15,6 +15,9 @@ export interface CreateBugReportPayload {
   errorType: BugErrorType
   description?: string
   imageUrls?: string[]
+  otp?: string
+  website?: string
+  formLoadedAt?: number
 }
 
 export interface BugReportResponse {
@@ -42,6 +45,12 @@ export interface PageResponse<T> {
 }
 
 export const bugReportService = {
+  // Gửi mã OTP xác thực email công khai
+  sendPublicOtp: async (email: string) => {
+    const response = await api.post('/bug-reports/public/send-otp', { email })
+    return response.data
+  },
+
   // Gửi báo cáo từ màn hình login (công khai, không cần token)
   createPublicReport: async (payload: CreateBugReportPayload) => {
     const response = await api.post('/bug-reports/public', payload)
