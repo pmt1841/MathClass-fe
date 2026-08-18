@@ -7,7 +7,7 @@ import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
-export default function ProfilePage() {
+export default function AdminProfilePage() {
   const { data: profile, isGoogleUser, isLoading, isError } = useProfile()
 
   if (isLoading) {
@@ -29,9 +29,9 @@ export default function ProfilePage() {
   return (
     <div className="container max-w-4xl py-8 px-4 md:px-8 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hồ sơ cá nhân</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hồ sơ cá nhân Admin</h1>
         <p className="text-muted-foreground mt-2">
-          Quản lý thông tin cá nhân của bạn.
+          Quản lý thông tin tài khoản Quản trị viên của bạn.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
               <CardDescription>
-                Thông tin này sẽ được hiển thị trên hệ thống giáo dục.
+                Thông tin quản trị viên hệ thống.
               </CardDescription>
             </CardHeader>
             <CardContent>

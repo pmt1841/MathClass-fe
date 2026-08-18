@@ -27,6 +27,8 @@ export function DashboardHeader() {
   const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
   const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-blue-600 font-semibold shadow-xs' : 'bg-white text-slate-800 font-medium'
   const homeHref = role === 'ADMIN' ? '/admin/users' : '/home'
+  const profileHref = role === 'ADMIN' ? '/admin/profile' : '/profile'
+  const settingsHref = role === 'ADMIN' ? '/admin/settings' : '/settings'
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">
@@ -76,7 +78,7 @@ export function DashboardHeader() {
                     </div>
                     <div className="p-1.5">
                       <Link
-                        href="/profile"
+                        href={profileHref}
                         className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-medium"
                         onClick={() => setDropdownOpen(false)}
                       >
@@ -84,7 +86,7 @@ export function DashboardHeader() {
                         Hồ sơ cá nhân
                       </Link>
                       <Link
-                        href="/settings"
+                        href={settingsHref}
                         className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors font-medium"
                         onClick={() => setDropdownOpen(false)}
                       >
