@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle, Filter } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -168,7 +168,24 @@ export function AssignmentsPageClient() {
     router.push(`/assignments/${id}/edit`)
   }
 
-  const handleSelectAssignment = (id: number, selected: boolean) => {
+  const handleTagChange = useCallback((ids: number[]) => {
+    const newFilters: Record<string, number> = {}
+    ids.forEach((id) => {
+      const tag = tags.find((t) => t.id === id)
+      if (tag?.type) {
+        newFilters[tag.type] = id
+      }
+    })
+    setTagFilters(newFilters)
+  }, [tags])
+
+  const handleClearFilters = useCallback(() => {
+    setAssignmentType('ALL')
+    setSelectedClassCode('')
+    setTagFilters({})
+  }, [])
+
+  const handleSelectAssignment = useCallback((id: number, selected: boolean) => {
     if (selected) {
       if (selectedAssignmentDetails.length >= 5) {
         toast.error('Chỉ được chọn tối đa 5 bài tập cho một phiếu')
@@ -184,9 +201,9 @@ export function AssignmentsPageClient() {
     } else {
       setSelectedAssignmentDetails(prev => prev.filter(a => a.id !== id))
     }
-  }
+  }, [assignments, selectedAssignmentDetails.length])
 
-  const filterByTab = (assignment: any) => {
+  const filterByTab = useCallback((assignment: any) => {
     if (userRole === 'TEACHER') return true
 
     if (assignmentType === 'SINGLE' && assignment.type === 'SHEET') return false
@@ -201,23 +218,27 @@ export function AssignmentsPageClient() {
     if (activeTab === 'OVERDUE') return (status === null || status === 'DRAFT') && isOverdue
 
     return true
-  }
+  }, [userRole, assignmentType, activeTab])
 
-  const filteredAssignments = assignments.filter(filterByTab)
-  const displaySingleItems = (assignmentsData?.singleItems || []).filter(filterByTab)
-  const displaySheetItems = (assignmentsData?.sheetItems || []).filter(filterByTab)
+  const filteredAssignments = useMemo(() => assignments.filter(filterByTab), [assignments, filterByTab])
+  const displaySingleItems = useMemo(() => (assignmentsData?.singleItems || []).filter(filterByTab), [assignmentsData?.singleItems, filterByTab])
+  const displaySheetItems = useMemo(() => (assignmentsData?.sheetItems || []).filter(filterByTab), [assignmentsData?.sheetItems, filterByTab])
 
   if (userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')) {
     totalPages = Math.ceil(filteredAssignments.length / 6) || 1
   }
 
-  const displayAssignments = userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')
-    ? filteredAssignments.slice(page * 6, (page + 1) * 6)
-    : filteredAssignments
+  const displayAssignments = useMemo(() => {
+    return userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')
+      ? filteredAssignments.slice(page * 6, (page + 1) * 6)
+      : filteredAssignments
+  }, [userRole, assignmentType, filteredAssignments, page])
 
-  const showEmptyState = userRole === 'STUDENT' && assignmentType === 'ALL'
-    ? displaySingleItems.length === 0 && displaySheetItems.length === 0
-    : displayAssignments.length === 0
+  const showEmptyState = useMemo(() => {
+    return userRole === 'STUDENT' && assignmentType === 'ALL'
+      ? displaySingleItems.length === 0 && displaySheetItems.length === 0
+      : displayAssignments.length === 0
+  }, [userRole, assignmentType, displaySingleItems.length, displaySheetItems.length, displayAssignments.length])
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
@@ -258,127 +279,135 @@ export function AssignmentsPageClient() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
 
-          <div className="flex flex-col 2xl:flex-row gap-4 items-stretch 2xl:items-center justify-between">
-            <div className="flex flex-col sm:flex-row flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-3 w-full 2xl:w-auto shrink-0 justify-end">
-              {userRole === 'STUDENT' && (
-                <select
-                  value={assignmentType}
-                  onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
-                  className="w-full sm:w-44 h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate shrink-0"
-                  style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
-                >
-                  <option value="ALL">Tất cả loại bài</option>
-                  <option value="SINGLE">Bài tập lẻ</option>
-                  <option value="SHEET">Phiếu bài tập</option>
-                </select>
-              )}
-              {userRole === 'STUDENT' && (
-                <select
-                  value={selectedClassCode}
-                  onChange={(e) => setSelectedClassCode(e.target.value)}
-                  className="w-full sm:w-48 h-11 pl-4 pr-10 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate shrink-0"
-                  style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
-                >
-                  <option value="">Tất cả lớp học</option>
-                  {myClasses.map((c) => (
-                    <option key={c.classCode} value={c.classCode}>{c.className}</option>
-                  ))}
-                </select>
-              )}
-              <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm bài tập..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="relative flex h-11 items-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    <Filter className="h-4 w-4" />
-                    Bộ lọc
-                    {Object.values(tagFilters).some(Boolean) && (
-                      <span className="rounded-full bg-primary px-1.5 text-xs text-white">
-                        {Object.values(tagFilters).filter(Boolean).length}
-                      </span>
-                    )}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 space-y-3 p-4">
-                  <p className="text-sm font-bold">Lọc bài tập</p>
+          {/* Thanh công cụ lọc bài tập flex-wrap mượt mà */}
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            {/* Ô tìm kiếm */}
+            <div className="relative min-w-[200px] flex-1 sm:flex-initial sm:w-64 lg:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm bài tập..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+              />
+            </div>
+
+            {/* Popover Bộ lọc chứa Loại bài, Lớp học và Môn học/Khối lớp/Độ khó */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="relative flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all shrink-0">
+                  <Filter className="h-4 w-4" />
+                  Bộ lọc
+                  {(Boolean(assignmentType !== 'ALL') || Boolean(selectedClassCode) || Object.values(tagFilters).some(Boolean)) && (
+                    <span className="rounded-full bg-primary px-1.5 text-xs text-white">
+                      {(assignmentType !== 'ALL' ? 1 : 0) + (selectedClassCode ? 1 : 0) + Object.values(tagFilters).filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-80 space-y-4 p-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <p className="text-sm font-bold text-foreground">Bộ lọc bài tập</p>
+                  {(assignmentType !== 'ALL' || selectedClassCode || Object.values(tagFilters).some(Boolean)) && (
+                    <button
+                      onClick={handleClearFilters}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Xóa bộ lọc
+                    </button>
+                  )}
+                </div>
+
+                {userRole === 'STUDENT' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Loại bài tập</label>
+                    <select
+                      value={assignmentType}
+                      onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
+                      className="w-full h-10 pl-3 pr-8 rounded-lg border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate"
+                      style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
+                    >
+                      <option value="ALL">Tất cả loại bài</option>
+                      <option value="SINGLE">Bài tập lẻ</option>
+                      <option value="SHEET">Phiếu bài tập</option>
+                    </select>
+                  </div>
+                )}
+
+                {userRole === 'STUDENT' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Lớp học</label>
+                    <select
+                      value={selectedClassCode}
+                      onChange={(e) => setSelectedClassCode(e.target.value)}
+                      className="w-full h-10 pl-3 pr-8 rounded-lg border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate"
+                      style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
+                    >
+                      <option value="">Tất cả lớp học</option>
+                      {myClasses.map((c) => (
+                        <option key={c.classCode} value={c.classCode}>{c.className}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Thẻ bài tập</label>
                   <AssignmentTagSelector
                     tags={tags}
                     selectedIds={Object.values(tagFilters).filter((id): id is number => Boolean(id))}
-                    onChange={(ids) => {
-                      const newFilters: Record<string, number> = {}
-                      ids.forEach((id) => {
-                        const tag = tags.find((t) => t.id === id)
-                        if (tag?.type) {
-                          newFilters[tag.type] = id
-                        }
-                      })
-                      setTagFilters(newFilters)
-                    }}
+                    onChange={handleTagChange}
                   />
-                  <button
-                    onClick={() => setTagFilters({})}
-                    className="text-sm font-semibold text-primary hover:underline"
-                  >
-                    Xóa bộ lọc
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Thanh Tabs chuyển đổi trạng thái bài tập */}
+            <div className="flex bg-slate-200/60 p-1 rounded-xl items-center gap-1 flex-wrap sm:flex-nowrap shrink-0 max-w-full">
+              {userRole === 'TEACHER' ? (
+                <>
+                  <button onClick={() => setActiveTab('DRAFT')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Edit className="h-4 w-4" /> Bản nháp
                   </button>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="flex items-center gap-3 w-full 2xl:w-auto justify-between 2xl:justify-end">
-              <div className="flex bg-slate-200/60 p-1 rounded-xl w-full 2xl:w-auto overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-w-full shrink-0">
-                {userRole === 'TEACHER' ? (
-                  <>
-                    <button onClick={() => setActiveTab('DRAFT')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <Edit className="h-4 w-4" /> Bản nháp
-                    </button>
-                    <button onClick={() => setActiveTab('SINGLE')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <BookOpen className="h-4 w-4" /> Bài tập lẻ
-                    </button>
-                    <button onClick={() => setActiveTab('SHEET')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <Layers className="h-4 w-4" /> Phiếu bài tập
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => setActiveTab('PENDING')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <Clock className="h-4 w-4" /> Chưa nộp
-                    </button>
-                    <button onClick={() => setActiveTab('SUBMITTED')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <CheckCircle className="h-4 w-4" /> Đã nộp
-                    </button>
-                    <button onClick={() => setActiveTab('GRADED')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <BookOpen className="h-4 w-4" /> Đã chấm điểm
-                    </button>
-                    <button onClick={() => setActiveTab('OVERDUE')} className={`flex-1 2xl:flex-none whitespace-nowrap shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                      <AlertCircle className="h-4 w-4" /> Quá hạn
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && selectedAssignments.length > 0 && (
-                <button
-                  onClick={() => {
-                    setPublishingTarget(null)
-                    setSheetModalAssignmentIds(selectedAssignments)
-                    setPublishSheetModalOpen(true)
-                  }}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200 shrink-0"
-                >
-                  <Layers className="h-4 w-4" />
-                  Giao {selectedAssignments.length} bài thành phiếu
-                </button>
+                  <button onClick={() => setActiveTab('SINGLE')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <BookOpen className="h-4 w-4" /> Bài tập lẻ
+                  </button>
+                  <button onClick={() => setActiveTab('SHEET')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Layers className="h-4 w-4" /> Phiếu bài tập
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setActiveTab('PENDING')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Clock className="h-4 w-4" /> Chưa nộp
+                  </button>
+                  <button onClick={() => setActiveTab('SUBMITTED')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <CheckCircle className="h-4 w-4" /> Đã nộp
+                  </button>
+                  <button onClick={() => setActiveTab('GRADED')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <BookOpen className="h-4 w-4" /> Đã chấm điểm
+                  </button>
+                  <button onClick={() => setActiveTab('OVERDUE')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <AlertCircle className="h-4 w-4" /> Quá hạn
+                  </button>
+                </>
               )}
             </div>
+
+            {userRole === 'TEACHER' && (activeTab === 'DRAFT' || activeTab === 'SINGLE') && selectedAssignments.length > 0 && (
+              <button
+                onClick={() => {
+                  setPublishingTarget(null)
+                  setSheetModalAssignmentIds(selectedAssignments)
+                  setPublishSheetModalOpen(true)
+                }}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200 shrink-0"
+              >
+                <Layers className="h-4 w-4" />
+                Giao {selectedAssignments.length} bài thành phiếu
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -432,7 +461,7 @@ export function AssignmentsPageClient() {
                       Tất cả bài tập lẻ
                     </button>
                   </div>
-                  <Carousel className="w-full">
+                  <Carousel className="w-full relative px-2">
                     <CarouselContent className="-ml-4 py-4">
                       {displaySingleItems.map((assignment, index) => (
                         <CarouselItem key={`single-${assignment.id}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
@@ -449,8 +478,8 @@ export function AssignmentsPageClient() {
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    <CarouselPrevious className="left-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
-                    <CarouselNext className="right-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                    <CarouselPrevious className="left-0 bg-white shadow-md border-border text-foreground hover:bg-slate-100 z-10" />
+                    <CarouselNext className="right-0 bg-white shadow-md border-border text-foreground hover:bg-slate-100 z-10" />
                   </Carousel>
                 </div>
               )}
@@ -466,7 +495,7 @@ export function AssignmentsPageClient() {
                       Tất cả phiếu bài tập
                     </button>
                   </div>
-                  <Carousel className="w-full">
+                  <Carousel className="w-full relative px-2">
                     <CarouselContent className="-ml-4 py-4">
                       {displaySheetItems.map((assignment, index) => (
                         <CarouselItem key={`sheet-${assignment.id}`} className="pl-4 md:basis-1/2 lg:basis-1/3">
@@ -483,8 +512,8 @@ export function AssignmentsPageClient() {
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    <CarouselPrevious className="left-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
-                    <CarouselNext className="right-[-1.5rem] bg-white shadow-md border-border text-foreground hover:bg-slate-100" />
+                    <CarouselPrevious className="left-0 bg-white shadow-md border-border text-foreground hover:bg-slate-100 z-10" />
+                    <CarouselNext className="right-0 bg-white shadow-md border-border text-foreground hover:bg-slate-100 z-10" />
                   </Carousel>
                 </div>
               )}
