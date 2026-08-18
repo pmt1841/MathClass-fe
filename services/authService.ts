@@ -21,11 +21,41 @@ export interface GoogleAuthCredentials {
 }
 
 export interface LoginResponse {
-  token: string
+  id?: number
+  email?: string
+  fullName?: string
+  token?: string
   role?: string
   userRole?: string
+  avatarUrl?: string
   permissions?: string[]
+  is2faRequired?: boolean
+  isSetupRequired?: boolean
+  preAuthToken?: string
+  message?: string
   [key: string]: any // Allows for dynamic user fields
+}
+
+export interface TwoFactorSetupResponse {
+  secretKey: string
+  qrCodeDataUrl: string
+  manualEntryKey: string
+}
+
+export interface TwoFactorConfirmPayload {
+  code: string
+}
+
+export interface TwoFactorConfirmResponse {
+  userInfo: LoginResponse
+  backupCodes: string[]
+  message: string
+}
+
+export interface TwoFactorVerifyPayload {
+  code: string
+  isBackupCode?: boolean
+  rememberMe?: boolean
 }
 
 export interface ResetPasswordPayload {
@@ -60,5 +90,45 @@ export const authService = {
   resetPassword: async (payload: ResetPasswordPayload): Promise<{ message: string, role?: string }> => {
     const { data } = await api.post<{ message: string, role?: string }>('/auth/reset-password', payload)
     return data
-  }
+  },
+
+  // 2FA Google Authenticator Endpoints
+  initiate2faSetup: async (preAuthToken: string): Promise<TwoFactorSetupResponse> => {
+    const { data } = await api.post<TwoFactorSetupResponse>(
+      '/auth/2fa/setup',
+      {},
+      {
+        headers: { Authorization: `Bearer ${preAuthToken}` },
+      }
+    )
+    return data
+  },
+
+  confirm2faSetup: async (
+    payload: TwoFactorConfirmPayload,
+    preAuthToken: string
+  ): Promise<TwoFactorConfirmResponse> => {
+    const { data } = await api.post<TwoFactorConfirmResponse>(
+      '/auth/2fa/setup/confirm',
+      payload,
+      {
+        headers: { Authorization: `Bearer ${preAuthToken}` },
+      }
+    )
+    return data
+  },
+
+  verify2faLogin: async (
+    payload: TwoFactorVerifyPayload,
+    preAuthToken: string
+  ): Promise<LoginResponse> => {
+    const { data } = await api.post<LoginResponse>(
+      '/auth/2fa/verify',
+      payload,
+      {
+        headers: { Authorization: `Bearer ${preAuthToken}` },
+      }
+    )
+    return data
+  },
 }

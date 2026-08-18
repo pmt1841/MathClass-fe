@@ -21,7 +21,10 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Checkbox } from '@/components/ui/checkbox'
 
-import { useLogin } from '@/hooks/useLogin'
+import { useLogin, TwoFactorState } from '@/hooks/useLogin'
+import { TwoFactorConfirmResponse, LoginResponse } from '@/services/authService'
+import { TwoFactorSetupWizard } from './TwoFactorSetupWizard'
+import { TwoFactorVerifyModal } from './TwoFactorVerifyModal'
 import { SocialLoginButton } from './social-login-button'
 import { AccountLockedModal } from './account-locked-modal'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
@@ -41,6 +44,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function LoginForm() {
+  const { login, completeLoginSession, isLoading, loginError } = useLogin()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -54,6 +58,11 @@ export default function LoginForm() {
   const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
   const [lockedAt, setLockedAt] = useState<string | undefined>(undefined)
 
+  // State kiểm soát 2FA Google Authenticator
+  const [twoFactorState, setTwoFactorState] = useState<TwoFactorState | null>(null)
+  const [show2faSetup, setShow2faSetup] = useState<boolean>(false)
+  const [show2faVerify, setShow2faVerify] = useState<boolean>(false)
+
   // State kiểm soát Modal Báo cáo lỗi hệ thống
   const [showReportModal, setShowReportModal] = useState<boolean>(false)
 
@@ -61,8 +70,6 @@ export default function LoginForm() {
   const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
   const [existingUser, setExistingUser] = useState<any>(null)
   const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
-
-  const { login, isLoading, loginError } = useLogin()
 
   useEffect(() => {
     const paramRole = searchParams.get('role')
@@ -143,10 +150,36 @@ export default function LoginForm() {
   }, [form])
 
   const executeActualLogin = async (values: FormValues) => {
-    const res = await login({ email: values.email, password: values.password }, !!values.rememberMe, explicitRole || undefined)
-    if (res) {
-      broadcastEvent('LOGIN', res)
+    const res = await login(
+      { email: values.email, password: values.password },
+      !!values.rememberMe,
+      explicitRole || undefined
+    )
+
+    if (res && typeof res === 'object' && res.is2faRequired) {
+      setTwoFactorState(res)
+      if (res.isSetupRequired) {
+        setShow2faSetup(true)
+      } else {
+        setShow2faVerify(true)
+      }
+    } else if (res === true) {
+      broadcastEvent('LOGIN')
     }
+  }
+
+  const handle2faSetupSuccess = (confirmRes: TwoFactorConfirmResponse) => {
+    setShow2faSetup(false)
+    if (confirmRes.userInfo) {
+      completeLoginSession(confirmRes.userInfo, twoFactorState?.rememberMe ?? false)
+      broadcastEvent('LOGIN')
+    }
+  }
+
+  const handle2faVerifySuccess = (userInfo: LoginResponse) => {
+    setShow2faVerify(false)
+    completeLoginSession(userInfo, twoFactorState?.rememberMe ?? false)
+    broadcastEvent('LOGIN')
   }
 
   const onSubmit = async (values: FormValues) => {
@@ -366,6 +399,30 @@ export default function LoginForm() {
         onContinueAsCurrent={handleContinueAsCurrent}
         onSwitchAccount={handleSwitchAccount}
       />
+
+      {/* ── Modal Thiết lập 2FA Google Authenticator Lần đầu ──────────── */}
+      {twoFactorState && (
+        <TwoFactorSetupWizard
+          isOpen={show2faSetup}
+          preAuthToken={twoFactorState.preAuthToken}
+          email={twoFactorState.email}
+          rememberMe={twoFactorState.rememberMe}
+          onClose={() => setShow2faSetup(false)}
+          onSuccess={handle2faSetupSuccess}
+        />
+      )}
+
+      {/* ── Modal Xác thực 2FA Đăng nhập Định kỳ ─────────────────────────── */}
+      {twoFactorState && (
+        <TwoFactorVerifyModal
+          isOpen={show2faVerify}
+          preAuthToken={twoFactorState.preAuthToken}
+          email={twoFactorState.email}
+          rememberMe={twoFactorState.rememberMe}
+          onClose={() => setShow2faVerify(false)}
+          onSuccess={handle2faVerifySuccess}
+        />
+      )}
     </div>
   )
 }

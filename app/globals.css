@@ -161,3 +161,14 @@ details[open] > summary .details-chevron {
 .prose .katex:has(mark.ring-2) {
   outline: 2px solid #facc15;
 }
+
+/* ── 2FA Shake Error Animation ────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
