@@ -32,7 +32,7 @@ export interface NavItem {
   isAction?: boolean
 }
 
-const adminNavItems: NavItem[] = [
+export const adminNavItems: NavItem[] = [
   {
     icon: Users,
     label: 'Quản lý Người dùng',

@@ -6,41 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
-import { Users, Shield, FileText, Database, Cpu, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-
-const adminNavItems = [
-  {
-    icon: Users,
-    label: 'Quản lý Người dùng',
-    href: '/admin/users',
-  },
-  {
-    icon: Shield,
-    label: 'Quản lý quyền hạn',
-    href: '/admin/roles',
-  },
-  {
-    icon: Cpu,
-    label: 'Cấu hình AI Services',
-    href: '/admin/ai-config',
-  },
-  {
-    icon: FileText,
-    label: 'Nhật ký hệ thống',
-    href: '/admin/logs',
-  },
-  {
-    icon: AlertTriangle,
-    label: 'Quản lý Báo cáo lỗi',
-    href: '/admin/bug-reports',
-  },
-  {
-    icon: Database,
-    label: 'Kho bài tập cộng đồng',
-    href: '/admin/community-repo',
-  },
-]
 
 export default function AdminLayout({
   children,
@@ -60,7 +26,7 @@ export default function AdminLayout({
     }
 
     if (user) {
-      if (user.role === 'ADMIN' || user.userRole === 'ADMIN') {
+      if (user.role === 'ADMIN' || (user as any).userRole === 'ADMIN') {
         setIsAuthorized(true)
       } else {
         setIsAuthorized(false)
@@ -97,7 +63,7 @@ export default function AdminLayout({
       <DashboardHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar customNavItems={adminNavItems} />
+        <Sidebar />
 
         <main className="flex flex-1 flex-col overflow-hidden">
           {children}

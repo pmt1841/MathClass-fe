@@ -83,7 +83,8 @@ export default function AdminSettingsPage() {
   const isSaving = mutation.isPending
 
   return (
-    <div className="container max-w-4xl py-8 px-4 md:px-8 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex-1 overflow-y-auto w-full bg-slate-50/50">
+      <div className="container max-w-4xl py-8 px-4 md:px-8 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Cài đặt Quản trị viên</h1>
         <p className="text-muted-foreground mt-2">
@@ -144,5 +145,6 @@ export default function AdminSettingsPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  </div>
+)
 }
