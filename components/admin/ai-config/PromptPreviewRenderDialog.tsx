@@ -393,6 +393,35 @@ export function PromptPreviewRenderDialog({
     }
   }, [executionResult])
 
+  // Automatically wrap raw LaTeX equations in $$...$$ so KaTeX renders them
+  const formattedLatexMarkdown = useMemo(() => {
+    if (!executionResult?.aiResponse) return ''
+    let text = executionResult.aiResponse.trim()
+
+    // If it's a JSON response (like NO_GEOMETRY or JSXGraph), don't treat as math formula
+    if (text.startsWith('{') && text.endsWith('}')) {
+      return text
+    }
+
+    // Strip markdown code block wrappers if AI returned ```latex ... ```
+    if (text.startsWith('```')) {
+      text = text.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim()
+    }
+
+    // If text already contains $ or $$, keep as is for standard markdown math
+    if (text.includes('$')) {
+      return text
+    }
+
+    // If text contains LaTeX commands, aligned environments, fractions, or superscripts/subscripts
+    const hasLatexCommands = /\\[a-zA-Z]+|[{}^_]|&=|\\\\/.test(text)
+    if (hasLatexCommands) {
+      return `$$\n${text}\n$$`
+    }
+
+    return text
+  }, [executionResult])
+
   if (!prompt) return null
 
   const handleClearVariables = () => {
@@ -902,13 +931,46 @@ export function PromptPreviewRenderDialog({
                       </div>
                     </div>
                   ) : executionResult?.aiResponse ? (
-                    <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm space-y-2">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkMath, remarkGfm]}
-                        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
-                      >
-                        {executionResult.aiResponse}
-                      </ReactMarkdown>
+                    <div className="space-y-4">
+                      <div className="prose dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed bg-white dark:bg-slate-900/60 p-4 rounded-xl border shadow-sm flex flex-col items-center justify-center min-h-[140px]">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkMath, remarkGfm]}
+                          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                        >
+                          {formattedLatexMarkdown}
+                        </ReactMarkdown>
+                      </div>
+
+                      {isVisionPrompt && !parsedJsxGraph && !isNoHandwritingDetected && !isNoGeometryDetected && (
+                        <div className="p-3 bg-muted/40 rounded-lg border space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                              <Code2 className="h-3.5 w-3.5 text-indigo-500" />
+                              Mã nguồn LaTeX trích xuất:
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCopyOutput}
+                              className="h-6 px-2 text-[11px]"
+                            >
+                              {isCopiedOutput ? (
+                                <>
+                                  <Check className="mr-1 h-3 w-3 text-emerald-600" /> Đã chép
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="mr-1 h-3 w-3" /> Chép mã LaTeX
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          <code className="block text-xs font-mono text-indigo-600 dark:text-indigo-400 break-all select-all bg-background/80 p-2 rounded border">
+                            {executionResult.aiResponse}
+                          </code>
+                        </div>
+                      )}
                     </div>
                   ) : executionResult?.errorMessage ? (
                     <div className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg border border-red-200 text-xs">
