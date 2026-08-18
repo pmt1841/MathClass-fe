@@ -281,8 +281,8 @@ export function AssignmentsPageClient() {
 
           {/* Thanh công cụ lọc bài tập flex-wrap mượt mà */}
           <div className="flex flex-wrap items-center gap-3 w-full">
-            {/* Ô tìm kiếm */}
-            <div className="relative min-w-[200px] flex-1 sm:flex-initial sm:w-64 lg:w-72">
+            {/* Ô tìm kiếm tự động dãn dài lấp đầy khoảng trống */}
+            <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
