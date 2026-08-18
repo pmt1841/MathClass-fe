@@ -22,9 +22,12 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { AccountLockedModal } from './account-locked-modal'
 import { AccountConflictModal } from './account-conflict-modal'
+import { TwoFactorSetupWizard } from './TwoFactorSetupWizard'
+import { TwoFactorVerifyModal } from './TwoFactorVerifyModal'
 import { useAuthChannel } from '@/hooks/useAuthChannel'
 
-import { useLogin } from '@/hooks/useLogin'
+import { useLogin, TwoFactorState } from '@/hooks/useLogin'
+import { TwoFactorConfirmResponse, LoginResponse } from '@/services/authService'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import { logoutSuccess } from '@/lib/redux/features/authSlice'
@@ -40,7 +43,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function AdminLoginForm() {
-  const { login, isLoading, loginError } = useLogin()
+  const { login, completeLoginSession, isLoading, loginError } = useLogin()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -48,6 +51,11 @@ export default function AdminLoginForm() {
   const { broadcastEvent } = useAuthChannel()
 
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
+
+  // State kiểm soát 2FA Google Authenticator
+  const [twoFactorState, setTwoFactorState] = useState<TwoFactorState | null>(null)
+  const [show2faSetup, setShow2faSetup] = useState<boolean>(false)
+  const [show2faVerify, setShow2faVerify] = useState<boolean>(false)
 
   // State kiểm soát Modal Xung đột đăng nhập đa tài khoản
   const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
@@ -103,14 +111,36 @@ export default function AdminLoginForm() {
   }, [form])
 
   const executeActualLogin = async (values: FormValues) => {
-    const success = await login(
+    const result = await login(
       { email: values.email, password: values.password },
       !!values.rememberMe,
       ROLES.ADMIN
     )
-    if (success) {
+
+    if (result && typeof result === 'object' && result.is2faRequired) {
+      setTwoFactorState(result)
+      if (result.isSetupRequired) {
+        setShow2faSetup(true)
+      } else {
+        setShow2faVerify(true)
+      }
+    } else if (result === true) {
       broadcastEvent('LOGIN')
     }
+  }
+
+  const handle2faSetupSuccess = (confirmRes: TwoFactorConfirmResponse) => {
+    setShow2faSetup(false)
+    if (confirmRes.userInfo) {
+      completeLoginSession(confirmRes.userInfo, twoFactorState?.rememberMe ?? false)
+      broadcastEvent('LOGIN')
+    }
+  }
+
+  const handle2faVerifySuccess = (userInfo: LoginResponse) => {
+    setShow2faVerify(false)
+    completeLoginSession(userInfo, twoFactorState?.rememberMe ?? false)
+    broadcastEvent('LOGIN')
   }
 
   const onSubmit = async (values: FormValues) => {
@@ -282,6 +312,30 @@ export default function AdminLoginForm() {
         onContinueAsCurrent={handleContinueAsCurrent}
         onSwitchAccount={handleSwitchAccount}
       />
+
+      {/* ── Modal Thiết lập 2FA Google Authenticator Lần đầu ──────────── */}
+      {twoFactorState && (
+        <TwoFactorSetupWizard
+          isOpen={show2faSetup}
+          preAuthToken={twoFactorState.preAuthToken}
+          email={twoFactorState.email}
+          rememberMe={twoFactorState.rememberMe}
+          onClose={() => setShow2faSetup(false)}
+          onSuccess={handle2faSetupSuccess}
+        />
+      )}
+
+      {/* ── Modal Xác thực 2FA Đăng nhập Định kỳ ─────────────────────────── */}
+      {twoFactorState && (
+        <TwoFactorVerifyModal
+          isOpen={show2faVerify}
+          preAuthToken={twoFactorState.preAuthToken}
+          email={twoFactorState.email}
+          rememberMe={twoFactorState.rememberMe}
+          onClose={() => setShow2faVerify(false)}
+          onSuccess={handle2faVerifySuccess}
+        />
+      )}
     </div>
   )
 }
