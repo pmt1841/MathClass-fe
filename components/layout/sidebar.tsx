@@ -11,6 +11,10 @@ import {
   Library,
   Zap,
   AlertTriangle,
+  Shield,
+  FileText,
+  Database,
+  Cpu,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -22,11 +26,44 @@ export interface NavItem {
   icon: React.ElementType
   label: string
   href: string
-  roles?: ('TEACHER' | 'STUDENT')[]
+  roles?: ('TEACHER' | 'STUDENT' | 'ADMIN')[]
   permission?: string
   badge?: string
   isAction?: boolean
 }
+
+export const adminNavItems: NavItem[] = [
+  {
+    icon: Users,
+    label: 'Quản lý Người dùng',
+    href: '/admin/users',
+  },
+  {
+    icon: Shield,
+    label: 'Quản lý quyền hạn',
+    href: '/admin/roles',
+  },
+  {
+    icon: Cpu,
+    label: 'Cấu hình AI Services',
+    href: '/admin/ai-config',
+  },
+  {
+    icon: FileText,
+    label: 'Nhật ký hệ thống',
+    href: '/admin/logs',
+  },
+  {
+    icon: AlertTriangle,
+    label: 'Quản lý Báo cáo lỗi',
+    href: '/admin/bug-reports',
+  },
+  {
+    icon: Database,
+    label: 'Kho bài tập cộng đồng',
+    href: '/admin/community-repo',
+  },
+]
 
 const navItems: NavItem[] = [
   {
@@ -100,12 +137,14 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  const userRole = user?.role || 'STUDENT'
+  const userRole = user?.role || (user as any)?.userRole || 'STUDENT'
+  const defaultItems = userRole === 'ADMIN' ? adminNavItems : navItems
+  const itemsToRender = customNavItems || defaultItems
 
-  const visibleItems = (customNavItems || navItems).filter((item) => {
-    if (item.roles && !item.roles.includes(userRole as 'TEACHER' | 'STUDENT')) return false
+  const visibleItems = itemsToRender.filter((item) => {
+    if (item.roles && !item.roles.includes(userRole as 'TEACHER' | 'STUDENT' | 'ADMIN')) return false
     if (item.permission) {
-      const isAdmin = user?.role === 'ADMIN'
+      const isAdmin = userRole === 'ADMIN'
       const hasPerm = isAdmin || (user?.permissions?.includes(item.permission) ?? false)
       if (!hasPerm) return false
     }
