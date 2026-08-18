@@ -63,6 +63,8 @@ export interface PromptTestExecuteRequest {
   taskCode?: string
   customContent?: string
   variables?: Record<string, any>
+  imageData?: string
+  mimeType?: string
 }
 
 export interface PromptTestExecuteResponse {

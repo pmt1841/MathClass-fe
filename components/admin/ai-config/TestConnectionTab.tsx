@@ -106,19 +106,28 @@ export function TestConnectionTab() {
           description: `Độ trễ phản hồi: ${res.latencyMs || 0} ms`,
         })
       } else {
+        const rawMsg = (res.message || res.errorCode || 'Kết nối không thành công').trim()
+        const shortMsg = rawMsg.length > 90 ? rawMsg.substring(0, 90) + '...' : rawMsg
         toast({
           title: 'Kết nối thất bại',
-          description: res.message || res.errorCode,
+          description: shortMsg,
           variant: 'destructive',
         })
       }
     } catch (err: any) {
+      const rawErrMsg = (err.response?.data?.message || err.message || 'Lỗi gửi yêu cầu kết nối').trim()
+      const shortErrMsg = rawErrMsg.length > 90 ? rawErrMsg.substring(0, 90) + '...' : rawErrMsg
       setResult({
         success: false,
         valid: false,
         latencyMs: 0,
-        message: err.response?.data?.message || err.message,
+        message: rawErrMsg,
         errorCode: 'REQUEST_ERROR',
+      })
+      toast({
+        title: 'Lỗi thực thi kiểm thử',
+        description: shortErrMsg,
+        variant: 'destructive',
       })
     } finally {
       setTesting(false)
