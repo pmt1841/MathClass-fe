@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -11,10 +11,9 @@ import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
-import { LatexToolbar } from '@/components/ui/latex-toolbar'
-import { useTextEditor } from '@/hooks/use-text-editor'
+import TiptapEditor from '@/components/ui/tiptap'
 import { formatDateTime } from '@/lib/utils'
-import { Save, Check, Type, Eye } from 'lucide-react'
+import { Check, Type, Eye } from 'lucide-react'
 
 interface SubmissionEditorProps {
   assignmentId: number
@@ -39,9 +38,6 @@ export function SubmissionEditor({
 }: SubmissionEditorProps) {
   const [content, setContent] = useState(initialContent)
   const [debouncedContent, setDebouncedContent] = useState(initialContent)
-
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const isDirtyRef = useRef(false)
   const onChangeRef = useRef(onChange)
@@ -71,10 +67,7 @@ export function SubmissionEditor({
     return () => clearTimeout(timer)
   }, [content])
 
-
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value
+  const handleContentChange = (val: string) => {
     isDirtyRef.current = true
     setContent(val)
     if (onChangeRef.current) {
@@ -82,17 +75,11 @@ export function SubmissionEditor({
     }
   }
 
-  const { handleFormatText, handleInsertLatex } = useTextEditor({
-    textareaRef,
-    content,
-    onChange: (newVal) => {
-      isDirtyRef.current = true
-      setContent(newVal)
-      if (onChangeRef.current) {
-        onChangeRef.current(newVal)
-      }
-    }
-  })
+  const katexConfig = useMemo(() => ({
+    throwOnError: false,
+    errorColor: '#64748b',
+    macros: { '\\placeholder': '\\square' }
+  }), [])
 
   const isSaving = isSavingExternal
   const lastSaved = lastSavedExternal
@@ -106,7 +93,11 @@ export function SubmissionEditor({
             Nhận xét từ giáo viên
           </h4>
           <div className="prose prose-slate prose-sm max-w-none text-sky-900">
-            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]} components={markdownComponents}>
+            <ReactMarkdown
+              remarkPlugins={[remarkMath, remarkGfm]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]}
+              components={markdownComponents}
+            >
               {teacherFeedback}
             </ReactMarkdown>
           </div>
@@ -135,15 +126,12 @@ export function SubmissionEditor({
 
       <div className="flex-1 min-h-0">
         <PanelGroup direction="vertical">
-          <Panel defaultSize={50} minSize={20} className="flex flex-col">
-            {!readOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
-            <textarea
-              ref={textareaRef}
+          <Panel defaultSize={50} minSize={20} className="flex flex-col p-3 overflow-hidden">
+            <TiptapEditor
               value={content}
-              onChange={handleChange}
+              onChange={handleContentChange}
               readOnly={readOnly}
-              placeholder={readOnly ? "Bài nộp đã khóa." : "Nhập bài làm của bạn tại đây... Hỗ trợ Markdown và công thức toán học LaTeX (ví dụ: $$x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$$)"}
-              className={`w-full h-full flex-1 p-4 resize-none outline-none text-slate-700 leading-relaxed font-mono text-sm bg-transparent ${readOnly ? 'cursor-not-allowed bg-slate-50/50' : ''}`}
+              placeholder={readOnly ? "Bài nộp đã khóa." : "Nhập bài làm của bạn tại đây... Hỗ trợ soạn thảo toán học trực quan (click 'Hiện bảng công thức Toán' để chèn công thức)..."}
             />
           </Panel>
 
@@ -161,7 +149,7 @@ export function SubmissionEditor({
                 {debouncedContent ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkMath, remarkGfm]}
-                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]}
                     components={markdownComponents}
                   >
                     {debouncedContent}

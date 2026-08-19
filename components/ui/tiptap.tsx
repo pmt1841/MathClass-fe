@@ -9,6 +9,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import Image from '@tiptap/extension-image'
+import { MathInline } from '@/components/ui/tiptap-math-extension'
 import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
 import { LatexToolbar } from '@/components/ui/latex-toolbar'
 import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
@@ -30,6 +31,8 @@ import {
   FileText
 } from 'lucide-react'
 
+import { MathfieldElement } from 'mathlive'
+
 interface TiptapProps {
   value: string
   onChange: (data: string) => void
@@ -39,9 +42,23 @@ interface TiptapProps {
   onUploadFile?: (file: File) => void
   placeholder?: string
   images?: { imageCode: string, imageUrl: string }[]
+  editable?: boolean
+  readOnly?: boolean
 }
 
-export default function TiptapEditor({ value, onChange, onReady, onUploadImage, onUploadImages, onUploadFile, placeholder, images }: TiptapProps) {
+export default function TiptapEditor({
+  value,
+  onChange,
+  onReady,
+  onUploadImage,
+  onUploadImages,
+  onUploadFile,
+  placeholder,
+  images,
+  editable,
+  readOnly = false,
+}: TiptapProps) {
+  const isEditable = editable !== undefined ? editable : !readOnly
   const [showMathToolbar, setShowMathToolbar] = useState(false)
   const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
     isOpen: false,
@@ -86,14 +103,17 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     return debounced
   }, [onChange])
 
-  // Clean up debounce on unmount
+  // Flush any pending debounce changes on unmount (e.g. when switching to Preview tab or clicking Save)
   useEffect(() => {
     return () => {
-      debouncedOnChange.cancel()
+      debouncedOnChange.flush()
     }
   }, [debouncedOnChange])
 
+  const lastEmittedMdRef = useRef<string | null>(null)
+
   const editor = useEditor({
+    editable: isEditable,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -121,12 +141,14 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
         HTMLAttributes: {
           class: 'max-w-full rounded-lg inline-block'
         }
-      })
+      }),
+      MathInline
     ],
     content: markdownToHtml(value, images),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
       const md = htmlToMarkdown(html)
+      lastEmittedMdRef.current = md
       debouncedOnChange(md)
     },
     onBlur: ({ editor }) => {
@@ -135,18 +157,34 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
     }
   })
 
+  // Sync editable state
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      if (editor.isEditable !== isEditable) {
+        editor.setEditable(isEditable)
+      }
+    }
+  }, [editor, isEditable])
+
   // Sync external changes (e.g. undo, reset) back to editor without resetting cursor on user typing
   useEffect(() => {
-    if (editor && value !== undefined) {
+    if (editor && value !== undefined && value !== lastEmittedMdRef.current) {
       // Only set content if the editor is NOT focused (meaning the change came externally like draft load or undo)
       if (!editor.isFocused) {
         const htmlValue = markdownToHtml(value, images)
         if (editor.getHTML() !== htmlValue) {
-          editor.commands.setContent(htmlValue, { emitUpdate: false })
+          queueMicrotask(() => {
+            if (editor && !editor.isDestroyed && !editor.isFocused) {
+              const currentHtml = editor.getHTML()
+              if (currentHtml !== htmlValue) {
+                editor.commands.setContent(htmlValue, { emitUpdate: false })
+              }
+            }
+          })
         }
       }
     }
-  }, [value, editor])
+  }, [value, editor, images])
 
   // Trigger onReady when editor initializes
   useEffect(() => {
@@ -172,22 +210,31 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
   }
 
   const handleInsertLatex = (latexCommand: string) => {
-    const isMathBlock = latexCommand.includes('\\begin')
-    const insertText = isMathBlock ? `$$ \n${latexCommand} \n$$` : `$${latexCommand}$`
+    // Check if an active math-field is currently focused
+    const activeEl = typeof document !== 'undefined' ? document.activeElement : null
+    if (activeEl && activeEl.tagName.toLowerCase() === 'math-field') {
+      try {
+        ;(activeEl as MathfieldElement).executeCommand(['insert', latexCommand])
+        return
+      } catch (e) {
+        console.error('Failed to insert into active math-field', e)
+      }
+    }
 
-    // Insert text at current cursor position
-    editor.chain().focus().insertContent(insertText).run()
-
-    // Force form state sync
-    const htmlData = editor.getHTML()
-    const mdData = htmlToMarkdown(htmlData)
-    onChange(mdData)
+    // Always insert visual math node as inline so it stays on the same line with text
+    editor.chain().focus().insertContent({
+      type: 'mathInline',
+      attrs: {
+        latex: latexCommand,
+        displayMode: false,
+      }
+    }).run()
   }
 
   const isTableActive = editor.isActive('table')
 
   return (
-    <div className="tiptap-wrapper w-full flex-1 min-h-0 flex flex-col gap-3">
+    <div className={`tiptap-wrapper w-full flex-1 min-h-0 flex flex-col ${isEditable ? 'gap-3' : 'tiptap-readonly'}`}>
       <style>
         {`
         .tiptap-wrapper {
@@ -211,9 +258,20 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
           border: 1px solid #e2e8f0;
           border-top: none;
         }
+        .tiptap-readonly .ProseMirror {
+          border-top-left-radius: 12px;
+          border-top-right-radius: 12px;
+          border-top: 1px solid #e2e8f0;
+          background-color: #f8fafc;
+          cursor: default;
+        }
         .dark .ProseMirror {
           background-color: #0f172a;
           color: #e2e8f0;
+          border-color: #1e293b;
+        }
+        .dark .tiptap-readonly .ProseMirror {
+          background-color: #0b1120;
           border-color: #1e293b;
         }
         .ProseMirror:focus {
@@ -289,30 +347,33 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
       </style>
 
       {/* Math Formulas Toggle Button */}
-      <div className="flex items-center justify-between mb-0.5 shrink-0">
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setShowMathToolbar(!showMathToolbar)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
-            ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
-            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
-            }`}
-        >
-          <span className="font-mono text-sm leading-none">∑</span>
-          {showMathToolbar ? 'Ẩn bảng công thức Toán' : 'Hiện bảng công thức Toán'}
-        </button>
-      </div>
+      {isEditable && (
+        <div className="flex items-center justify-between mb-0.5 shrink-0">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setShowMathToolbar(!showMathToolbar)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
+              ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
+              }`}
+          >
+            <span className="font-mono text-sm leading-none">∑</span>
+            {showMathToolbar ? 'Ẩn bảng công thức Toán' : 'Hiện bảng công thức Toán'}
+          </button>
+        </div>
+      )}
 
       {/* Embedded LaTeX Toolbar, toggleable */}
-      {showMathToolbar && (
+      {isEditable && showMathToolbar && (
         <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shrink-0 animate-in slide-in-from-top-2 duration-200">
           <LatexToolbar onInsert={handleInsertLatex} />
         </div>
       )}
 
       {/* Tiptap Rich Text Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-xl shrink-0">
+      {isEditable && (
+        <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-xl shrink-0">
         {/* Headings */}
         <button
           type="button"
@@ -510,6 +571,7 @@ export default function TiptapEditor({ value, onChange, onReady, onUploadImage, 
           <Redo className="w-4 h-4" />
         </button>
       </div>
+      )}
 
       {/* Editor Content Area */}
       <EditorContent editor={editor} className="flex-1 min-h-0 flex flex-col" placeholder={placeholder} />

@@ -18,8 +18,8 @@ import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { LatexToolbar } from '@/components/ui/latex-toolbar'
-import { useTextEditor } from '@/hooks/use-text-editor'
+import TiptapEditor from '@/components/ui/tiptap'
+import { markdownToHtml, normalizeLatexToMarkdown } from '@/lib/editor-utils'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
@@ -221,23 +221,30 @@ export function StudentAssignmentLayout({
     }
   }), [comments])
 
+  const katexConfig = useMemo(() => ({
+    throwOnError: false,
+    errorColor: '#64748b',
+    macros: { '\\placeholder': '\\square' }
+  }), [])
+
   const submissionRehypePlugins = useMemo(() => [
     rehypeRaw,
-    rehypeKatex,
+    [rehypeKatex, katexConfig],
     [rehypeSanitize, sanitizeSchema],
     ...(comments.length > 0 ? [[rehypeMarkComments, { comments, activeCommentId: null }]] : [])
-  ], [comments])
+  ], [comments, katexConfig])
 
   const baseRehypePlugins = useMemo(() => [
     rehypeRaw,
-    rehypeKatex,
+    [rehypeKatex, katexConfig],
     [rehypeSanitize, sanitizeSchema]
-  ], [])
+  ], [katexConfig])
 
   const [studentDrawings, setStudentDrawings] = useState<any[]>([])
   const [editingShape, setEditingShape] = useState<{ shapeCode: string, jsxGraphData: any } | null>(null)
   const [showJsxGraphModal, setShowJsxGraphModal] = useState(false)
   const [debouncedContent, setDebouncedContent] = useState(submissionContent)
+  const [editorInstance, setEditorInstance] = useState<any>(null)
 
   // Extract student drawings ONLY on first load if we have submissionContent
   const isLoaded = useRef(false)
@@ -258,8 +265,6 @@ export function StudentAssignmentLayout({
   // Content without drawings appended
   const [pureContent, setPureContent] = useState(() => extractDrawings(submissionContent).content)
 
-
-
   // Debounce for preview
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -272,7 +277,6 @@ export function StudentAssignmentLayout({
   const displayDrawings = isViewingOlderVersion && olderVersionData ? olderVersionData.extractedDrawings : studentDrawings
   const displayPreviewContent = isViewingOlderVersion && olderVersionData ? olderVersionData.content : debouncedContent
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isDirtyRef = useRef(false)
 
@@ -298,19 +302,40 @@ export function StudentAssignmentLayout({
     }
   }, [pureContent, studentDrawings, isReadOnly, submissionStatus])
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleContentChange = (newVal: string) => {
     isDirtyRef.current = true
-    setPureContent(e.target.value)
+    setPureContent(newVal)
   }
 
-  const { handleFormatText, handleInsertLatex } = useTextEditor({
-    textareaRef,
-    content: pureContent,
-    onChange: (newVal) => {
-      isDirtyRef.current = true
-      setPureContent(newVal)
+  const handleInsertHandwritingContent = (rawText: string) => {
+    isDirtyRef.current = true
+    if (!rawText) return
+
+    // Chuẩn hóa mọi định dạng AI / LaTeX thành Markdown chuẩn (text tiếng Việt thường + toán $...$)
+    const normalizedMd = normalizeLatexToMarkdown(rawText)
+
+    if (editorInstance) {
+      const htmlToInsert = markdownToHtml(normalizedMd)
+      editorInstance.commands.insertContent(htmlToInsert)
+    } else {
+      setPureContent(prev => prev ? `${prev}\n\n${normalizedMd}` : normalizedMd)
     }
-  })
+  }
+
+  const handleInsertLatex = (latexCommand: string) => {
+    isDirtyRef.current = true
+    if (editorInstance) {
+      editorInstance.chain().focus().insertContent({
+        type: 'mathInline',
+        attrs: {
+          latex: latexCommand,
+          displayMode: false,
+        }
+      }).run()
+    } else {
+      setPureContent(prev => prev + ` $${latexCommand}$ `)
+    }
+  }
 
   const handleConfirmJsxGraph = (jsxGraphData: any) => {
     isDirtyRef.current = true
@@ -333,22 +358,8 @@ export function StudentAssignmentLayout({
       const newDrawing = { shapeCode, jsxGraphData }
       setStudentDrawings(prev => [...prev, newDrawing])
 
-      if (textareaRef.current) {
-        const textarea = textareaRef.current
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
-        const before = pureContent.substring(0, start)
-        const after = pureContent.substring(end)
-
-        const insertText = `[${shapeCode}]`
-        const newVal = before + insertText + after
-        setPureContent(newVal)
-
-        setTimeout(() => {
-          textarea.focus()
-          const newCursorPos = start + insertText.length
-          textarea.setSelectionRange(newCursorPos, newCursorPos)
-        }, 0)
+      if (editorInstance) {
+        editorInstance.chain().focus().insertContent(`\n\n[${shapeCode}]\n\n`).run()
       } else {
         setPureContent(pureContent + `\n[${shapeCode}]`)
       }
@@ -371,29 +382,22 @@ export function StudentAssignmentLayout({
     setStudentDrawings(prev => prev.filter(d => d.shapeCode !== shapeCode))
     const newVal = pureContent.replace(new RegExp(`\\[${shapeCode}\\]`, 'g'), '')
     setPureContent(newVal)
+    if (editorInstance) {
+      // also remove from editor content if present
+      const currentHtml = editorInstance.getHTML()
+      const updatedHtml = currentHtml.replace(new RegExp(`\\[${shapeCode}\\]`, 'g'), '')
+      if (currentHtml !== updatedHtml) {
+        editorInstance.commands.setContent(updatedHtml)
+      }
+    }
   }
 
   const handleInsertDrawing = (shapeCode: string) => {
-    if (textareaRef.current) {
-      isDirtyRef.current = true
-      const textarea = textareaRef.current
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const before = pureContent.substring(0, start)
-      const after = pureContent.substring(end)
-
-      const insertText = `[${shapeCode}]`
-      const newVal = before + insertText + after
-      setPureContent(newVal)
-
-      setTimeout(() => {
-        textarea.focus()
-        const newCursorPos = start + insertText.length
-        textarea.setSelectionRange(newCursorPos, newCursorPos)
-      }, 0)
+    isDirtyRef.current = true
+    if (editorInstance) {
+      editorInstance.chain().focus().insertContent(` [${shapeCode}] `).run()
     } else {
-      isDirtyRef.current = true
-      setPureContent(pureContent + `\n[${shapeCode}]`)
+      setPureContent(prev => prev + `\n[${shapeCode}]`)
     }
   }
 
@@ -786,8 +790,6 @@ export function StudentAssignmentLayout({
                 )}
               </div>
 
-              {!effectiveIsReadOnly && <LatexToolbar onInsert={handleInsertLatex} onFormatText={handleFormatText} />}
-
               {/* Danh sách hình vẽ của học sinh */}
               {displayDrawings.length > 0 && (
                 <div className="bg-slate-50 border-b border-border px-4 py-2 flex flex-wrap gap-2 items-center shrink-0">
@@ -828,14 +830,16 @@ export function StudentAssignmentLayout({
                   ))}
                 </div>
               )}
-              <textarea
-                ref={textareaRef}
-                value={displayPureContent}
-                onChange={handleContentChange}
-                readOnly={effectiveIsReadOnly}
-                placeholder={effectiveIsReadOnly ? "Bài nộp đã khóa." : "Nhập nội dung bài làm..."}
-                className={`flex-1 w-full p-4 text-sm outline-none resize-none font-mono leading-relaxed ${effectiveIsReadOnly ? 'bg-transparent text-slate-500 cursor-not-allowed' : 'bg-transparent'}`}
-              />
+
+              <div className="flex-1 flex flex-col min-h-0 relative p-2 sm:p-3 overflow-hidden">
+                <TiptapEditor
+                  value={displayPureContent || ''}
+                  onChange={handleContentChange}
+                  onReady={(editor) => setEditorInstance(editor)}
+                  readOnly={effectiveIsReadOnly}
+                  placeholder={effectiveIsReadOnly ? "Bài nộp đã khóa." : "Nhập bài làm của bạn tại đây... Soạn thảo toán học trực quan (click 'Hiện bảng công thức Toán' để chèn công thức nhanh)..."}
+                />
+              </div>
             </Panel>
 
             <PanelResizeHandle className="w-2 mx-1 rounded-full bg-slate-200 hover:bg-primary/50 transition-colors cursor-col-resize flex flex-col items-center justify-center gap-1">
@@ -1084,7 +1088,7 @@ export function StudentAssignmentLayout({
           isOpen={showHandwritingModal}
           onClose={() => setShowHandwritingModal(false)}
           onInsertLatex={(latex) => {
-            handleInsertLatex(latex)
+            handleInsertHandwritingContent(latex)
           }}
           onInsertGeometry={(geometryJson) => {
             try {
