@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useMyCreditTransactions, CreditTransactionItem } from '@/hooks/useCredits'
 import { getCreditTaskLabel } from '@/lib/constants/credit'
+import { formatDateTime } from '@/lib/utils'
 
 const TRANSACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   GRANT_DEFAULT: { label: 'Cấp mặc định', color: 'bg-blue-100 text-blue-700' },
@@ -27,18 +28,6 @@ const TRANSACTION_TYPE_LABELS: Record<string, { label: string; color: string }> 
   ADMIN_ADJUST: { label: 'Điều chỉnh', color: 'bg-amber-100 text-amber-700' },
   CONSUME: { label: 'Tiêu thụ', color: 'bg-rose-100 text-rose-700' },
   REFUND: { label: 'Hoàn lại', color: 'bg-violet-100 text-violet-700' },
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export function CreditTransactionsTable() {

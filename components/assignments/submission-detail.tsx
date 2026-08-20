@@ -13,8 +13,7 @@ import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Spark
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { format } from 'date-fns'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { submissionHintsService } from '@/services/submissionHintsService'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -293,7 +292,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               <div>
                 <div className="font-semibold text-sm text-slate-800">{comment.teacherName}</div>
                 <div className="text-[10px] text-slate-500">
-                  {comment.createdAt && parseDateSafe(comment.createdAt) ? format(parseDateSafe(comment.createdAt)!, 'HH:mm dd/MM/yyyy') : ''}
+                  {formatDateTime(comment.createdAt)}
                 </div>
               </div>
               {isTeacher && comment.teacherId === user?.id && (
@@ -544,7 +543,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                           ? 'bg-white text-primary shadow-xs font-bold border border-slate-200/80'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                         }`}
-                      title={ver.submittedAt ? `Nộp lúc ${format(parseDateSafe(ver.submittedAt)!, 'dd/MM/yyyy HH:mm')}` : undefined}
+                      title={ver.submittedAt ? `Nộp lúc ${formatDateTime(ver.submittedAt)}` : undefined}
                     >
                       Lần {ver.versionNumber} {isLatest ? '(Mới nhất)' : ''}
                     </button>
@@ -622,7 +621,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 )}
               </h3>
               <div className="text-xs text-slate-500 font-medium">
-                Nộp lúc: {(activeVersion?.submittedAt || submission.submittedAt) && parseDateSafe(activeVersion?.submittedAt || submission.submittedAt) ? format(parseDateSafe(activeVersion?.submittedAt || submission.submittedAt)!, 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
+                Nộp lúc: {formatDateTime(activeVersion?.submittedAt || submission.submittedAt) || 'Chưa rõ'}
               </div>
             </div>
 
@@ -738,15 +737,12 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                       <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-md">
                         Gợi ý lượt #{hint.hintNumber}
                       </span>
-                      {(() => {
-                        const parsed = hint.createdAt ? parseDateSafe(hint.createdAt) : null
-                        return parsed ? (
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {format(parsed, 'HH:mm dd/MM/yyyy')}
-                          </span>
-                        ) : null
-                      })()}
+                      {hint.createdAt && (
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDateTime(hint.createdAt)}
+                        </span>
+                      )}
                     </div>
 
                     {hint.studentSnapshotContent && (

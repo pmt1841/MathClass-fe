@@ -5,9 +5,7 @@ import { SubmissionCommentResponse } from '@/services/submissionService'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
 interface CommentSidebarProps {
@@ -59,7 +57,7 @@ export function CommentSidebar({ comments, onDeleteComment, isDeleting, activeCo
               <div>
                 <div className="font-semibold text-slate-700 text-xs">{comment.teacherName}</div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
-                  {comment.createdAt && parseDateSafe(comment.createdAt) ? format(parseDateSafe(comment.createdAt)!, 'HH:mm dd/MM/yyyy', { locale: vi }) : ''}
+                  {formatDateTime(comment.createdAt)}
                 </div>
               </div>
               {isTeacher && comment.teacherId === user?.id && (

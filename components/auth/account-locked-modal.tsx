@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ShieldAlert, AlertTriangle, Clock, Info } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils'
 
 interface AccountLockedModalProps {
   open: boolean
@@ -23,15 +24,7 @@ interface AccountLockedModalProps {
  * Hiển thị thông báo khi người dùng bị Quản trị viên vô hiệu hóa khỏi hệ thống Math Class kèm lý do bị khóa và thời điểm khóa.
  */
 export function AccountLockedModal({ open, onClose, lockReason, lockedAt }: AccountLockedModalProps) {
-  const formattedLockedAt = lockedAt
-    ? new Date(lockedAt).toLocaleString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : null
+  const formattedLockedAt = lockedAt ? formatDateTime(lockedAt) : null
 
   const cleanLockReason = lockReason
     ? lockReason

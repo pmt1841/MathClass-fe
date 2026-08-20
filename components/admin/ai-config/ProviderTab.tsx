@@ -40,8 +40,7 @@ import {
 import { ProviderDialog } from './ProviderDialog'
 import { ApiKeyDialog } from './ApiKeyDialog'
 import { useToast } from '@/components/ui/use-toast'
-import { parseDateSafe } from '@/lib/utils'
-import { format } from 'date-fns'
+import { formatDateTime } from '@/lib/utils'
 
 export function ProviderTab() {
   const { toast } = useToast()
@@ -233,9 +232,7 @@ export function ProviderTab() {
 
   const formatDateStr = (dateStr?: string) => {
     if (!dateStr) return 'Chưa sử dụng'
-    const date = parseDateSafe(dateStr)
-    if (!date) return 'Chưa sử dụng'
-    return format(date, 'HH:mm dd/MM/yyyy')
+    return formatDateTime(dateStr) || 'Chưa sử dụng'
   }
 
   if (loading) {
