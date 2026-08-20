@@ -61,6 +61,7 @@ export interface UserResponse {
   dateOfBirth?: string
   gender?: Gender
   provider?: 'LOCAL' | 'GOOGLE'
+  hasPassword?: boolean
 }
 
 export interface UpdateProfileRequest {
@@ -73,6 +74,12 @@ export interface UpdateProfileRequest {
 
 export interface ChangePasswordRequest {
   currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface SetPasswordRequest {
+  otpCode: string
   newPassword: string
   confirmPassword: string
 }

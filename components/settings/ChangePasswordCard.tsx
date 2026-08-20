@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { KeyRound, Eye, EyeOff, Lock, AlertCircle, ShieldAlert, Info } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -8,9 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/useAuth'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { profileService } from '@/services/profileService'
 import { ChangePasswordRequest } from '@/types'
+import { SetPasswordCard } from './SetPasswordCard'
 import {
   Dialog,
   DialogContent,
@@ -22,9 +24,13 @@ import {
 
 export function ChangePasswordCard() {
   const { toast } = useToast()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
 
-  const isGoogleUser = user?.provider === 'GOOGLE'
+  // Gọi API /users/me để lấy thông tin real-time của người dùng (bao gồm cờ hasPassword)
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: profileService.getProfile,
+  })
 
   const [formData, setFormData] = useState<ChangePasswordRequest>({
     currentPassword: '',
@@ -80,6 +86,24 @@ export function ChangePasswordCard() {
     }
   })
 
+  // ── ⚠️ BẮT BỤC: Các câu lệnh rẽ nhánh Early Return phải nằm SAU tất cả các Hooks ──
+  // Nếu đang tải thông tin profile
+  if (isLoading) {
+    return (
+      <Card className="shadow-sm border-slate-200 bg-white p-8">
+        <div className="flex items-center justify-center gap-2 text-slate-500 py-6">
+          <span className="w-5 h-5 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin" />
+          Đang kiểm tra trạng thái tài khoản...
+        </div>
+      </Card>
+    )
+  }
+
+  // Nếu tài khoản Google chưa từng tạo mật khẩu local -> render SetPasswordCard
+  if (profile && profile.hasPassword === false) {
+    return <SetPasswordCard />
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -88,10 +112,6 @@ export function ChangePasswordCard() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (isGoogleUser) {
-      return
-    }
 
     if (!formData.currentPassword) {
       setValidationError('Vui lòng nhập mật khẩu hiện tại.')
@@ -119,7 +139,6 @@ export function ChangePasswordCard() {
   }
 
   const isPending = mutation.isPending
-  const isFormDisabled = isPending || isGoogleUser
 
   return (
     <>
@@ -136,21 +155,6 @@ export function ChangePasswordCard() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5">
-            {/* Google OAuth Account Notice Banner */}
-            {isGoogleUser && (
-              <div className="flex items-start gap-3 p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl text-slate-700 animate-in fade-in duration-300">
-                <div className="p-2 bg-white rounded-lg border border-blue-100 shrink-0 shadow-xs">
-                  <Info className="w-5 h-5 text-blue-600" />
-                </div>
-                <div className="space-y-1 text-sm">
-                  <p className="font-semibold text-slate-900">Tài khoản liên kết Google</p>
-                  <p className="text-slate-600 leading-relaxed">
-                    Bạn đang đăng nhập bằng tài khoản Google. Tính năng đổi mật khẩu trực tiếp không khả dụng cho phương thức này.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {validationError && (
               <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg animate-in fade-in duration-200">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -158,12 +162,7 @@ export function ChangePasswordCard() {
               </div>
             )}
 
-            <div
-              className={`space-y-5 transition-all duration-300 ${
-                isGoogleUser ? 'opacity-40 grayscale-[0.3] pointer-events-none select-none' : ''
-              }`}
-              title={isGoogleUser ? 'Tính năng không khả dụng cho tài khoản Google' : undefined}
-            >
+            <div className="space-y-5">
               {/* Mật khẩu hiện tại */}
               <div className="space-y-2">
                 <Label htmlFor="currentPassword" className="font-medium text-slate-700">
@@ -177,18 +176,27 @@ export function ChangePasswordCard() {
                     placeholder="Nhập mật khẩu hiện tại"
                     value={formData.currentPassword}
                     onChange={handleChange}
-                    disabled={isFormDisabled}
+                    disabled={isPending}
                     className="pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrent(!showCurrent)}
                     tabIndex={-1}
-                    disabled={isFormDisabled}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                    disabled={isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+                {/* Link nhỏ Quên mật khẩu */}
+                <div className="flex justify-end pt-1">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
               </div>
 
@@ -205,15 +213,15 @@ export function ChangePasswordCard() {
                     placeholder="Tối thiểu 6 ký tự"
                     value={formData.newPassword}
                     onChange={handleChange}
-                    disabled={isFormDisabled}
+                    disabled={isPending}
                     className="pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNew(!showNew)}
                     tabIndex={-1}
-                    disabled={isFormDisabled}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                    disabled={isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -233,15 +241,15 @@ export function ChangePasswordCard() {
                     placeholder="Nhập lại mật khẩu mới"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    disabled={isFormDisabled}
+                    disabled={isPending}
                     className="pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm(!showConfirm)}
                     tabIndex={-1}
-                    disabled={isFormDisabled}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                    disabled={isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -253,9 +261,8 @@ export function ChangePasswordCard() {
           <CardFooter className="bg-slate-50/80 px-6 py-4 border-t border-slate-100 flex justify-end rounded-b-xl">
             <Button
               type="submit"
-              disabled={isFormDisabled}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              title={isGoogleUser ? 'Tính năng không khả dụng cho tài khoản Google' : undefined}
+              disabled={isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium"
             >
               {isPending ? (
                 <span className="flex items-center gap-2">
