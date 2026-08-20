@@ -137,7 +137,7 @@ export function MathNodeView(props: NodeViewProps) {
   return (
     <NodeViewWrapper
       as="span"
-      className="relative inline-flex items-center align-middle transition-all my-0.5 mx-1"
+      className="relative inline-flex items-center align-middle transition-all my-0.5 mx-1 max-w-full"
       contentEditable={false}
     >
       <math-field
@@ -148,7 +148,7 @@ export function MathNodeView(props: NodeViewProps) {
         onClick={handleClick}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`inline-math-field px-2 py-0.5 rounded-lg transition-all border outline-none cursor-text select-auto ${selected
+        className={`inline-math-field px-2 py-0.5 rounded-lg transition-all border outline-none cursor-text select-auto max-w-full overflow-x-auto ${selected
           ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-blue-400/20'
           : 'border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-850/60 hover:border-blue-300 hover:bg-blue-50/30'
           } focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-400/20`}
@@ -156,6 +156,8 @@ export function MathNodeView(props: NodeViewProps) {
           display: 'inline-block',
           fontSize: '16px',
           minWidth: '24px',
+          maxWidth: '100%',
+          overflowX: 'auto',
           lineHeight: 'normal',
           verticalAlign: 'middle',
           userSelect: 'auto',
