@@ -19,7 +19,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import TiptapEditor from '@/components/ui/tiptap'
-import { markdownToHtml, normalizeLatexToMarkdown } from '@/lib/editor-utils'
+import { markdownToHtml, normalizeLatexToMarkdown, separateAdjacentMath } from '@/lib/editor-utils'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
@@ -404,9 +404,10 @@ export function StudentAssignmentLayout({
   const renderContentWithDrawings = (rawContent: string, drawingList: any[], isSubmission: boolean = false) => {
     if (!rawContent) return null
 
+    const normalizedContent = separateAdjacentMath(rawContent)
     // We already passed pureContent, so it shouldn't have JSON embedded. 
     // Just replace tags.
-    const parts = rawContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
+    const parts = normalizedContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)

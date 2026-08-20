@@ -6,10 +6,11 @@ import { MathfieldElement } from 'mathlive'
 import 'mathlive'
 
 export function MathNodeView(props: NodeViewProps) {
-  const { node, updateAttributes, deleteNode, selected } = props
+  const { node, updateAttributes, deleteNode, selected, editor } = props
   const latex = node.attrs.latex || ''
   const mathFieldRef = useRef<MathfieldElement | null>(null)
   const isInternalChangeRef = useRef(false)
+  const isEditable = editor?.isEditable ?? true
 
   const selectFirstPlaceholder = (mf: MathfieldElement) => {
     try {
@@ -26,6 +27,14 @@ export function MathNodeView(props: NodeViewProps) {
   useEffect(() => {
     const mathField = mathFieldRef.current
     if (!mathField) return
+
+    // Set readOnly according to editor isEditable status
+    mathField.readOnly = !isEditable
+    if (!isEditable) {
+      mathField.setAttribute('read-only', '')
+    } else {
+      mathField.removeAttribute('read-only')
+    }
 
     // Turn off virtual keyboard & menu toggles completely
     mathField.mathVirtualKeyboardPolicy = 'manual'
@@ -76,10 +85,11 @@ export function MathNodeView(props: NodeViewProps) {
       mathField.setValue(latex || '')
     }
     isInternalChangeRef.current = false
-  }, [latex])
+  }, [latex, isEditable])
 
   // Auto focus and select placeholder on initial insert
   useEffect(() => {
+    if (!isEditable) return
     const mathField = mathFieldRef.current
     if (!mathField) return
 
@@ -89,9 +99,10 @@ export function MathNodeView(props: NodeViewProps) {
       }, 50)
       return () => clearTimeout(timeoutId)
     }
-  }, [])
+  }, [isEditable, latex])
 
   const handleInput = (e: React.FormEvent<MathfieldElement>) => {
+    if (!isEditable) return
     const target = e.target as MathfieldElement
     const newVal = target.value ?? ''
     isInternalChangeRef.current = true
@@ -99,6 +110,7 @@ export function MathNodeView(props: NodeViewProps) {
   }
 
   const handleFocus = () => {
+    if (!isEditable) return
     const mf = mathFieldRef.current
     if (mf && (mf.value.includes('\\placeholder') || mf.value.includes('#?'))) {
       setTimeout(() => {
@@ -108,6 +120,7 @@ export function MathNodeView(props: NodeViewProps) {
   }
 
   const handleClick = () => {
+    if (!isEditable) return
     const mf = mathFieldRef.current
     if (mf && (mf.value.includes('\\placeholder') || mf.value.includes('#?'))) {
       setTimeout(() => {
@@ -117,6 +130,7 @@ export function MathNodeView(props: NodeViewProps) {
   }
 
   const handleBlur = (e: React.FocusEvent<MathfieldElement>) => {
+    if (!isEditable) return
     const target = e.target as MathfieldElement
     const newVal = (target.value ?? '').trim()
     if (!newVal) {
@@ -127,6 +141,7 @@ export function MathNodeView(props: NodeViewProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<MathfieldElement>) => {
+    if (!isEditable) return
     // If the math field is completely empty and user hits Backspace, remove the node
     if (e.key === 'Backspace' && (!mathFieldRef.current?.value || mathFieldRef.current.value.trim() === '')) {
       e.preventDefault()
@@ -137,31 +152,39 @@ export function MathNodeView(props: NodeViewProps) {
   return (
     <NodeViewWrapper
       as="span"
-      className="relative inline-flex items-center align-middle transition-all my-0.5 mx-1 max-w-full"
+      className="relative inline-flex items-center align-middle transition-all my-0 mx-0.5 max-w-full"
       contentEditable={false}
     >
       <math-field
         ref={mathFieldRef}
+        read-only={!isEditable ? '' : undefined}
         math-virtual-keyboard-policy="manual"
         onInput={handleInput}
         onFocus={handleFocus}
         onClick={handleClick}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`inline-math-field px-2 py-0.5 rounded-lg transition-all border outline-none cursor-text select-auto max-w-full overflow-x-auto ${selected
-          ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-blue-400/20'
-          : 'border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-850/60 hover:border-blue-300 hover:bg-blue-50/30'
-          } focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-400/20`}
+        className={`inline-math-field px-1 py-0.5 rounded transition-all outline-none max-w-full overflow-x-auto ${
+          !isEditable
+            ? 'border-0 bg-transparent cursor-default'
+            : selected
+            ? 'border-0 bg-blue-50/40 dark:bg-blue-950/30 ring-1 ring-blue-400/40 cursor-text select-auto'
+            : 'border-0 bg-transparent hover:bg-slate-100/60 dark:hover:bg-slate-800/40 cursor-text select-auto focus-within:bg-blue-50/30 focus-within:ring-1 focus-within:ring-blue-400/40'
+        }`}
         style={{
           display: 'inline-block',
           fontSize: '16px',
-          minWidth: '24px',
+          minWidth: isEditable ? '12px' : 'auto',
           maxWidth: '100%',
           overflowX: 'auto',
           lineHeight: 'normal',
           verticalAlign: 'middle',
-          userSelect: 'auto',
-          WebkitUserSelect: 'auto',
+          userSelect: isEditable ? 'auto' : 'text',
+          WebkitUserSelect: isEditable ? 'auto' : 'text',
+          pointerEvents: isEditable ? 'auto' : 'none',
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
         }}
       />
     </NodeViewWrapper>

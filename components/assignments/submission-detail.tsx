@@ -25,6 +25,7 @@ import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
+import { separateAdjacentMath } from '@/lib/editor-utils'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
 import { InlineCommentPopover } from './inline-comment-popover'
 import rehypeMarkComments from '@/lib/rehype-mark-comments'
@@ -416,7 +417,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const renderContentWithDrawings = (rawContent: string, enableComments: boolean = false) => {
     if (!rawContent) return null
-    const { content: cleanContent, extractedDrawings } = extractDrawings(rawContent)
+    const normalizedRaw = separateAdjacentMath(rawContent)
+    const { content: cleanContent, extractedDrawings } = extractDrawings(normalizedRaw)
     const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {

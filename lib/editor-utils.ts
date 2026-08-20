@@ -53,14 +53,28 @@ interface MathItem {
   isDisplay: boolean
 }
 
+export const separateAdjacentMath = (text: string): string => {
+  if (!text) return ''
+  let res = text
+  let prev = ''
+  while (prev !== res) {
+    prev = res
+    res = res.replace(/\$([^\$\r\n]+?)\$\$([^\$\r\n]+?)\$/g, '$$$1$ $$$2$')
+  }
+  return res
+}
+
 // Keep raw LaTeX formatting intact and transform into Tiptap Math Node tags during conversion
 const extractMath = (text: string) => {
   const mathBlocks: MathItem[] = []
   if (!text) return { processed: '', mathBlocks }
 
+  // Separate adjacent inline math tokens $A$$B$ into $A$ $B$ so they are not treated as block math $$
+  const sanitized = separateAdjacentMath(text)
+
   let index = 0
   // 1. Match display math: $$ ... $$
-  let processed = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, inner) => {
+  let processed = sanitized.replace(/\$\$([\s\S]*?)\$\$/g, (match, inner) => {
     const placeholder = `MATHLIVEDISPLAY${index}ENDTOKEN`
     mathBlocks.push({
       raw: match,
@@ -182,7 +196,8 @@ export const htmlToMarkdown = (html: string): string => {
       return `[${prefix}_${cleanId}]`
     })
 
-    return restoreMathAsMarkdown(unescaped, mathBlocks)
+    const restored = restoreMathAsMarkdown(unescaped, mathBlocks)
+    return separateAdjacentMath(restored)
   } catch (e) {
     console.error('Failed to parse html to markdown', e)
     return html
