@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Link } from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
@@ -119,12 +119,16 @@ export default function TiptapEditor({
         heading: {
           levels: [1, 2],
         },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 dark:text-blue-400 underline cursor-pointer',
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class: 'text-blue-600 dark:text-blue-400 underline cursor-pointer',
+          },
         },
+      }),
+      Placeholder.configure({
+        placeholder: placeholder || 'Nhập bài làm của bạn tại đây...',
+        emptyEditorClass: 'is-editor-empty',
       }),
       Table.configure({
         resizable: true,
@@ -574,7 +578,7 @@ export default function TiptapEditor({
       )}
 
       {/* Editor Content Area */}
-      <EditorContent editor={editor} className="flex-1 min-h-0 flex flex-col" placeholder={placeholder} />
+      <EditorContent editor={editor} className="flex-1 min-h-0 flex flex-col" />
 
       {/* Unified Media & Upload Modal */}
       <MediaUploadModal

@@ -211,7 +211,7 @@ export function StudentAssignmentLayout({
               </div>
             </div>
             <div className="prose prose-slate prose-sm max-w-none mt-2">
-              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, rehypeKatex, [rehypeSanitize, sanitizeSchema]]} components={markdownComponents}>
+              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]} components={markdownComponents}>
                 {comment.content}
               </ReactMarkdown>
             </div>
@@ -229,15 +229,15 @@ export function StudentAssignmentLayout({
 
   const submissionRehypePlugins = useMemo(() => [
     rehypeRaw,
-    [rehypeKatex, katexConfig],
     [rehypeSanitize, sanitizeSchema],
+    [rehypeKatex, katexConfig],
     ...(comments.length > 0 ? [[rehypeMarkComments, { comments, activeCommentId: null }]] : [])
   ], [comments, katexConfig])
 
   const baseRehypePlugins = useMemo(() => [
     rehypeRaw,
-    [rehypeKatex, katexConfig],
-    [rehypeSanitize, sanitizeSchema]
+    [rehypeSanitize, sanitizeSchema],
+    [rehypeKatex, katexConfig]
   ], [katexConfig])
 
   const [studentDrawings, setStudentDrawings] = useState<any[]>([])

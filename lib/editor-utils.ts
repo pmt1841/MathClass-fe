@@ -37,6 +37,9 @@ turndownService.addRule('tiptapMath', {
     const latex = node.getAttribute?.('data-latex') || content || ''
     const isDisplay = node.getAttribute?.('data-display') === 'true' || node.getAttribute?.('data-type') === 'math-block'
     const cleanLatex = latex.trim()
+    if (!cleanLatex) {
+      return ''
+    }
     if (isDisplay) {
       return `\n\n$$\n${cleanLatex}\n$$\n\n`
     }
@@ -240,25 +243,43 @@ export const normalizeLatexToMarkdown = (input: string): string => {
 
     // Nếu dòng có chứa \text{...}
     if (line.includes('\\text{')) {
-      const parts = line.split(/\\text\{([^}]*)\}/g)
+      // Chuẩn hóa trường hợp ngoặc đơn bọc ngoài \text{...}, ví dụ: (\text{hằng đẳng thức}) -> \text{(hằng đẳng thức)}
+      const normalizedLine = line.replace(/\(\s*\\text\{([^}]*)\}\s*\)/g, '\\text{($1)}')
+      const parts = normalizedLine.split(/\\text\{([^}]*)\}/g)
       // parts xen kẽ: [math, text, math, text, math...]
       let result = ''
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i]
         if (i % 2 === 1) {
           // Đây là text bên trong \text{...}
-          result += part
+          result += ` ${part} `
         } else {
           // Đây là phần công thức toán
-          const trimmedMath = part.trim()
+          let trimmedMath = part.trim()
           if (trimmedMath) {
-            // Nếu có ngoặc đơn bao quanh, ví dụ "(\Rightarrow AE // NJ)"
-            if (trimmedMath.startsWith('(') && trimmedMath.endsWith(')')) {
-              const inner = trimmedMath.substring(1, trimmedMath.length - 1).trim()
-              result += ` ($${inner}$) `
-            } else {
-              result += ` $${trimmedMath}$ `
+            // Xử lý nếu dính dấu ngoặc đơn mở/đóng ở biên do phân tách: "math (" hoặc ") math"
+            let prefixParen = ''
+            let suffixParen = ''
+            if (trimmedMath.endsWith('(')) {
+              trimmedMath = trimmedMath.slice(0, -1).trim()
+              suffixParen = '('
             }
+            if (trimmedMath.startsWith(')')) {
+              trimmedMath = trimmedMath.slice(1).trim()
+              prefixParen = ')'
+            }
+
+            if (prefixParen) result += ` ${prefixParen} `
+            if (trimmedMath) {
+              // Nếu có ngoặc đơn bao quanh cả biểu thức toán, ví dụ "(\Rightarrow AE // NJ)"
+              if (trimmedMath.startsWith('(') && trimmedMath.endsWith(')')) {
+                const inner = trimmedMath.substring(1, trimmedMath.length - 1).trim()
+                result += ` ($${inner}$) `
+              } else {
+                result += ` $${trimmedMath}$ `
+              }
+            }
+            if (suffixParen) result += ` ${suffixParen} `
           }
         }
       }
