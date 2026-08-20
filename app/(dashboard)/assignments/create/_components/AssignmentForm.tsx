@@ -694,7 +694,7 @@ export function AssignmentForm({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath, remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, { throwOnError: false, errorColor: '#64748b', macros: { '\\placeholder': '\\square' } }]]}
           components={markdownComponents}
         >
           {part}
