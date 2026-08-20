@@ -23,8 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { format } from 'date-fns'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 
 interface SubmissionTableProps {
   assignmentId: number
@@ -136,9 +135,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
                 <TableRow key={sub.id}>
                   <TableCell className="font-medium">{sub.studentName}</TableCell>
                   <TableCell>
-                    {sub.submittedAt && parseDateSafe(sub.submittedAt)
-                      ? format(parseDateSafe(sub.submittedAt)!, 'dd/MM/yyyy HH:mm')
-                      : 'N/A'}
+                    {formatDateTime(sub.submittedAt) || 'N/A'}
                   </TableCell>
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>{sub.score !== null ? sub.score : '-'}</TableCell>

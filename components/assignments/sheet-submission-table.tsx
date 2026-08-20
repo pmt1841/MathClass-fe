@@ -15,8 +15,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { format } from 'date-fns'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 
 interface SheetSubmissionTableProps {
   sheetId: number
@@ -82,9 +81,7 @@ export function SheetSubmissionTable({ sheetId, classCode }: SheetSubmissionTabl
                     </span>
                   </TableCell>
                   <TableCell>
-                    {sub.latestSubmittedAt && parseDateSafe(sub.latestSubmittedAt)
-                      ? format(parseDateSafe(sub.latestSubmittedAt)!, 'dd/MM/yyyy HH:mm')
-                      : 'N/A'}
+                    {formatDateTime(sub.latestSubmittedAt) || 'N/A'}
                   </TableCell>
                   <TableCell>
                     <span className="font-semibold text-primary">{sub.totalScore !== null ? `${sub.totalScore.toFixed(1)} đ` : '-'}</span>
