@@ -69,6 +69,7 @@ export const embedDrawings = (content: string, drawings: any[]) => {
 interface StudentAssignmentLayoutProps {
   assignment: any
   submissionId?: number | null
+  onSubmissionCreated?: (id: number) => void
   submissionContent: string
   setSubmissionContent: (val: string) => void
   isReadOnly: boolean
@@ -93,6 +94,7 @@ interface StudentAssignmentLayoutProps {
 export function StudentAssignmentLayout({
   assignment,
   submissionId,
+  onSubmissionCreated,
   submissionContent,
   setSubmissionContent,
   isReadOnly,
@@ -171,7 +173,7 @@ export function StudentAssignmentLayout({
     insufficientCredit: isHintInsufficientCredit,
     fetchHistory: fetchHintHistory,
     requestHint: executeRequestHint
-  } = useSubmissionHints(submissionId)
+  } = useSubmissionHints(submissionId, onSubmissionCreated)
 
   useEffect(() => {
     if (submissionId) {
