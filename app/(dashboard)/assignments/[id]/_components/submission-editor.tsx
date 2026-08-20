@@ -13,6 +13,7 @@ import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import TiptapEditor from '@/components/ui/tiptap'
 import { formatDateTime } from '@/lib/utils'
+import { separateAdjacentMath } from '@/lib/editor-utils'
 import { Check, Type, Eye } from 'lucide-react'
 
 interface SubmissionEditorProps {
@@ -152,7 +153,7 @@ export function SubmissionEditor({
                     rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]}
                     components={markdownComponents}
                   >
-                    {debouncedContent}
+                    {separateAdjacentMath(debouncedContent)}
                   </ReactMarkdown>
                 ) : (
                   <p className="text-slate-400 italic mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
