@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { KeyRound, Eye, EyeOff, Lock, AlertCircle, ShieldAlert } from 'lucide-react'
+import { KeyRound, Eye, EyeOff, Lock, AlertCircle, ShieldAlert, Info } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,9 @@ import {
 
 export function ChangePasswordCard() {
   const { toast } = useToast()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+
+  const isGoogleUser = user?.provider === 'GOOGLE'
 
   const [formData, setFormData] = useState<ChangePasswordRequest>({
     currentPassword: '',
@@ -87,6 +89,10 @@ export function ChangePasswordCard() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (isGoogleUser) {
+      return
+    }
+
     if (!formData.currentPassword) {
       setValidationError('Vui lòng nhập mật khẩu hiện tại.')
       return
@@ -113,6 +119,7 @@ export function ChangePasswordCard() {
   }
 
   const isPending = mutation.isPending
+  const isFormDisabled = isPending || isGoogleUser
 
   return (
     <>
@@ -129,6 +136,21 @@ export function ChangePasswordCard() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5">
+            {/* Google OAuth Account Notice Banner */}
+            {isGoogleUser && (
+              <div className="flex items-start gap-3 p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl text-slate-700 animate-in fade-in duration-300">
+                <div className="p-2 bg-white rounded-lg border border-blue-100 shrink-0 shadow-xs">
+                  <Info className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="font-semibold text-slate-900">Tài khoản liên kết Google</p>
+                  <p className="text-slate-600 leading-relaxed">
+                    Bạn đang đăng nhập bằng tài khoản Google. Tính năng đổi mật khẩu trực tiếp không khả dụng cho phương thức này.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {validationError && (
               <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg animate-in fade-in duration-200">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -136,84 +158,94 @@ export function ChangePasswordCard() {
               </div>
             )}
 
-            {/* Mật khẩu hiện tại */}
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword font-medium text-slate-700">
-                Mật khẩu hiện tại <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type={showCurrent ? 'text' : 'password'}
-                  placeholder="Nhập mật khẩu hiện tại"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  disabled={isPending}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+            <div
+              className={`space-y-5 transition-all duration-300 ${
+                isGoogleUser ? 'opacity-40 grayscale-[0.3] pointer-events-none select-none' : ''
+              }`}
+              title={isGoogleUser ? 'Tính năng không khả dụng cho tài khoản Google' : undefined}
+            >
+              {/* Mật khẩu hiện tại */}
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword" className="font-medium text-slate-700">
+                  Mật khẩu hiện tại <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type={showCurrent ? 'text' : 'password'}
+                    placeholder="Nhập mật khẩu hiện tại"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    disabled={isFormDisabled}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    tabIndex={-1}
+                    disabled={isFormDisabled}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                  >
+                    {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Mật khẩu mới */}
-            <div className="space-y-2">
-              <Label htmlFor="newPassword font-medium text-slate-700">
-                Mật khẩu mới <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  name="newPassword"
-                  type={showNew ? 'text' : 'password'}
-                  placeholder="Tối thiểu 6 ký tự"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  disabled={isPending}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNew(!showNew)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              {/* Mật khẩu mới */}
+              <div className="space-y-2">
+                <Label htmlFor="newPassword" className="font-medium text-slate-700">
+                  Mật khẩu mới <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type={showNew ? 'text' : 'password'}
+                    placeholder="Tối thiểu 6 ký tự"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    disabled={isFormDisabled}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(!showNew)}
+                    tabIndex={-1}
+                    disabled={isFormDisabled}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                  >
+                    {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Xác nhận mật khẩu mới */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword font-medium text-slate-700">
-                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  disabled={isPending}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              {/* Xác nhận mật khẩu mới */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="font-medium text-slate-700">
+                  Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirm ? 'text' : 'password'}
+                    placeholder="Nhập lại mật khẩu mới"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={isFormDisabled}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    tabIndex={-1}
+                    disabled={isFormDisabled}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:pointer-events-none"
+                  >
+                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -221,8 +253,9 @@ export function ChangePasswordCard() {
           <CardFooter className="bg-slate-50/80 px-6 py-4 border-t border-slate-100 flex justify-end rounded-b-xl">
             <Button
               type="submit"
-              disabled={isPending}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium"
+              disabled={isFormDisabled}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isGoogleUser ? 'Tính năng không khả dụng cho tài khoản Google' : undefined}
             >
               {isPending ? (
                 <span className="flex items-center gap-2">
