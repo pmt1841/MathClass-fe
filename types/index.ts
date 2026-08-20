@@ -71,6 +71,12 @@ export interface UpdateProfileRequest {
   avatarUrl?: string
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 // ── Admin Domain Types ────────────────────────────────────────────────────
 export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT'
 

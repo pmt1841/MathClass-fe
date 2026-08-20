@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import { UserResponse, UpdateProfileRequest } from '@/types'
+import { UserResponse, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
 
 export const profileService = {
   getProfile: async () => {
@@ -22,5 +22,10 @@ export const profileService = {
       }
     })
     return response.data.avatarUrl
+  },
+
+  changePassword: async (data: ChangePasswordRequest) => {
+    const response = await api.put<{ message: string }>('/users/me/password', data)
+    return response.data
   }
 }
