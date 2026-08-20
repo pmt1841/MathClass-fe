@@ -244,11 +244,19 @@ export const normalizeLatexToMarkdown = (input: string): string => {
     .replace(/\\end\{align\}/g, '')
     .trim()
 
+  // Bảo vệ các dấu \\ và \n nằm bên trong môi trường LaTeX như \begin{cases}...\end{cases}, \begin{matrix}...\end{matrix}
+  let protectedBody = cleanBody.replace(/\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g, (match) => {
+    return match.replace(/\\\\/g, '__LATEX_ROW_BREAK__').replace(/\r?\n/g, '__LATEX_NEWLINE_BREAK__')
+  })
+
   // Tách thành từng dòng qua \\ hoặc \n
-  const rawLines = cleanBody.split(/\\\\|\r?\n/)
+  const rawLines = protectedBody.split(/\\\\|\r?\n/)
 
   const processedLines = rawLines.map(rawLine => {
-    let line = rawLine.trim()
+    let line = rawLine
+      .replace(/__LATEX_ROW_BREAK__/g, '\\\\')
+      .replace(/__LATEX_NEWLINE_BREAK__/g, ' ')
+      .trim()
     // Xóa ký tự căn lề & ở đầu hoặc giữa
     line = line.replace(/^&\s*/, '').replace(/\s*&\s*/g, ' ')
     // Xóa các khoảng trắng latex

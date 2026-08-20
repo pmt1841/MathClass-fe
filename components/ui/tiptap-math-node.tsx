@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react'
 import { MathfieldElement } from 'mathlive'
 import 'mathlive'
@@ -10,7 +10,31 @@ export function MathNodeView(props: NodeViewProps) {
   const latex = node.attrs.latex || ''
   const mathFieldRef = useRef<MathfieldElement | null>(null)
   const isInternalChangeRef = useRef(false)
-  const isEditable = editor?.isEditable ?? true
+  const [isEditable, setIsEditable] = useState(() => editor?.isEditable ?? true)
+
+  // Listen to editor isEditable changes in real-time
+  useEffect(() => {
+    if (!editor) return
+    const syncEditable = () => {
+      setIsEditable(editor.isEditable)
+      const mf = mathFieldRef.current
+      if (mf) {
+        mf.readOnly = !editor.isEditable
+        if (!editor.isEditable) {
+          mf.setAttribute('read-only', '')
+        } else {
+          mf.removeAttribute('read-only')
+        }
+      }
+    }
+    syncEditable()
+    editor.on('transaction', syncEditable)
+    editor.on('update', syncEditable)
+    return () => {
+      editor.off('transaction', syncEditable)
+      editor.off('update', syncEditable)
+    }
+  }, [editor])
 
   const selectFirstPlaceholder = (mf: MathfieldElement) => {
     try {

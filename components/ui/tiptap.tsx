@@ -44,6 +44,7 @@ interface TiptapProps {
   images?: { imageCode: string, imageUrl: string }[]
   editable?: boolean
   readOnly?: boolean
+  compact?: boolean
 }
 
 export default function TiptapEditor({
@@ -57,9 +58,10 @@ export default function TiptapEditor({
   images,
   editable,
   readOnly = false,
+  compact = false,
 }: TiptapProps) {
   const isEditable = editable !== undefined ? editable : !readOnly
-  const [showMathToolbar, setShowMathToolbar] = useState(false)
+  const [showMathToolbar, setShowMathToolbar] = useState(compact ? true : false)
   const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
     isOpen: false,
     mode: 'image'
@@ -166,6 +168,9 @@ export default function TiptapEditor({
     if (editor && !editor.isDestroyed) {
       if (editor.isEditable !== isEditable) {
         editor.setEditable(isEditable)
+        try {
+          editor.view.dispatch(editor.state.tr.setMeta('editableChange', isEditable))
+        } catch { }
       }
     }
   }, [editor, isEditable])
@@ -238,7 +243,7 @@ export default function TiptapEditor({
   const isTableActive = editor.isActive('table')
 
   return (
-    <div className={`tiptap-wrapper w-full flex-1 min-h-0 flex flex-col ${isEditable ? 'gap-3' : 'tiptap-readonly'}`}>
+    <div className={`tiptap-wrapper w-full flex-1 min-h-0 flex flex-col ${compact ? 'tiptap-compact gap-1.5' : isEditable ? 'gap-3' : 'tiptap-readonly'}`}>
       <style>
         {`
         .tiptap-wrapper {
@@ -261,6 +266,15 @@ export default function TiptapEditor({
           border-bottom-right-radius: 12px;
           border: 1px solid #e2e8f0;
           border-top: none;
+        }
+        .tiptap-compact .ProseMirror {
+          padding: 0.625rem 0.75rem !important;
+          font-size: 13.5px !important;
+          line-height: 1.5 !important;
+          min-height: 60px !important;
+          max-height: 140px !important;
+          border-bottom-left-radius: 8px !important;
+          border-bottom-right-radius: 8px !important;
         }
         .tiptap-readonly .ProseMirror {
           border-top-left-radius: 12px;
@@ -291,6 +305,9 @@ export default function TiptapEditor({
         }
         .ProseMirror p {
           margin-bottom: 1rem;
+        }
+        .tiptap-compact .ProseMirror p {
+          margin-bottom: 0.25rem !important;
         }
         .ProseMirror ul {
           list-style-type: disc;
@@ -357,50 +374,54 @@ export default function TiptapEditor({
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setShowMathToolbar(!showMathToolbar)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
+            className={`flex items-center gap-1.5 ${compact ? 'px-2 py-1 text-[11px] rounded-lg' : 'px-3 py-1.5 rounded-xl text-xs'} font-bold transition-all border shadow-xs cursor-pointer ${showMathToolbar
               ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850'
               }`}
           >
-            <span className="font-mono text-sm leading-none">∑</span>
-            {showMathToolbar ? 'Ẩn bảng công thức Toán' : 'Hiện bảng công thức Toán'}
+            <span className="font-mono text-xs leading-none">∑</span>
+            {showMathToolbar ? 'Ẩn bảng công thức' : 'Hiện bảng công thức'}
           </button>
         </div>
       )}
 
       {/* Embedded LaTeX Toolbar, toggleable */}
       {isEditable && showMathToolbar && (
-        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shrink-0 animate-in slide-in-from-top-2 duration-200">
+        <div className={`border border-slate-200 dark:border-slate-800 ${compact ? 'rounded-lg' : 'rounded-xl'} overflow-hidden shrink-0 animate-in slide-in-from-top-2 duration-200`}>
           <LatexToolbar onInsert={handleInsertLatex} />
         </div>
       )}
 
       {/* Tiptap Rich Text Toolbar */}
       {isEditable && (
-        <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-xl shrink-0">
-        {/* Headings */}
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-            }`}
-          title="Tiêu đề lớn"
-        >
-          <Heading1 className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-            }`}
-          title="Tiêu đề vừa"
-        >
-          <Heading2 className="w-4 h-4" />
-        </button>
+        <div className={`flex flex-wrap items-center gap-1 ${compact ? 'p-1.5 rounded-t-lg' : 'p-2 rounded-t-xl'} bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0`}>
+        {!compact && (
+          <>
+            {/* Headings */}
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              title="Tiêu đề lớn"
+            >
+              <Heading1 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              title="Tiêu đề vừa"
+            >
+              <Heading2 className="w-4 h-4" />
+            </button>
 
-        <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
+          </>
+        )}
 
         {/* Basic formatting */}
         <button
@@ -423,35 +444,40 @@ export default function TiptapEditor({
         >
           <Italic className="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setUploadModalState({ isOpen: true, mode: 'link' })}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
-            }`}
-          title="Chèn liên kết"
-        >
-          <LinkIcon className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setUploadModalState({ isOpen: true, mode: 'image' })}
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-          title="Tải lên ảnh từ máy tính"
-        >
-          <ImageIcon className="w-4 h-4" />
-        </button>
-        {onUploadFile && (
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setUploadModalState({ isOpen: true, mode: 'file' })}
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-            title="Tải lên file"
-          >
-            <FileText className="w-4 h-4" />
-          </button>
+
+        {!compact && (
+          <>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setUploadModalState({ isOpen: true, mode: 'link' })}
+              className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              title="Chèn liên kết"
+            >
+              <LinkIcon className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setUploadModalState({ isOpen: true, mode: 'image' })}
+              className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+              title="Tải lên ảnh từ máy tính"
+            >
+              <ImageIcon className="w-4 h-4" />
+            </button>
+            {onUploadFile && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setUploadModalState({ isOpen: true, mode: 'file' })}
+                className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+                title="Tải lên file"
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+            )}
+          </>
         )}
 
         <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
@@ -477,29 +503,35 @@ export default function TiptapEditor({
         >
           <ListOrdered className="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
-            }`}
-          title="Trích dẫn"
-        >
-          <Quote className="w-4 h-4" />
-        </button>
+        {!compact && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            title="Trích dẫn"
+          >
+            <Quote className="w-4 h-4" />
+          </button>
+        )}
 
-        <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
+        {!compact && (
+          <>
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1" />
 
-        {/* Tables */}
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-          title="Chèn bảng"
-        >
-          <TableIcon className="w-4 h-4" />
-        </button>
+            {/* Tables */}
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+              title="Chèn bảng"
+            >
+              <TableIcon className="w-4 h-4" />
+            </button>
+          </>
+        )}
 
         {isTableActive && (
           <>
