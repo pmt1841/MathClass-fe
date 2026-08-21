@@ -17,7 +17,7 @@ import { Save, Send, Eye, Edit3, ArrowLeft, ChevronRight, Check, CircleDot, X, I
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
-import { markdownToHtml, htmlToMarkdown } from '@/lib/editor-utils'
+import { markdownToHtml, htmlToMarkdown, separateAdjacentMath } from '@/lib/editor-utils'
 
 const TiptapEditor = dynamic(() => import('@/components/ui/tiptap'), { ssr: false })
 import { formatDateTime } from '@/lib/utils'
@@ -650,8 +650,9 @@ export function AssignmentForm({
   const renderContentWithDrawings = (content: string) => {
     if (!content) return null
 
+    const normalizedContent = separateAdjacentMath(content)
     // Split content by [SHAPE_XXX|options] or [IMAGE_XXX|options] pattern
-    const parts = content.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
+    const parts = normalizedContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {
       // Check if it's a shape placeholder
@@ -694,7 +695,7 @@ export function AssignmentForm({
         <ReactMarkdown
           key={index}
           remarkPlugins={[remarkMath, remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, { throwOnError: false, errorColor: '#64748b', macros: { '\\placeholder': '\\square' } }]]}
           components={markdownComponents}
         >
           {part}

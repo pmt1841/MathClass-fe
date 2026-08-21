@@ -15,41 +15,41 @@ interface LatexItem {
 
 const latexItems: LatexItem[] = [
   // Căn bản
-  { id: 'frac', label: 'Phân số', tex: '\\frac{a}{b}', insert: '\\frac{ }{ }' },
-  { id: 'sqrt', label: 'Căn bậc hai', tex: '\\sqrt{x}', insert: '\\sqrt{ }' },
-  { id: 'nroot', label: 'Căn bậc n', tex: '\\sqrt[n]{x}', insert: '\\sqrt[ ]{ }' },
-  { id: 'pow', label: 'Số mũ', tex: 'x^{n}', insert: '^{ }' },
-  { id: 'sub', label: 'Chỉ số dưới', tex: 'x_{n}', insert: '_{ }' },
-  { id: 'abs', label: 'Trị tuyệt đối', tex: '|x|', insert: '| |' },
+  { id: 'frac', label: 'Phân số', tex: '\\frac{a}{b}', insert: '\\frac{\\placeholder{}}{\\placeholder{}}' },
+  { id: 'sqrt', label: 'Căn bậc hai', tex: '\\sqrt{x}', insert: '\\sqrt{\\placeholder{}}' },
+  { id: 'nroot', label: 'Căn bậc n', tex: '\\sqrt[n]{x}', insert: '\\sqrt[\\placeholder{}]{\\placeholder{}}' },
+  { id: 'pow', label: 'Số mũ', tex: 'x^{n}', insert: '{\\placeholder{}}^{\\placeholder{}}' },
+  { id: 'sub', label: 'Chỉ số dưới', tex: 'x_{n}', insert: '{\\placeholder{}}_{\\placeholder{}}' },
+  { id: 'abs', label: 'Trị tuyệt đối', tex: '|x|', insert: '|\\placeholder{}|' },
 
   // Chữ cái Hy Lạp
-  { id: 'pi', label: 'Pi', tex: '\\pi', insert: '\\pi ' },
-  { id: 'delta', label: 'Delta', tex: '\\Delta', insert: '\\Delta ' },
-  { id: 'alpha', label: 'Alpha', tex: '\\alpha', insert: '\\alpha ' },
-  { id: 'beta', label: 'Beta', tex: '\\beta', insert: '\\beta ' },
+  { id: 'pi', label: 'Pi', tex: '\\pi', insert: '\\pi' },
+  { id: 'delta', label: 'Delta', tex: '\\Delta', insert: '\\Delta' },
+  { id: 'alpha', label: 'Alpha', tex: '\\alpha', insert: '\\alpha' },
+  { id: 'beta', label: 'Beta', tex: '\\beta', insert: '\\beta' },
 
   // So sánh & Quan hệ
-  { id: 'neq', label: 'Khác', tex: '\\neq', insert: '\\neq ' },
-  { id: 'leq', label: 'Nhỏ hơn hoặc bằng', tex: '\\leq', insert: '\\leq ' },
-  { id: 'geq', label: 'Lớn hơn hoặc bằng', tex: '\\geq', insert: '\\geq ' },
-  { id: 'perp', label: 'Vuông góc', tex: '\\perp', insert: '\\perp ' },
-  { id: 'parallel', label: 'Song song', tex: '\\parallel', insert: '\\parallel ' },
-  { id: 'sim', label: 'Đồng dạng', tex: '\\sim', insert: '\\sim ' },
+  { id: 'neq', label: 'Khác', tex: '\\neq', insert: '\\neq' },
+  { id: 'leq', label: 'Nhỏ hơn hoặc bằng', tex: '\\leq', insert: '\\leq' },
+  { id: 'geq', label: 'Lớn hơn hoặc bằng', tex: '\\geq', insert: '\\geq' },
+  { id: 'perp', label: 'Vuông góc', tex: '\\perp', insert: '\\perp' },
+  { id: 'parallel', label: 'Song song', tex: '\\parallel', insert: '\\parallel' },
+  { id: 'sim', label: 'Đồng dạng', tex: '\\sim', insert: '\\sim' },
 
   // Giải tích & Đại số
-  { id: 'infty', label: 'Vô cùng', tex: '\\infty', insert: '\\infty ' },
-  { id: 'sum', label: 'Tổng (Sigma)', tex: '\\sum', insert: '\\sum_{i=1}^{n} ' },
-  { id: 'int', label: 'Tích phân', tex: '\\int', insert: '\\int_{a}^{b} ' },
-  { id: 'lim', label: 'Giới hạn', tex: '\\lim_{x \\to 0}', insert: '\\lim_{x \\to \\infty} ' },
-  { id: 'deriv', label: 'Đạo hàm', tex: '\\frac{d}{dx}', insert: '\\frac{d}{dx} ' },
+  { id: 'infty', label: 'Vô cùng', tex: '\\infty', insert: '\\infty' },
+  { id: 'sum', label: 'Tổng (Sigma)', tex: '\\sum', insert: '\\sum_{i=1}^{n}' },
+  { id: 'int', label: 'Tích phân', tex: '\\int', insert: '\\int_{a}^{b} f(x)dx' },
+  { id: 'lim', label: 'Giới hạn', tex: '\\lim_{x \\to 0}', insert: '\\lim_{x \\to \\infty}' },
+  { id: 'deriv', label: 'Đạo hàm', tex: '\\frac{d}{dx}', insert: '\\frac{df}{dx}' },
 
-  // Hình học & Vector
-  { id: 'angle', label: 'Góc', tex: '\\widehat{ABC}', insert: '\\widehat{ }' },
-  { id: 'vector', label: 'Vector', tex: '\\vec{v}', insert: '\\vec{ }' },
+  // Hình học & Vector (Ô vuông chờ nhập liệu)
+  { id: 'angle', label: 'Góc', tex: '\\widehat{ABC}', insert: '\\widehat{\\placeholder{}}' },
+  { id: 'vector', label: 'Vector', tex: '\\vec{v}', insert: '\\vec{\\placeholder{}}' },
 
   // Cấu trúc phức tạp
-  { id: 'cases', label: 'Hệ phương trình', tex: '\\tiny \\begin{cases} x \\\\ y \\end{cases}', insert: '\\begin{cases}\n  x = 0 \\\\\n  y = 0\n\\end{cases}\n' },
-  { id: 'matrix', label: 'Ma trận', tex: '\\scriptsize \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', insert: '\\begin{pmatrix}\n  a & b \\\\\n  c & d\n\\end{pmatrix}\n' },
+  { id: 'cases', label: 'Hệ phương trình', tex: '\\tiny \\begin{cases} x \\\\ y \\end{cases}', insert: '\\begin{cases} x = 0 \\\\ y = 0 \\end{cases}' },
+  { id: 'matrix', label: 'Ma trận', tex: '\\scriptsize \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
 ]
 
 interface LatexToolbarProps {

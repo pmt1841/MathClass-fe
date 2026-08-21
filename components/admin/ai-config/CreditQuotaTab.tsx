@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { formatDateTime } from '@/lib/utils'
 import { getCreditTaskLabel } from '@/lib/constants/credit'
 import { formatVnd } from '@/components/credits/credit-packages-section'
 import { CreditPackage } from '@/services/creditService'
@@ -648,7 +649,7 @@ function AdjustAndLedgerSection() {
                   <TableRow key={txn.id}>
                     <TableCell className="font-mono text-xs">#{txn.userId}</TableCell>
                     <TableCell className="text-xs text-slate-500">
-                      {new Date(txn.createdAt).toLocaleString('vi-VN')}
+                      {formatDateTime(txn.createdAt)}
                     </TableCell>
                     <TableCell>
                       <Badge className="bg-slate-100 text-slate-700">{txn.type}</Badge>

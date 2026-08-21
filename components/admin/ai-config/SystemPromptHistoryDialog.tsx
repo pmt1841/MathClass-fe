@@ -43,6 +43,7 @@ import {
   systemPromptService,
 } from '@/services/systemPromptService'
 import { useToast } from '@/components/ui/use-toast'
+import { formatDate, formatDateTime, formatTime } from '@/lib/utils'
 
 interface SystemPromptHistoryDialogProps {
   prompt: SystemPrompt | null
@@ -260,7 +261,7 @@ export function SystemPromptHistoryDialog({
                             )}
                           </div>
                           <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                            {formatDate(item.createdAt)}
                           </span>
                         </div>
 
@@ -274,10 +275,7 @@ export function SystemPromptHistoryDialog({
                             <span className="truncate">{item.createdBy || 'Admin'}</span>
                           </div>
                           <span className="font-mono text-[10px]">
-                            {new Date(item.createdAt).toLocaleTimeString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatTime(item.createdAt)}
                           </span>
                         </div>
                       </div>
@@ -317,7 +315,7 @@ export function SystemPromptHistoryDialog({
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3 text-indigo-500" />
-                            {new Date(selectedHistory.createdAt).toLocaleString('vi-VN')}
+                            {formatDateTime(selectedHistory.createdAt)}
                           </span>
                         </div>
                       </div>

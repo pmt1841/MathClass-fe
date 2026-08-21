@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -49,15 +49,22 @@ export function TwoFactorSetupWizard({
   const [copiedSecret, setCopiedSecret] = useState(false)
   const [confirmResponse, setConfirmResponse] = useState<TwoFactorConfirmResponse | null>(null)
   const [isBackupConfirmed, setIsBackupConfirmed] = useState(false)
+  const fetchedTokenRef = useRef<string | null>(null)
 
   // Khởi tạo mã QR khi mở modal
   useEffect(() => {
     if (isOpen && preAuthToken) {
+      if (fetchedTokenRef.current === preAuthToken) {
+        return
+      }
+      fetchedTokenRef.current = preAuthToken
       setStep(1)
       setError('')
       setOtpCode('')
       setIsBackupConfirmed(false)
       fetchSetupData()
+    } else if (!isOpen) {
+      fetchedTokenRef.current = null
     }
   }, [isOpen, preAuthToken])
 

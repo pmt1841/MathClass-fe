@@ -217,7 +217,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             comments: 0,
             createdAt: task.createdAt
           }))
-          .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          .sort((a: any, b: any) => (parseDateSafe(b.createdAt)?.getTime() ?? 0) - (parseDateSafe(a.createdAt)?.getTime() ?? 0));
 
         if (generatedAnnouncements.length > 0) {
           generatedAnnouncements[0].pinned = true; // Pin the latest announcement
