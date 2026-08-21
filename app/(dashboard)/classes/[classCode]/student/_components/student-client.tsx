@@ -26,6 +26,7 @@ import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
+import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentChatWidget'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -809,6 +810,17 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Floating Chat Widget dành cho Học sinh */}
+      {classroom && user && (
+        <ClassroomStudentChatWidget
+          classId={classroom.id}
+          classCode={classCode}
+          studentId={user.id}
+          teacherName={teacherName}
+          teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
+        />
+      )}
     </div>
   )
 }

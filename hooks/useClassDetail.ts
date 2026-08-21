@@ -14,7 +14,7 @@ export function useClassDetail(classCode: string) {
 export function useUpdateClassroom(classCode: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: { className: string; description?: string; maxStudents: number }) => 
+    mutationFn: (data: { className: string; description?: string; maxStudents: number }) =>
       classroomService.updateClassroom(classCode, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom', classCode] })
@@ -33,7 +33,14 @@ export function useDeleteClassroom() {
   })
 }
 
-export function useClassStudents(classCode: string, page: number, size: number, sortParam: string, keyword?: string) {
+export function useClassStudents(
+  classCode: string,
+  page: number = 0,
+  size: number = 10,
+  sortParam: string = 's.fullName,asc',
+  keyword?: string
+) {
+
   return useQuery({
     queryKey: ['classroom-students', classCode, page, size, sortParam, keyword],
     queryFn: async () => {

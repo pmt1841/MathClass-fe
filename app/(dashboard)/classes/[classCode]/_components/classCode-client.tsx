@@ -18,8 +18,11 @@ import {
   ClipboardList,
   Trash2,
   UserPlus,
+  MessageSquare,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ClassroomTeacherChatPanel } from '@/components/chat/ClassroomTeacherChatPanel'
+import { useClassStudents } from '@/hooks/useClassDetail'
 import {
   Dialog,
   DialogContent,
@@ -66,6 +69,7 @@ export function ClassDetailPageClient() {
   })
 
   const pendingCount = pendingRequests?.length || 0
+  const { data: studentsData } = useClassStudents(classCode, 0, 100)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -223,6 +227,13 @@ export function ClassDetailPageClient() {
                 label="Bài tập"
               />
               <TabButton
+                id="tab-chat"
+                active={activeTab === 'chat'}
+                onClick={() => setActiveTab('chat')}
+                icon={<MessageSquare className="h-4 w-4" />}
+                label="Trò chuyện"
+              />
+              <TabButton
                 id="tab-requests"
                 active={activeTab === 'requests'}
                 onClick={() => setActiveTab('requests')}
@@ -258,6 +269,12 @@ export function ClassDetailPageClient() {
               <StudentsTab classCode={classCode} classroom={classroom || null} loadingClass={loadingClass} />
             ) : activeTab === 'assignments' ? (
               <AssignmentsTab classCode={classCode} />
+            ) : activeTab === 'chat' ? (
+              <ClassroomTeacherChatPanel
+                classId={classroom?.id || 0}
+                classCode={classCode}
+                students={studentsData?.content || []}
+              />
             ) : (
               <PendingRequestsTab classCode={classCode} classroom={classroom || null} />
             )}
