@@ -10,6 +10,7 @@ import { Users, Search, Loader2, ChevronDown } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
 import { Student } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface ClassroomStudentsPopoverProps {
   classCode: string
@@ -226,17 +227,14 @@ export function ClassroomStudentsPopover({
                 >
                   {/* Left: Avatar + Full Name */}
                   <div className="flex items-center gap-2.5">
-                    {student.avatarUrl ? (
-                      <img
-                        src={student.avatarUrl}
-                        alt={student.fullName}
-                        className="h-8 w-8 rounded-full object-cover border border-slate-200 shadow-sm"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-sky-50 text-indigo-700 text-xs font-bold border border-indigo-200/60 shadow-sm">
+                    <Avatar className="h-8 w-8 border border-slate-200 shadow-sm">
+                      {student.avatarUrl && (
+                        <AvatarImage src={student.avatarUrl} alt={student.fullName} />
+                      )}
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-100 to-sky-50 text-indigo-700 text-xs font-bold border border-indigo-200/60">
                         {initials}
-                      </div>
-                    )}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-900 transition-colors">
                         {student.fullName}
