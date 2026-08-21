@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,38 +14,60 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Spinner } from '@/components/ui/spinner'
-import { ApiKeyCreateRequest } from '@/services/aiConfigService'
+import { ApiKeyCreateRequest, ApiKeyItem, ApiKeyUpdateRequest } from '@/services/aiConfigService'
 
 interface ApiKeyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   providerName?: string
-  onSubmit: (data: ApiKeyCreateRequest) => Promise<void>
+  initialData?: ApiKeyItem | null
+  onSubmit: (data: ApiKeyCreateRequest | ApiKeyUpdateRequest) => Promise<void>
 }
 
 export function ApiKeyDialog({
   open,
   onOpenChange,
   providerName,
+  initialData,
   onSubmit,
 }: ApiKeyDialogProps) {
+  const isEdit = !!initialData
   const [name, setName] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [priority, setPriority] = useState<number>(10)
   const [submitting, setSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setName(initialData.name || '')
+        setPriority(initialData.priority ?? 0)
+        setApiKey('')
+      } else {
+        setName('')
+        setApiKey('')
+        setPriority(10)
+      }
+    }
+  }, [open, initialData])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await onSubmit({
-        name,
-        apiKey,
-        priority,
-      })
-      setName('')
-      setApiKey('')
-      setPriority(10)
+      if (isEdit) {
+        await onSubmit({
+          name: name.trim() || undefined,
+          priority,
+          apiKey: apiKey.trim() || undefined,
+        } as ApiKeyUpdateRequest)
+      } else {
+        await onSubmit({
+          name: name.trim() || undefined,
+          apiKey: apiKey.trim(),
+          priority,
+        } as ApiKeyCreateRequest)
+      }
       onOpenChange(false)
     } finally {
       setSubmitting(false)
@@ -57,9 +79,13 @@ export function ApiKeyDialog({
       <DialogContent className="max-w-[95vw] sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">Thêm API Key cho {providerName || 'Provider'}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
+              {isEdit ? `Chỉnh sửa API Key: ${initialData?.name || `Key #${initialData?.id}`}` : `Thêm API Key cho ${providerName || 'Provider'}`}
+            </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              Nhập API Key dạng plaintext. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.
+              {isEdit
+                ? 'Cập nhật tên gợi nhớ, độ ưu tiên hoặc nhập chuỗi Key mới để thay thế.'
+                : 'Nhập API Key dạng plaintext. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -75,16 +101,20 @@ export function ApiKeyDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="api-key">Chuỗi API Key (Plaintext)</Label>
+              <Label htmlFor="api-key">
+                {isEdit ? 'Chuỗi API Key mới (Để trống nếu giữ nguyên)' : 'Chuỗi API Key (Plaintext)'}
+              </Label>
               <PasswordInput
                 id="api-key"
-                placeholder="Nhập API Key tại đây..."
+                placeholder={isEdit ? 'Nhập nếu muốn đổi Key mới...' : 'Nhập API Key tại đây...'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                required
+                required={!isEdit}
               />
               <p className="text-[11px] text-muted-foreground">
-                API Key sẽ được che mờ hoàn toàn trên giao diện sau khi tạo.
+                {isEdit
+                  ? `Key hiện tại: ${initialData?.maskedApiKey || 'Đã mã hóa'}`
+                  : 'API Key sẽ được che mờ hoàn toàn trên giao diện sau khi tạo.'}
               </p>
             </div>
 
@@ -94,13 +124,13 @@ export function ApiKeyDialog({
                 id="priority"
                 type="number"
                 min={0}
-                max={100}
+                max={1000}
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Số càng lớn độ ưu tiên càng cao (áp dụng cho chiến lược PRIORITY).
+                Số càng lớn độ ưu tiên càng cao (áp dụng khi Provider dùng chiến lược PRIORITY).
               </p>
             </div>
           </div>
@@ -111,7 +141,7 @@ export function ApiKeyDialog({
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting && <Spinner className="mr-2 h-4 w-4" />}
-              Lưu Key
+              {isEdit ? 'Lưu thay đổi' : 'Lưu Key'}
             </Button>
           </DialogFooter>
         </form>

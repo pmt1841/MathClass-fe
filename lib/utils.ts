@@ -61,6 +61,13 @@ export function normalizeKatexDelimiters(content: string): string {
   if (!content) return ''
   let result = content
 
+  // 0. Thay thế literal \n, \r\n do AI sinh ra thành ngắt dòng thực tế trong Markdown (ngoại trừ các lệnh LaTeX bắt đầu bằng \n như \neq, \notin, \nabla...)
+  result = result.replace(
+    /\\r\\n|\\n(?!(?:eq|e|abla|atural|approx|earrow|eg|equiv|exists|geq|geqq|geqslant|gtr|i|Leftarrow|LeftrightArrow|Leftrightarrow|leftrightarrow|leftarrow|leq|leqq|leqslant|less|mid|models|odepart|olimits|ormalsize|ormalcolor|ormalfont|ot|otin|otni|parallel|prec|preceq|Rightarrow|rightarrow|shortmid|shortparallel|sim|simeq|subset|subseteq|succ|succeq|supset|supseteq|triangleleft|trianglelefteq|triangleright|trianglerighteq|u|vDash|vdash|VDash|Vdash|warrow|ewline|onumber|otag|oindent)\b)/g,
+    '\n\n'
+  )
+  result = result.replace(/\n{3,}/g, '\n\n')
+
   // 1. Chuyển \( ... \) thành $...$
   result = result.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
 
