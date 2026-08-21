@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import JXG from 'jsxgraph'
 import './jsxgraph.css'
 
+export const escapeHtml = (str: string) =>
+  (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 interface JsxGraphBoardProps {
   shapeCode?: string
   jsxGraphData: any
@@ -390,6 +393,7 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                 x = Number(x) || 0
                 y = Number(y) || 0
                 const textContent = el.text ?? el.content ?? (Array.isArray(el.parents) && typeof el.parents[2] === 'string' ? el.parents[2] : '') ?? el.label ?? el.attributes?.text ?? ''
+                const escapedText = escapeHtml(String(textContent))
 
                 const textAttrs = {
                   id: el.id,
@@ -405,7 +409,7 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                   useKatex: false,
                   ...attrs
                 }
-                board.create('text', [x, y, () => textContent], textAttrs)
+                board.create('text', [x, y, () => escapedText], textAttrs)
                 pointCoords.push({ x, y })
               }
             } catch (elementErr) {

@@ -34,6 +34,9 @@ interface JsxGraphEditorModalProps {
 
 type ToolType = 'select' | 'point' | 'line' | 'circle' | 'function'
 
+export const escapeHtml = (str: string) =>
+  (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 export function normalizeCanvasElements(rawElements: any[]): any[] {
   if (!Array.isArray(rawElements)) return []
 
@@ -629,7 +632,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       } else if (el.type === 'text') {
         const textId = el.id;
         const getHtmlContent = () => {
-          const currentVal = (el.text || '').replace(/"/g, '&quot;');
+          const currentVal = escapeHtml(el.text || '');
           return `
             <div style="display:inline-flex;align-items:center;background:#ffffff;border:1.5px solid #3b82f6;border-radius:6px;padding:3px 6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);pointer-events:auto;user-select:text;">
               <input
@@ -1188,7 +1191,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
 
       if (editingFunctionId) {
         // Update existing function graph
-        const currentElements = history[historyIndex].elements;
+        const currentElements = getCurrentElements();
         const nextElements = currentElements.map(el => {
           if (el.id === editingFunctionId) {
             return { ...el, func: latex, parsedFunc, isVertical };
@@ -1200,17 +1203,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         if (mfRef.current) mfRef.current.value = '';
         setFuncInput('');
 
-        const newState: HistoryState = {
-          elements: nextElements,
-          selectedPointIds: history[historyIndex].selectedPointIds
-        }
-
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(newState);
-        setHistory(newHistory);
-        setHistoryIndex(newHistory.length - 1);
-
-        initBoardWithState(newState);
+        saveHistory(nextElements);
+        initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
       } else {
         let fg;
         if (isVertical) {
@@ -1250,8 +1244,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
           fg = board.create('functiongraph', [fn], attrs);
         }
 
-        const currentElements = history[historyIndex].elements;
-        saveHistory([...currentElements, { type: 'functiongraph', id: fg.id, func: latex, parsedFunc, isVertical, attributes: attrs }]);
+        const currentElements = getCurrentElements();
+        const nextElements = [...currentElements, { type: 'functiongraph', id: fg.id, func: latex, parsedFunc, isVertical, attributes: attrs }];
+        saveHistory(nextElements);
+        initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
 
         if (mfRef.current) mfRef.current.value = '';
         setFuncInput('');
@@ -1271,7 +1267,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
   }
 
   const handleDeleteFunction = (id: string) => {
-    const currentElements = history[historyIndex].elements;
+    const currentElements = getCurrentElements();
     const nextElements = currentElements.filter(el => el.id !== id);
 
     if (editingFunctionId === id) {
@@ -1280,17 +1276,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       setFuncInput('');
     }
 
-    const newState: HistoryState = {
-      elements: nextElements,
-      selectedPointIds: history[historyIndex].selectedPointIds
-    }
-
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newState);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-
-    initBoardWithState(newState);
+    saveHistory(nextElements);
+    initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
   }
 
   if (!open) return null
@@ -1447,10 +1434,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             </div>
 
             {/* Function List */}
-            {history[historyIndex].elements.some(el => el.type === 'functiongraph') && (
+            {(history[historyIndex]?.elements || []).some(el => el.type === 'functiongraph') && (
               <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 overflow-y-auto">
                 <div className="text-xs font-semibold text-slate-500 mb-1 px-1">Các hàm số đã vẽ</div>
-                {history[historyIndex].elements.filter(el => el.type === 'functiongraph').map(el => (
+                {(history[historyIndex]?.elements || []).filter(el => el.type === 'functiongraph').map(el => (
                   <div key={el.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 group">
                     <div className="flex-1 min-w-0 overflow-hidden pointer-events-none" style={{ fontSize: '1.1rem' }}>
                       <math-field readonly="true" style={{ width: '100%', outline: 'none', background: 'transparent', border: 'none' }}>
