@@ -2,6 +2,10 @@ export interface Student {
   id: number
   fullName: string
   email: string
+  phoneNumber?: string
+  avatarUrl?: string
+  isOnline?: boolean
+  lastActiveAt?: string
   joinedAt?: string
 }
 

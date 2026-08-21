@@ -26,6 +26,7 @@ import { submissionService } from '@/services/submissionService'
 import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -269,10 +270,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                   <BookOpen className="h-3 w-3" />
                   Mã lớp: {classCode}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
-                  <Users className="h-3 w-3" />
-                  {classroom?.studentCount || 0}/{classroom?.maxStudents || 0} học sinh
-                </span>
+                <ClassroomStudentsPopover
+                  classCode={classCode}
+                  studentCount={classroom?.studentCount || 0}
+                  maxStudents={classroom?.maxStudents || 0}
+                />
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
