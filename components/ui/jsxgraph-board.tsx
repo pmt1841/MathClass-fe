@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import JXG from 'jsxgraph'
 import './jsxgraph.css'
 
+export const escapeHtml = (str: string) =>
+  (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 interface JsxGraphBoardProps {
   shapeCode?: string
   jsxGraphData: any
@@ -36,7 +39,7 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
         board = JXG.JSXGraph.initBoard(boardRef.current.id, {
           boundingbox: boundingbox,
           axis: true,
-          grid: { gridX: 1, gridY: 1 },
+          grid: { majorStep: 1 },
           defaultAxes: {
             x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
             y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
@@ -118,6 +121,13 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                   const newX = Math.round(p.X() * 100) / 100
                   const newY = Math.round(p.Y() * 100) / 100
                   return { ...el, x: newX, y: newY, X: newX, Y: newY }
+                }
+              } else if (normType === 'text') {
+                const txtObj = board.objects[el.id]
+                if (txtObj && typeof txtObj.X === 'function' && typeof txtObj.Y === 'function') {
+                  const newX = Math.round(txtObj.X() * 100) / 100
+                  const newY = Math.round(txtObj.Y() * 100) / 100
+                  return { ...el, x: newX, y: newY, parents: [newX, newY] }
                 }
               }
               return el
@@ -377,6 +387,30 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                     board.objects[el.id] = fg;
                   }
                 }
+              } else if (normType === 'text') {
+                let x = el.x ?? el.X ?? (Array.isArray(el.parents) && typeof el.parents[0] === 'number' ? el.parents[0] : 0)
+                let y = el.y ?? el.Y ?? (Array.isArray(el.parents) && typeof el.parents[1] === 'number' ? el.parents[1] : 0)
+                x = Number(x) || 0
+                y = Number(y) || 0
+                const textContent = el.text ?? el.content ?? (Array.isArray(el.parents) && typeof el.parents[2] === 'string' ? el.parents[2] : '') ?? el.label ?? el.attributes?.text ?? ''
+                const escapedText = escapeHtml(String(textContent))
+
+                const textAttrs = {
+                  id: el.id,
+                  fontSize: el.attributes?.fontSize || 14,
+                  strokeColor: el.attributes?.strokeColor || el.attributes?.color || '#1e293b',
+                  fixed: readOnly,
+                  highlight: !readOnly,
+                  anchorX: 'left',
+                  anchorY: 'middle',
+                  display: 'html',
+                  parse: false,
+                  useMathJax: false,
+                  useKatex: false,
+                  ...attrs
+                }
+                board.create('text', [x, y, () => escapedText], textAttrs)
+                pointCoords.push({ x, y })
               }
             } catch (elementErr) {
               console.error(`[JsxGraphBoard] Error creating element (${el.type || 'unknown'}):`, elementErr, el)
