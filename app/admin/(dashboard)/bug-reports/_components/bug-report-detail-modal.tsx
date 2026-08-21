@@ -24,6 +24,7 @@ import {
 } from '@/services/bugReportService'
 import { toast } from 'sonner'
 import { Loader2, Mail, Calendar, User, CheckCircle2, AlertTriangle, ZoomIn } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils'
 
 interface BugReportDetailModalProps {
   open: boolean
@@ -66,26 +67,6 @@ export function BugReportDetailModal({
   }, [report])
 
   if (!report) return null
-
-  const formatUtc7Date = (dateString: string) => {
-    if (!dateString) return ''
-    try {
-      const utcString = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`
-      const date = new Date(utcString)
-      return new Intl.DateTimeFormat('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).format(date)
-    } catch (e) {
-      return dateString
-    }
-  }
 
   const handleUpdateStatus = async () => {
     if (currentStatus === report.status) {
@@ -151,7 +132,7 @@ export function BugReportDetailModal({
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                   <Calendar className="h-3.5 w-3.5" /> Thời gian gửi (UTC+7)
                 </div>
-                <div className="font-semibold text-foreground">{formatUtc7Date(report.createdAt)}</div>
+                <div className="font-semibold text-foreground">{formatDateTime(report.createdAt)}</div>
                 <div className="text-xs text-muted-foreground">
                   Múi giờ: Vietnam Standard Time (ICT)
                 </div>

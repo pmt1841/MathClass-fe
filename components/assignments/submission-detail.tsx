@@ -13,8 +13,7 @@ import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Lightbulb, Spark
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { format } from 'date-fns'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { submissionHintsService } from '@/services/submissionHintsService'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -26,6 +25,7 @@ import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
+import { separateAdjacentMath } from '@/lib/editor-utils'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
 import { InlineCommentPopover } from './inline-comment-popover'
 import rehypeMarkComments from '@/lib/rehype-mark-comments'
@@ -293,7 +293,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               <div>
                 <div className="font-semibold text-sm text-slate-800">{comment.teacherName}</div>
                 <div className="text-[10px] text-slate-500">
-                  {comment.createdAt && parseDateSafe(comment.createdAt) ? format(parseDateSafe(comment.createdAt)!, 'HH:mm dd/MM/yyyy') : ''}
+                  {formatDateTime(comment.createdAt)}
                 </div>
               </div>
               {isTeacher && comment.teacherId === user?.id && (
@@ -319,7 +319,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               )}
             </div>
             <div className="prose prose-sm prose-slate max-w-none mt-2">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, rehypeKatex, [rehypeSanitize, sanitizeSchema]]}>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
                 {comment.content}
               </ReactMarkdown>
             </div>
@@ -417,7 +417,8 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const renderContentWithDrawings = (rawContent: string, enableComments: boolean = false) => {
     if (!rawContent) return null
-    const { content: cleanContent, extractedDrawings } = extractDrawings(rawContent)
+    const normalizedRaw = separateAdjacentMath(rawContent)
+    const { content: cleanContent, extractedDrawings } = extractDrawings(normalizedRaw)
     const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
     return parts.map((part, index) => {
@@ -544,7 +545,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                           ? 'bg-white text-primary shadow-xs font-bold border border-slate-200/80'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                         }`}
-                      title={ver.submittedAt ? `Nộp lúc ${format(parseDateSafe(ver.submittedAt)!, 'dd/MM/yyyy HH:mm')}` : undefined}
+                      title={ver.submittedAt ? `Nộp lúc ${formatDateTime(ver.submittedAt)}` : undefined}
                     >
                       Lần {ver.versionNumber} {isLatest ? '(Mới nhất)' : ''}
                     </button>
@@ -622,7 +623,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 )}
               </h3>
               <div className="text-xs text-slate-500 font-medium">
-                Nộp lúc: {(activeVersion?.submittedAt || submission.submittedAt) && parseDateSafe(activeVersion?.submittedAt || submission.submittedAt) ? format(parseDateSafe(activeVersion?.submittedAt || submission.submittedAt)!, 'dd/MM/yyyy HH:mm') : 'Chưa rõ'}
+                Nộp lúc: {formatDateTime(activeVersion?.submittedAt || submission.submittedAt) || 'Chưa rõ'}
               </div>
             </div>
 
@@ -738,15 +739,12 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                       <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-md">
                         Gợi ý lượt #{hint.hintNumber}
                       </span>
-                      {(() => {
-                        const parsed = hint.createdAt ? parseDateSafe(hint.createdAt) : null
-                        return parsed ? (
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {format(parsed, 'HH:mm dd/MM/yyyy')}
-                          </span>
-                        ) : null
-                      })()}
+                      {hint.createdAt && (
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDateTime(hint.createdAt)}
+                        </span>
+                      )}
                     </div>
 
                     {hint.studentSnapshotContent && (

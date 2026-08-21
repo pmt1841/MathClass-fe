@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
 import type { AssignmentTag } from '@/services/assignmentService'
 import type { AssignmentVisibility, OriginalAuthor } from '@/types'
+import { parseDateSafe } from '@/lib/utils'
 
 export interface Assignment {
   id: number
@@ -58,8 +59,8 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
 
       const sortByNewest = (list: AssignmentSheet[]) => {
         return list.sort((a, b) => {
-          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          const timeA = a.createdAt ? parseDateSafe(a.createdAt)?.getTime() ?? 0 : 0
+          const timeB = b.createdAt ? parseDateSafe(b.createdAt)?.getTime() ?? 0 : 0
           if (timeA !== timeB) {
             return timeB - timeA
           }

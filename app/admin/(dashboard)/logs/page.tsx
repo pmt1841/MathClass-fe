@@ -30,8 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Info, RotateCw } from 'lucide-react'
-import { format } from 'date-fns'
-import { parseDateSafe } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 
 export default function AdminLogsPage() {
   const [page, setPage] = useState(0)
@@ -66,13 +65,6 @@ export default function AdminLogsPage() {
     formatIsoDate(endDate, true),
     pageSize
   )
-
-  const formatDateTime = (timestamp: string) => {
-    if (!timestamp) return '---'
-    const date = parseDateSafe(timestamp)
-    if (!date) return '---'
-    return format(date, 'HH:mm:ss dd/MM/yyyy')
-  }
 
   const renderStatusBadge = (status?: string) => {
     if (!status) return <span className="text-muted-foreground">---</span>
@@ -255,7 +247,7 @@ export default function AdminLogsPage() {
                     className="cursor-pointer hover:bg-slate-100/80 transition-colors"
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">{stt}</TableCell>
-                    <TableCell className="text-xs">{formatDateTime(log.timestamp)}</TableCell>
+                    <TableCell className="text-xs">{formatDateTime(log.timestamp) || '---'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -350,7 +342,7 @@ export default function AdminLogsPage() {
               <div className="grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 border text-xs">
                 <div>
                   <span className="text-muted-foreground block mb-1">Thời gian thực thi:</span>
-                  <span className="font-semibold">{formatDateTime(selectedLog.timestamp)}</span>
+                  <span className="font-semibold">{formatDateTime(selectedLog.timestamp) || '---'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block mb-1">Trạng thái:</span>

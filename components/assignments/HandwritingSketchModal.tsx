@@ -15,9 +15,17 @@ import { useToast } from '@/components/ui/use-toast'
 import { handwritingService } from '@/services/handwritingService'
 import { Loader2, Eraser, Upload, Sparkles, Check, Wand2 } from 'lucide-react'
 import 'katex/dist/katex.min.css'
-import katex from 'katex'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
+import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { sanitizeSchema } from '@/lib/markdown'
+import { markdownComponents } from '@/components/ui/markdown-components'
 import dynamic from 'next/dynamic'
 import { normalizeAiGeometryJson } from '@/lib/jsxgraph-utils'
+import { normalizeLatexToMarkdown } from '@/lib/editor-utils'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -83,19 +91,11 @@ export function HandwritingSketchModal({
     }
   }, [isOpen])
 
-  // Render KaTeX preview
-  useEffect(() => {
-    if (activeTab === 'handwriting' && previewRef.current && latexResult) {
-      try {
-        katex.render(latexResult, previewRef.current, {
-          throwOnError: false,
-          displayMode: true,
-        })
-      } catch (err) {
-        // Ignore render error
-      }
-    }
-  }, [latexResult, activeTab])
+  const katexConfig = useMemo(() => ({
+    throwOnError: false,
+    errorColor: '#64748b',
+    macros: { '\\placeholder': '\\square' }
+  }), [])
 
   // Canvas Coordinate Helper
   const getCanvasCoords = (
@@ -234,7 +234,8 @@ export function HandwritingSketchModal({
     setIsProcessing(true)
     try {
       const res = await handwritingService.convertHandwritingToLatex(imageData, 'image/png')
-      const cleanLatex = res.latex ? res.latex.trim() : ''
+      const rawText = res.latex ? res.latex.trim() : ''
+      const cleanLatex = normalizeLatexToMarkdown(rawText)
 
       if (!cleanLatex || cleanLatex.includes('NO_HANDWRITING_DETECTED')) {
         toast({
@@ -430,8 +431,16 @@ export function HandwritingSketchModal({
               {/* Preview Section */}
               {latexResult && (
                 <div className="p-4 bg-slate-50 border border-blue-200 rounded-lg space-y-2">
-                  <span className="text-xs font-bold text-blue-700 block uppercase tracking-wider">Xem trước công thức toán:</span>
-                  <div ref={previewRef} className="py-3 px-4 text-center text-lg bg-white rounded-lg border border-slate-200 min-h-[60px] flex items-center justify-center overflow-x-auto" />
+                  <span className="text-xs font-bold text-blue-700 block uppercase tracking-wider">Xem trước kết quả nhận diện:</span>
+                  <div className="py-3 px-4 text-left bg-white rounded-lg border border-slate-200 min-h-[60px] prose prose-slate max-w-none text-sm leading-relaxed overflow-x-auto">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]}
+                      components={markdownComponents}
+                    >
+                      {latexResult}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>

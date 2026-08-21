@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { AlertTriangle, Eye, Loader2, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDateTime } from '@/lib/utils'
 
 const ERROR_TYPE_LABELS: Record<string, string> = {
   LOGIN_ACCOUNT: '1. Lỗi đăng nhập/tài khoản',
@@ -83,26 +84,6 @@ export function BugReportsListClient() {
   useEffect(() => {
     fetchReports()
   }, [fetchReports])
-
-  const formatUtc7Date = (dateString: string) => {
-    if (!dateString) return ''
-    try {
-      const utcString = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`
-      const date = new Date(utcString)
-      return new Intl.DateTimeFormat('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).format(date)
-    } catch (e) {
-      return dateString
-    }
-  }
 
   const handleOpenDetail = (report: BugReportResponse) => {
     setSelectedReport(report)
@@ -217,7 +198,7 @@ export function BugReportsListClient() {
                     </TableCell>
 
                     <TableCell className="text-sm text-muted-foreground font-mono">
-                      {formatUtc7Date(item.createdAt)}
+                      {formatDateTime(item.createdAt)}
                     </TableCell>
 
                     <TableCell className="text-center">

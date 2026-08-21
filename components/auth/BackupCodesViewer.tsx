@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Copy, Check, Download, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatDateTime } from '@/lib/utils'
 
 interface BackupCodesViewerProps {
   codes: string[]
@@ -14,7 +15,7 @@ export function BackupCodesViewer({ codes, className = '' }: BackupCodesViewerPr
 
   const handleCopyAll = async () => {
     if (!codes || codes.length === 0) return
-    const textToCopy = `=== MATHCLASS ADMIN BACKUP CODES ===\nNgày tạo: ${new Date().toLocaleString('vi-VN')}\n\n${codes
+    const textToCopy = `=== MATHCLASS ADMIN BACKUP CODES ===\nNgày tạo: ${formatDateTime(new Date())}\n\n${codes
       .map((code, index) => `${index + 1}. ${code}`)
       .join('\n')}\n\nLƯU Ý: Mỗi mã dự phòng chỉ có giá trị sử dụng đúng 1 lần duy nhất.`
 
@@ -29,7 +30,7 @@ export function BackupCodesViewer({ codes, className = '' }: BackupCodesViewerPr
 
   const handleDownloadTxt = () => {
     if (!codes || codes.length === 0) return
-    const textContent = `=== MATHCLASS ADMIN BACKUP CODES ===\nNgày tạo: ${new Date().toLocaleString('vi-VN')}\n\n${codes
+    const textContent = `=== MATHCLASS ADMIN BACKUP CODES ===\nNgày tạo: ${formatDateTime(new Date())}\n\n${codes
       .map((code, index) => `${index + 1}. ${code}`)
       .join('\n')}\n\nLƯU Ý: Mỗi mã dự phòng chỉ có giá trị sử dụng đúng 1 lần duy nhất để đăng nhập tài khoản Quản trị viên.`
 

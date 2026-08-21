@@ -2,7 +2,8 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
-details[open] > summary .details-chevron {
+
+details[open]>summary .details-chevron {
   transform: rotate(180deg);
 }
 
@@ -122,6 +123,7 @@ details[open] > summary .details-chevron {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -129,31 +131,66 @@ details[open] > summary .details-chevron {
 
 /* ── Landing Page: Experience Slideshow Animations ───────────────────────── */
 @keyframes auto-slide-teacher {
-  0%, 45%  { opacity: 1; }
-  50%, 95% { opacity: 0; }
-  100%     { opacity: 1; }
+
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  95% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes auto-slide-student {
-  0%, 45%  { opacity: 1; }
-  50%, 95% { opacity: 0; }
-  100%     { opacity: 1; }
+
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  95% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
-.slide-teacher-1 { animation: auto-slide-teacher 6s infinite; }
-.slide-teacher-2 { animation: auto-slide-teacher 6s infinite -3s; }
-.slide-student-1 { animation: auto-slide-student 6s infinite; }
-.slide-student-2 { animation: auto-slide-student 6s infinite -3s; }
+.slide-teacher-1 {
+  animation: auto-slide-teacher 6s infinite;
+}
+
+.slide-teacher-2 {
+  animation: auto-slide-teacher 6s infinite -3s;
+}
+
+.slide-student-1 {
+  animation: auto-slide-student 6s infinite;
+}
+
+.slide-student-2 {
+  animation: auto-slide-student 6s infinite -3s;
+}
 
 /* ── KaTeX Comment Highlight Smooth Fill ──────────────────────────────── */
 .prose .katex:has(mark[data-comment-id]) {
-  background-color: #fef08a; /* bg-yellow-100 */
+  background-color: #fef08a;
+  /* bg-yellow-100 */
   border-radius: 0.25rem;
   padding: 0.1em 0.2em;
 }
 
 .prose .katex:has(mark[data-comment-id="-1"]) {
-  background-color: rgba(191, 219, 254, 0.9); /* bg-blue-200/90 */
+  background-color: rgba(191, 219, 254, 0.9);
+  /* bg-blue-200/90 */
   border-radius: 0.25rem;
   padding: 0.1em 0.2em;
 }
@@ -162,13 +199,33 @@ details[open] > summary .details-chevron {
   outline: 2px solid #facc15;
 }
 
-/* ── 2FA Shake Error Animation ────────────────────────────────────────── */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+/* ── MathLive: Hide built-in Virtual Keyboard & Menu Toggles ────────────── */
+math-field::part(virtual-keyboard-toggle),
+math-field::part(menu-toggle) {
+  display: none !important;
 }
 
-.animate-shake {
-  animation: shake 0.4s ease-in-out;
+/* ── MathLive: Custom Selection & Theme Styling ────────────────────────── */
+math-field {
+  --selection-background-color: rgba(59, 130, 246, 0.25) !important;
+  --selection-color: inherit !important;
+  --caret-color: #2563eb !important;
+  --contains-highlight-background-color: transparent !important;
+  --highlight-color: rgba(59, 130, 246, 0.2) !important;
+  --placeholder-color: #94a3b8 !important;
+}
+
+.dark math-field {
+  --selection-background-color: rgba(96, 165, 250, 0.3) !important;
+  --selection-color: inherit !important;
+  --caret-color: #60a5fa !important;
+  --contains-highlight-background-color: transparent !important;
+  --highlight-color: rgba(96, 165, 250, 0.25) !important;
+  --placeholder-color: #64748b !important;
+}
+
+.ProseMirror .ProseMirror-selectednode,
+.ProseMirror span[data-type="math-inline"].ProseMirror-selectednode {
+  background-color: transparent !important;
+  outline: none !important;
 }
