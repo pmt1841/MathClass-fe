@@ -9,6 +9,7 @@ import {
 import { Users, Search, Loader2, ChevronDown } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
 import { Student } from '@/types'
+import { useAuth } from '@/hooks/useAuth'
 
 interface ClassroomStudentsPopoverProps {
   classCode: string
@@ -21,6 +22,7 @@ export function ClassroomStudentsPopover({
   studentCount = 0,
   maxStudents = 0,
 }: ClassroomStudentsPopoverProps) {
+  const { user: currentUser } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'online'>('all')
   const [students, setStudents] = useState<Student[]>([])
@@ -43,8 +45,21 @@ export function ClassroomStudentsPopover({
         })
         const studentList: Student[] = res?.content || res || []
 
+        // Format and mark self user as online
+        const processedList = studentList.map((s) => {
+          const isSelf = Boolean(
+            (currentUser?.id && s.id === currentUser.id) ||
+            (currentUser?.email && s.email?.toLowerCase() === currentUser.email?.toLowerCase())
+          )
+          const rawOnline = s.isOnline ?? (s as any).online
+          return {
+            ...s,
+            isOnline: isSelf ? true : Boolean(rawOnline),
+          }
+        })
+
         // Fallback sorting: Ensure Online users are always prioritized at the top
-        const sortedList = [...studentList].sort((a, b) => {
+        const sortedList = [...processedList].sort((a, b) => {
           if (a.isOnline === b.isOnline) {
             return a.fullName.localeCompare(b.fullName)
           }
@@ -197,10 +212,17 @@ export function ClassroomStudentsPopover({
                   .pop()?.[0]
                   ?.toUpperCase() || 'H'
 
+              const isSelf = Boolean(
+                (currentUser?.id && student.id === currentUser.id) ||
+                (currentUser?.email && student.email?.toLowerCase() === currentUser.email?.toLowerCase())
+              )
+
               return (
                 <div
                   key={student.id}
-                  className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group"
+                  className={`flex items-center justify-between p-2 rounded-xl transition-colors group ${
+                    isSelf ? 'bg-indigo-50/40 hover:bg-indigo-50/70' : 'hover:bg-slate-50'
+                  }`}
                 >
                   {/* Left: Avatar + Full Name */}
                   <div className="flex items-center gap-2.5">
@@ -215,9 +237,16 @@ export function ClassroomStudentsPopover({
                         {initials}
                       </div>
                     )}
-                    <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-900 transition-colors">
-                      {student.fullName}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-900 transition-colors">
+                        {student.fullName}
+                      </span>
+                      {isSelf && (
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100/70 border border-indigo-200/60 rounded-md px-1.5 py-0.2">
+                          Tôi
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Right: Status Indicator Dot */}
