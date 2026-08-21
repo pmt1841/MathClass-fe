@@ -29,6 +29,8 @@ export interface ApiKeyItem {
   priority: number
   status: 'ACTIVE' | 'INACTIVE'
   lastUsed?: string
+  cooldownRemainingSeconds?: number
+  cooldownExpiresAt?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -94,6 +96,13 @@ export interface ApiKeyCreateRequest {
   priority?: number
 }
 
+export interface ApiKeyUpdateRequest {
+  name?: string
+  apiKey?: string
+  priority?: number
+  status?: 'ACTIVE' | 'INACTIVE'
+}
+
 export interface TaskConfigUpdateRequest {
   providerId: number
   model: string
@@ -150,6 +159,11 @@ export const aiConfigService = {
 
   updateKeyStatus: async (keyId: number, status: 'ACTIVE' | 'INACTIVE'): Promise<ApiKeyItem> => {
     const response = await api.patch<ApiKeyItem>(`/keys/${keyId}`, { status })
+    return response.data
+  },
+
+  updateKey: async (keyId: number, data: ApiKeyUpdateRequest): Promise<ApiKeyItem> => {
+    const response = await api.put<ApiKeyItem>(`/keys/${keyId}`, data)
     return response.data
   },
 

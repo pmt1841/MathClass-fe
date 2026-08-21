@@ -28,6 +28,7 @@ import {
   Key,
   ShieldCheck,
   Zap,
+  Timer,
 } from 'lucide-react'
 import {
   AiProvider,
@@ -36,11 +37,55 @@ import {
   ProviderCreateRequest,
   ProviderUpdateRequest,
   ApiKeyCreateRequest,
+  ApiKeyUpdateRequest,
 } from '@/services/aiConfigService'
 import { ProviderDialog } from './ProviderDialog'
 import { ApiKeyDialog } from './ApiKeyDialog'
 import { useToast } from '@/components/ui/use-toast'
 import { formatDateTime } from '@/lib/utils'
+
+function KeyCooldownBadge({ expiresAt, initialSeconds }: { expiresAt?: string; initialSeconds?: number }) {
+  const calculateRemaining = () => {
+    if (expiresAt) {
+      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
+      return diff
+    }
+    return initialSeconds ?? 0
+  }
+
+  const [remaining, setRemaining] = useState<number>(calculateRemaining)
+
+  useEffect(() => {
+    setRemaining(calculateRemaining())
+    if (!expiresAt && !initialSeconds) return
+
+    const interval = setInterval(() => {
+      const rem = calculateRemaining()
+      setRemaining(rem)
+      if (rem <= 0) {
+        clearInterval(interval)
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [expiresAt, initialSeconds])
+
+  if (remaining <= 0) return null
+
+  const minutes = Math.floor(remaining / 60)
+  const seconds = remaining % 60
+  const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+  return (
+    <div
+      className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 mt-1 whitespace-nowrap w-[116px] select-none"
+      title={`Key đang trong thời gian cooldown do lỗi 429 Quota Exceeded. Tự động phục hồi sau ${formatted}`}
+    >
+      <Timer className="w-3 h-3 text-amber-500 shrink-0" />
+      <span>Tạm nghỉ <span className="font-mono tabular-nums font-bold">({formatted})</span></span>
+    </div>
+  )
+}
 
 export function ProviderTab() {
   const { toast } = useToast()
@@ -57,11 +102,14 @@ export function ProviderTab() {
 
   const [keyModalOpen, setKeyModalOpen] = useState(false)
   const [targetProviderForKey, setTargetProviderForKey] = useState<AiProvider | null>(null)
+  const [selectedKeyForEdit, setSelectedKeyForEdit] = useState<{ providerId: number; key: ApiKeyItem } | null>(null)
+
+  const [openAccordions, setOpenAccordions] = useState<string[]>([])
 
   const [verifyingKeyId, setVerifyingKeyId] = useState<number | null>(null)
 
-  const loadProviders = async () => {
-    setLoading(true)
+  const loadProviders = async (showSpinner = false) => {
+    if (showSpinner) setLoading(true)
     try {
       const data = await aiConfigService.getProviders()
       setProviders(data)
@@ -72,7 +120,7 @@ export function ProviderTab() {
         variant: 'destructive',
       })
     } finally {
-      setLoading(false)
+      if (showSpinner) setLoading(false)
     }
   }
 
@@ -93,7 +141,7 @@ export function ProviderTab() {
   }
 
   useEffect(() => {
-    loadProviders()
+    loadProviders(true)
   }, [])
 
   const handleCreateProvider = async (data: ProviderCreateRequest) => {
@@ -103,7 +151,7 @@ export function ProviderTab() {
         title: 'Tạo Provider thành công',
         description: `Đã tạo Provider ${data.name} (${data.code})`,
       })
-      loadProviders()
+      loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Tạo Provider thất bại',
@@ -120,7 +168,7 @@ export function ProviderTab() {
       toast({
         title: 'Cập nhật Provider thành công',
       })
-      loadProviders()
+      loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Cập nhật Provider thất bại',
@@ -138,7 +186,7 @@ export function ProviderTab() {
       toast({
         title: 'Xóa Provider thành công',
       })
-      loadProviders()
+      loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Xóa Provider thất bại',
@@ -148,22 +196,42 @@ export function ProviderTab() {
     }
   }
 
-  const handleAddKey = async (data: ApiKeyCreateRequest) => {
-    if (!targetProviderForKey) return
-    try {
-      await aiConfigService.addKey(targetProviderForKey.id, data)
-      toast({
-        title: 'Thêm API Key thành công',
-        description: `Đã thêm Key mới cho Provider ${targetProviderForKey.name}`,
-      })
-      loadKeysForProvider(targetProviderForKey.id)
-    } catch (err: any) {
-      toast({
-        title: 'Thêm Key thất bại',
-        description: err.response?.data?.message || err.message,
-        variant: 'destructive',
-      })
-      throw err
+  const handleSaveKey = async (data: ApiKeyCreateRequest | ApiKeyUpdateRequest) => {
+    if (selectedKeyForEdit) {
+      try {
+        await aiConfigService.updateKey(selectedKeyForEdit.key.id, data as ApiKeyUpdateRequest)
+        toast({
+          title: 'Cập nhật API Key thành công',
+          description: `Đã cập nhật thông tin Key #${selectedKeyForEdit.key.id}`,
+        })
+        loadKeysForProvider(selectedKeyForEdit.providerId)
+        loadProviders(false)
+        setSelectedKeyForEdit(null)
+      } catch (err: any) {
+        toast({
+          title: 'Cập nhật Key thất bại',
+          description: err.response?.data?.message || err.message,
+          variant: 'destructive',
+        })
+        throw err
+      }
+    } else if (targetProviderForKey) {
+      try {
+        await aiConfigService.addKey(targetProviderForKey.id, data as ApiKeyCreateRequest)
+        toast({
+          title: 'Thêm API Key thành công',
+          description: `Đã thêm Key mới cho Provider ${targetProviderForKey.name}`,
+        })
+        loadKeysForProvider(targetProviderForKey.id)
+        loadProviders(false)
+      } catch (err: any) {
+        toast({
+          title: 'Thêm Key thất bại',
+          description: err.response?.data?.message || err.message,
+          variant: 'destructive',
+        })
+        throw err
+      }
     }
   }
 
@@ -175,6 +243,7 @@ export function ProviderTab() {
         title: `Đã chuyển trạng thái Key sang ${nextStatus}`,
       })
       loadKeysForProvider(providerId)
+      loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Cập nhật trạng thái Key thất bại',
@@ -192,6 +261,7 @@ export function ProviderTab() {
         title: 'Xóa Key thành công',
       })
       loadKeysForProvider(providerId)
+      loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Xóa Key thất bại',
@@ -218,7 +288,7 @@ export function ProviderTab() {
         })
       }
       await loadKeysForProvider(providerId)
-      await loadProviders()
+      await loadProviders(false)
     } catch (err: any) {
       toast({
         title: 'Lỗi kiểm tra Key',
@@ -272,8 +342,9 @@ export function ProviderTab() {
       ) : (
         <Accordion
           type="multiple"
-          className="space-y-3 sm:space-y-4"
+          value={openAccordions}
           onValueChange={(values) => {
+            setOpenAccordions(values)
             values.forEach((val) => {
               const providerId = parseInt(val)
               if (providerId && !keysMap[providerId]) {
@@ -281,6 +352,7 @@ export function ProviderTab() {
               }
             })
           }}
+          className="space-y-3 sm:space-y-4"
         >
           {providers.map((p) => {
             const keys = keysMap[p.id] || []
@@ -369,7 +441,12 @@ export function ProviderTab() {
                       className="h-8 text-xs"
                       onClick={() => {
                         setTargetProviderForKey(p)
+                        setSelectedKeyForEdit(null)
                         setKeyModalOpen(true)
+                        setOpenAccordions((prev) => Array.from(new Set([...prev, p.id.toString()])))
+                        if (!keysMap[p.id]) {
+                          loadKeysForProvider(p.id)
+                        }
                       }}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
@@ -397,54 +474,79 @@ export function ProviderTab() {
                       </div>
                     ) : (
                       <div className="rounded-md border overflow-x-auto">
-                        <Table className="min-w-[620px]">
+                        <Table className="min-w-[900px] table-fixed w-full">
                           <TableHeader>
                             <TableRow className="bg-slate-50 text-xs">
-                              <TableHead>Tên Key / Ghi chú</TableHead>
-                              <TableHead className="w-[180px]">API Key</TableHead>
-                              <TableHead className="w-[100px] text-center">Ưu tiên</TableHead>
-                              <TableHead className="w-[120px]">Sử dụng cuối</TableHead>
-                              <TableHead className="w-[110px] text-center">Trạng thái</TableHead>
-                              <TableHead className="w-[180px] text-right">Thao tác</TableHead>
+                              <TableHead className="w-[180px] px-3">Tên Key / Ghi chú</TableHead>
+                              <TableHead className="w-[170px] px-3">API Key</TableHead>
+                              <TableHead className="w-[110px] px-3 text-center">Ưu tiên</TableHead>
+                              <TableHead className="w-[150px] px-3 text-center">Sử dụng cuối</TableHead>
+                              <TableHead className="w-[140px] px-3 text-center">Trạng thái</TableHead>
+                              <TableHead className="w-[150px] px-3 text-right">Thao tác</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {keys.map((k) => (
                               <TableRow key={k.id} className="text-xs">
-                                <TableCell className="font-medium">
+                                <TableCell className="font-medium truncate px-3" title={k.name || `Key #${k.id}`}>
                                   {k.name || `Key #${k.id}`}
                                 </TableCell>
-                                <TableCell className="font-mono text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200 inline-block my-1">
-                                  {k.maskedApiKey || 'Key đã mã hóa'}
+                                <TableCell className="font-mono text-xs text-slate-600 px-3">
+                                  <span className="bg-slate-50 px-2 py-1 rounded border border-slate-200 inline-block my-1 truncate max-w-full">
+                                    {k.maskedApiKey || 'Key đã mã hóa'}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="text-center">
-                                  <Badge variant="secondary" className="font-mono text-xs">
-                                    Priority: {k.priority}
-                                  </Badge>
+                                <TableCell className="text-center px-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTargetProviderForKey(p)
+                                      setSelectedKeyForEdit({ providerId: p.id, key: k })
+                                      setKeyModalOpen(true)
+                                    }}
+                                    className="group inline-flex items-center gap-1 cursor-pointer focus:outline-hidden"
+                                    title="Bấm để chỉnh sửa độ ưu tiên và thông tin Key"
+                                  >
+                                    <Badge
+                                      variant="secondary"
+                                      className="font-mono text-xs group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors"
+                                    >
+                                      Priority: {k.priority}
+                                      <Edit2 className="w-2.5 h-2.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
+                                    </Badge>
+                                  </button>
                                 </TableCell>
-                                <TableCell className="text-muted-foreground font-mono text-[11px]">
+                                <TableCell className="text-center text-muted-foreground font-mono text-[11px] px-3 whitespace-nowrap">
                                   {formatDateStr(k.lastUsed)}
                                 </TableCell>
-                                <TableCell className="text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <Switch
-                                      checked={k.status === 'ACTIVE'}
-                                      onCheckedChange={() =>
-                                        handleToggleKeyStatus(p.id, k.id, k.status)
-                                      }
-                                    />
-                                    <span
-                                      className={
-                                        k.status === 'ACTIVE'
-                                          ? 'text-emerald-600 font-medium'
-                                          : 'text-muted-foreground'
-                                      }
-                                    >
-                                      {k.status}
-                                    </span>
+                                <TableCell className="text-center px-3">
+                                  <div className="flex flex-col items-center justify-center gap-1">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <Switch
+                                        checked={k.status === 'ACTIVE'}
+                                        onCheckedChange={() =>
+                                          handleToggleKeyStatus(p.id, k.id, k.status)
+                                        }
+                                      />
+                                      <span
+                                        className={
+                                          k.status === 'ACTIVE'
+                                            ? 'text-emerald-600 font-medium'
+                                            : 'text-muted-foreground'
+                                        }
+                                      >
+                                        {k.status}
+                                      </span>
+                                    </div>
+                                    {k.status === 'ACTIVE' && (k.cooldownExpiresAt || (k.cooldownRemainingSeconds && k.cooldownRemainingSeconds > 0)) && (
+                                      <KeyCooldownBadge
+                                        expiresAt={k.cooldownExpiresAt}
+                                        initialSeconds={k.cooldownRemainingSeconds}
+                                      />
+                                    )}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right space-x-1">
+                                <TableCell className="text-right space-x-1 whitespace-nowrap px-3">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -463,7 +565,22 @@ export function ProviderTab() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
+                                    title="Chỉnh sửa Key / Độ ưu tiên"
+                                    onClick={() => {
+                                      setTargetProviderForKey(p)
+                                      setSelectedKeyForEdit({ providerId: p.id, key: k })
+                                      setKeyModalOpen(true)
+                                    }}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                    title="Xóa Key"
                                     onClick={() => handleDeleteKey(p.id, k.id)}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -495,9 +612,13 @@ export function ProviderTab() {
       {/* Api Key Dialog */}
       <ApiKeyDialog
         open={keyModalOpen}
-        onOpenChange={setKeyModalOpen}
+        onOpenChange={(isOpen) => {
+          setKeyModalOpen(isOpen)
+          if (!isOpen) setSelectedKeyForEdit(null)
+        }}
         providerName={targetProviderForKey?.name}
-        onSubmit={handleAddKey}
+        initialData={selectedKeyForEdit?.key}
+        onSubmit={handleSaveKey}
       />
     </div>
   )

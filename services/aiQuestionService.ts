@@ -7,6 +7,7 @@ export interface GenerateQuestionRequestDTO {
   topic?: string
   questionType?: 'ESSAY' | 'MULTIPLE_CHOICE' | string
   includeCanvasDiagram?: boolean
+  includeExplanation?: boolean
 }
 
 export interface CanvasElementDTO {
