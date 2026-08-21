@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare, Pencil, Trash2, Pin } from 'lucide-react'
+import { X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare, Pencil, Trash2, Pin, Type } from 'lucide-react'
 import JXG from 'jsxgraph'
 import 'mathlive'
 import './jsxgraph.css'
@@ -221,6 +221,24 @@ export function normalizeCanvasElements(rawElements: any[]): any[] {
           ...(el.attributes || {})
         }
       })
+    } else if (normType === 'text') {
+      let x = el.x ?? el.X ?? (Array.isArray(el.parents) && typeof el.parents[0] === 'number' ? el.parents[0] : 0)
+      let y = el.y ?? el.Y ?? (Array.isArray(el.parents) && typeof el.parents[1] === 'number' ? el.parents[1] : 0)
+      x = Number(x) || 0
+      y = Number(y) || 0
+      const textContent = el.text ?? el.content ?? (Array.isArray(el.parents) && typeof el.parents[2] === 'string' ? el.parents[2] : '') ?? el.label ?? el.attributes?.text ?? ''
+
+      normalizedOthers.push({
+        type: 'text',
+        id: el.id || `txt_${idx}_${Date.now()}`,
+        parents: [x, y],
+        text: textContent,
+        attributes: {
+          fontSize: el.attributes?.fontSize || 14,
+          strokeColor: el.attributes?.strokeColor || el.attributes?.color || '#1e293b',
+          ...(el.attributes || {})
+        }
+      })
     }
   })
 
@@ -249,6 +267,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
   }
   const [history, setHistory] = useState<HistoryState[]>([{ elements: [], selectedPointIds: [] }])
   const [historyIndex, setHistoryIndex] = useState(0)
+  const historyRef = useRef<HistoryState[]>([{ elements: [], selectedPointIds: [] }])
+  const historyIndexRef = useRef<number>(0)
 
   // Edit Coordinate Modal State
   const [editingPoint, setEditingPoint] = useState<{ id: string, x: string, y: string, name: string } | null>(null)
@@ -297,11 +317,14 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       if (contextMenuHandlerRef.current) {
         document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
       }
-      if (board) {
-        JXG.JSXGraph.freeBoard(board)
-        setBoard(null)
+      if (boardRef.current) {
+        try { JXG.JSXGraph.freeBoard(boardRef.current.id) } catch (e) {}
       }
-      setHistory([{ elements: [], selectedPointIds: [] }])
+      setBoard(null)
+      const emptyState = [{ elements: [], selectedPointIds: [] }]
+      historyRef.current = emptyState
+      historyIndexRef.current = 0
+      setHistory(emptyState)
       setHistoryIndex(0)
       selectedPointsRef.current = []
       isReadyRef.current = false
@@ -314,9 +337,18 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         if (initialData && initialData.elements) {
           const normalizedElements = normalizeCanvasElements(initialData.elements)
           const startingState = { elements: normalizedElements, selectedPointIds: [] };
-          setHistory([startingState]);
+          const startingHist = [startingState];
+          historyRef.current = startingHist;
+          historyIndexRef.current = 0;
+          setHistory(startingHist);
+          setHistoryIndex(0);
           initBoardWithState(startingState);
         } else {
+          const emptyHist = [{ elements: [], selectedPointIds: [] }];
+          historyRef.current = emptyHist;
+          historyIndexRef.current = 0;
+          setHistory(emptyHist);
+          setHistoryIndex(0);
           initBoardWithState({ elements: [], selectedPointIds: [] })
         }
         isReadyRef.current = true
@@ -327,8 +359,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       if (contextMenuHandlerRef.current) {
         document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
       }
-      if (board) {
-        JXG.JSXGraph.freeBoard(board)
+      if (boardRef.current) {
+        try { JXG.JSXGraph.freeBoard(boardRef.current.id) } catch (e) {}
       }
     }
   }, [open, initialData])
@@ -440,8 +472,12 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
     }
 
-    if (board) {
-      JXG.JSXGraph.freeBoard(board)
+    if (boardRef.current) {
+      try {
+        JXG.JSXGraph.freeBoard(boardRef.current.id)
+      } catch (e) {
+        console.warn('Error freeing board:', e)
+      }
     }
 
     if (!boardRef.current) return
@@ -449,7 +485,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     const b = JXG.JSXGraph.initBoard(boardRef.current.id, {
       boundingbox: [-5, 5, 5, -5],
       axis: true,
-      grid: { gridX: 1, gridY: 1 },
+      grid: { majorStep: 1 },
       defaultAxes: {
         x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
         y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
@@ -590,10 +626,106 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
           }
           fg = b.create('functiongraph', [fn], attrs);
         }
+      } else if (el.type === 'text') {
+        const textId = el.id;
+        const getHtmlContent = () => {
+          const currentVal = (el.text || '').replace(/"/g, '&quot;');
+          return `
+            <div style="display:inline-flex;align-items:center;background:#ffffff;border:1.5px solid #3b82f6;border-radius:6px;padding:3px 6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);pointer-events:auto;user-select:text;">
+              <input
+                id="inp_${textId}"
+                type="text"
+                value="${currentVal}"
+                placeholder="Nhập chữ..."
+                style="border:none;outline:none;background:transparent;font-size:13px;font-weight:500;color:#1e293b;min-width:60px;max-width:200px;cursor:text;pointer-events:auto;user-select:text;"
+                onpointerdown="event.stopPropagation()"
+                onmousedown="event.stopPropagation()"
+                ontouchstart="event.stopPropagation()"
+                onclick="event.stopPropagation(); this.focus();"
+                onkeydown="event.stopPropagation()"
+                onkeyup="event.stopPropagation()"
+                oninput="event.stopPropagation(); if(window.__jxg_update_text) window.__jxg_update_text('${textId}', this.value); this.style.width = Math.max(60, Math.min(200, this.value.length * 8 + 16)) + 'px';"
+              />
+              <button
+                id="del_${textId}"
+                type="button"
+                title="Xóa ô chữ"
+                style="border:none;background:transparent;color:#94a3b8;cursor:pointer;padding:0 3px;font-size:16px;line-height:1;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;pointer-events:auto;"
+                onmouseover="this.style.color='#ef4444'"
+                onmouseout="this.style.color='#94a3b8'"
+                onpointerdown="event.stopPropagation()"
+                onmousedown="event.stopPropagation()"
+                ontouchstart="event.stopPropagation()"
+                onclick="event.stopPropagation(); event.preventDefault(); if(window.__jxg_delete_text) window.__jxg_delete_text('${textId}');"
+              >&times;</button>
+            </div>
+          `;
+        };
+
+        const txt: any = b.create('text', [el.parents[0], el.parents[1], getHtmlContent], {
+          id: el.id,
+          fixed: false,
+          highlight: false,
+          display: 'html',
+          parse: false,
+          useMathJax: false,
+          useKatex: false,
+          anchorX: 'left',
+          anchorY: 'middle'
+        });
+
+        if (txt && txt.rendNode) {
+          txt.rendNode.style.pointerEvents = 'auto';
+          txt.rendNode.style.zIndex = '50';
+          txt.rendNode.style.userSelect = 'text';
+        }
       }
     })
 
     setBoard(b)
+
+    // Attach event listeners for text inputs and delete buttons
+    setTimeout(() => {
+      state.elements.forEach(el => {
+        if (el.type === 'text') {
+          const inputEl = document.getElementById(`inp_${el.id}`) as HTMLInputElement;
+          const delBtn = document.getElementById(`del_${el.id}`) as HTMLButtonElement;
+
+          if (inputEl) {
+            inputEl.onpointerdown = (e) => e.stopPropagation();
+            inputEl.onmousedown = (e) => e.stopPropagation();
+            inputEl.ontouchstart = (e) => e.stopPropagation();
+            inputEl.onkeydown = (e) => e.stopPropagation();
+            inputEl.onkeyup = (e) => e.stopPropagation();
+            inputEl.onclick = (e) => {
+              e.stopPropagation();
+              inputEl.focus();
+            };
+            inputEl.oninput = (e: any) => {
+              e.stopPropagation();
+              const val = e.target.value;
+              el.text = val;
+              inputEl.style.width = Math.max(60, Math.min(200, val.length * 8 + 16)) + 'px';
+            };
+
+            if (!el.text) {
+              inputEl.focus();
+            }
+          }
+
+          if (delBtn) {
+            delBtn.onpointerdown = (e) => e.stopPropagation();
+            delBtn.onmousedown = (e) => e.stopPropagation();
+            delBtn.ontouchstart = (e) => e.stopPropagation();
+            delBtn.onclick = (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handleDeleteText(el.id);
+            };
+          }
+        }
+      });
+    }, 50);
 
     // Ghost Points
     const ghostPoints = findIntersections(b, state.elements);
@@ -622,31 +754,53 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       .filter(Boolean)
   }
 
+  const getCurrentElements = () => {
+    const currentHist = historyRef.current;
+    const currentIdx = historyIndexRef.current;
+    const current = currentHist[currentIdx] || { elements: [], selectedPointIds: [] };
+
+    return (current.elements || []).map(el => {
+      if (el.type === 'text') {
+        const inputEl = document.getElementById(`inp_${el.id}`) as HTMLInputElement;
+        if (inputEl) {
+          return { ...el, text: inputEl.value };
+        }
+      }
+      return el;
+    });
+  };
+
   const saveHistory = (newElements: any[], overrideSelectedPoints?: any[]) => {
     const selectedPoints = overrideSelectedPoints || selectedPointsRef.current
     const newState: HistoryState = {
       elements: newElements,
       selectedPointIds: selectedPoints.map(p => p.id)
     }
-    const newHistory = history.slice(0, historyIndex + 1)
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1)
     newHistory.push(newState)
+    const newIndex = newHistory.length - 1
+
+    historyRef.current = newHistory
+    historyIndexRef.current = newIndex
     setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
+    setHistoryIndex(newIndex)
   }
 
   const handleUndo = () => {
-    if (historyIndex > 0) {
-      const prevIndex = historyIndex - 1
+    if (historyIndexRef.current > 0) {
+      const prevIndex = historyIndexRef.current - 1
+      historyIndexRef.current = prevIndex
       setHistoryIndex(prevIndex)
-      initBoardWithState(history[prevIndex])
+      initBoardWithState(historyRef.current[prevIndex])
     }
   }
 
   const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      const nextIndex = historyIndexRef.current + 1
+      historyIndexRef.current = nextIndex
       setHistoryIndex(nextIndex)
-      initBoardWithState(history[nextIndex])
+      initBoardWithState(historyRef.current[nextIndex])
     }
   }
 
@@ -680,7 +834,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       const x = usrCoords[0]
       const y = usrCoords[1]
 
-      const currentElements = history[historyIndex].elements
+      const currentElements = getCurrentElements()
 
       if (activeTool === 'point') {
         let clickedPoint: any = null
@@ -752,8 +906,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     }
 
     const handleUp = () => {
-      // Check if points were dragged (coords changed)
-      const currentElements = history[historyIndex].elements
+      // Check if points or text were dragged (coords changed)
+      const currentElements = getCurrentElements()
       let changed = false
       const nextElements = currentElements.map(el => {
         if (el.type === 'point') {
@@ -764,6 +918,18 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             if (Math.abs(nx - el.parents[0]) > 0.001 || Math.abs(ny - el.parents[1]) > 0.001) {
               changed = true
               return { ...el, parents: [nx, ny] }
+            }
+          }
+        } else if (el.type === 'text') {
+          const p = board.objects[el.id]
+          const inputEl = document.getElementById(`inp_${el.id}`) as HTMLInputElement;
+          const currentText = inputEl ? inputEl.value : el.text;
+          if (p) {
+            const nx = typeof p.X === 'function' ? p.X() : (p.coords ? p.coords.usrCoords[1] : el.parents[0]);
+            const ny = typeof p.Y === 'function' ? p.Y() : (p.coords ? p.coords.usrCoords[2] : el.parents[1]);
+            if (Math.abs(nx - el.parents[0]) > 0.001 || Math.abs(ny - el.parents[1]) > 0.001 || currentText !== el.text) {
+              changed = true
+              return { ...el, text: currentText, parents: [nx, ny] }
             }
           }
         }
@@ -789,7 +955,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       board.off('up', handleUp)
       if (div) div.removeEventListener('contextmenu', preventContext)
     }
-  }, [board, activeTool, history, historyIndex])
+  }, [board, activeTool])
 
   const handleEditCoordinateSave = () => {
     if (!editingPoint) return
@@ -801,7 +967,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       return
     }
 
-    const currentElements = history[historyIndex].elements
+    const currentElements = getCurrentElements()
     const nextElements = currentElements.map(el => {
       if (el.id === editingPoint.id) {
         return { ...el, parents: [nx, ny], attributes: { ...el.attributes, name: editingPoint.name, withLabel: !!editingPoint.name } }
@@ -810,24 +976,15 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     })
 
     setEditingPoint(null)
-    const newState: HistoryState = {
-      elements: nextElements,
-      selectedPointIds: history[historyIndex].selectedPointIds
-    }
-
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(newState)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-
-    initBoardWithState(newState)
+    saveHistory(nextElements)
+    initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds })
   }
 
   const handleDeletePoint = () => {
     if (!editingPoint) return
     const id = editingPoint.id
 
-    const currentElements = history[historyIndex].elements
+    const currentElements = getCurrentElements()
     const nextElements = currentElements.filter(el => {
       if (el.id === id) return false;
       if (el.parents && el.parents.includes(id)) return false;
@@ -835,48 +992,117 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     });
 
     setEditingPoint(null)
-    const newState: HistoryState = {
-      elements: nextElements,
-      selectedPointIds: history[historyIndex].selectedPointIds.filter(pid => pid !== id)
-    }
-
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(newState)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-
-    initBoardWithState(newState)
+    const nextSelected = historyRef.current[historyIndexRef.current].selectedPointIds.filter(pid => pid !== id)
+    saveHistory(nextElements, nextSelected)
+    initBoardWithState({ elements: nextElements, selectedPointIds: nextSelected })
   }
 
+  const handleDeleteText = (id: string) => {
+    const currentElements = getCurrentElements();
+    const nextElements = currentElements.filter(el => el.id !== id);
+
+    const currentHist = historyRef.current;
+    const currentIdx = historyIndexRef.current;
+    const current = currentHist[currentIdx] || { elements: [], selectedPointIds: [] };
+
+    const newState: HistoryState = {
+      elements: nextElements,
+      selectedPointIds: current.selectedPointIds.filter(pid => pid !== id)
+    };
+
+    const newHistory = currentHist.slice(0, currentIdx + 1);
+    newHistory.push(newState);
+    const newIndex = newHistory.length - 1;
+
+    historyRef.current = newHistory;
+    historyIndexRef.current = newIndex;
+    setHistory(newHistory);
+    setHistoryIndex(newIndex);
+
+    initBoardWithState(newState);
+  };
+
+  useEffect(() => {
+    (window as any).__jxg_update_text = (id: string, val: string) => {
+      const current = historyRef.current[historyIndexRef.current];
+      if (current && current.elements) {
+        const el = current.elements.find((e: any) => e.id === id);
+        if (el) {
+          el.text = val;
+        }
+      }
+    };
+
+    (window as any).__jxg_delete_text = (id: string) => {
+      handleDeleteText(id);
+    };
+
+    return () => {
+      delete (window as any).__jxg_update_text;
+      delete (window as any).__jxg_delete_text;
+    };
+  }, []);
+
   const handlePinGhostPoint = (x: number, y: number) => {
-    const currentElements = history[historyIndex].elements;
+    const currentElements = getCurrentElements();
     const nextName = getNextPointName(currentElements, x, y);
     const attrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true };
     const nextElements = [...currentElements, { type: 'point', parents: [x, y], id: `p-${Date.now()}`, attributes: attrs }];
 
-    const newState: HistoryState = {
-      elements: nextElements,
-      selectedPointIds: history[historyIndex].selectedPointIds
-    };
-
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newState);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-
+    saveHistory(nextElements);
     setSelectedGhostPoint(null);
-    initBoardWithState(newState);
+    initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
   };
 
   const handleConfirm = () => {
+    const currentElements = getCurrentElements().filter(el => {
+      if (el.type === 'text' && !el.text?.trim()) {
+        return false;
+      }
+      return true;
+    });
+
     const jsxGraphData = {
       boundingbox: [-5, 5, 5, -5],
       axis: true,
       grid: true,
-      elements: history[historyIndex].elements
+      elements: currentElements
     }
     onConfirm(jsxGraphData, width.trim(), height.trim())
   }
+
+  const handleAddTextBox = () => {
+    const currentElements = getCurrentElements();
+
+    let centerX = 0;
+    let centerY = 0;
+    if (board) {
+      const box = board.getBoundingBox(); // [minX, maxY, maxX, minY]
+      centerX = Math.round(((box[0] + box[2]) / 2) * 10) / 10;
+      centerY = Math.round(((box[1] + box[3]) / 2) * 10) / 10;
+    }
+
+    const newId = `txt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newTextEl = {
+      type: 'text',
+      id: newId,
+      parents: [centerX, centerY],
+      text: '',
+      attributes: { fontSize: 14, strokeColor: '#1e293b' }
+    };
+
+    const nextElements = [...currentElements, newTextEl];
+    saveHistory(nextElements);
+    initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
+    handleToolClick('select');
+
+    setTimeout(() => {
+      const inp = document.getElementById(`inp_${newId}`) as HTMLInputElement;
+      if (inp) {
+        inp.focus();
+      }
+    }, 100);
+  };
 
   const handleToolClick = (tool: ToolType) => {
     if (activeTool === 'function' && tool !== 'function') {
@@ -897,17 +1123,17 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     s = s.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
     s = s.replace(/\\left\[/g, '[').replace(/\\right\]/g, ']');
     s = s.replace(/\\left|\\right/g, '');
-    
+
     // Operators
     s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\ast/g, '*').replace(/\\star/g, '*');
-    
+
     // Math Functions
     s = s.replace(/\\sin/g, 'sin');
     s = s.replace(/\\cos/g, 'cos');
     s = s.replace(/\\tan/g, 'tan');
     s = s.replace(/\\ln/g, 'log');
     s = s.replace(/\\log/g, 'log10');
-    
+
     // Fractions & Sqrt (loop for simple nesting)
     let prev = '';
     while (s !== prev) {
@@ -918,21 +1144,21 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     s = s.replace(/\\frac(\d)(\d)/g, '($1)/($2)'); // Catch \frac12
     s = s.replace(/\\frac{(\d)}(\d)/g, '($1)/($2)');
     s = s.replace(/\\frac(\d){(\d)}/g, '($1)/($2)');
-    
+
     // Exponents
     s = s.replace(/\^{([^{}]+)}/g, '^($1)');
-    
+
     // Remove spaces
     s = s.replace(/\s+/g, '');
-    
+
     // Implicit multiplication: number or closing paren followed by letter or opening paren
     s = s.replace(/(\d|\))([a-zA-Z\(])/g, '$1*$2');
-    
+
     // Remove remaining backslashes and curly braces
     s = s.replace(/\\[a-zA-Z]+/g, '');
     s = s.replace(/\\/g, '');
     s = s.replace(/[{}]/g, '');
-    
+
     return s;
   }
 
@@ -1014,13 +1240,13 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             const safeFuncStr = parsedFunc.replace(/\^/g, '**');
             fn = new Function('x', `return ${safeFuncStr}`);
           }
-          
+
           // Test evaluate to check if it's valid
           const testVal = fn(1);
           if (typeof testVal !== 'number' || isNaN(testVal)) {
             throw new Error("Invalid function evaluation");
           }
-          
+
           fg = board.create('functiongraph', [fn], attrs);
         }
 
@@ -1144,13 +1370,20 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             >
               <FunctionSquare className="w-4 h-4" /> Đồ thị hàm
             </button>
+            <button
+              onClick={handleAddTextBox}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50 hover:text-primary cursor-pointer border border-transparent hover:border-slate-200"
+              title="Thêm ô nhập chữ vào giữa hình vẽ"
+            >
+              <Type className="w-4 h-4 text-primary" /> Thêm ô text
+            </button>
 
             <div className="mt-auto p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-medium border border-blue-100 leading-relaxed">
               {activeTool === 'point' && "Click vào bảng để tạo điểm mới."}
               {activeTool === 'line' && "Click 2 điểm liên tiếp để nối thành đoạn thẳng."}
               {activeTool === 'circle' && "Click tâm đường tròn, sau đó click một điểm trên viền."}
               {activeTool === 'function' && "Nhập công thức hàm số rồi nhấn Vẽ để thêm đồ thị."}
-              {activeTool === 'select' && "Kéo thả để di chuyển. Click chuột phải vào điểm để sửa tọa độ & tên."}
+              {activeTool === 'select' && "Kéo thả để di chuyển ô text hoặc điểm. Click chuột phải vào điểm để sửa tọa độ & tên."}
             </div>
           </div>
 
