@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { libraryService, LibrarySearchParams, UpdateVisibilityPayload } from '@/services/libraryService'
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -20,6 +20,7 @@ export function useLibraryAssignments(params: LibrarySearchParams) {
     queryKey: LIBRARY_KEYS.assignments(queryParams),
     queryFn: () => libraryService.getPublicAssignments(queryParams),
     staleTime: 2 * 60 * 1000,
+    placeholderData: keepPreviousData,
     enabled,
   })
 }
@@ -33,6 +34,7 @@ export function useLibrarySheets(params: LibrarySearchParams) {
     queryKey: LIBRARY_KEYS.sheets(queryParams),
     queryFn: () => libraryService.getPublicSheets(queryParams),
     staleTime: 2 * 60 * 1000,
+    placeholderData: keepPreviousData,
     enabled,
   })
 }

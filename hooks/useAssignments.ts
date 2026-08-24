@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
 import type { AssignmentTag } from '@/services/assignmentService'
 import type { AssignmentVisibility, OriginalAuthor } from '@/types'
@@ -168,6 +168,7 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
         totalElements: (data?.totalElements || 0) + (sheetItems.length)
       }
     },
+    placeholderData: keepPreviousData,
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })
 }

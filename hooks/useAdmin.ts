@@ -1,10 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { adminService } from '@/services/adminService'
 
 export function useAdminUsers(page: number, role?: string, isActive?: boolean, search?: string, size: number = 10) {
   return useQuery({
     queryKey: ['admin-users', page, role, isActive, search, size],
     queryFn: () => adminService.getUsers(page, role, isActive, search, size),
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -34,6 +35,7 @@ export function useAdminLogs(
     queryFn: () => adminService.getLogs(page, level, resourceType, startDate, endDate, size),
     staleTime: 0,
     refetchOnMount: 'always',
+    placeholderData: keepPreviousData,
   })
 }
 
