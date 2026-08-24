@@ -36,8 +36,8 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
         // Init board
         const boundingbox = jsxGraphData.boundingbox || [-5, 5, 5, -5]
 
-        const showAxis = jsxGraphData.axis !== false
         const showGrid = jsxGraphData.grid !== false
+        const showAxis = showGrid && (jsxGraphData.axis !== false)
 
         board = JXG.JSXGraph.initBoard(boardRef.current.id, {
           boundingbox: boundingbox,
@@ -68,12 +68,20 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
             else (board.defaultAxes.y as any).hideElement?.();
           }
         }
-        if (board.grids && Array.isArray(board.grids)) {
-          board.grids.forEach((g: any) => {
-            g.setAttribute({ visible: showGrid });
-            if (showGrid) g.showElement?.();
-            else g.hideElement?.();
-          });
+        if (board.grids) {
+          if (Array.isArray(board.grids)) {
+            board.grids.forEach((g: any) => {
+              g?.setAttribute?.({ visible: showGrid });
+              if (showGrid) g?.showElement?.();
+              else g?.hideElement?.();
+            });
+          } else {
+            Object.values(board.grids).forEach((g: any) => {
+              (g as any)?.setAttribute?.({ visible: showGrid });
+              if (showGrid) (g as any)?.showElement?.();
+              else (g as any)?.hideElement?.();
+            });
+          }
         }
         if (board.objectsList) {
           board.objectsList.forEach((obj: any) => {
