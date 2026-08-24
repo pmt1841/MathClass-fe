@@ -11,6 +11,7 @@ import { sanitizeSchema } from '@/lib/markdown';
 import 'katex/dist/katex.min.css';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatMessageResponse } from '@/types/chat';
+import { parseDateSafe } from '@/lib/utils';
 
 interface ChatMessageItemProps {
   message: ChatMessageResponse;
@@ -23,10 +24,13 @@ const katexConfig = {
 };
 
 export function ChatMessageItem({ message, isMe }: ChatMessageItemProps) {
-  const formattedTime = new Date(message.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const d = parseDateSafe(message.createdAt);
+  const formattedTime = d
+    ? d.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';

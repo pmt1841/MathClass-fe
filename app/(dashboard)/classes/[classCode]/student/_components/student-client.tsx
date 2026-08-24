@@ -1,7 +1,7 @@
 'use client'
 
 import React, { use, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -49,6 +49,7 @@ const DEFAULT_ANNOUNCEMENTS = [
 export function StudentClassDetailPageClient({ params }: PageProps) {
   const { classCode } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [classroom, setClassroom] = useState<any>(null)
   const [assignedTasks, setAssignedTasks] = useState<any[]>([])
@@ -820,6 +821,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           teacherId={classroom.teacherId}
           teacherName={teacherName}
           teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
+          initialOpen={searchParams.get('chat') === 'open'}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ interface ClassroomStudentChatWidgetProps {
   teacherId?: number;
   teacherName: string;
   teacherAvatar?: string;
+  initialOpen?: boolean;
+  onUnreadChange?: (count: number) => void;
 }
 
 export function ClassroomStudentChatWidget({
@@ -25,14 +27,23 @@ export function ClassroomStudentChatWidget({
   teacherId,
   teacherName,
   teacherAvatar,
+  initialOpen = false,
+  onUnreadChange,
 }: ClassroomStudentChatWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialOpen) {
+      setIsOpen(true);
+    }
+  }, [initialOpen]);
 
   const currentUser = authStorage.getUserInfo();
   const currentUserId = currentUser?.id || studentId;
 
+  // Luôn kết nối STOMP và nạp tin nhắn/online status ngay từ khi load trang (enabled: true)
   const {
     messages,
     isLoadingHistory,
@@ -43,10 +54,21 @@ export function ClassroomStudentChatWidget({
     classId,
     classCode,
     studentId,
-    enabled: isOpen,
+    enabled: true,
   });
 
   const isTeacherOnline = teacherId ? onlineUserIds.has(teacherId) : false;
+
+  // Đếm số lượng tin nhắn chưa đọc từ Giảng viên
+  const unreadCount = useMemo(() => {
+    return messages.filter((msg) => msg.senderId !== currentUserId && !msg.isRead).length;
+  }, [messages, currentUserId]);
+
+  useEffect(() => {
+    if (onUnreadChange) {
+      onUnreadChange(unreadCount);
+    }
+  }, [unreadCount, onUnreadChange]);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,18 +105,29 @@ export function ClassroomStudentChatWidget({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group active:scale-95"
           title="Chat với Giảng viên"
         >
           <div className="relative">
             <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span
-              className={`absolute -top-1 -right-1 w-2.5 h-2.5 border-2 border-indigo-600 rounded-full ${
-                isTeacherOnline ? 'bg-emerald-400' : 'bg-slate-400'
-              }`}
-            />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-2.5 -right-2.5 min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[11px] font-extrabold rounded-full flex items-center justify-center border-2 border-indigo-600 animate-bounce shadow-md">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            ) : (
+              <span
+                className={`absolute -top-1 -right-1 w-2.5 h-2.5 border-2 border-indigo-600 rounded-full ${
+                  isTeacherOnline ? 'bg-emerald-400' : 'bg-slate-400'
+                }`}
+              />
+            )}
           </div>
           <span className="font-medium text-sm">Hỏi Giảng viên</span>
+          {unreadCount > 0 && (
+            <span className="bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">
+              Tin nhắn mới
+            </span>
+          )}
         </button>
       )}
 
@@ -184,7 +217,7 @@ export function ClassroomStudentChatWidget({
                 type="submit"
                 size="icon"
                 disabled={!inputText.trim()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-9 h-9 flex-shrink-0"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-5 h-10 w-9 h-9 flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
               </Button>

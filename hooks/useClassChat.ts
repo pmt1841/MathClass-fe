@@ -66,21 +66,36 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
     if (!classCode || !studentId) return;
     try {
       setIsLoadingHistory(true);
-      const currentPage = reset ? 0 : page;
-      const data = await chatService.getChatHistory(classCode, studentId, currentPage, 20);
+      const fetchPage = reset ? 0 : page;
+      const data = await chatService.getChatHistory(classCode, studentId, fetchPage, 20);
 
       const content = data.content || [];
       const sortedMessages = [...content].reverse();
 
-      setMessages((prev) => (reset ? sortedMessages : [...sortedMessages, ...prev]));
+      if (reset) {
+        setMessages(sortedMessages);
+        setPage(1);
+      } else {
+        setMessages((prev) => [...sortedMessages, ...prev]);
+        setPage(fetchPage + 1);
+      }
       setHasMore(!data.last);
-      setPage(currentPage + 1);
     } catch (error) {
       console.error('Lỗi khi nạp lịch sử tin nhắn:', error);
     } finally {
       setIsLoadingHistory(false);
     }
   }, [classCode, studentId, page]);
+
+  // Reset state và nạp lịch sử khi studentId hoặc classId thay đổi
+  useEffect(() => {
+    if (enabled && classCode && studentId) {
+      setMessages([]);
+      setPage(0);
+      setHasMore(true);
+      loadHistory(true);
+    }
+  }, [enabled, classCode, classId, studentId]);
 
   // Đánh dấu đã đọc
   const markAsRead = useCallback(async () => {
@@ -132,8 +147,6 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
   // Kết nối WebSocket STOMP
   useEffect(() => {
     if (!enabled || !classId || !studentId) return;
-
-    loadHistory(true);
 
     const hostUrl = baseURL.replace(/\/api\/v\d+$/, '');
     const wsUrl = `${hostUrl}/ws-chat`;

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
@@ -44,9 +44,20 @@ import { joinRequestService } from '@/services/joinRequestService'
 export function ClassDetailPageClient() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const classCode = params?.classCode as string
 
-  const [activeTab, setActiveTab] = useState<TabType>('students')
+  const initialTab = (searchParams.get('tab') as TabType) || 'students'
+  const initialStudentId = searchParams.get('studentId') ? Number(searchParams.get('studentId')) : undefined
+
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab)
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabType
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   const { user } = useAuth()
   const isStudent = user?.role === 'STUDENT' || user?.userRole === 'STUDENT'
@@ -274,6 +285,7 @@ export function ClassDetailPageClient() {
                 classId={classroom?.id || 0}
                 classCode={classCode}
                 students={studentsData?.content || []}
+                initialStudentId={initialStudentId}
               />
             ) : (
               <PendingRequestsTab classCode={classCode} classroom={classroom || null} />

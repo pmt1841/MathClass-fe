@@ -20,19 +20,33 @@ interface ClassroomTeacherChatPanelProps {
   classId: number;
   classCode: string;
   students: StudentInfo[];
+  initialStudentId?: number;
 }
 
 export function ClassroomTeacherChatPanel({
   classId,
   classCode,
   students,
+  initialStudentId,
 }: ClassroomTeacherChatPanelProps) {
-  const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(
-    students.length > 0 ? students[0] : null
-  );
+  const targetStudent = useMemo(() => {
+    if (initialStudentId && students.length > 0) {
+      const found = students.find((s) => s.id === initialStudentId);
+      if (found) return found;
+    }
+    return students.length > 0 ? students[0] : null;
+  }, [initialStudentId, students]);
+
+  const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(targetStudent);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (targetStudent) {
+      setSelectedStudent(targetStudent);
+    }
+  }, [targetStudent]);
 
   const currentUser = authStorage.getUserInfo();
   const currentUserId = currentUser?.id || 0;
