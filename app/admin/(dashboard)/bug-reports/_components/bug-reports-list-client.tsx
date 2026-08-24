@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import {
   BugReportResponse,
   BugReportStatus,
-  bugReportService,
-  PageResponse,
 } from '@/services/bugReportService'
+import { useBugReports } from '@/hooks/useBugReports'
 import { BugReportDetailModal } from './bug-report-detail-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,43 +46,23 @@ const STATUS_BADGES: Record<
 }
 
 export function BugReportsListClient() {
-  const [reports, setReports] = useState<BugReportResponse[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
 
   const [selectedReport, setSelectedReport] = useState<BugReportResponse | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
-  const fetchReports = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const filterStatus = statusFilter !== 'ALL' ? (statusFilter as BugReportStatus) : undefined
-      const res = await bugReportService.getReports({
-        status: filterStatus,
-        page,
-        size: pageSize,
-      })
-      const data: PageResponse<BugReportResponse> = res?.result || res
-      if (data) {
-        setReports(data.content || [])
-        setTotalPages(data.totalPages || 0)
-        setTotalElements(data.totalElements || 0)
-      }
-    } catch (error: any) {
-      console.error('Fetch bug reports error:', error)
-      toast.error('Có lỗi khi lấy danh sách báo cáo sự cố')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [statusFilter, page, pageSize])
+  const filterStatus = statusFilter !== 'ALL' ? (statusFilter as BugReportStatus) : undefined
+  const { data, isLoading, refetch } = useBugReports({
+    status: filterStatus,
+    page,
+    size: pageSize,
+  })
 
-  useEffect(() => {
-    fetchReports()
-  }, [fetchReports])
+  const reports = data?.content || []
+  const totalPages = data?.totalPages || 0
+  const totalElements = data?.totalElements || 0
 
   const handleOpenDetail = (report: BugReportResponse) => {
     setSelectedReport(report)
@@ -107,7 +86,7 @@ export function BugReportsListClient() {
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchReports}
+          onClick={() => refetch()}
           disabled={isLoading}
           className="self-start sm:self-auto gap-2"
         >
@@ -285,7 +264,7 @@ export function BugReportsListClient() {
           setSelectedReport(null)
         }}
         report={selectedReport}
-        onStatusUpdated={fetchReports}
+        onStatusUpdated={() => refetch()}
       />
     </div>
   )

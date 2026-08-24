@@ -1,74 +1,39 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil, RotateCcw } from 'lucide-react'
-import { classroomService } from '@/services/classroomService'
 import { toast } from 'sonner'
 import { Assignment } from '@/types'
 import { AssignmentRow } from './assignment-row'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { assignmentService } from '@/services/assignmentService'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
+import { useClassAssignments } from '@/hooks/useClassDetail'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function AssignmentsTab({ classCode }: { classCode: string }) {
   const router = useRouter()
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [keyword, setKeyword] = useState('')
+  const queryClient = useQueryClient()
+
+  const [keywordInput, setKeywordInput] = useState('')
+  const debouncedKeyword = useDebounce(keywordInput, 400)
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
   const [activeTab, setActiveTab] = useState<'individual' | 'sheet'>('individual')
 
   // Publish modal state
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [publishingAssignment, setPublishingAssignment] = useState<Assignment | null>(null)
 
-  const fetchAssignments = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = {
-        page,
-        size,
-        status: 'PUBLISHED',
-        keyword: keyword.trim() || undefined
-      }
-      if (activeTab === 'individual') {
-        const data = await classroomService.getClassroomAssignments(classCode, params)
-        setAssignments(data?.content !== undefined ? data.content : (Array.isArray(data) ? data : []))
-        setTotalPages(data?.totalPages || 0)
-        setTotalElements(data?.totalElements || 0)
-      } else {
-        const sheetsData = await assignmentService.getAssignmentSheets({ ...params, classCode, status: 'PUBLISHED' })
-        const sheetsList = sheetsData?.content !== undefined ? sheetsData.content : (Array.isArray(sheetsData) ? sheetsData : [])
-        const mappedSheets = sheetsList.map((sheet: any) => ({
-          ...sheet,
-          isSheet: true
-        }))
-        setAssignments(mappedSheets)
-        setTotalPages(sheetsData?.totalPages || 0)
-        setTotalElements(sheetsData?.totalElements || 0)
-      }
-    } catch (err: any) {
-      toast.error('Không thể tải danh sách bài tập')
-    } finally {
-      setLoading(false)
-    }
-  }, [classCode, keyword, page, size, activeTab])
+  const { data, isLoading: loading, refetch } = useClassAssignments(classCode, activeTab, {
+    page,
+    size,
+    keyword: debouncedKeyword,
+  })
 
-  useEffect(() => {
-    fetchAssignments()
-  }, [fetchAssignments])
-
-  // Debounce keyword search
-  const [keywordInput, setKeywordInput] = useState('')
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setKeyword(keywordInput)
-      setPage(0)
-    }, 400)
-    return () => clearTimeout(t)
-  }, [keywordInput])
+  const assignments = data?.content || []
+  const totalPages = data?.totalPages || 0
+  const totalElements = data?.totalElements || 0
 
   const openPublishModal = (assignment: Assignment) => {
     setPublishingAssignment(assignment)
@@ -78,7 +43,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
   const onPublishSuccess = () => {
     setPublishModalOpen(false)
     setPublishingAssignment(null)
-    fetchAssignments()
+    queryClient.invalidateQueries({ queryKey: ['classroom-assignments', classCode] })
   }
 
   return (
@@ -146,7 +111,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             </div>
 
             <button
-              onClick={() => fetchAssignments()}
+              onClick={() => refetch()}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
               title="Làm mới"
             >
@@ -176,10 +141,10 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                {keyword ? 'Không tìm thấy kết quả phù hợp' : (activeTab === 'individual' ? 'Chưa có bài tập nào' : 'Chưa có phiếu bài tập nào')}
+                {debouncedKeyword ? 'Không tìm thấy kết quả phù hợp' : (activeTab === 'individual' ? 'Chưa có bài tập nào' : 'Chưa có phiếu bài tập nào')}
               </p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                {keyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : (activeTab === 'individual' ? 'Tạo bài tập mới và giao cho lớp này.' : 'Tạo phiếu bài tập mới và giao cho lớp này.')}
+                {debouncedKeyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : (activeTab === 'individual' ? 'Tạo bài tập mới và giao cho lớp này.' : 'Tạo phiếu bài tập mới và giao cho lớp này.')}
               </p>
             </div>
           </div>

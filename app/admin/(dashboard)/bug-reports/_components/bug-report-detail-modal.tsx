@@ -20,8 +20,8 @@ import {
 import {
   BugReportResponse,
   BugReportStatus,
-  bugReportService,
 } from '@/services/bugReportService'
+import { useUpdateBugReportStatus } from '@/hooks/useBugReports'
 import { toast } from 'sonner'
 import { Loader2, Mail, Calendar, User, CheckCircle2, AlertTriangle, ZoomIn } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
@@ -57,8 +57,9 @@ export function BugReportDetailModal({
   onStatusUpdated,
 }: BugReportDetailModalProps) {
   const [currentStatus, setCurrentStatus] = useState<BugReportStatus>('PENDING')
-  const [isUpdating, setIsUpdating] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const updateMutation = useUpdateBugReportStatus()
 
   useEffect(() => {
     if (report) {
@@ -68,24 +69,26 @@ export function BugReportDetailModal({
 
   if (!report) return null
 
-  const handleUpdateStatus = async () => {
+  const handleUpdateStatus = () => {
     if (currentStatus === report.status) {
       toast.info('Trạng thái không có thay đổi')
       return
     }
 
-    setIsUpdating(true)
-    try {
-      await bugReportService.updateReportStatus(report.id, currentStatus)
-      toast.success('Cập nhật trạng thái báo cáo thành công!')
-      onStatusUpdated()
-      onClose()
-    } catch (error: any) {
-      console.error('Update status error:', error)
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái')
-    } finally {
-      setIsUpdating(false)
-    }
+    updateMutation.mutate(
+      { id: report.id, status: currentStatus },
+      {
+        onSuccess: () => {
+          toast.success('Cập nhật trạng thái báo cáo thành công!')
+          onStatusUpdated()
+          onClose()
+        },
+        onError: (error: any) => {
+          console.error('Update status error:', error)
+          toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái')
+        }
+      }
+    )
   }
 
   return (
@@ -196,8 +199,8 @@ export function BugReportDetailModal({
                   </SelectContent>
                 </Select>
 
-                <Button onClick={handleUpdateStatus} disabled={isUpdating}>
-                  {isUpdating ? (
+                <Button onClick={handleUpdateStatus} disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <div className="flex items-center gap-1.5">

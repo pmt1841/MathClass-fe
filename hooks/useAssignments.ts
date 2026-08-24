@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
 import type { AssignmentTag } from '@/services/assignmentService'
 import type { AssignmentVisibility, OriginalAuthor } from '@/types'
@@ -109,34 +109,37 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
 
       // Student logic
       params.status = 'PUBLISHED'
+      if (activeTab && activeTab !== 'ALL') {
+        params.studentStatus = activeTab
+      }
       if (selectedClassCode) {
         params.classCode = selectedClassCode
       }
       
       if (assignmentType === 'SINGLE') {
-        params.page = 0
-        params.size = 1000
+        params.page = page
+        params.size = size
         const data = await assignmentService.getAssignments(params)
         let assignments = (data?.content || []) as AssignmentSheet[]
         assignments = assignments.map(a => ({ ...a, type: 'ASSIGNMENT' as const }))
         return {
           items: sortByNewest(assignments),
-          totalPages: 1, // Frontend will calculate this
-          number: 0,
-          totalElements: assignments.length
+          totalPages: data?.totalPages || 1,
+          number: data?.number || 0,
+          totalElements: data?.totalElements || 0
         }
       }
 
       if (assignmentType === 'SHEET') {
-        params.page = 0
-        params.size = 1000
+        params.page = page
+        params.size = size
         const sheetData = await assignmentService.getAssignmentSheets(params)
         let sheets = (sheetData?.content || []) as AssignmentSheet[]
         return {
           items: sortByNewest(sheets),
-          totalPages: 1, // Frontend will calculate this
-          number: 0,
-          totalElements: sheets.length
+          totalPages: sheetData?.totalPages || 1,
+          number: sheetData?.number || 0,
+          totalElements: sheetData?.totalElements || 0
         }
       }
 
@@ -162,9 +165,10 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
         sheetItems,
         totalPages: 1,
         number: 0,
-        totalElements: singleItems.length + sheetItems.length
+        totalElements: (data?.totalElements || 0) + (sheetItems.length)
       }
     },
+    placeholderData: keepPreviousData,
     enabled: !(userRole === 'TEACHER' && activeTab === 'PENDING')
   })
 }

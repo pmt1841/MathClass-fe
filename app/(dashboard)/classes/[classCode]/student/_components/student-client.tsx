@@ -22,7 +22,6 @@ import {
   Megaphone
 } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
-import { submissionService } from '@/services/submissionService'
 import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -130,79 +129,70 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           assignmentService.getAssignmentSheets({ classCode, status: 'PUBLISHED' })
         ])
         setClassroom(classData)
-        const allAssignments = assignData?.content || assignData || []
+        const allAssignments = (assignData?.content || assignData || []).map((a: any) => ({
+          ...a,
+          isSheet: false,
+          status: 'PUBLISHED'
+        }))
         const publishedAssignments = allAssignments.filter((a: any) => a.status === 'PUBLISHED')
         const sheets = (sheetsData?.content || []).map((s: any) => ({ ...s, isSheet: true, status: 'PUBLISHED' }))
 
-        const tasksWithSubs = await Promise.all(
-          publishedAssignments.map(async (task: any) => {
-            try {
-              const subData = await submissionService.getMySubmission(task.id);
-              return { ...task, submission: subData || null };
-            } catch (error) {
-              return { ...task, submission: null };
-            }
-          })
-        );
+        const allTasks = [...publishedAssignments, ...sheets]
 
-        // Add sheets with their submission status (already calculated from backend or frontend logic)
-        const allTasks = [...tasksWithSubs, ...sheets];
-
-        const now = new Date();
-        const assigned: any[] = [];
-        const completed: any[] = [];
-        const overdue: any[] = [];
+        const now = new Date()
+        const assigned: any[] = []
+        const completed: any[] = []
+        const overdue: any[] = []
 
         allTasks.forEach(task => {
-          const subStatus = task.isSheet ? task.submissionStatus : task.submission?.status;
-          const isDone = subStatus === 'SUBMITTED' || subStatus === 'GRADED' || subStatus === 'LATE';
-          const isPastDeadline = task.deadline ? (parseDateSafe(task.deadline)?.getTime() ?? Infinity) < now.getTime() : false;
+          const subStatus = task.submissionStatus
+          const isDone = subStatus === 'SUBMITTED' || subStatus === 'GRADED' || subStatus === 'LATE'
+          const isPastDeadline = task.deadline ? (parseDateSafe(task.deadline)?.getTime() ?? Infinity) < now.getTime() : false
 
           if (isDone) {
-            completed.push(task);
+            completed.push(task)
           } else if (isPastDeadline) {
-            overdue.push(task);
+            overdue.push(task)
           } else {
-            assigned.push(task);
+            assigned.push(task)
           }
-        });
+        })
 
         // Sắp xếp Bài tập cần làm: Bài còn ít thời gian nhất (gần hạn nộp nhất) lên đầu
         assigned.sort((a: any, b: any) => {
-          if (!a.deadline && !b.deadline) return 0;
-          if (!a.deadline) return 1; // Bài không có hạn nộp xếp xuống dưới
-          if (!b.deadline) return -1;
-          const da = parseDateSafe(a.deadline);
-          const db = parseDateSafe(b.deadline);
-          if (!da || !db) return 0;
-          return da.getTime() - db.getTime();
-        });
+          if (!a.deadline && !b.deadline) return 0
+          if (!a.deadline) return 1 // Bài không có hạn nộp xếp xuống dưới
+          if (!b.deadline) return -1
+          const da = parseDateSafe(a.deadline)
+          const db = parseDateSafe(b.deadline)
+          if (!da || !db) return 0
+          return da.getTime() - db.getTime()
+        })
 
         // Tính toán thống kê
-        const totalPublished = allTasks.length;
-        const totalCompleted = completed.length;
+        const totalPublished = allTasks.length
+        const totalCompleted = completed.length
 
-        let totalScore = 0;
-        let gradedCount = 0;
+        let totalScore = 0
+        let gradedCount = 0
         completed.forEach(task => {
-          const subStatus = task.isSheet ? task.submissionStatus : task.submission?.status;
-          if (subStatus === 'GRADED') {
+          if (task.submissionStatus === 'GRADED') {
             if (task.isSheet) {
-              const sheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0;
-              totalScore += sheetScore;
-              gradedCount++;
-            } else if (task.submission?.score !== undefined) {
-              totalScore += task.submission.score;
-              gradedCount++;
+              const sheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0
+              totalScore += sheetScore
+              gradedCount++
+            } else if (task.submissionScore !== undefined && task.submissionScore !== null) {
+              totalScore += task.submissionScore
+              gradedCount++
             }
           }
-        });
-        const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 'Chưa có điểm';
+        })
+        const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 'Chưa có điểm'
 
         setStats({
           completionRate: `${totalCompleted}/${totalPublished}`,
           avgScore: avgScore
-        });
+        })
 
         // Tạo thông báo thật dựa trên bài tập được đăng
         const generatedAnnouncements = allTasks
@@ -681,7 +671,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                               <div className="p-4 border-t border-slate-100 bg-slate-50/30 space-y-3">
                                 {task.items?.map((item: any, i: number) => {
                                   const itemGraded = item.submissionStatus === 'GRADED';
-                                  const itemSubmittedAt = item.submission?.submittedAt ? formatDateTime(item.submission.submittedAt) : 'Chưa có thông tin';
+                                  const itemSubmittedAt = item.submissionUpdatedAt || item.submissionCreatedAt ? formatDateTime(item.submissionUpdatedAt || item.submissionCreatedAt) : 'Chưa có thông tin';
                                   return (
                                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-all">
                                       <div className="flex flex-col">
@@ -713,8 +703,8 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                           )
                         }
 
-                        const isGraded = task.submission?.status === 'GRADED';
-                        const submittedAt = task.submission?.submittedAt ? formatDateTime(task.submission.submittedAt) : 'Chưa có thông tin';
+                        const isGraded = task.submissionStatus === 'GRADED';
+                        const submittedAt = task.submissionUpdatedAt || task.submissionCreatedAt ? formatDateTime(task.submissionUpdatedAt || task.submissionCreatedAt) : 'Chưa có thông tin';
 
                         return (
                           <div key={task.isSheet ? `sheet-${task.id}` : `task-${task.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
@@ -723,7 +713,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                 <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
                                 {isGraded ? (
                                   <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                    {task.submission?.score}/{task.maxScore ?? 10} điểm
+                                    {task.submissionScore ?? 0}/{task.maxScore ?? 10} điểm
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">

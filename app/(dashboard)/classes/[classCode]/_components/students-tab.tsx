@@ -17,6 +17,14 @@ import { ClassroomDetail } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
 import { useClassStudents, useAddStudent, useRemoveStudent } from '@/hooks/useClassDetail'
+import { useDebounce } from '@/hooks/useDebounce'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export function StudentsTab({
   classCode,
@@ -28,6 +36,7 @@ export function StudentsTab({
   loadingClass: boolean
 }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebounce(searchQuery, 300)
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(10)
   const [sortAsc, setSortAsc] = useState(true)
@@ -36,9 +45,14 @@ export function StudentsTab({
 
   const isFull = classroom ? (classroom.studentCount ?? 0) >= (classroom.maxStudents ?? Infinity) : false
 
-
   const sortParam = `s.fullName,${sortAsc ? 'asc' : 'desc'}`
-  const { data: studentsData, isLoading: loadingStudents, refetch: refetchStudents } = useClassStudents(classCode, page, size, sortParam)
+  const { data: studentsData, isLoading: loadingStudents, refetch: refetchStudents } = useClassStudents(
+    classCode,
+    page,
+    size,
+    sortParam,
+    debouncedSearch || undefined
+  )
   
   const addStudentMutation = useAddStudent(classCode)
   const removeStudentMutation = useRemoveStudent(classCode)
@@ -84,12 +98,6 @@ export function StudentsTab({
       }
     })
   }
-
-  const filteredStudents = students.filter(
-    (s) =>
-      s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   return (
     <>
@@ -181,7 +189,10 @@ export function StudentsTab({
                 type="text"
                 placeholder="Tìm trong danh sách..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setPage(0)
+                }}
                 className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-slate-50/80 text-xs outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
               />
             </div>
@@ -209,7 +220,7 @@ export function StudentsTab({
                 </div>
               ))}
             </div>
-          ) : filteredStudents.length === 0 ? (
+          ) : students.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6 text-center space-y-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
                 <UserX className="h-8 w-8 text-slate-400" />
@@ -225,7 +236,7 @@ export function StudentsTab({
             </div>
           ) : (
             <div className="p-4 space-y-2">
-              {filteredStudents.map((student, idx) => (
+              {students.map((student, idx) => (
                 <StudentRow
                   key={student.id}
                   student={student}
@@ -238,36 +249,62 @@ export function StudentsTab({
           )}
         </div>
 
-        {!loadingStudents && totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-slate-50">
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Đang hiển thị {page * size + 1} - {Math.min((page + 1) * size, totalElements)} trên tổng số {totalElements}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={page === 0}
-                onClick={() => setPage(page - 1)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${page === i ? 'bg-primary text-white' : 'border border-border bg-white text-slate-600 hover:bg-slate-100'}`}
+        {!loadingStudents && totalElements > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-5 py-3 bg-slate-50">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <p className="hidden sm:block">
+                Đang hiển thị {page * size + 1} - {Math.min((page + 1) * size, totalElements)} trên tổng số {totalElements}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <span>Hiển thị:</span>
+                <Select
+                  value={String(size)}
+                  onValueChange={(val) => {
+                    setSize(Number(val))
+                    setPage(0)
+                  }}
                 >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                disabled={page === totalPages - 1}
-                onClick={() => setPage(page + 1)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+                  <SelectTrigger className="h-7 w-[65px] bg-white text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>/ trang</span>
+              </div>
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page === 0}
+                  onClick={() => setPage(page - 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${page === i ? 'bg-primary text-white' : 'border border-border bg-white text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  disabled={page === totalPages - 1}
+                  onClick={() => setPage(page + 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

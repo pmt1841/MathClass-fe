@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { submissionService } from '@/services/submissionService'
 import { Input } from '@/components/ui/input'
 import {
@@ -55,6 +55,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
         keyword: debouncedKeyword || undefined,
         status: status !== 'ALL' ? status : undefined,
       }),
+    placeholderData: keepPreviousData,
   })
 
   const getStatusBadge = (status: string) => {

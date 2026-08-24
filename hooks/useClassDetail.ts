@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { classroomService } from '@/services/classroomService'
-import { ClassroomDetail, Student } from '@/types'
+import { assignmentService } from '@/services/assignmentService'
+import { ClassroomDetail, Student, Assignment } from '@/types'
 
 export function useClassDetail(classCode: string) {
   return useQuery({
@@ -32,11 +33,11 @@ export function useDeleteClassroom() {
   })
 }
 
-export function useClassStudents(classCode: string, page: number, size: number, sortParam: string) {
+export function useClassStudents(classCode: string, page: number, size: number, sortParam: string, keyword?: string) {
   return useQuery({
-    queryKey: ['classroom-students', classCode, page, size, sortParam],
+    queryKey: ['classroom-students', classCode, page, size, sortParam, keyword],
     queryFn: async () => {
-      const data = await classroomService.getClassroomStudents(classCode, { page, size, sort: sortParam })
+      const data = await classroomService.getClassroomStudents(classCode, { page, size, sort: sortParam, keyword })
       if (data && data.content) {
         return {
           content: data.content as Student[],
@@ -46,6 +47,48 @@ export function useClassStudents(classCode: string, page: number, size: number, 
       }
       return { content: (Array.isArray(data) ? data : []) as Student[], totalPages: 0, totalElements: 0 }
     },
+    placeholderData: keepPreviousData,
+    enabled: !!classCode
+  })
+}
+
+export function useClassAssignments(
+  classCode: string,
+  activeTab: 'individual' | 'sheet',
+  params: { page: number; size: number; keyword?: string }
+) {
+  const { page, size, keyword } = params
+  return useQuery({
+    queryKey: ['classroom-assignments', classCode, activeTab, page, size, keyword],
+    queryFn: async () => {
+      const queryParams = {
+        page,
+        size,
+        status: 'PUBLISHED',
+        keyword: keyword?.trim() || undefined
+      }
+      if (activeTab === 'individual') {
+        const data = await classroomService.getClassroomAssignments(classCode, queryParams)
+        return {
+          content: (data?.content !== undefined ? data.content : (Array.isArray(data) ? data : [])) as Assignment[],
+          totalPages: data?.totalPages || 0,
+          totalElements: data?.totalElements || 0
+        }
+      } else {
+        const sheetsData = await assignmentService.getAssignmentSheets({ ...queryParams, classCode, status: 'PUBLISHED' })
+        const sheetsList = sheetsData?.content !== undefined ? sheetsData.content : (Array.isArray(sheetsData) ? sheetsData : [])
+        const mappedSheets = sheetsList.map((sheet: any) => ({
+          ...sheet,
+          isSheet: true
+        }))
+        return {
+          content: mappedSheets as Assignment[],
+          totalPages: sheetsData?.totalPages || 0,
+          totalElements: sheetsData?.totalElements || 0
+        }
+      }
+    },
+    placeholderData: keepPreviousData,
     enabled: !!classCode
   })
 }

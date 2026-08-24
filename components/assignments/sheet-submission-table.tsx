@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { assignmentService } from '@/services/assignmentService'
 import { Input } from '@/components/ui/input'
 import {
@@ -33,6 +33,7 @@ export function SheetSubmissionTable({ sheetId, classCode }: SheetSubmissionTabl
         page,
         size: 20
       }),
+    placeholderData: keepPreviousData,
   })
 
   return (
