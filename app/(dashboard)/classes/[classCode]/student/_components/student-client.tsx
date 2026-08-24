@@ -817,6 +817,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           classId={classroom.id}
           classCode={classCode}
           studentId={user.id}
+          teacherId={classroom.teacherId}
           teacherName={teacherName}
           teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
         />

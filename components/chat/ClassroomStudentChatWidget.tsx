@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +13,7 @@ interface ClassroomStudentChatWidgetProps {
   classId: number;
   classCode: string;
   studentId: number;
+  teacherId?: number;
   teacherName: string;
   teacherAvatar?: string;
 }
@@ -21,6 +22,7 @@ export function ClassroomStudentChatWidget({
   classId,
   classCode,
   studentId,
+  teacherId,
   teacherName,
   teacherAvatar,
 }: ClassroomStudentChatWidgetProps) {
@@ -33,8 +35,8 @@ export function ClassroomStudentChatWidget({
 
   const {
     messages,
-    isConnected,
     isLoadingHistory,
+    onlineUserIds,
     sendMessage,
     markAsRead,
   } = useClassChat({
@@ -43,6 +45,8 @@ export function ClassroomStudentChatWidget({
     studentId,
     enabled: isOpen,
   });
+
+  const isTeacherOnline = teacherId ? onlineUserIds.has(teacherId) : false;
 
   useEffect(() => {
     if (isOpen) {
@@ -84,7 +88,11 @@ export function ClassroomStudentChatWidget({
         >
           <div className="relative">
             <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-indigo-600 rounded-full"></span>
+            <span
+              className={`absolute -top-1 -right-1 w-2.5 h-2.5 border-2 border-indigo-600 rounded-full ${
+                isTeacherOnline ? 'bg-emerald-400' : 'bg-slate-400'
+              }`}
+            />
           </div>
           <span className="font-medium text-sm">Hỏi Giảng viên</span>
         </button>
@@ -105,16 +113,22 @@ export function ClassroomStudentChatWidget({
                 </Avatar>
                 <span
                   className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-indigo-600 rounded-full ${
-                    isConnected ? 'bg-emerald-400' : 'bg-amber-400'
+                    isTeacherOnline ? 'bg-emerald-400' : 'bg-slate-400'
                   }`}
-                  title={isConnected ? 'Đã kết nối thời gian thực' : 'Đang kết nối lại...'}
                 />
               </div>
 
               <div>
                 <h4 className="font-semibold text-sm leading-tight line-clamp-1">{teacherName}</h4>
-                <p className="text-[11px] text-indigo-200 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Giảng viên phụ trách
+                <p className="text-[11px] flex items-center gap-1.5 font-medium mt-0.5">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      isTeacherOnline ? 'bg-emerald-400' : 'bg-slate-400'
+                    }`}
+                  />
+                  <span className={isTeacherOnline ? 'text-emerald-200' : 'text-indigo-200'}>
+                    {isTeacherOnline ? 'Online' : 'Offline'}
+                  </span>
                 </p>
               </div>
             </div>
@@ -133,7 +147,7 @@ export function ClassroomStudentChatWidget({
           <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-slate-900/50">
             {isLoadingHistory && messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-400 text-xs gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Dang nạp tin nhắn...
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Đang nạp tin nhắn...
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">

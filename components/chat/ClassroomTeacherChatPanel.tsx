@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, MessageSquare, Send, User as UserIcon, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Search, MessageSquare, Send, User as UserIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,30 +37,51 @@ export function ClassroomTeacherChatPanel({
   const currentUser = authStorage.getUserInfo();
   const currentUserId = currentUser?.id || 0;
 
-  const filteredStudents = students.filter(
-    (s) =>
-      s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const {
     messages,
-    isConnected,
     isLoadingHistory,
+    onlineUserIds,
+    unreadStudentIds,
+    clearUnreadForStudent,
     sendMessage,
     markAsRead,
   } = useClassChat({
     classId,
     classCode,
     studentId: selectedStudent?.id || 0,
+    isTeacher: true,
     enabled: !!selectedStudent,
   });
+
+  // Lọc và Sắp xếp danh sách Học sinh: Online & có tin nhắn mới lên trước, Offline bên dưới
+  const sortedStudents = useMemo(() => {
+    const filtered = students.filter(
+      (s) =>
+        s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return [...filtered].sort((a, b) => {
+      const aUnread = unreadStudentIds.has(a.id);
+      const bUnread = unreadStudentIds.has(b.id);
+      if (aUnread && !bUnread) return -1;
+      if (!aUnread && bUnread) return 1;
+
+      const aOnline = onlineUserIds.has(a.id);
+      const bOnline = onlineUserIds.has(b.id);
+      if (aOnline && !bOnline) return -1;
+      if (!aOnline && bOnline) return 1;
+
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    });
+  }, [students, searchQuery, onlineUserIds, unreadStudentIds]);
 
   useEffect(() => {
     if (selectedStudent) {
       markAsRead();
+      clearUnreadForStudent(selectedStudent.id);
     }
-  }, [selectedStudent, markAsRead, messages.length]);
+  }, [selectedStudent, markAsRead, clearUnreadForStudent, messages.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,6 +92,11 @@ export function ClassroomTeacherChatPanel({
     if (!inputText.trim() || !selectedStudent) return;
     sendMessage(inputText);
     setInputText('');
+  };
+
+  const handleSelectStudent = (student: StudentInfo) => {
+    setSelectedStudent(student);
+    clearUnreadForStudent(student.id);
   };
 
   const getInitials = (name?: string) => {
@@ -87,9 +113,16 @@ export function ClassroomTeacherChatPanel({
     <div className="flex h-[600px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       {/* Cột Trái: Danh sách Học sinh trong Lớp */}
       <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="p-3 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 mb-2 px-1 flex items-center gap-2">
-            <UserIcon className="w-4 h-4 text-indigo-600" /> Học sinh trong lớp ({students.length})
+        <div className="p-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 mb-2 px-1 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-indigo-600" /> Học sinh trong lớp ({students.length})
+            </span>
+            {unreadStudentIds.size > 0 && (
+              <span className="text-[10px] font-bold bg-rose-500 text-white px-2 py-0.5 rounded-full animate-bounce">
+                {unreadStudentIds.size} mới
+              </span>
+            )}
           </h3>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -102,31 +135,65 @@ export function ClassroomTeacherChatPanel({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {filteredStudents.length === 0 ? (
+        {/* Danh sách học sinh có thể cuộn, chiều cao tương đương hiển thị ~6 học sinh */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[500px]">
+          {sortedStudents.length === 0 ? (
             <p className="text-xs text-center text-slate-400 py-6">Không tìm thấy học sinh nào</p>
           ) : (
-            filteredStudents.map((student) => {
+            sortedStudents.map((student) => {
               const isSelected = selectedStudent?.id === student.id;
+              const isOnline = onlineUserIds.has(student.id);
+              const hasUnread = unreadStudentIds.has(student.id);
+
               return (
                 <button
                   key={student.id}
-                  onClick={() => setSelectedStudent(student)}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors ${
+                  onClick={() => handleSelectStudent(student)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all ${
                     isSelected
-                      ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium shadow-xs'
                       : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  <Avatar className="w-9 h-9 flex-shrink-0">
-                    <AvatarImage src={student.avatarUrl} alt={student.fullName} />
-                    <AvatarFallback className="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 text-xs font-bold">
-                      {getInitials(student.fullName)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative flex-shrink-0">
+                    <Avatar className="w-9 h-9">
+                      <AvatarImage src={student.avatarUrl} alt={student.fullName} />
+                      <AvatarFallback className="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 text-xs font-bold">
+                        {getInitials(student.fullName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Chấm trạng thái Online (Xanh) hoặc Offline (Xám) */}
+                    <span
+                      className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-white dark:border-slate-900 rounded-full ${
+                        isOnline ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    />
+                    {/* Chấm Đỏ Thông Báo Tin Nhắn Mới Góc Trên Avatar */}
+                    {hasUnread && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm" />
+                    )}
+                  </div>
+
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate leading-tight">{student.fullName}</p>
-                    <p className="text-[11px] text-slate-400 truncate">{student.email}</p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className={`text-xs truncate leading-tight ${hasUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold'}`}>
+                        {student.fullName}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1 mt-1">
+                      <span className={`text-[10px] font-medium flex items-center gap-1 ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                        {isOnline ? 'Online' : 'Offline'}
+                      </span>
+
+                      {/* Chấm Đỏ và Chữ Thông Báo Tin Nhắn Mới Nhắc Nhở Như Facebook */}
+                      {hasUnread && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          Tin nhắn mới
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </button>
               );
@@ -142,23 +209,32 @@ export function ClassroomTeacherChatPanel({
             {/* Header Khung Chat */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <Avatar className="w-10 h-10 border border-slate-200 dark:border-slate-700">
-                  <AvatarImage src={selectedStudent.avatarUrl} alt={selectedStudent.fullName} />
-                  <AvatarFallback className="bg-indigo-600 text-white font-bold text-xs">
-                    {getInitials(selectedStudent.fullName)}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-10 h-10 border border-slate-200 dark:border-slate-700">
+                    <AvatarImage src={selectedStudent.avatarUrl} alt={selectedStudent.fullName} />
+                    <AvatarFallback className="bg-indigo-600 text-white font-bold text-xs">
+                      {getInitials(selectedStudent.fullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
+                    className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white dark:border-slate-900 rounded-full ${
+                      onlineUserIds.has(selectedStudent.id) ? 'bg-emerald-500' : 'bg-slate-400'
+                    }`}
+                  />
+                </div>
                 <div>
                   <h4 className="font-semibold text-sm text-slate-900 dark:text-slate-100">
                     {selectedStudent.fullName}
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <p className="text-xs flex items-center gap-1.5 font-medium">
                     <span
                       className={`inline-block w-2 h-2 rounded-full ${
-                        isConnected ? 'bg-emerald-500' : 'bg-amber-500'
+                        onlineUserIds.has(selectedStudent.id) ? 'bg-emerald-500' : 'bg-slate-400'
                       }`}
                     />
-                    {isConnected ? 'Sẵn sàng trao đổi thời gian thực' : 'Đang thiết lập kết nối...'}
+                    <span className={onlineUserIds.has(selectedStudent.id) ? 'text-emerald-600' : 'text-slate-400'}>
+                      {onlineUserIds.has(selectedStudent.id) ? 'Online' : 'Offline'}
+                    </span>
                   </p>
                 </div>
               </div>

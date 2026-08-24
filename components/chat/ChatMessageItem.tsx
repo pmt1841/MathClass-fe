@@ -5,7 +5,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { sanitizeSchema } from '@/lib/markdown';
 import 'katex/dist/katex.min.css';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatMessageResponse } from '@/types/chat';
@@ -14,6 +16,11 @@ interface ChatMessageItemProps {
   message: ChatMessageResponse;
   isMe: boolean;
 }
+
+const katexConfig = {
+  throwOnError: false,
+  errorColor: '#64748b',
+};
 
 export function ChatMessageItem({ message, isMe }: ChatMessageItemProps) {
   const formattedTime = new Date(message.createdAt).toLocaleTimeString([], {
@@ -59,7 +66,7 @@ export function ChatMessageItem({ message, isMe }: ChatMessageItemProps) {
           <div className="prose dark:prose-invert text-sm max-w-none break-words">
             <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm]}
-              rehypePlugins={[rehypeKatex, rehypeSanitize]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], [rehypeKatex, katexConfig]]}
             >
               {message.content}
             </ReactMarkdown>
