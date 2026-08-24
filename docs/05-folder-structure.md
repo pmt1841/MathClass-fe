@@ -40,7 +40,6 @@ app/
 ├── forbidden/                  # Trang 403 (truy cập trái phép)
 ├── globals.css                 # Global styles + Tailwind v4
 ├── icon.svg                    # App icon
-│
 ├── (auth)/                     # ── Nhóm trang xác thực (public) ──
 │   ├── layout.tsx              #   Layout chung nhóm auth
 │   ├── login/                  #   Đăng nhập học sinh/giáo viên
@@ -57,6 +56,7 @@ app/
 │   │   └── [classCode]/        #   Chi tiết lớp: students/assignments/requests tabs
 │   │       ├── page.tsx
 │   │       └── student/        #   Giao diện lớp theo góc nhìn học sinh
+
 │   ├── assignments/            #   Quản lý bài tập (Kho bài tập)
 │   │   ├── page.tsx            #   Danh sách: tabs DRAFT / SINGLE / SHEET
 │   │   ├── create/             #   Tạo bài tập (AssignmentForm + editor)
@@ -70,19 +70,22 @@ app/
 │   ├── students/               #   (Teacher) Quản lý học sinh toàn hệ thống
 │   ├── reports/                #   (Teacher) Báo cáo & thống kê (Recharts)
 │   ├── library/                #   Thư viện bài tập cộng đồng (clone/share)
+│   ├── credits/                #   Hệ thống AI Credit cá nhân & Sổ cái giao dịch
 │   ├── profile/                #   Hồ sơ cá nhân + avatar upload
 │   └── settings/               #   Cài đặt thông báo
 │
 └── admin/                      # ── Khu vực Quản trị (role = ADMIN) ──
-    ├── (auth)/login/           #   Login riêng cho admin
+    ├── (auth)/login/           #   Login & xác thực 2FA riêng cho admin
     └── (dashboard)/
-        ├── layout.tsx          #   Header + Sidebar admin (users, roles, ai-config, logs, repo)
+        ├── layout.tsx          #   Header + Sidebar admin
         ├── users/              #   Quản lý người dùng (search, role filter, lock/unlock)
-        ├── roles/              #   Quản lý permission theo role
-        ├── ai-config/          #   Cấu hình AI providers, API keys, task routing
+        ├── roles/              #   Quản lý permission theo role & reset permissions
+        ├── ai-config/          #   Cấu hình AI providers, API keys, Task routing, Prompts, Credit Quota
+        ├── bug-reports/        #   Quản lý & xử lý báo cáo lỗi từ người dùng
         ├── logs/               #   Nhật ký hệ thống (audit log)
-        └── community-repo/     #   Kho bài tập cộng đồng
-```
+        ├── community-repo/     #   Kho bài tập cộng đồng
+        ├── profile/            #   Hồ sơ cá nhân của Quản trị viên
+        └── settings/           #   Cài đặt hệ thống
 
 > Các component dùng riêng cho một trang được đặt trong thư mục `_components/` ngay cạnh trang đó.
 
@@ -99,8 +102,11 @@ components/
 ├── assignments/   # publish-assignment-modal, publish-sheet-modal, edit-sheet-modal,
 │                  #  submission-table, submission-detail, submission-grade-form,
 │                  #  sheet-submission-table, comment-sidebar, inline-comment-popover
-├── submission/    # SubmissionDrawingEditor (vẽ hình JSXGraph khi nộp bài)
-├── admin/         # ai-config/* (ProviderDialog, ApiKeyDialog, TestConnectionTab, TaskRoutingTab...)
+├── ai/            # AiQuestionGeneratorModal (sinh đề bài toán tự động với LaTeX/JSXGraph)
+├── credits/       # credit-balance-badge, credit-balance-card, credit-transactions-table, credit-packages-section
+├── bug-report/    # ReportBugModal (modal báo cáo sự cố có chụp ảnh màn hình)
+├── submission/    # SubmissionDrawingEditor (vẽ hình JSXGraph tương tác khi nộp bài)
+├── admin/         # ai-config/* (ProviderTab, ApiKeyDialog, TaskRoutingTab, SystemPromptTab, CreditQuotaTab...)
 ├── landing/       # header, hero, features, experience, cta, footer (landing page)
 ├── layout/        # header, sidebar, footer, NotificationPopover
 ├── profile/       # ProfileForm, AvatarUpload
@@ -113,7 +119,7 @@ components/
 | Hook | Mô tả |
 | :--- | :--- |
 | `useAuth` | User hiện tại, trạng thái auth, logout (Redux hoặc fallback cookie) |
-| `useLogin` | Logic đăng nhập (role check, cookies, redirect) |
+| `useLogin` | Logic đăng nhập (role check, cookies, redirect, 2FA interception) |
 | `useSignup` / `useGoogleAuth` / `useForgotPassword` / `useResetPassword` | Luồng xác thực khác |
 | `useAssignments` / `usePublishAssignment` / `usePublishAssignmentSheet` / `useDeleteAssignment` | Dữ liệu bài tập |
 | `useClassrooms` / `useCreateClass` / `useClassDetail` / `useClassStudents` / `useAddStudent` / `useRemoveStudent` | Dữ liệu lớp học |
@@ -124,23 +130,32 @@ components/
 | `useSubmissionDrawing` | Hình vẽ JSXGraph trong bài nộp |
 | `useTextEditor` / `useTextSelection` / `use-toast` / `use-mobile` / `useDebounce` | Tiện ích UI/editor |
 
-## 5. `services/` — Axios API Services
+## 5. `services/` — 22 Axios API Services
 
 | File | Endpoint chính | Chức năng |
 | :--- | :--- | :--- |
-| `authService` | `/auth/*` | login, register, google, verify, forgot/reset password |
-| `classroomService` | `/classrooms*` | CRUD lớp, học sinh, assignment của lớp |
-| `joinRequestService` | `/classrooms/join-requests*` | Yêu cầu tham gia lớp |
+| `authService` | `/auth/*` | login, register, google, verify, 2FA setup/verify, forgot/reset password |
+| `classroomService` | `/classrooms*` | CRUD lớp, học sinh (paged, online status), assignment của lớp |
+| `joinRequestService` | `/classrooms/join-requests*` | Gửi & duyệt yêu cầu tham gia lớp |
 | `assignmentService` | `/assignments*`, `/assignment-sheets*` | CRUD bài tập/phiếu, publish, upload ảnh, extract-text |
-| `submissionService` | `/submissions*` | Nộp bài, chấm điểm, comments |
-| `submissionDrawingService` | `/submissions/{id}/drawings` | Hình vẽ trong bài nộp |
-| `dashboardService` | `/dashboard/*` | Thống kê teacher/student |
-| `libraryService` | `/library/*` | Thư viện bài tập công khai, clone |
-| `profileService` | `/users/me` | Hồ sơ, avatar |
-| `settingsService` | `/settings/notifications` | Cài đặt thông báo |
-| `notificationService` | `/notifications*` | Danh sách + đánh dấu đã đọc |
-| `adminService` | `/admin/*` | users, logs, roles/permissions |
-| `aiConfigService` | `/providers*`, `/keys*`, `/tasks*` | Cấu hình AI services |
+| `libraryService` | `/library/*` | Thư viện bài tập công khai, clone về kho |
+| `submissionService` | `/submissions*` | Nộp bài, hủy nộp, chấm điểm, bình luận |
+| `submissionDrawingService` | `/submissions/{id}/drawings` | Bản vẽ JSXGraph gắn liền bài nộp |
+| `submissionHintsService` | `/submissions/{id}/hints` | Yêu cầu gợi ý giải toán từng bước từ AI |
+| `submissionAiGradingService` | `/submissions/{id}/ai-grade` | Tự động chấm điểm bài nộp qua AI |
+| `handwritingService` | `/submissions/handwriting-ocr` | Nhận diện công thức viết tay qua Canvas OCR |
+| `aiQuestionService` | `/assignments/ai-generate` | Sinh đề bài toán học tự động qua AI |
+| `creditService` | `/credits/*` | Số dư credit, sổ cái giao dịch (paged), danh sách gói nạp |
+| `adminCreditService` | `/admin/credits/*` | Cấu hình hạn ngạch, điều chỉnh credit thủ công, CRUD gói credit |
+| `aiConfigService` | `/providers*`, `/keys*`, `/tasks*` | Quản lý AI Providers, API Keys (AES-256), Task Routing |
+| `aiFeatureService` | `/admin/ai/features*` | Bật/tắt các tính năng AI hệ thống |
+| `systemPromptService` | `/admin/ai/prompts*` | Quản lý System Prompts & Lịch sử phiên bản |
+| `bugReportService` | `/bug-reports*`, `/admin/bug-reports*` | Người dùng gửi lỗi & Admin tra cứu, xử lý |
+| `dashboardService` | `/dashboard/*` | Thống kê teacher/student & cảnh báo at-risk |
+| `profileService` | `/users/me*` | Hồ sơ cá nhân, upload avatar |
+| `settingsService` | `/settings/notifications` | Cài đặt nhận thông báo |
+| `notificationService` | `/notifications*` | Danh sách thông báo & đánh dấu đã đọc |
+| `adminService` | `/admin/*` | Quản lý users, audit logs, roles/permissions |
 
 ## 6. `lib/`
 
