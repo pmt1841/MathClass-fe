@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import { PageResponse } from '@/types'
 import { CreditPackage, CreditTransactionItem } from './creditService'
 
 /**
@@ -108,8 +109,17 @@ export const adminCreditService = {
   getTransactions: async (params?: {
     userId?: number
     type?: string
-  }): Promise<CreditTransactionItem[]> => {
-    const res = await api.get<CreditTransactionItem[]>('/admin/credits/transactions', { params })
+    page?: number
+    size?: number
+  }): Promise<PageResponse<CreditTransactionItem>> => {
+    const res = await api.get<PageResponse<CreditTransactionItem>>('/admin/credits/transactions', {
+      params: {
+        userId: params?.userId,
+        type: params?.type,
+        page: params?.page ?? 0,
+        size: params?.size ?? 10,
+      },
+    })
     return res.data
   },
 }

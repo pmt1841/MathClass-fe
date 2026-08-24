@@ -2,7 +2,18 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Save, Loader2, Plus, Pencil, Trash2, UserCog, ReceiptText, Coins } from 'lucide-react'
+import {
+  Save,
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  UserCog,
+  ReceiptText,
+  Coins,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -40,8 +51,8 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { handleApiError } from '@/lib/utils/error-handler'
-import { formatDateTime } from '@/lib/utils'
-import { getCreditTaskLabel } from '@/lib/constants/credit'
+import { cn, formatDateTime } from '@/lib/utils'
+import { getCreditTaskLabel, formatCreditTransactionDescription } from '@/lib/constants/credit'
 import { formatVnd } from '@/components/credits/credit-packages-section'
 import { CreditPackage } from '@/services/creditService'
 import {
@@ -60,6 +71,7 @@ import {
 const ROLE_LABELS: Record<string, string> = {
   STUDENT: 'Học sinh',
   TEACHER: 'Giáo viên',
+  ADMIN: 'Quản trị viên',
 }
 
 /**
@@ -523,15 +535,103 @@ function PackagesSection() {
 }
 
 // ── 4. Điều chỉnh credit & sổ cái giao dịch ──────────────────────────────────
+const TRANSACTION_TYPE_CONFIG: Record<
+  string,
+  { label: string; className: string }
+> = {
+  GRANT_DEFAULT: {
+    label: 'Cấp mặc định',
+    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  },
+  PURCHASE: {
+    label: 'Nạp credit',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  ADMIN_ADJUST: {
+    label: 'Điều chỉnh',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  CONSUME: {
+    label: 'Tiêu thụ',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  REFUND: {
+    label: 'Hoàn lại',
+    className: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+}
+
+function TransactionTypeBadge({ type }: { type: string }) {
+  const config = TRANSACTION_TYPE_CONFIG[type]
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-[11px] font-medium whitespace-nowrap',
+        config?.className ?? 'bg-slate-50 text-slate-700 border-slate-200'
+      )}
+    >
+      {config?.label ?? type}
+    </Badge>
+  )
+}
+
+function UserRoleBadge({ role }: { role?: string | null }) {
+  if (!role) return <span className="text-slate-400 text-xs">—</span>
+  const styles: Record<string, string> = {
+    ADMIN: 'bg-red-50 text-red-700 border-red-200',
+    TEACHER: 'bg-blue-50 text-blue-700 border-blue-200',
+    STUDENT: 'bg-orange-50 text-orange-700 border-orange-200',
+  }
+  const labels: Record<string, string> = {
+    ADMIN: 'Quản trị viên',
+    TEACHER: 'Giáo viên',
+    STUDENT: 'Học sinh',
+  }
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-[11px] font-medium whitespace-nowrap',
+        styles[role] ?? 'bg-slate-50 text-slate-700 border-slate-200'
+      )}
+    >
+      {labels[role] ?? role}
+    </Badge>
+  )
+}
+
 function AdjustAndLedgerSection() {
   const adjustMutation = useAdjustCredit()
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [adjustForm, setAdjustForm] = useState({ userId: '', amount: '', reason: '' })
   const [adjusting, setAdjusting] = useState(false)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
 
-  const { data: transactions, isLoading: txLoading } = useAdminCreditTransactions({
+  const {
+    data: pageData,
+    isLoading: txLoading,
+    isPlaceholderData,
+  } = useAdminCreditTransactions({
     type: typeFilter === 'ALL' ? undefined : typeFilter,
+    page,
+    size: pageSize,
   })
+
+  const handleTypeFilterChange = (val: string) => {
+    setTypeFilter(val)
+    setPage(0)
+  }
+
+  const handlePageSizeChange = (val: string) => {
+    setPageSize(Number(val))
+    setPage(0)
+  }
+
+  const transactions = pageData?.content || []
+  const totalElements = pageData?.totalElements ?? 0
+  const totalPages = pageData?.totalPages ?? 0
 
   const handleAdjust = async () => {
     const userId = parseInt(adjustForm.userId)
@@ -609,7 +709,7 @@ function AdjustAndLedgerSection() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm font-semibold text-slate-800">Sổ cái giao dịch</p>
           <div className="w-full sm:w-44">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Lọc theo loại" />
               </SelectTrigger>
@@ -625,50 +725,154 @@ function AdjustAndLedgerSection() {
           </div>
         </div>
 
-        {txLoading ? (
+        {txLoading && !pageData ? (
           <div className="space-y-2">
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
           </div>
-        ) : (transactions || []).length === 0 ? (
+        ) : totalElements === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Chưa có giao dịch nào.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[550px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User ID</TableHead>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Nội dung</TableHead>
-                  <TableHead className="text-right">Số credit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(transactions || []).map((txn) => (
-                  <TableRow key={txn.id}>
-                    <TableCell className="font-mono text-xs">#{txn.userId}</TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {formatDateTime(txn.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="bg-slate-100 text-slate-700">{txn.type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-600">
-                      {txn.description || (txn.task ? getCreditTaskLabel(txn.task) : '') || '—'}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-bold ${
-                        (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                      }`}
-                    >
-                      {(txn.amount ?? 0) >= 0 ? '+' : ''}
-                      {txn.amount}
-                    </TableCell>
+          <div className="space-y-4">
+            <div
+              className={cn(
+                'overflow-x-auto transition-opacity duration-200',
+                isPlaceholderData && 'opacity-50 pointer-events-none'
+              )}
+            >
+              <Table className="min-w-[700px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14 text-center">STT</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="w-28">Vai trò</TableHead>
+                    <TableHead className="w-36">Thời gian</TableHead>
+                    <TableHead className="w-32">Loại</TableHead>
+                    <TableHead>Nội dung</TableHead>
+                    <TableHead className="w-28 text-right">Số credit</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((txn, index) => {
+                    const stt = page * pageSize + index + 1
+                    const email = txn.userEmail || txn.email || '—'
+                    const role = txn.userRole || txn.role
+                    return (
+                      <TableRow key={txn.id}>
+                        <TableCell className="text-center font-mono text-xs text-slate-500">
+                          {stt}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-slate-800">
+                          {email}
+                        </TableCell>
+                        <TableCell>
+                          <UserRoleBadge role={role} />
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                          {formatDateTime(txn.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          <TransactionTypeBadge type={txn.type} />
+                        </TableCell>
+                        <TableCell
+                          className="text-xs text-slate-600 max-w-[240px] truncate"
+                          title={formatCreditTransactionDescription(txn.description, txn.task)}
+                        >
+                          {formatCreditTransactionDescription(txn.description, txn.task)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-bold text-xs whitespace-nowrap ${
+                            (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                          }`}
+                        >
+                          {(txn.amount ?? 0) >= 0 ? '+' : ''}
+                          {txn.amount}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Phân trang */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span>
+                  Hiển thị Trang <span className="font-semibold text-slate-700">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-semibold text-slate-700">{totalElements}</span> giao dịch)
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span>Số dòng/trang:</span>
+                  <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="h-7 w-[65px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs gap-1"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page <= 0}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span>Trước</span>
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - 1 - page) <= 1)
+                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                        acc.push('...')
+                      }
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((p, idx) =>
+                      typeof p === 'string' ? (
+                        <span key={`ellipsis-${idx}`} className="px-1 text-xs text-slate-400">
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={page === p - 1 ? 'default' : 'outline'}
+                          size="sm"
+                          className={`h-8 w-8 p-0 text-xs ${
+                            page === p - 1 ? 'bg-slate-900 text-white hover:bg-slate-800' : ''
+                          }`}
+                          onClick={() => setPage(p - 1)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs gap-1"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1 || totalPages <= 1}
+                >
+                  <span>Sau</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>

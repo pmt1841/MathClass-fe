@@ -43,26 +43,26 @@ export function TestConnectionTab() {
   const [result, setResult] = useState<TestConnectionResponse | null>(null)
 
   useEffect(() => {
-    aiConfigService.getProviders().then((list) => {
-      setProviders(list)
-      if (list.length > 0) {
-        const p = list[0]
-        setSelectedProviderId(p.id.toString())
-        setBaseUrl(p.baseUrl)
-      } else {
+    aiConfigService
+      .getProviders()
+      .then((list) => {
+        setProviders(list)
         setSelectedProviderId('')
         setBaseUrl('')
-      }
-    }).catch(() => {})
+      })
+      .catch(() => { })
   }, [])
 
   const selectedProvider = providers.find((p) => p.id.toString() === selectedProviderId)
 
   const handleProviderChange = (idStr: string) => {
     setSelectedProviderId(idStr)
+    setResult(null)
     const found = providers.find((p) => p.id.toString() === idStr)
     if (found) {
       setBaseUrl(found.baseUrl)
+    } else {
+      setBaseUrl('')
     }
   }
 
@@ -185,47 +185,54 @@ export function TestConnectionTab() {
                 )}
               </div>
 
-              {selectedProvider && (
-                <div className="p-2.5 bg-slate-50 border rounded text-[11px] space-y-1 text-slate-700 font-mono">
-                  <div><strong>Giao thức (Protocol):</strong> {selectedProvider.protocol}</div>
-                  <div><strong>Base URL:</strong> {baseUrl || selectedProvider.baseUrl}</div>
+              {selectedProvider ? (
+                <>
+                  <div className="p-2.5 bg-slate-50 border rounded text-[11px] space-y-1 text-slate-700 font-mono">
+                    <div><strong>Giao thức (Protocol):</strong> {selectedProvider.protocol}</div>
+                    <div><strong>Base URL:</strong> {baseUrl || selectedProvider.baseUrl}</div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">API Key (Plaintext)</Label>
+                    <PasswordInput
+                      className="h-9 text-xs"
+                      placeholder="Nhập API Key cần thử nghiệm..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-mono">Base URL Override (Tùy chọn)</Label>
+                    <Input
+                      className="h-9 text-xs font-mono"
+                      placeholder={selectedProvider?.baseUrl || "https://api.openai.com/v1"}
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full mt-2" disabled={testing || !apiKey.trim()}>
+                    {testing ? (
+                      <>
+                        <Spinner className="mr-2 h-4 w-4" />
+                        Đang kết nối tới Provider API...
+                      </>
+                    ) : (
+                      <>
+                        <FlaskConical className="mr-2 h-4 w-4" />
+                        Kiểm tra kết nối
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : providers.length > 0 ? (
+                <div className="p-6 border border-dashed rounded-lg bg-slate-50/60 text-center text-muted-foreground space-y-1">
+                  <p className="font-medium text-slate-700 text-xs">Chưa chọn Nhà cung cấp</p>
+                  <p className="text-[11px]">Vui lòng chọn một Provider ở danh sách trên để nhập API Key và tiến hành kiểm tra kết nối.</p>
                 </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">API Key (Plaintext)</Label>
-                <PasswordInput
-                  className="h-9 text-xs"
-                  placeholder="Nhập API Key cần thử nghiệm..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-mono">Base URL Override (Tùy chọn)</Label>
-                <Input
-                  className="h-9 text-xs font-mono"
-                  placeholder={selectedProvider?.baseUrl || "https://api.openai.com/v1"}
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                />
-              </div>
-
-              <Button type="submit" className="w-full mt-2" disabled={testing || providers.length === 0}>
-                {testing ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Đang kết nối tới Provider API...
-                  </>
-                ) : (
-                  <>
-                    <FlaskConical className="mr-2 h-4 w-4" />
-                    Kiểm tra kết nối
-                  </>
-                )}
-              </Button>
+              ) : null}
             </form>
           </CardContent>
         </Card>
@@ -234,7 +241,7 @@ export function TestConnectionTab() {
         <Card className="shadow-sm border">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center justify-between">
-              <span>Kết quả Thử nghiệm (Live Result)</span>
+              <span>Kết quả Thử nghiệm</span>
               {result && (
                 <Badge
                   variant={result.success || result.valid ? 'outline' : 'destructive'}
