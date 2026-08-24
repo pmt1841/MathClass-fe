@@ -44,8 +44,8 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
           axis: true,
           grid: { majorStep: 1 },
           defaultAxes: {
-            x: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
-            y: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
+            x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
+            y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
           },
           keepaspectratio: true,
           resize: { enabled: true, throttle: 200 },

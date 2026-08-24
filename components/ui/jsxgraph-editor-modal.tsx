@@ -502,8 +502,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       axis: true,
       grid: { majorStep: 1 },
       defaultAxes: {
-        x: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
-        y: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
+        x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
+        y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
       },
       keepaspectratio: true,
       resize: { enabled: true, throttle: 200 },
@@ -1469,10 +1469,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
               className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 showAxes ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
               }`}
-              title={showAxes ? "Ẩn trục tọa độ" : "Hiện trục tọa độ"}
+              title={showAxes ? "Ẩn trục tọa độ & ô ly" : "Hiện trục tọa độ & ô ly"}
             >
               <span className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-slate-500" /> Trục tọa độ
+                <Compass className="w-4 h-4 text-slate-500" /> Trục tọa độ & ô ly
               </span>
               <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                 showAxes ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
