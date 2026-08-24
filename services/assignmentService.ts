@@ -53,6 +53,7 @@ export interface AssignmentResponse {
 
 export interface GetAssignmentsParams {
   status?: string
+  studentStatus?: string
   classCode?: string
   keyword?: string
   page?: number

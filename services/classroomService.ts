@@ -30,7 +30,7 @@ export const classroomService = {
   deleteClassroom: async (classCode: string) => {
     await api.delete(`/classrooms/${classCode}`)
   },
-  getClassroomStudents: async (classCode: string, params: { page: number; size: number; sort: string }) => {
+  getClassroomStudents: async (classCode: string, params: { page: number; size: number; sort?: string; keyword?: string }) => {
     const res = await api.get(`/classrooms/${classCode}/students`, { params })
     return res.data
   },

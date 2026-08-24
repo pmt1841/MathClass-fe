@@ -32,11 +32,11 @@ export function useDeleteClassroom() {
   })
 }
 
-export function useClassStudents(classCode: string, page: number, size: number, sortParam: string) {
+export function useClassStudents(classCode: string, page: number, size: number, sortParam: string, keyword?: string) {
   return useQuery({
-    queryKey: ['classroom-students', classCode, page, size, sortParam],
+    queryKey: ['classroom-students', classCode, page, size, sortParam, keyword],
     queryFn: async () => {
-      const data = await classroomService.getClassroomStudents(classCode, { page, size, sort: sortParam })
+      const data = await classroomService.getClassroomStudents(classCode, { page, size, sort: sortParam, keyword })
       if (data && data.content) {
         return {
           content: data.content as Student[],

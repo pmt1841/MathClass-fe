@@ -25,6 +25,13 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -32,7 +39,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import { AssignmentCard } from './assignment-card'
-import { parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 
@@ -88,6 +94,8 @@ export function AssignmentsPageClient() {
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  const [pageSize, setPageSize] = useState(6)
+
   const { data: myClasses = [] } = useMyClassrooms()
 
   const { data: assignmentsData, isLoading: loading } = useAssignments({
@@ -96,9 +104,11 @@ export function AssignmentsPageClient() {
     searchQuery,
     selectedClassCode,
     page,
-    size: 6,
-    assignmentType
-    ,gradeTagId: tagFilters.GRADE, subjectTagId: tagFilters.SUBJECT, difficultyTagId: tagFilters.DIFFICULTY
+    size: pageSize,
+    assignmentType,
+    gradeTagId: tagFilters.GRADE,
+    subjectTagId: tagFilters.SUBJECT,
+    difficultyTagId: tagFilters.DIFFICULTY
   })
 
   const assignments = assignmentsData?.items || []
@@ -203,36 +213,9 @@ export function AssignmentsPageClient() {
     }
   }, [assignments, selectedAssignmentDetails.length])
 
-  const filterByTab = useCallback((assignment: any) => {
-    if (userRole === 'TEACHER') return true
-
-    if (assignmentType === 'SINGLE' && assignment.type === 'SHEET') return false
-    if (assignmentType === 'SHEET' && assignment.type !== 'SHEET') return false
-
-    const status = assignment.submissionStatus
-    const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
-
-    if (activeTab === 'PENDING') return (status === null || status === 'DRAFT') && !isOverdue
-    if (activeTab === 'SUBMITTED') return status === 'SUBMITTED'
-    if (activeTab === 'GRADED') return status === 'GRADED'
-    if (activeTab === 'OVERDUE') return (status === null || status === 'DRAFT') && isOverdue
-
-    return true
-  }, [userRole, assignmentType, activeTab])
-
-  const filteredAssignments = useMemo(() => assignments.filter(filterByTab), [assignments, filterByTab])
-  const displaySingleItems = useMemo(() => (assignmentsData?.singleItems || []).filter(filterByTab), [assignmentsData?.singleItems, filterByTab])
-  const displaySheetItems = useMemo(() => (assignmentsData?.sheetItems || []).filter(filterByTab), [assignmentsData?.sheetItems, filterByTab])
-
-  if (userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')) {
-    totalPages = Math.ceil(filteredAssignments.length / 6) || 1
-  }
-
-  const displayAssignments = useMemo(() => {
-    return userRole === 'STUDENT' && (assignmentType === 'SINGLE' || assignmentType === 'SHEET')
-      ? filteredAssignments.slice(page * 6, (page + 1) * 6)
-      : filteredAssignments
-  }, [userRole, assignmentType, filteredAssignments, page])
+  const displaySingleItems = assignmentsData?.singleItems || []
+  const displaySheetItems = assignmentsData?.sheetItems || []
+  const displayAssignments = assignments
 
   const showEmptyState = useMemo(() => {
     return userRole === 'STUDENT' && assignmentType === 'ALL'
@@ -539,61 +522,89 @@ export function AssignmentsPageClient() {
             </div>
           )}
 
-          {!loading && displayAssignments.length > 0 && totalPages > 1 && (
-            <div className="mt-8">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (page > 0) setPage(page - 1)
-                      }}
-                      className={page === 0 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
+          {!loading && displayAssignments.length > 0 && (totalPages > 1 || (assignmentsData?.totalElements || 0) > 6) && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-6">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Hiển thị:</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => {
+                    setPageSize(Number(val))
+                    setPage(0)
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[70px] bg-white text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6</SelectItem>
+                    <SelectItem value="12">12</SelectItem>
+                    <SelectItem value="24">24</SelectItem>
+                    <SelectItem value="48">48</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>bài / trang</span>
+                {(assignmentsData?.totalElements || 0) > 0 && (
+                  <>
+                    <span className="hidden sm:inline text-muted-foreground/40">|</span>
+                    <span className="hidden sm:inline">Tổng cộng: {assignmentsData?.totalElements} bài</span>
+                  </>
+                )}
+              </div>
 
-                  {/* Simplified page numbers logic for brevity */}
-                  {[...Array(totalPages)].map((_, i) => {
-                    // Show current page, first, last, and +- 1 from current
-                    if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
-                      return (
-                        <PaginationItem key={i}>
-                          <PaginationLink
-                            href="#"
-                            isActive={page === i}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              setPage(i)
-                            }}
-                          >
-                            {i + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
-                    } else if (i === page - 2 || i === page + 2) {
-                      return (
-                        <PaginationItem key={i}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )
-                    }
-                    return null
-                  })}
+              {totalPages > 1 && (
+                <Pagination className="w-auto mx-0">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (page > 0) setPage(page - 1)
+                        }}
+                        className={page === 0 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
 
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (page < totalPages - 1) setPage(page + 1)
-                      }}
-                      className={page >= totalPages - 1 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                    {[...Array(totalPages)].map((_, i) => {
+                      if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
+                        return (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              href="#"
+                              isActive={page === i}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setPage(i)
+                              }}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      } else if (i === page - 2 || i === page + 2) {
+                        return (
+                          <PaginationItem key={i}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )
+                      }
+                      return null
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (page < totalPages - 1) setPage(page + 1)
+                        }}
+                        className={page >= totalPages - 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
           )}
         </div>
