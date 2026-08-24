@@ -36,6 +36,9 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
         // Init board
         const boundingbox = jsxGraphData.boundingbox || [-5, 5, 5, -5]
 
+        const showGrid = jsxGraphData.grid !== false
+        const showAxis = showGrid && (jsxGraphData.axis !== false)
+
         board = JXG.JSXGraph.initBoard(boardRef.current.id, {
           boundingbox: boundingbox,
           axis: true,
@@ -52,6 +55,43 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
           pan: { enabled: !readOnly, needShift: true, needTwoFingers: false },
           zoom: { enabled: !readOnly, wheel: !readOnly, needShift: false }
         } as any)
+
+        if (board.defaultAxes) {
+          if (board.defaultAxes.x) {
+            (board.defaultAxes.x as any).setAttribute({ visible: showAxis });
+            if (showAxis) (board.defaultAxes.x as any).showElement?.();
+            else (board.defaultAxes.x as any).hideElement?.();
+          }
+          if (board.defaultAxes.y) {
+            (board.defaultAxes.y as any).setAttribute({ visible: showAxis });
+            if (showAxis) (board.defaultAxes.y as any).showElement?.();
+            else (board.defaultAxes.y as any).hideElement?.();
+          }
+        }
+        if (board.grids) {
+          if (Array.isArray(board.grids)) {
+            board.grids.forEach((g: any) => {
+              g?.setAttribute?.({ visible: showGrid });
+              if (showGrid) g?.showElement?.();
+              else g?.hideElement?.();
+            });
+          } else {
+            Object.values(board.grids).forEach((g: any) => {
+              (g as any)?.setAttribute?.({ visible: showGrid });
+              if (showGrid) (g as any)?.showElement?.();
+              else (g as any)?.hideElement?.();
+            });
+          }
+        }
+        if (board.objectsList) {
+          board.objectsList.forEach((obj: any) => {
+            if (obj.elType === 'grid') {
+              obj.setAttribute({ visible: showGrid });
+              if (showGrid) obj.showElement?.();
+              else obj.hideElement?.();
+            }
+          });
+        }
 
         // Add Vietnamese tooltips to navigation buttons
         setTimeout(() => {
