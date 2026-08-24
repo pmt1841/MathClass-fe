@@ -121,7 +121,8 @@
   },
   "overrides": {
     "postcss": "^8.5.16",
-    "lodash-es": "^4.17.24"
+    "lodash-es": "^4.17.24",
+    "@tiptap/core": "$@tiptap/core"
   },
   "allowScripts": {
     "sharp@0.34.5": true,

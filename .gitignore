@@ -28,12 +28,11 @@ dist-ssr
 # TypeScript build cache
 *.tsbuildinfo
 
+### Enviroment Variables ###
 .env
 
 # Playwright Test Output
 /test-results/
 /playwright-report/
 
-package-lock.json
 .antigravity/skill
-
