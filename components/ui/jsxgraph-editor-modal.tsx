@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare, Pencil, Trash2, Pin, Type } from 'lucide-react'
+import { X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare, Pencil, Trash2, Pin, Type, Grid, Compass } from 'lucide-react'
 import JXG from 'jsxgraph'
 import 'mathlive'
 import './jsxgraph.css'
@@ -256,12 +256,24 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
   const [width, setWidth] = useState<string>('')
   const [height, setHeight] = useState<string>('')
 
+  // Show / Hide Axis and Grid
+  const [showAxes, setShowAxes] = useState<boolean>(true)
+  const [showGrid, setShowGrid] = useState<boolean>(true)
+  const showAxesRef = useRef<boolean>(true)
+  const showGridRef = useRef<boolean>(true)
+
   useEffect(() => {
     if (open) {
       setWidth(initialWidth || '')
       setHeight(initialHeight || '')
+      const initAxes = initialData?.axis !== undefined ? !!initialData.axis : true
+      const initGrid = initialData?.grid !== undefined ? (typeof initialData.grid === 'boolean' ? initialData.grid : !!initialData.grid) : true
+      setShowAxes(initAxes)
+      setShowGrid(initGrid)
+      showAxesRef.current = initAxes
+      showGridRef.current = initGrid
     }
-  }, [open, initialWidth, initialHeight])
+  }, [open, initialWidth, initialHeight, initialData])
 
   // Undo / Redo States
   interface HistoryState {
@@ -490,8 +502,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       axis: true,
       grid: { majorStep: 1 },
       defaultAxes: {
-        x: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
-        y: { ticks: { ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
+        x: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } },
+        y: { ticks: { majorHeight: 10, drawGrid: false, ticksDistance: 1, insertTicks: false, label: { autoPosition: true } } }
       },
       keepaspectratio: true,
       resize: { enabled: true, throttle: 200 },
@@ -502,6 +514,36 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       zoom: { wheel: true, needShift: false },
       keyboard: { enabled: false }
     } as any)
+
+    // Apply axes and grid visibility
+    if (b.defaultAxes) {
+      if (b.defaultAxes.x) {
+        (b.defaultAxes.x as any).setAttribute({ visible: showAxesRef.current });
+        if (showAxesRef.current) (b.defaultAxes.x as any).showElement?.();
+        else (b.defaultAxes.x as any).hideElement?.();
+      }
+      if (b.defaultAxes.y) {
+        (b.defaultAxes.y as any).setAttribute({ visible: showAxesRef.current });
+        if (showAxesRef.current) (b.defaultAxes.y as any).showElement?.();
+        else (b.defaultAxes.y as any).hideElement?.();
+      }
+    }
+    if (b.grids && Array.isArray(b.grids)) {
+      b.grids.forEach((g: any) => {
+        g.setAttribute({ visible: showGridRef.current });
+        if (showGridRef.current) g.showElement?.();
+        else g.hideElement?.();
+      });
+    }
+    if (b.objectsList) {
+      b.objectsList.forEach((obj: any) => {
+        if (obj.elType === 'grid') {
+          obj.setAttribute({ visible: showGridRef.current });
+          if (showGridRef.current) obj.showElement?.();
+          else obj.hideElement?.();
+        }
+      });
+    }
 
     // Custom right-click panning
     let isPanning = false;
@@ -755,6 +797,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     selectedPointsRef.current = state.selectedPointIds
       .map(id => b.objects[id])
       .filter(Boolean)
+
+    setBoard(b)
   }
 
   const getCurrentElements = () => {
@@ -1057,6 +1101,56 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     initBoardWithState({ elements: nextElements, selectedPointIds: historyRef.current[historyIndexRef.current].selectedPointIds });
   };
 
+  const handleToggleAxes = () => {
+    const nextVal = !showAxes;
+    setShowAxes(nextVal);
+    showAxesRef.current = nextVal;
+    if (board && board.defaultAxes) {
+      if (board.defaultAxes.x) {
+        (board.defaultAxes.x as any).setAttribute({ visible: nextVal });
+        if (nextVal) (board.defaultAxes.x as any).showElement?.();
+        else (board.defaultAxes.x as any).hideElement?.();
+      }
+      if (board.defaultAxes.y) {
+        (board.defaultAxes.y as any).setAttribute({ visible: nextVal });
+        if (nextVal) (board.defaultAxes.y as any).showElement?.();
+        else (board.defaultAxes.y as any).hideElement?.();
+      }
+      board.fullUpdate();
+    }
+  };
+
+  const handleToggleGrid = () => {
+    const nextVal = !showGrid;
+    setShowGrid(nextVal);
+    showGridRef.current = nextVal;
+    if (board) {
+      if (board.grids && Array.isArray(board.grids)) {
+        board.grids.forEach((g: any) => {
+          g.setAttribute({ visible: nextVal });
+          if (nextVal) g.showElement?.();
+          else g.hideElement?.();
+        });
+      } else if (board.grids) {
+        Object.values(board.grids).forEach((g: any) => {
+          (g as any)?.setAttribute?.({ visible: nextVal });
+          if (nextVal) (g as any)?.showElement?.();
+          else (g as any)?.hideElement?.();
+        });
+      }
+      if (board.objectsList) {
+        board.objectsList.forEach((obj: any) => {
+          if (obj.elType === 'grid') {
+            obj.setAttribute({ visible: nextVal });
+            if (nextVal) obj.showElement?.();
+            else obj.hideElement?.();
+          }
+        });
+      }
+      board.fullUpdate();
+    }
+  };
+
   const handleConfirm = () => {
     const currentElements = getCurrentElements().filter(el => {
       if (el.type === 'text' && !el.text?.trim()) {
@@ -1067,8 +1161,8 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
 
     const jsxGraphData = {
       boundingbox: [-5, 5, 5, -5],
-      axis: true,
-      grid: true,
+      axis: showAxes,
+      grid: showGrid,
       elements: currentElements
     }
     onConfirm(jsxGraphData, width.trim(), height.trim())
@@ -1363,6 +1457,46 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
               title="Thêm ô nhập chữ vào giữa hình vẽ"
             >
               <Type className="w-4 h-4 text-primary" /> Thêm ô text
+            </button>
+
+            <div className="my-1 border-t border-slate-100" />
+
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider my-1 px-2">Hiển thị</div>
+
+            <button
+              type="button"
+              onClick={handleToggleAxes}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                showAxes ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+              title={showAxes ? "Ẩn trục tọa độ" : "Hiện trục tọa độ"}
+            >
+              <span className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-slate-500" /> Trục tọa độ
+              </span>
+              <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                showAxes ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
+              }`}>
+                {showAxes && <Check className="w-3 h-3 stroke-[3]" />}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleGrid}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                showGrid ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+              title={showGrid ? "Ẩn lưới ô vuông" : "Hiện lưới ô vuông"}
+            >
+              <span className="flex items-center gap-2">
+                <Grid className="w-4 h-4 text-slate-500" /> Lưới ô vuông
+              </span>
+              <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                showGrid ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
+              }`}>
+                {showGrid && <Check className="w-3 h-3 stroke-[3]" />}
+              </span>
             </button>
 
             <div className="mt-auto p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-medium border border-blue-100 leading-relaxed">
