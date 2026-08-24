@@ -1,7 +1,7 @@
 'use client'
 
 import React, { use, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -26,6 +26,7 @@ import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
+import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentChatWidget'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -48,6 +49,7 @@ const DEFAULT_ANNOUNCEMENTS = [
 export function StudentClassDetailPageClient({ params }: PageProps) {
   const { classCode } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [classroom, setClassroom] = useState<any>(null)
   const [assignedTasks, setAssignedTasks] = useState<any[]>([])
@@ -809,6 +811,19 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Floating Chat Widget dành cho Học sinh */}
+      {classroom && user && (
+        <ClassroomStudentChatWidget
+          classId={classroom.id}
+          classCode={classCode}
+          studentId={user.id}
+          teacherId={classroom.teacherId}
+          teacherName={teacherName}
+          teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
+          initialOpen={searchParams.get('chat') === 'open'}
+        />
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
@@ -18,8 +18,11 @@ import {
   ClipboardList,
   Trash2,
   UserPlus,
+  MessageSquare,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ClassroomTeacherChatPanel } from '@/components/chat/ClassroomTeacherChatPanel'
+import { useClassStudents } from '@/hooks/useClassDetail'
 import {
   Dialog,
   DialogContent,
@@ -41,9 +44,20 @@ import { joinRequestService } from '@/services/joinRequestService'
 export function ClassDetailPageClient() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const classCode = params?.classCode as string
 
-  const [activeTab, setActiveTab] = useState<TabType>('students')
+  const initialTab = (searchParams.get('tab') as TabType) || 'students'
+  const initialStudentId = searchParams.get('studentId') ? Number(searchParams.get('studentId')) : undefined
+
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab)
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabType
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   const { user } = useAuth()
   const isStudent = user?.role === 'STUDENT' || user?.userRole === 'STUDENT'
@@ -66,6 +80,7 @@ export function ClassDetailPageClient() {
   })
 
   const pendingCount = pendingRequests?.length || 0
+  const { data: studentsData } = useClassStudents(classCode, 0, 100)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -223,6 +238,13 @@ export function ClassDetailPageClient() {
                 label="Bài tập"
               />
               <TabButton
+                id="tab-chat"
+                active={activeTab === 'chat'}
+                onClick={() => setActiveTab('chat')}
+                icon={<MessageSquare className="h-4 w-4" />}
+                label="Trò chuyện"
+              />
+              <TabButton
                 id="tab-requests"
                 active={activeTab === 'requests'}
                 onClick={() => setActiveTab('requests')}
@@ -258,6 +280,13 @@ export function ClassDetailPageClient() {
               <StudentsTab classCode={classCode} classroom={classroom || null} loadingClass={loadingClass} />
             ) : activeTab === 'assignments' ? (
               <AssignmentsTab classCode={classCode} />
+            ) : activeTab === 'chat' ? (
+              <ClassroomTeacherChatPanel
+                classId={classroom?.id || 0}
+                classCode={classCode}
+                students={studentsData?.content || []}
+                initialStudentId={initialStudentId}
+              />
             ) : (
               <PendingRequestsTab classCode={classCode} classroom={classroom || null} />
             )}

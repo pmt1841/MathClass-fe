@@ -50,7 +50,7 @@ export interface MyClassroom {
   className: string
 }
 
-export type TabType = 'students' | 'assignments' | 'requests'
+export type TabType = 'students' | 'assignments' | 'requests' | 'chat'
 
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
 
