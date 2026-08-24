@@ -21,44 +21,63 @@
 
 ### 🔐 1. Xác thực & Phân quyền (Authentication & Authorization)
 - **Đăng nhập & Đăng ký đa vai trò**: Học sinh (STUDENT), Giáo viên (TEACHER) và Quản trị viên (ADMIN).
+- **Xác thực 2 bước (2FA Google Authenticator & Backup Codes)**: Bắt buộc 100% đối với vai trò Quản trị viên (`ADMIN`), hỗ trợ quét mã QR, nhập key thủ công và 8 mã dự phòng khẩn cấp.
 - **Google OAuth Integration**: Đăng nhập nhanh bằng tài khoản Google (`@react-oauth/google`).
 - **JWT trong HttpOnly Cookie**: Token do Backend set qua cookie `mathclass_jwt`; role lưu trong `mathclass_role`. Hỗ trợ "Ghi nhớ đăng nhập" (`mathclass_remember`).
 - **Tự động gia hạn token**: Axios interceptor xử lý 401 bằng hàng đợi refresh-token (mutex), kết hợp kiểm tra phiên theo tab (sessionStorage).
-- **Khôi phục tài khoản**: Quên mật khẩu, đặt lại mật khẩu, xác minh email qua OTP/token.
-- **Xử lý khóa tài khoản**: Backend trả `ACCOUNT_LOCKED` → tự động logout + hiển thị `AccountLockedModal`.
+- **Khôi phục tài khoản**: Quên mật khẩu, đổi mật khẩu kèm OTP, đặt lại mật khẩu, xác minh email.
+- **Xử lý khóa tài khoản**: Backend trả `ACCOUNT_LOCKED` (kèm lý do khóa) → tự động logout + hiển thị `AccountLockedModal`.
 
-### 📚 2. Quản lý Lớp học (Classroom Management)
+### 📚 2. Quản lý Lớp học & Bạn Cùng Lớp (Classrooms & Classmates)
 - **Giáo viên**: Tạo/chỉnh sửa lớp, cấp mã tham gia (Class Code), duyệt/từ chối yêu cầu vào lớp, quản lý danh sách học sinh.
 - **Học sinh**: Tìm kiếm lớp bằng mã, gửi yêu cầu tham gia, xem danh sách lớp đã tham gia.
+- **Danh sách bạn cùng lớp (Classmate List)**: Hiển thị bạn cùng lớp với trạng thái Online (trong 5 phút gần nhất), gắn tag "(Tôi)" và avatar fallback thông minh.
 
-### 📝 3. Quản lý Bài tập & Nộp bài (Assignments & Submissions)
-- **Soạn thảo công thức & đồ thị toán học**:
-  - **MathLive** + **KaTeX** hỗ trợ gõ công thức LaTeX (`$...$`, `$$...$$`).
-  - **JSXGraph** vẽ đồ thị hàm số và hình học tương tác (lưu dạng `[SHAPE_x]`).
-  - **TipTap** rich-text editor (bảng, hình ảnh, liên kết, công thức).
-  - Upload ảnh minh họa (mã `[IMAGE_x]`), OCR trích xuất chữ từ ảnh.
-- **Giao bài & Nộp bài**:
-  - Giáo viên tạo bài tập/bài tập phiếu (Assignment Sheet), giao cho nhiều lớp kèm hạn nộp riêng.
-  - Học sinh làm bài online, vẽ hình bằng JSXGraph, lưu nháp hoặc nộp.
-  - Giáo viên chấm điểm, ghi feedback, **nhận xét bôi đen trực tiếp trên bài nộp** (submission comments).
-  - "Kho bài tập" quản lý theo trạng thái DRAFT / SINGLE / SHEET.
+### 📝 3. Quản lý Bài tập & Nộp bài Toán học (Assignments & Submissions)
+- **Soạn thảo công thức & đồ thị toán học tương tác**:
+  - **MathLive** + **KaTeX**: Gõ và hiển thị công thức LaTeX mượt mà (`$...$`, `$$...$$`), bộ gõ toolbar toán học.
+  - **JSXGraph nâng cao**: Vẽ hình học & đồ thị tương tác, chèn text vào hình vẽ, tùy chọn bật/tắt linh hoạt trục tọa độ và lưới ô vuông (lưu dạng `[SHAPE_x|options]`).
+  - **TipTap**: Rich-text editor hỗ trợ bảng biểu, hình ảnh tải lên (`[IMAGE_x]`), liên kết, công thức toán.
+- **Giao bài, Nộp bài & Chấm điểm**:
+  - Giáo viên tạo bài tập đơn lẻ hoặc Phiếu bài tập (Assignment Sheet), giao cho nhiều lớp kèm hạn nộp độc lập.
+  - Học sinh làm bài trực tuyến, vẽ hình tương tác, nhận diện chữ viết tay qua Canvas (AI Handwriting OCR), lưu nháp hoặc nộp bài.
+  - Giáo viên chấm điểm, trả nhận xét và **bôi đen trực tiếp trên nội dung bài nộp** (Submission Inline Comments).
+- **Trợ lý AI Toán học (AI Math Assistant)**:
+  - **AI Question Generator**: Sinh đề bài toán học tự động theo phân loại Bloom, chủ đề, độ khó kèm cấu hình vẽ hình JSXGraph.
+  - **AI Student Hints**: Gợi ý giải toán từng bước có kiểm soát dành cho học sinh.
+  - **AI Automated Grading**: Hỗ trợ giáo viên chấm điểm và nhận xét bài nộp tự động.
 
 ### 📊 4. Bảng điều khiển & Thống kê (Dashboard & Analytics)
-- Dashboard riêng cho Giáo viên (lớp đang dạy, bài cần chấm, yêu cầu chờ duyệt, học sinh có nguy cơ) và Học sinh (bài chưa làm, điểm gần đây).
-- Báo cáo trực quan bằng biểu đồ **Recharts**.
+- Dashboard riêng cho Giáo viên (lớp đang dạy, bài cần chấm, yêu cầu chờ duyệt, cảnh báo học sinh có nguy cơ học kém) và Học sinh (bài tập sắp tới hạn, biểu đồ điểm số gần đây).
+- Báo cáo trực quan bằng biểu đồ tương tác **Recharts**.
 
-### 🛡 5. Trang Quản trị (Admin Portal - `/admin`)
-- Quản lý người dùng: tìm kiếm, lọc theo vai trò, khóa/mở khóa tài khoản.
-- Quản lý quyền hạn: gán permission cho từng role (`/admin/roles`), reset quyền mặc định.
-- Cấu hình AI Services: quản lý Provider (OpenAI-compatible, Gemini, Anthropic...), API Keys, định tuyến task sang model.
-- Nhật ký hệ thống (audit log) & Kho bài tập cộng đồng.
+### 🛡 5. Trang Quản trị Toàn diện (Admin Portal - `/admin`)
+- **Quản lý người dùng**: Tìm kiếm, lọc theo vai trò, khóa tài khoản có kèm lý do, mở khóa tài khoản.
+- **Quản lý quyền hạn (RBAC)**: Xem danh sách quyền, gán permission cho từng role (`/admin/roles`), khôi phục quyền mặc định (Reset permissions).
+- **Cấu hình AI Đa Nhà Cung Cấp (`/admin/ai-config`)**:
+  - Quản lý AI Provider (OpenAI, Google Gemini, Anthropic Claude, DeepSeek, Groq, Ollama...).
+  - Quản lý & xác thực API Keys (Mã hóa AES-256).
+  - Định tuyến Task Routing & tinh chỉnh tham số model (Temperature, Top-P, Max tokens).
+  - Quản lý System Prompts với lịch sử phiên bản (Versioning) & xem trước (Live Preview).
+  - Kiểm tra kết nối AI Provider trực quan (Test Connection).
+- **Quản lý Hạn ngạch & Credit (`CreditQuotaTab`)**: Quản lý cấp phát credit miễn phí hàng ngày, bảng sổ cái giao dịch (Credit Ledger phân trang server-side), điều chỉnh số dư thủ công và quản lý các gói credit.
+- **Quản lý Báo cáo sự cố (`/admin/bug-reports`)**: Tiếp nhận, phân loại mức độ nghiêm trọng và xử lý các lỗi do người dùng báo cáo.
+- **Nhật ký hệ thống (`/admin/logs`)**: Tra cứu System Audit Logs các hành động nhạy cảm.
 
-### 📚 6. Thư viện bài tập (Library)
+### 💎 6. Hệ thống AI Credit Cá Nhân (`/credits`)
+- Hiển thị số dư credit cá nhân, hạn ngạch miễn phí hàng ngày.
+- Bảng lịch sử giao dịch credit (Credit Ledger) hỗ trợ phân trang Server-side.
+- Danh sách các gói nạp credit cho người dùng.
+
+### 📚 7. Thư viện bài tập Cộng đồng (Community Library)
 - Tìm kiếm bài tập/phiếu bài tập công khai (`library:read`).
-- Clone bài về kho cá nhân, chỉnh visibility PRIVATE/PUBLIC (`library:clone`).
+- Clone bài tập về kho cá nhân, chuyển đổi chế độ riêng tư/công khai (`library:clone`).
 
-### 🔔 7. Thông báo (Notifications)
-- Hộp thông báo trên Header, phân trang cuộn vô hạn, đếm chưa đọc, đánh dấu đã đọc.
+### 🐛 8. Báo cáo Sự Cố & Lỗi (Bug Report System)
+- Modal báo cáo sự cố nhanh (`ReportBugModal`) cho phép chụp ảnh màn hình, gửi mô tả chi tiết lỗi từ mọi trang giao diện.
+
+### 🔔 9. Thông báo Thời gian thực (Real-time Notifications)
+- Hộp thông báo trên Header, kết nối Server-Sent Events (SSE), phân trang cuộn vô hạn, đếm chưa đọc, đánh dấu đã đọc.
 
 ---
 
@@ -68,9 +87,9 @@
 | :--- | :--- |
 | **Core Framework** | [Next.js 16 (App Router)](https://nextjs.org/), [React 19](https://react.dev/), [TypeScript 5.7](https://www.typescriptlang.org/) |
 | **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/), shadcn/ui (Radix UI Primitives), Lucide Icons, Sonner (Toast), Recharts |
-| **State & Data Fetching** | Redux Toolkit (chỉ auth), TanStack React Query v5, Axios |
+| **State & Data Fetching** | Redux Toolkit (chỉ auth), TanStack React Query v5 (hỗ trợ `keepPreviousData` cho server pagination), Axios |
 | **Form & Validation** | React Hook Form, Formik, Yup, Zod, `@hookform/resolvers` |
-| **Toán học & Editor** | MathLive, KaTeX, JSXGraph, TipTap Editor, React Markdown, Rehype/Remark, marked + Turndown |
+| **Toán học & Editor** | MathLive, KaTeX, JSXGraph (với plugin Text & Grid/Axes control), TipTap Editor, React Markdown, Rehype/Remark |
 | **Testing** | Vitest, React Testing Library, Playwright (E2E), MSW |
 
 ---
@@ -81,15 +100,20 @@
 MathClass-fe/
 ├── app/                  # Định tuyến Next.js App Router (Route Groups)
 │   ├── (auth)/           #   Login, signup, verify, forgot/reset password
-│   ├── (dashboard)/      #   Home, classes, assignments, students, reports, library, profile, settings
-│   └── admin/            #   users, roles, ai-config, logs, community-repo
+│   ├── (dashboard)/      #   Home, classes, assignments, students, reports, library, credits, profile, settings
+│   └── admin/            #   (auth)/login, users, roles, ai-config, bug-reports, logs, community-repo
 ├── components/           # UI Components
-│   ├── ui/               #   Base shadcn/ui + chuyên toán (JSXGraph, KaTeX, TipTap...)
-│   ├── auth/             #   Form xác thực, modal khóa tài khoản...
+│   ├── ui/               #   Base shadcn/ui + chuyên toán (JSXGraph, KaTeX, TipTap, MathLive...)
+│   ├── admin/            #   Admin sub-components & ai-config tabs
+│   ├── ai/               #   AiQuestionGeneratorModal...
 │   ├── assignments/      #   Publish modal, submission table/detail, comments...
-│   └── layout/           #   Header, Sidebar, Footer, NotificationPopover
-├── services/             # Axios API Services (kết nối Backend Spring Boot)
-├── hooks/                # Custom React Hooks (chủ yếu bọc React Query)
+│   ├── auth/             #   Form xác thực, modal 2FA, modal khóa tài khoản...
+│   ├── bug-report/       #   ReportBugModal...
+│   ├── credits/          #   Credit balance, ledger table, credit packages...
+│   ├── layout/           #   Header, Sidebar, Footer, NotificationPopover
+│   └── submission/       #   SubmissionDrawingEditor...
+├── services/             # Axios API Services (22 services kết nối Backend Spring Boot)
+├── hooks/                # Custom React Hooks (bọc React Query v5)
 ├── lib/                  # axios.ts, auth-storage.ts, Redux store, editor-utils...
 ├── types/                # TypeScript Interfaces & Type definitions
 ├── proxy.ts              # Route Guard / Middleware phân quyền (Next.js 16)
@@ -152,11 +176,12 @@ Bảo mật ứng dụng và kiểm soát quyền truy cập dựa trên file [`
 
 | Loại Route | Đường dẫn | Quyền truy cập |
 | :--- | :--- | :--- |
-| **Public Routes** | `/`, `/login`, `/admin/login`, `/signup`, `/verify` | Tất cả người dùng |
-| **Protected Routes** | `/home`, `/classes`, `/assignments`, `/students`, `/reports`, `/settings`, `/profile`, `/admin` | Yêu cầu Đăng nhập (JWT Cookie) |
+| **Public Routes** | `/`, `/login`, `/admin/login`, `/signup`, `/verify`, `/forgot-password`, `/reset-password` | Tất cả người dùng |
+| **Protected Routes** | `/home`, `/classes`, `/assignments`, `/students`, `/reports`, `/library`, `/credits`, `/settings`, `/profile` | Yêu cầu Đăng nhập (JWT Cookie) |
 | **Teacher Only** | `/classes/create`, `/students`, `/reports` | Người dùng có vai trò `TEACHER` |
 | **Student Only** | `/assignments/submit` | Người dùng có vai trò `STUDENT` |
 | **Admin Only** | `/admin/*` (Ngoại trừ `/admin/login`) | Người dùng có vai trò `ADMIN` |
+
 
 Ngoài tầng proxy, frontend còn kiểm tra quyền chi tiết (permission) bằng `PermissionGuard` / `RoutePermissionGuard` (ví dụ: `library:read`, `library:clone`). Xem chi tiết trong [docs/04-architecture.md](docs/04-architecture.md#3-phân-quyền--route-guard).
 
