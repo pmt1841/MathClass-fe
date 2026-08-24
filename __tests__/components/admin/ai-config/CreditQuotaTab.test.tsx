@@ -29,7 +29,31 @@ vi.mock('@/hooks/useAdminCredits', () => ({
   useUpdateCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useDeleteCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useAdjustCredit: () => ({ mutateAsync: vi.fn() }),
-  useAdminCreditTransactions: () => ({ data: [], isLoading: false }),
+  useAdminCreditTransactions: () => ({
+    data: {
+      content: [
+        {
+          id: 101,
+          userId: 1,
+          userEmail: 'student@example.com',
+          userRole: 'STUDENT',
+          amount: 50,
+          type: 'GRANT_DEFAULT',
+          task: null,
+          description: 'Cấp khởi tạo',
+          createdAt: '2026-03-01T10:00:00Z',
+        },
+      ],
+      totalElements: 1,
+      totalPages: 1,
+      size: 10,
+      number: 0,
+      first: true,
+      last: true,
+      empty: false,
+    },
+    isLoading: false,
+  }),
 }))
 
 vi.mock('sonner', () => ({
@@ -62,6 +86,42 @@ describe('CreditQuotaTab', () => {
         task: 'STUDENT_HINT',
         data: { costPerCall: 2, tokensPerCredit: 1000, enabled: true },
       })
+    )
+  })
+
+  it('should render ledger transactions with STT, email, role, and pagination', () => {
+    render(<CreditQuotaTab />)
+    expect(screen.getByText('STT')).toBeTruthy()
+    expect(screen.getByText('Email')).toBeTruthy()
+    expect(screen.getByText('Vai trò')).toBeTruthy()
+    expect(screen.getByText('Thời gian')).toBeTruthy()
+    expect(screen.getByText('Loại')).toBeTruthy()
+    expect(screen.getByText('Nội dung')).toBeTruthy()
+    expect(screen.getAllByText('Số credit').length).toBeGreaterThanOrEqual(1)
+
+    // Rendered row data
+    expect(screen.getByText('student@example.com')).toBeTruthy()
+    expect(screen.getAllByText('Học sinh').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Cấp mặc định')).toBeTruthy()
+    expect(screen.getByText('+50')).toBeTruthy()
+
+    // Pagination controls
+    expect(screen.getByText(/Hiển thị/)).toBeTruthy()
+    expect(screen.getByText('Trước')).toBeTruthy()
+    expect(screen.getByText('Sau')).toBeTruthy()
+  })
+
+  it('should translate task codes in descriptions into Vietnamese', async () => {
+    const { formatCreditTransactionDescription } = await import('@/lib/constants/credit')
+
+    expect(formatCreditTransactionDescription('Tiêu thụ AI cho tác vụ QUESTION_GEN')).toBe(
+      'Tiêu thụ AI cho tác vụ "Sinh đề"'
+    )
+    expect(
+      formatCreditTransactionDescription('Hoàn credit do hủy hoặc lỗi khi gọi AI tác vụ STUDENT_HINT')
+    ).toBe('Hoàn credit do hủy hoặc lỗi khi gọi AI tác vụ "Gợi ý tư duy làm bài"')
+    expect(formatCreditTransactionDescription(null, 'CANVAS_LATEX')).toBe(
+      'Tác vụ "Trợ lý AI Canvas (Chữ viết tay & Phác thảo)"'
     )
   })
 })

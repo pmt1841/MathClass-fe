@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useMyCreditTransactions, CreditTransactionItem } from '@/hooks/useCredits'
-import { getCreditTaskLabel } from '@/lib/constants/credit'
+import { formatCreditTransactionDescription } from '@/lib/constants/credit'
 import { formatDateTime } from '@/lib/utils'
 
 const TRANSACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
@@ -76,9 +76,7 @@ export function CreditTransactionsTable() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-slate-600">
-                    {txn.description ||
-                      (txn.task ? `Tác vụ ${getCreditTaskLabel(txn.task)}` : '') ||
-                      '—'}
+                    {formatCreditTransactionDescription(txn.description, txn.task)}
                   </TableCell>
                   <TableCell
                     className={`text-right font-bold ${

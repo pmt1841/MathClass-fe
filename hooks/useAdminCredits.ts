@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { PageResponse } from '@/types'
 import {
   adminCreditService,
   TaskCreditConfig,
@@ -95,10 +96,22 @@ export function useAdjustCredit() {
 }
 
 /** Sổ cái giao dịch credit (admin). */
-export function useAdminCreditTransactions(params?: { userId?: number; type?: string }) {
-  return useQuery<CreditTransactionItem[]>({
-    queryKey: ['admin-credit-transactions', params?.userId ?? 'all', params?.type ?? 'all'],
+export function useAdminCreditTransactions(params?: {
+  userId?: number
+  type?: string
+  page?: number
+  size?: number
+}) {
+  return useQuery<PageResponse<CreditTransactionItem>>({
+    queryKey: [
+      'admin-credit-transactions',
+      params?.userId ?? 'all',
+      params?.type ?? 'all',
+      params?.page ?? 0,
+      params?.size ?? 10,
+    ],
     queryFn: () => adminCreditService.getTransactions(params),
+    placeholderData: keepPreviousData,
     retry: 1,
   })
 }

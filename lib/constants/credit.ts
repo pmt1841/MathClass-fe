@@ -10,3 +10,27 @@ export const CREDIT_TASK_LABELS: Record<string, string> = {
 export function getCreditTaskLabel(task: string): string {
   return CREDIT_TASK_LABELS[task] || task
 }
+
+/**
+ * Format nội dung mô tả giao dịch credit sang tiếng Việt:
+ * Tự động chuyển đổi các mã task code (QUESTION_GEN, STUDENT_HINT, CANVAS_LATEX, ...)
+ * thành tên tiếng Việt thân thiện, dễ hiểu.
+ */
+export function formatCreditTransactionDescription(
+  description?: string | null,
+  task?: string | null
+): string {
+  if (description) {
+    let result = description
+    for (const [taskKey, taskLabel] of Object.entries(CREDIT_TASK_LABELS)) {
+      if (result.includes(taskKey)) {
+        result = result.replaceAll(taskKey, `"${taskLabel}"`)
+      }
+    }
+    return result
+  }
+  if (task) {
+    return `Tác vụ "${getCreditTaskLabel(task)}"`
+  }
+  return '—'
+}

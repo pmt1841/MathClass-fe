@@ -49,6 +49,10 @@ export type CreditTransactionType =
 export interface CreditTransactionItem {
   id: number
   userId?: number
+  userEmail?: string | null
+  userRole?: string | null
+  email?: string | null
+  role?: string | null
   amount: number
   type: CreditTransactionType
   task?: string | null
