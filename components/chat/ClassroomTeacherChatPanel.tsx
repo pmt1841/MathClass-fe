@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
-import { authStorage } from '@/lib/auth-storage';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface StudentInfo {
   id: number;
@@ -48,7 +48,7 @@ export function ClassroomTeacherChatPanel({
     }
   }, [targetStudent]);
 
-  const currentUser = authStorage.getUserInfo();
+  const { user: currentUser } = useAuth();
   const currentUserId = currentUser?.id || 0;
 
   const {
@@ -65,6 +65,7 @@ export function ClassroomTeacherChatPanel({
     studentId: selectedStudent?.id || 0,
     isTeacher: true,
     enabled: !!selectedStudent,
+    currentUserId,
   });
 
   // Lọc và Sắp xếp danh sách Học sinh: Online & có tin nhắn mới lên trước, Offline bên dưới

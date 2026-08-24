@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Client } from '@stomp/stompjs';
+import { Client, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { chatService } from '@/services/chatService';
 import { ChatMessageResponse } from '@/types/chat';
@@ -11,9 +11,17 @@ export interface UseClassChatProps {
   studentId: number;
   isTeacher?: boolean;
   enabled?: boolean;
+  currentUserId?: number;
 }
 
-export function useClassChat({ classId, classCode, studentId, isTeacher = false, enabled = true }: UseClassChatProps) {
+export function useClassChat({
+  classId,
+  classCode,
+  studentId,
+  isTeacher = false,
+  enabled = true,
+  currentUserId,
+}: UseClassChatProps) {
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -23,6 +31,7 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
   const [unreadStudentIds, setUnreadStudentIds] = useState<Set<number>>(new Set());
 
   const stompClientRef = useRef<Client | null>(null);
+  const studentSubRef = useRef<StompSubscription | null>(null);
 
   // Lấy danh sách user online
   const fetchOnlineUsers = useCallback(async () => {
@@ -106,6 +115,7 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
         prev.map((msg) => ({ ...msg, isRead: true }))
       );
       setUnreadStudentIds((prev) => {
+        if (!prev.has(studentId)) return prev;
         const next = new Set(prev);
         next.delete(studentId);
         return next;
@@ -144,9 +154,9 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
     });
   }, [classId, studentId]);
 
-  // Kết nối WebSocket STOMP
+  // Kết nối WebSocket STOMP duy nhất theo classId (không reconnect lại khi đổi studentId)
   useEffect(() => {
-    if (!enabled || !classId || !studentId) return;
+    if (!enabled || !classId) return;
 
     const hostUrl = baseURL.replace(/\/api\/v\d+$/, '');
     const wsUrl = `${hostUrl}/ws-chat`;
@@ -161,26 +171,14 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
         setIsConnected(true);
         fetchOnlineUsers();
 
-        // Topic 1: Lắng nghe cuộc trò chuyện hiện tại với học sinh này
-        const destination = `/topic/classroom/${classId}/student/${studentId}`;
-        client.subscribe(destination, (messageFrame) => {
-          try {
-            const newMsg: ChatMessageResponse = JSON.parse(messageFrame.body);
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
-            });
-          } catch (e) {
-            console.error('Lỗi parse tin nhắn STOMP:', e);
-          }
-        });
-
-        // Topic 2: Dành cho Giảng viên nhận thông báo tin nhắn từ TẤT CẢ học sinh
+        // Topic Giảng viên nhận thông báo từ tất cả học sinh
         if (isTeacher) {
           const teacherDestination = `/topic/classroom/${classId}/teacher`;
           client.subscribe(teacherDestination, (messageFrame) => {
             try {
               const newMsg: ChatMessageResponse = JSON.parse(messageFrame.body);
+              // Bổ sung kiểm tra senderId !== currentUserId để tránh tự tính tin nhắn mình vừa gửi là chưa đọc
+              if (currentUserId && newMsg.senderId === currentUserId) return;
               if (newMsg.studentId && newMsg.studentId !== studentId) {
                 setUnreadStudentIds((prev) => new Set(prev).add(newMsg.studentId));
               }
@@ -208,7 +206,37 @@ export function useClassChat({ classId, classCode, studentId, isTeacher = false,
         client.deactivate();
       }
     };
-  }, [classId, studentId, enabled, isTeacher, fetchOnlineUsers]);
+  }, [classId, enabled, isTeacher, fetchOnlineUsers, currentUserId]);
+
+  // Đăng ký/hủy subscribe topic chat của học sinh hiện tại mà không cần ngắt kết nối WebSocket
+  useEffect(() => {
+    if (!isConnected || !stompClientRef.current || !stompClientRef.current.connected || !studentId) return;
+
+    if (studentSubRef.current) {
+      studentSubRef.current.unsubscribe();
+    }
+
+    const destination = `/topic/classroom/${classId}/student/${studentId}`;
+    const sub = stompClientRef.current.subscribe(destination, (messageFrame) => {
+      try {
+        const newMsg: ChatMessageResponse = JSON.parse(messageFrame.body);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      } catch (e) {
+        console.error('Lỗi parse tin nhắn STOMP:', e);
+      }
+    });
+
+    studentSubRef.current = sub;
+
+    return () => {
+      if (sub) {
+        sub.unsubscribe();
+      }
+    };
+  }, [isConnected, classId, studentId]);
 
   return {
     messages,

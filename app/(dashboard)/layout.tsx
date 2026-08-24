@@ -7,6 +7,7 @@ import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
+import { GlobalPresenceTracker } from '@/components/chat/GlobalPresenceTracker'
 
 export default function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
+      <GlobalPresenceTracker />
       <DashboardHeader />
 
       <div className="flex flex-1 overflow-hidden">
@@ -45,7 +47,6 @@ export default function DashboardLayout({
         open={createClassOpen}
         onClose={() => setCreateClassOpen(false)}
         onSuccess={(data) => {
-
           setCreateClassOpen(false)
         }}
       />

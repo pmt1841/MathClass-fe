@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
-import { authStorage } from '@/lib/auth-storage';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ClassroomStudentChatWidgetProps {
   classId: number;
@@ -40,7 +40,7 @@ export function ClassroomStudentChatWidget({
     }
   }, [initialOpen]);
 
-  const currentUser = authStorage.getUserInfo();
+  const { user: currentUser } = useAuth();
   const currentUserId = currentUser?.id || studentId;
 
   // Luôn kết nối STOMP và nạp tin nhắn/online status ngay từ khi load trang (enabled: true)
@@ -55,6 +55,7 @@ export function ClassroomStudentChatWidget({
     classCode,
     studentId,
     enabled: true,
+    currentUserId,
   });
 
   const isTeacherOnline = teacherId ? onlineUserIds.has(teacherId) : false;
