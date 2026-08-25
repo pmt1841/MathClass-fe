@@ -27,6 +27,8 @@ import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
 import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentChatWidget'
+import { ChatDockProvider, useChatDock } from '@/components/chat/ChatDockContext'
+import { FloatingChatDock } from '@/components/chat/FloatingChatDock'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -237,6 +239,72 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const oldAnnouncements = announcements.slice(1, 4) // Max 3 old announcements
 
   return (
+    <ChatDockProvider
+      classId={classroom?.id || 0}
+      classCode={classCode}
+      currentUserId={user?.id || 0}
+    >
+      <StudentClassDetailPageContent
+        classCode={classCode}
+        classroom={classroom}
+        assignedTasks={assignedTasks}
+        completedTasks={completedTasks}
+        overdueTasks={overdueTasks}
+        loading={loading}
+        stats={stats}
+        announcements={announcements}
+        assignedLimit={assignedLimit}
+        overdueLimit={overdueLimit}
+        completedLimit={completedLimit}
+        loadingMoreAssigned={loadingMoreAssigned}
+        loadingMoreOverdue={loadingMoreOverdue}
+        loadingMoreCompleted={loadingMoreCompleted}
+        handleScrollAssigned={handleScrollAssigned}
+        handleScrollOverdue={handleScrollOverdue}
+        handleScrollCompleted={handleScrollCompleted}
+        teacherName={teacherName}
+        teacherInitials={teacherInitials}
+        teacherEmail={teacherEmail}
+        teacherPhone={teacherPhone}
+        latestAnnouncement={latestAnnouncement}
+        oldAnnouncements={oldAnnouncements}
+        router={router}
+        searchParams={searchParams}
+      />
+    </ChatDockProvider>
+  )
+}
+
+function StudentClassDetailPageContent({
+  classCode,
+  classroom,
+  assignedTasks,
+  completedTasks,
+  overdueTasks,
+  loading,
+  stats,
+  announcements,
+  assignedLimit,
+  overdueLimit,
+  completedLimit,
+  loadingMoreAssigned,
+  loadingMoreOverdue,
+  loadingMoreCompleted,
+  handleScrollAssigned,
+  handleScrollOverdue,
+  handleScrollCompleted,
+  teacherName,
+  teacherInitials,
+  teacherEmail,
+  teacherPhone,
+  latestAnnouncement,
+  oldAnnouncements,
+  router,
+  searchParams,
+}: any) {
+  const { openChat } = useChatDock()
+
+  return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
 
       {/* ── Hero & Banner Section ── */}
@@ -267,6 +335,38 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                   studentCount={classroom?.studentCount || 0}
                   maxStudents={classroom?.maxStudents || 0}
                 />
+                <button
+                  type="button"
+                  onClick={() => openChat({ id: 'group', type: 'CLASS_GROUP', title: 'Chat Lớp' })}
+                  className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/60 px-3.5 py-1 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:text-indigo-800 transition-all cursor-pointer active:scale-95"
+                  title="Mở kênh Chat nhóm Lớp học"
+                >
+                  <div className="relative">
+                    <Users className="h-3.5 w-3.5 text-indigo-600" />
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+                    </span>
+                  </div>
+                  <span>Chat Lớp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    openChat({
+                      id: 'teacher',
+                      type: 'DIRECT_TEACHER',
+                      title: teacherName,
+                      avatar: classroom?.teacherAvatarUrl || classroom?.teacherAvatar,
+                      targetUserId: classroom?.teacherId,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3 py-1 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 transition-all cursor-pointer active:scale-95"
+                  title="Mở khung Chat riêng với Giảng viên"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Hỏi Giảng viên</span>
+                </button>
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
@@ -384,7 +484,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     </div>
                   ) : (
                     <>
-                      {assignedTasks.slice(0, assignedLimit).map((task) => {
+                      {assignedTasks.slice(0, assignedLimit).map((task: any) => {
                         if (task.isSheet) {
                           return (
                             <details
@@ -520,7 +620,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     <p className="text-xs text-muted-foreground text-center py-2">Bạn không có bài tập nào quá hạn.</p>
                   ) : (
                     <>
-                      {overdueTasks.slice(0, overdueLimit).map((task) => {
+                      {overdueTasks.slice(0, overdueLimit).map((task: any) => {
                         if (task.isSheet) {
                           return (
                             <details
@@ -637,7 +737,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     <p className="text-xs text-muted-foreground text-center py-2">Bạn chưa hoàn thành bài tập nào.</p>
                   ) : (
                     <>
-                      {completedTasks.slice(0, completedLimit).map((task) => {
+                      {completedTasks.slice(0, completedLimit).map((task: any) => {
                         if (task.isSheet) {
                           const isGraded = task.submissionStatus === 'GRADED';
                           const submittedAt = 'Đã hoàn thành'; // Sheets don't have a single submit time currently mapped, or use items' latest
@@ -775,7 +875,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {oldAnnouncements.map((ann) => (
+                  {oldAnnouncements.map((ann: any) => (
                     <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
@@ -812,18 +912,31 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Floating Chat Widget dành cho Học sinh */}
-      {classroom && user && (
-        <ClassroomStudentChatWidget
-          classId={classroom.id}
-          classCode={classCode}
-          studentId={user.id}
-          teacherId={classroom.teacherId}
+      {/* Auto open teacher chat if chat=open in URL */}
+      {searchParams.get('chat') === 'open' && (
+        <AutoOpenTeacherChat
           teacherName={teacherName}
-          teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
-          initialOpen={searchParams.get('chat') === 'open'}
+          teacherAvatar={classroom?.teacherAvatarUrl || classroom?.teacherAvatar}
+          teacherId={classroom?.teacherId}
         />
       )}
+
+      {/* Floating Chat Dock thống nhất duy nhất cho tất cả loại chat */}
+      <FloatingChatDock />
     </div>
   )
+}
+
+function AutoOpenTeacherChat({ teacherName, teacherAvatar, teacherId }: any) {
+  const { openChat } = useChatDock()
+  useEffect(() => {
+    openChat({
+      id: 'teacher',
+      type: 'DIRECT_TEACHER',
+      title: teacherName,
+      avatar: teacherAvatar,
+      targetUserId: teacherId,
+    })
+  }, [openChat, teacherName, teacherAvatar, teacherId])
+  return null
 }

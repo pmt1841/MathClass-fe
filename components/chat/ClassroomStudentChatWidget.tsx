@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useChatDock } from './ChatDockContext';
+import { Users } from 'lucide-react';
 
 interface ClassroomStudentChatWidgetProps {
   classId: number;
@@ -33,6 +35,7 @@ export function ClassroomStudentChatWidget({
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { openChat } = useChatDock();
 
   useEffect(() => {
     if (initialOpen) {
@@ -167,14 +170,32 @@ export function ClassroomStudentChatWidget({
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  openChat({
+                    id: 'group',
+                    type: 'CLASS_GROUP',
+                    title: 'Chat Lớp',
+                  })
+                }
+                className="text-xs text-white/90 hover:text-white hover:bg-white/10 rounded-lg px-2 py-1 flex items-center gap-1.5"
+                title="Mở kênh Chat nhóm Lớp học"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Chat Lớp</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Body: Danh sách tin nhắn */}

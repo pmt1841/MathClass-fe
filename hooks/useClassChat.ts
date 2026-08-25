@@ -10,6 +10,7 @@ export interface UseClassChatProps {
   classCode: string;
   studentId: number;
   isTeacher?: boolean;
+  isGroupChat?: boolean;
   enabled?: boolean;
   currentUserId?: number;
 }
@@ -19,6 +20,7 @@ export function useClassChat({
   classCode,
   studentId,
   isTeacher = false,
+  isGroupChat = false,
   enabled = true,
   currentUserId,
 }: UseClassChatProps) {
@@ -72,11 +74,18 @@ export function useClassChat({
 
   // Fetch lịch sử tin nhắn
   const loadHistory = useCallback(async (reset: boolean = false) => {
-    if (!classCode || !studentId) return;
+    if (!classCode) return;
+    if (!isGroupChat && !studentId) return;
+
     try {
       setIsLoadingHistory(true);
       const fetchPage = reset ? 0 : page;
-      const data = await chatService.getChatHistory(classCode, studentId, fetchPage, 20);
+      let data;
+      if (isGroupChat) {
+        data = await chatService.getGroupChatHistory(classCode, fetchPage, 20);
+      } else {
+        data = await chatService.getChatHistory(classCode, studentId, fetchPage, 20);
+      }
 
       const content = data.content || [];
       const sortedMessages = [...content].reverse();
@@ -94,21 +103,21 @@ export function useClassChat({
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [classCode, studentId, page]);
+  }, [classCode, studentId, isGroupChat, page]);
 
-  // Reset state và nạp lịch sử khi studentId hoặc classId thay đổi
+  // Reset state và nạp lịch sử khi studentId, isGroupChat hoặc classId thay đổi
   useEffect(() => {
-    if (enabled && classCode && studentId) {
+    if (enabled && classCode && (isGroupChat || studentId)) {
       setMessages([]);
       setPage(0);
       setHasMore(true);
       loadHistory(true);
     }
-  }, [enabled, classCode, classId, studentId]);
+  }, [enabled, classCode, classId, studentId, isGroupChat]);
 
   // Đánh dấu đã đọc
   const markAsRead = useCallback(async () => {
-    if (!classCode || !studentId) return;
+    if (!classCode || isGroupChat || !studentId) return;
     try {
       await chatService.markAsRead(classCode, studentId);
       setMessages((prev) =>
@@ -123,7 +132,7 @@ export function useClassChat({
     } catch (error) {
       console.error('Lỗi khi đánh dấu tin nhắn đã đọc:', error);
     }
-  }, [classCode, studentId]);
+  }, [classCode, studentId, isGroupChat]);
 
   // Xóa thủ công cờ unread của 1 học sinh khi chọn học sinh đó
   const clearUnreadForStudent = useCallback((targetStudentId: number) => {
@@ -142,19 +151,20 @@ export function useClassChat({
       return;
     }
 
-    const payload = {
-      classId,
-      studentId,
-      content: content.trim(),
-    };
+    if (isGroupChat) {
+      stompClientRef.current.publish({
+        destination: '/app/chat.sendGroup',
+        body: JSON.stringify({ classId, content: content.trim() }),
+      });
+    } else {
+      stompClientRef.current.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify({ classId, studentId, content: content.trim() }),
+      });
+    }
+  }, [classId, studentId, isGroupChat]);
 
-    stompClientRef.current.publish({
-      destination: '/app/chat.send',
-      body: JSON.stringify(payload),
-    });
-  }, [classId, studentId]);
-
-  // Kết nối WebSocket STOMP duy nhất theo classId (không reconnect lại khi đổi studentId)
+  // Kết nối WebSocket STOMP duy nhất theo classId
   useEffect(() => {
     if (!enabled || !classId) return;
 
@@ -177,10 +187,9 @@ export function useClassChat({
           client.subscribe(teacherDestination, (messageFrame) => {
             try {
               const newMsg: ChatMessageResponse = JSON.parse(messageFrame.body);
-              // Bổ sung kiểm tra senderId !== currentUserId để tránh tự tính tin nhắn mình vừa gửi là chưa đọc
               if (currentUserId && newMsg.senderId === currentUserId) return;
               if (newMsg.studentId && newMsg.studentId !== studentId) {
-                setUnreadStudentIds((prev) => new Set(prev).add(newMsg.studentId));
+                setUnreadStudentIds((prev) => new Set(prev).add(newMsg.studentId!));
               }
             } catch (e) {
               console.error('Lỗi parse tin nhắn teacher topic:', e);
@@ -206,17 +215,21 @@ export function useClassChat({
         client.deactivate();
       }
     };
-  }, [classId, enabled, isTeacher, fetchOnlineUsers, currentUserId]);
+  }, [classId, enabled, isTeacher, fetchOnlineUsers, currentUserId, studentId]);
 
-  // Đăng ký/hủy subscribe topic chat của học sinh hiện tại mà không cần ngắt kết nối WebSocket
+  // Đăng ký/hủy subscribe topic chat tương ứng (Chat Lớp hoặc Chat 1-1)
   useEffect(() => {
-    if (!isConnected || !stompClientRef.current || !stompClientRef.current.connected || !studentId) return;
+    if (!isConnected || !stompClientRef.current || !stompClientRef.current.connected) return;
+    if (!isGroupChat && !studentId) return;
 
     if (studentSubRef.current) {
       studentSubRef.current.unsubscribe();
     }
 
-    const destination = `/topic/classroom/${classId}/student/${studentId}`;
+    const destination = isGroupChat
+      ? `/topic/classroom/${classId}/group`
+      : `/topic/classroom/${classId}/student/${studentId}`;
+
     const sub = stompClientRef.current.subscribe(destination, (messageFrame) => {
       try {
         const newMsg: ChatMessageResponse = JSON.parse(messageFrame.body);
@@ -236,7 +249,7 @@ export function useClassChat({
         sub.unsubscribe();
       }
     };
-  }, [isConnected, classId, studentId]);
+  }, [isConnected, classId, studentId, isGroupChat]);
 
   return {
     messages,

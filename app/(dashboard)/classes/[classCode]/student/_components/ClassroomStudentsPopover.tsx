@@ -6,11 +6,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Users, Search, Loader2, ChevronDown } from 'lucide-react'
+import { Users, Search, Loader2, ChevronDown, MessageSquare } from 'lucide-react'
 import { classroomService } from '@/services/classroomService'
 import { Student } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { useChatDock } from '@/components/chat/ChatDockContext'
 
 interface ClassroomStudentsPopoverProps {
   classCode: string
@@ -24,6 +25,7 @@ export function ClassroomStudentsPopover({
   maxStudents = 0,
 }: ClassroomStudentsPopoverProps) {
   const { user: currentUser } = useAuth()
+  const { openChat } = useChatDock()
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'online'>('all')
   const [students, setStudents] = useState<Student[]>([])
@@ -217,13 +219,24 @@ export function ClassroomStudentsPopover({
                 (currentUser?.id && student.id === currentUser.id) ||
                 (currentUser?.email && student.email?.toLowerCase() === currentUser.email?.toLowerCase())
               )
-
               return (
                 <div
                   key={student.id}
                   className={`flex items-center justify-between p-2 rounded-xl transition-colors group ${
-                    isSelf ? 'bg-indigo-50/40 hover:bg-indigo-50/70' : 'hover:bg-slate-50'
+                    isSelf ? 'bg-indigo-50/40 hover:bg-indigo-50/70' : 'hover:bg-slate-50 cursor-pointer'
                   }`}
+                  onClick={() => {
+                    if (!isSelf) {
+                      openChat({
+                        id: `student-${student.id}`,
+                        type: 'DIRECT_STUDENT',
+                        title: student.fullName,
+                        avatar: student.avatarUrl,
+                        targetUserId: student.id,
+                      })
+                      setIsOpen(false)
+                    }
+                  }}
                 >
                   {/* Left: Avatar + Full Name */}
                   <div className="flex items-center gap-2.5">
@@ -247,8 +260,28 @@ export function ClassroomStudentsPopover({
                     </div>
                   </div>
 
-                  {/* Right: Status Indicator Dot */}
-                  <div className="flex items-center gap-1.5 pr-1">
+                  {/* Right: Status Indicator Dot & Chat Action */}
+                  <div className="flex items-center gap-2 pr-1">
+                    {!isSelf && (
+                      <button
+                        type="button"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-indigo-600 hover:bg-indigo-100/60 rounded-lg transition-all"
+                        title={`Nhắn tin riêng với ${student.fullName}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openChat({
+                            id: `student-${student.id}`,
+                            type: 'DIRECT_STUDENT',
+                            title: student.fullName,
+                            avatar: student.avatarUrl,
+                            targetUserId: student.id,
+                          })
+                          setIsOpen(false)
+                        }}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     {student.isOnline ? (
                       <span
                         className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200 animate-pulse"

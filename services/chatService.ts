@@ -40,4 +40,31 @@ export const chatService = {
     const data = response.data?.result || response.data || [];
     return Array.from(data);
   },
+
+  getGroupChatHistory: async (
+    classCode: string,
+    page: number = 0,
+    size: number = 20
+  ): Promise<PageResponse<ChatMessageResponse>> => {
+    const response = await api.get(`/classrooms/${classCode}/chat/group/messages`, {
+      params: { page, size },
+    });
+    return response.data?.result || response.data;
+  },
+
+  getDirectChatHistory: async (
+    classCode: string,
+    otherUserId: number,
+    page: number = 0,
+    size: number = 20
+  ): Promise<PageResponse<ChatMessageResponse>> => {
+    const response = await api.get(`/classrooms/${classCode}/chat/direct/${otherUserId}/messages`, {
+      params: { page, size },
+    });
+    return response.data?.result || response.data;
+  },
+
+  markDirectAsRead: async (classCode: string, otherUserId: number): Promise<void> => {
+    await api.put(`/classrooms/${classCode}/chat/direct/${otherUserId}/read`);
+  },
 };
