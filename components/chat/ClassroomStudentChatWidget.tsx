@@ -199,7 +199,7 @@ export function ClassroomStudentChatWidget({
           </div>
 
           {/* Body: Danh sách tin nhắn */}
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8 bg-slate-50/50 dark:bg-slate-900/50">
             {isLoadingHistory && messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-400 text-xs gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Đang nạp tin nhắn...

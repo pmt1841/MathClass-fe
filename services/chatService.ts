@@ -10,6 +10,12 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface ClassroomChatUnreadSummary {
+  hasGroupUnread: boolean;
+  unreadStudentIds: number[];
+  studentUnreadCounts: Record<number, number>;
+}
+
 export const chatService = {
   getChatHistory: async (
     classCode: string,
@@ -67,4 +73,26 @@ export const chatService = {
   markDirectAsRead: async (classCode: string, otherUserId: number): Promise<void> => {
     await api.put(`/classrooms/${classCode}/chat/direct/${otherUserId}/read`);
   },
+
+  markGroupAsRead: async (classCode: string): Promise<void> => {
+    await api.put(`/classrooms/${classCode}/chat/group/read`);
+  },
+
+  getUnreadClassIds: async (): Promise<number[]> => {
+    const response = await api.get('/classrooms/unread-chat-class-ids');
+    const data = response.data?.result || response.data || [];
+    return Array.from(data);
+  },
+
+  getUnreadSummary: async (classCode: string): Promise<ClassroomChatUnreadSummary> => {
+    const response = await api.get(`/classrooms/${classCode}/chat/unread-summary`);
+    const data = response.data?.result || response.data || {};
+    return {
+      hasGroupUnread: Boolean(data.hasGroupUnread),
+      unreadStudentIds: Array.from(data.unreadStudentIds || []),
+      studentUnreadCounts: data.studentUnreadCounts || {},
+    };
+  },
 };
+
+

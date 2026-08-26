@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChatWindow, ChatMessageResponse } from '@/types/chat';
 import { useChatDock } from './ChatDockContext';
 import { chatService } from '@/services/chatService';
@@ -11,6 +12,7 @@ import Image from 'next/image';
 const PAGE_SIZE = 5; // Hiển thị 5 tin nhắn mỗi lần query để tối ưu hiệu năng
 
 export function FloatingChatWindow({ window }: { window: ChatWindow }) {
+  const queryClient = useQueryClient();
   const { classId, classCode, currentUserId, closeChat, minimizeChat, toggleChat, incrementUnread, isOnline, stompClient } =
     useChatDock();
 
@@ -28,9 +30,33 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
   const isTeacher = window.type === 'DIRECT_TEACHER';
   const online = !isGroup && window.targetUserId ? isOnline(window.targetUserId) : false;
 
-  const scrollToBottom = (smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
-  };
+  const handleMarkRead = useCallback(async () => {
+    if (!classCode || window.isMinimized) return;
+    try {
+      if (isGroup) {
+        await chatService.markGroupAsRead(classCode);
+      } else if (isTeacher) {
+        await chatService.markAsRead(classCode, currentUserId);
+      } else if (window.targetUserId) {
+        await chatService.markDirectAsRead(classCode, window.targetUserId);
+      }
+      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] });
+    } catch (e) {
+      // ignore
+    }
+  }, [classCode, isGroup, isTeacher, currentUserId, window.targetUserId, window.isMinimized, queryClient]);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: smooth ? 'smooth' : 'auto',
+        });
+      }
+    }, 60);
+  }, []);
 
   const fetchMessages = useCallback(
     async (targetPage: number, isReset: boolean) => {
@@ -87,7 +113,8 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
 
   useEffect(() => {
     fetchMessages(0, true);
-  }, [fetchMessages]);
+    handleMarkRead();
+  }, [fetchMessages, handleMarkRead]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -118,14 +145,22 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
         if (isGroup) {
           setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
           scrollToBottom(true);
-          if (isFromOthers && window.isMinimized) {
-            incrementUnread(window.id);
+          if (isFromOthers) {
+            if (window.isMinimized) {
+              incrementUnread(window.id);
+            } else {
+              handleMarkRead();
+            }
           }
         } else if (isTeacher) {
           setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
           scrollToBottom(true);
-          if (isFromOthers && window.isMinimized) {
-            incrementUnread(window.id);
+          if (isFromOthers) {
+            if (window.isMinimized) {
+              incrementUnread(window.id);
+            } else {
+              handleMarkRead();
+            }
           }
         } else {
           const isRelated =
@@ -135,8 +170,12 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
           if (isRelated) {
             setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
             scrollToBottom(true);
-            if (isFromOthers && window.isMinimized) {
-              incrementUnread(window.id);
+            if (isFromOthers) {
+              if (window.isMinimized) {
+                incrementUnread(window.id);
+              } else {
+                handleMarkRead();
+              }
             }
           }
         }
@@ -148,7 +187,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
     return () => {
       sub.unsubscribe();
     };
-  }, [stompClient, isGroup, isTeacher, classId, currentUserId, window.targetUserId, window.isMinimized, window.id, incrementUnread]);
+  }, [stompClient, isGroup, isTeacher, classId, currentUserId, window.targetUserId, window.isMinimized, window.id, incrementUnread, handleMarkRead]);
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -174,6 +213,8 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
     }
 
     setInputText('');
+    handleMarkRead();
+    scrollToBottom(true);
   };
 
   if (window.isMinimized) {
@@ -181,7 +222,10 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
 
     return (
       <button
-        onClick={() => toggleChat(window.id)}
+        onClick={() => {
+          toggleChat(window.id);
+          handleMarkRead();
+        }}
         className={`relative h-10 px-3.5 flex items-center gap-2 text-white rounded-t-xl shadow-lg border border-b-0 transition-all active:scale-95 font-semibold text-xs ${
           hasUnread
             ? 'bg-rose-600 hover:bg-rose-700 border-rose-400 animate-bounce'
@@ -189,11 +233,8 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
         }`}
       >
         {hasUnread && (
-          <span className="absolute -top-1.5 -left-1.5 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-[10px] text-white font-extrabold items-center justify-center border-2 border-white shadow-sm">
-              {window.unreadCount > 9 ? '9+' : window.unreadCount}
-            </span>
+          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-md animate-pulse">
+            {window.unreadCount}
           </span>
         )}
 
@@ -226,7 +267,10 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
   }
 
   return (
-    <div className="w-80 h-[440px] bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
+    <div
+      onClick={handleMarkRead}
+      className="w-80 h-[440px] bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-2 duration-200"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-sm">
         <div className="flex items-center gap-2.5 overflow-hidden">
@@ -282,7 +326,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 p-3 overflow-y-auto space-y-2.5 bg-gray-50/50 dark:bg-gray-950/50 text-xs"
+        className="flex-1 px-3 pt-3 pb-8 overflow-y-auto space-y-2.5 bg-gray-50/50 dark:bg-gray-950/50 text-xs"
       >
         {isLoadingMore && (
           <div className="flex items-center justify-center py-1.5 text-[11px] text-indigo-600 font-medium gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg">

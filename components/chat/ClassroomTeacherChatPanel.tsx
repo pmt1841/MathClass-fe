@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Search, MessageSquare, Send, Users, User as UserIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
+import { chatService } from '@/services/chatService';
 
 export interface StudentInfo {
   id: number;
@@ -29,6 +32,18 @@ export function ClassroomTeacherChatPanel({
   students,
   initialStudentId,
 }: ClassroomTeacherChatPanelProps) {
+  const queryClient = useQueryClient();
+  const {
+    hasGroupUnread,
+    unreadStudentIds: unreadStudentIdsFromSummary,
+    studentUnreadCounts,
+  } = useClassroomChatUnread(classCode);
+
+  const unreadStudentIdsSet = useMemo(
+    () => new Set(unreadStudentIdsFromSummary),
+    [unreadStudentIdsFromSummary]
+  );
+
   const targetStudent = useMemo(() => {
     if (initialStudentId && students.length > 0) {
       const found = students.find((s) => s.id === initialStudentId);
@@ -61,10 +76,7 @@ export function ClassroomTeacherChatPanel({
     messages,
     isLoadingHistory,
     onlineUserIds,
-    unreadStudentIds,
-    clearUnreadForStudent,
     sendMessage,
-    markAsRead,
   } = useClassChat({
     classId,
     classCode,
@@ -75,7 +87,32 @@ export function ClassroomTeacherChatPanel({
     currentUserId,
   });
 
-  // Lọc và Sắp xếp danh sách Học sinh: Online & có tin nhắn mới lên trước, Offline bên dưới
+  // Xử lý khi click chọn Chat Lớp (Kênh chung)
+  const handleSelectGroup = async () => {
+    setSelectedMode('GROUP');
+    try {
+      await chatService.markGroupAsRead(classCode);
+      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Xử lý khi click chọn Học sinh 1-1
+  const handleSelectStudent = async (student: StudentInfo) => {
+    setSelectedMode('STUDENT');
+    setSelectedStudent(student);
+    try {
+      await chatService.markDirectAsRead(classCode, student.id);
+      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Lọc và Sắp xếp danh sách Học sinh: Có tin nhắn 1-1 chưa đọc & Online lên trước
   const sortedStudents = useMemo(() => {
     const filtered = students.filter(
       (s) =>
@@ -84,8 +121,8 @@ export function ClassroomTeacherChatPanel({
     );
 
     return [...filtered].sort((a, b) => {
-      const aUnread = unreadStudentIds.has(a.id);
-      const bUnread = unreadStudentIds.has(b.id);
+      const aUnread = unreadStudentIdsSet.has(a.id);
+      const bUnread = unreadStudentIdsSet.has(b.id);
       if (aUnread && !bUnread) return -1;
       if (!aUnread && bUnread) return 1;
 
@@ -96,14 +133,7 @@ export function ClassroomTeacherChatPanel({
 
       return (a.fullName || '').localeCompare(b.fullName || '');
     });
-  }, [students, searchQuery, onlineUserIds, unreadStudentIds]);
-
-  useEffect(() => {
-    if (selectedMode === 'STUDENT' && selectedStudent) {
-      markAsRead();
-      clearUnreadForStudent(selectedStudent.id);
-    }
-  }, [selectedMode, selectedStudent, markAsRead, clearUnreadForStudent, messages.length]);
+  }, [students, searchQuery, onlineUserIds, unreadStudentIdsSet]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -116,12 +146,6 @@ export function ClassroomTeacherChatPanel({
 
     sendMessage(inputText);
     setInputText('');
-  };
-
-  const handleSelectStudent = (student: StudentInfo) => {
-    setSelectedMode('STUDENT');
-    setSelectedStudent(student);
-    clearUnreadForStudent(student.id);
   };
 
   const getInitials = (name?: string) => {
@@ -142,7 +166,7 @@ export function ClassroomTeacherChatPanel({
           {/* Nút Chọn Chat Lớp Chung */}
           <button
             type="button"
-            onClick={() => setSelectedMode('GROUP')}
+            onClick={handleSelectGroup}
             className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
               selectedMode === 'GROUP'
                 ? 'bg-indigo-600 text-white font-bold shadow-md ring-2 ring-indigo-400/30'
@@ -150,14 +174,27 @@ export function ClassroomTeacherChatPanel({
             }`}
           >
             <div
-              className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${
+              className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 relative ${
                 selectedMode === 'GROUP' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-600'
               }`}
             >
               <Users className="w-5 h-5" />
+              {hasGroupUnread && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold truncate">📢 Chat Lớp (Kênh chung)</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-bold truncate">📢 Chat Lớp (Kênh chung)</p>
+                {hasGroupUnread && (
+                  <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                    Mới
+                  </span>
+                )}
+              </div>
               <p
                 className={`text-[10px] truncate ${
                   selectedMode === 'GROUP' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
@@ -192,7 +229,8 @@ export function ClassroomTeacherChatPanel({
             sortedStudents.map((student) => {
               const isSelected = selectedMode === 'STUDENT' && selectedStudent?.id === student.id;
               const isOnline = onlineUserIds.has(student.id);
-              const hasUnread = unreadStudentIds.has(student.id);
+              const hasUnread = unreadStudentIdsSet.has(student.id);
+              const unreadCount = studentUnreadCounts[student.id] || 0;
 
               return (
                 <button
@@ -232,7 +270,7 @@ export function ClassroomTeacherChatPanel({
                       </p>
                       {hasUnread && (
                         <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                          Mới
+                          {unreadCount > 0 ? `${unreadCount} mới` : 'Mới'}
                         </span>
                       )}
                     </div>
@@ -282,7 +320,7 @@ export function ClassroomTeacherChatPanel({
             </div>
 
             {/* Content Tin Nhắn Chat Lớp */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/40 dark:bg-slate-900/40">
+            <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
               {isLoadingHistory && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs">
                   Đang nạp tin nhắn chat lớp...
@@ -365,7 +403,7 @@ export function ClassroomTeacherChatPanel({
             </div>
 
             {/* Content Tin Nhắn 1-1 */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/40 dark:bg-slate-900/40">
+            <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
               {isLoadingHistory && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs">
                   Đang nạp tin nhắn...

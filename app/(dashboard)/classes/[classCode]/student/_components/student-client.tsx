@@ -25,10 +25,13 @@ import { classroomService } from '@/services/classroomService'
 import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useQueryClient } from '@tanstack/react-query'
+import { chatService } from '@/services/chatService'
 import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
 import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentChatWidget'
 import { ChatDockProvider, useChatDock } from '@/components/chat/ChatDockContext'
 import { FloatingChatDock } from '@/components/chat/FloatingChatDock'
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -302,7 +305,14 @@ function StudentClassDetailPageContent({
   router,
   searchParams,
 }: any) {
+  const queryClient = useQueryClient()
   const { openChat } = useChatDock()
+  const { hasGroupUnread, hasAnyStudentUnread, unreadStudentIds } = useClassroomChatUnread(classCode)
+  const teacherId = classroom?.teacherId
+  const hasTeacherUnread = teacherId ? unreadStudentIds.includes(teacherId) : false
+  const hasOtherStudentUnread = teacherId
+    ? unreadStudentIds.some((id: number) => id !== teacherId)
+    : hasAnyStudentUnread
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -334,25 +344,37 @@ function StudentClassDetailPageContent({
                   classCode={classCode}
                   studentCount={classroom?.studentCount || 0}
                   maxStudents={classroom?.maxStudents || 0}
+                  hasUnread={hasOtherStudentUnread}
                 />
                 <button
                   type="button"
-                  onClick={() => openChat({ id: 'group', type: 'CLASS_GROUP', title: 'Chat Lớp' })}
+                  onClick={async () => {
+                    openChat({ id: 'group', type: 'CLASS_GROUP', title: 'Chat Lớp' })
+                    try {
+                      await chatService.markGroupAsRead(classCode)
+                      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] })
+                      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] })
+                    } catch (e) {
+                      // ignore
+                    }
+                  }}
                   className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/60 px-3.5 py-1 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:text-indigo-800 transition-all cursor-pointer active:scale-95"
                   title="Mở kênh Chat nhóm Lớp học"
                 >
-                  <div className="relative">
+                  <div className="relative flex items-center justify-center">
                     <Users className="h-3.5 w-3.5 text-indigo-600" />
-                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
-                    </span>
+                    {hasGroupUnread && (
+                      <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
                   </div>
                   <span>Chat Lớp</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={async () => {
                     openChat({
                       id: 'teacher',
                       type: 'DIRECT_TEACHER',
@@ -360,11 +382,26 @@ function StudentClassDetailPageContent({
                       avatar: classroom?.teacherAvatarUrl || classroom?.teacherAvatar,
                       targetUserId: classroom?.teacherId,
                     })
-                  }
-                  className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3 py-1 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 transition-all cursor-pointer active:scale-95"
+                    try {
+                      await chatService.markAsRead(classCode)
+                      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] })
+                      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] })
+                    } catch (e) {
+                      // ignore
+                    }
+                  }}
+                  className="relative inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3.5 py-1 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 transition-all cursor-pointer active:scale-95"
                   title="Mở khung Chat riêng với Giảng viên"
                 >
-                  <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                  <div className="relative flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                    {hasTeacherUnread && (
+                      <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
                   <span>Hỏi Giảng viên</span>
                 </button>
               </div>

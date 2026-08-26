@@ -17,9 +17,10 @@ interface ClassCardProps {
   userRole: string
   isCopied: boolean
   onCopyCode: (code: string, id: number) => void
+  hasUnreadChat?: boolean
 }
 
-export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode }: ClassCardProps) {
+export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasUnreadChat }: ClassCardProps) {
   return (
     <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
       <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${gradient}`} />
@@ -30,6 +31,15 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode }: Cl
             <h3 className="font-bold text-foreground text-lg tracking-tight group-hover:text-primary transition-colors line-clamp-1">
               {item.className}
             </h3>
+            {hasUnreadChat && (
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold border border-rose-200 shadow-sm shrink-0">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                </span>
+                Tin nhắn mới
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />

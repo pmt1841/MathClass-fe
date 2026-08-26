@@ -41,6 +41,7 @@ import { useClassDetail, useUpdateClassroom, useDeleteClassroom } from '@/hooks/
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { joinRequestService } from '@/services/joinRequestService'
 import { chatService } from '@/services/chatService'
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
 
 export function ClassDetailPageClient() {
   const params = useParams()
@@ -53,22 +54,8 @@ export function ClassDetailPageClient() {
   const initialStudentId = searchParams.get('studentId') ? Number(searchParams.get('studentId')) : undefined
 
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
-  const [hasUnreadChat, setHasUnreadChat] = useState(false)
-
-  useEffect(() => {
-    if (!classCode) return
-    const checkUnread = async () => {
-      try {
-        const ids = await chatService.getUnreadStudentIds(classCode)
-        setHasUnreadChat(ids.length > 0)
-      } catch (e) {
-        // ignore
-      }
-    }
-    checkUnread()
-    const interval = setInterval(checkUnread, 5000)
-    return () => clearInterval(interval)
-  }, [classCode])
+  const { hasGroupUnread, hasAnyStudentUnread } = useClassroomChatUnread(classCode)
+  const hasUnreadChat = hasGroupUnread || hasAnyStudentUnread
 
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType
