@@ -30,6 +30,7 @@ export interface SubmissionVersionResponse {
 export interface SubmissionCommentResponse {
   id: number
   submissionId: number
+  versionNumber: number
   teacherId: number
   teacherName: string
   quoteText: string | null
@@ -41,6 +42,7 @@ export interface SubmissionCommentResponse {
 }
 
 export interface SubmissionCommentRequest {
+  versionNumber?: number
   quoteText?: string | null
   occurrenceIndex?: number | null
   imageCode?: string | null
@@ -129,8 +131,9 @@ export const submissionService = {
     return response.data
   },
 
-  getComments: async (submissionId: number) => {
-    const response = await api.get<SubmissionCommentResponse[]>(`/submissions/${submissionId}/comments`)
+  getComments: async (submissionId: number, versionNumber?: number) => {
+    const query = versionNumber ? `?versionNumber=${versionNumber}` : ''
+    const response = await api.get<SubmissionCommentResponse[]>(`/submissions/${submissionId}/comments${query}`)
     return response.data
   },
 
