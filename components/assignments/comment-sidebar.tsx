@@ -55,7 +55,14 @@ export function CommentSidebar({ comments, onDeleteComment, isDeleting, activeCo
           >
             <div className="flex justify-between items-start mb-2">
               <div>
-                <div className="font-semibold text-slate-700 text-xs">{comment.teacherName}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-700 text-xs">{comment.teacherName}</span>
+                  {comment.versionNumber && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-800 border border-amber-200/60">
+                      Lần {comment.versionNumber}
+                    </span>
+                  )}
+                </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
                   {formatDateTime(comment.createdAt)}
                 </div>

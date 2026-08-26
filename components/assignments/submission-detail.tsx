@@ -101,22 +101,6 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     enabled: !!submissionId,
   })
 
-  const {
-    comments = [],
-    addComment,
-    isAdding,
-    deleteComment,
-    isDeleting
-  } = useSubmissionComments(submissionId)
-
-  const { selectionData, handleMouseUp, clearSelection } = useTextSelection(contentContainerRef)
-
-  const { data: submission, isLoading: isSubLoading, isError: isSubError } = useQuery({
-    queryKey: ['submission', submissionId],
-    queryFn: () => submissionService.getSubmissionById(submissionId),
-    enabled: !!submissionId,
-  })
-
   const { data: versions = [] } = useQuery({
     queryKey: ['submission-versions', submissionId],
     queryFn: () => submissionService.getSubmissionVersions(submissionId),
@@ -132,6 +116,24 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     }
     return versions.find(v => v.versionNumber === selectedVersionNumber) || versions[versions.length - 1]
   }, [versions, selectedVersionNumber])
+
+  const targetVersionNumber = activeVersion?.versionNumber || 1
+
+  const {
+    comments = [],
+    addComment,
+    isAdding,
+    deleteComment,
+    isDeleting
+  } = useSubmissionComments(submissionId, targetVersionNumber)
+
+  const { selectionData, handleMouseUp, clearSelection } = useTextSelection(contentContainerRef)
+
+  const { data: submission, isLoading: isSubLoading, isError: isSubError } = useQuery({
+    queryKey: ['submission', submissionId],
+    queryFn: () => submissionService.getSubmissionById(submissionId),
+    enabled: !!submissionId,
+  })
 
   const isViewingOlderVersion = useMemo(() => {
     if (!versions || versions.length <= 1) return false
@@ -244,6 +246,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     if (!selectionData) return
     try {
       await addComment({
+        versionNumber: targetVersionNumber,
         quoteText: selectionData.quoteText,
         occurrenceIndex: selectionData.occurrenceIndex,
         content

@@ -157,7 +157,7 @@ export function StudentAssignmentLayout({
   const effectiveFeedback = isViewingOlderVersion && activeVersion ? (activeVersion.teacherFeedback || '') : teacherFeedback
   const effectiveIsReadOnly = isViewingOlderVersion || isReadOnly
 
-  const { comments = [] } = useSubmissionComments(submissionId || 0)
+  const { comments = [] } = useSubmissionComments(submissionId || 0, activeVersion?.versionNumber || null)
   // MAT-254: Chỉ hiển thị nút "Gợi ý AI" khi admin đã cấu hình + bật task STUDENT_HINT
   const { data: aiFeatures } = useAiFeatures()
   const studentHintEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_HINT] === true
