@@ -1,10 +1,42 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare, Pencil, Trash2, Pin, Type, Grid, Compass } from 'lucide-react'
+import {
+  X, Check, MousePointer2, CircleDot, Minus, Circle, Undo, Redo, FunctionSquare,
+  Pencil, Trash2, Pin, Type, Grid, Compass, Slash, Triangle, Square,
+  RectangleHorizontal, Diamond
+} from 'lucide-react'
 import JXG from 'jsxgraph'
 import 'mathlive'
 import './jsxgraph.css'
+
+const Parallelogram = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M3 18h13.5L21 6H7.5L3 18z" />
+  </svg>
+)
+
+import {
+  attachSquareConstraints,
+  attachRectangleConstraints,
+  attachParallelogramConstraints,
+  attachRhombusConstraints,
+  enforcePolygonConstraints,
+  findIntersections,
+  getNextPointName,
+  calculateSquareVertices,
+  calculateRectangleVertices,
+  calculateRhombusVertices,
+  calculateParallelogramVertices
+} from '@/lib/jsxgraph-geometry'
 
 declare global {
   namespace JSX {
@@ -32,7 +64,21 @@ interface JsxGraphEditorModalProps {
   initialHeight?: string
 }
 
-type ToolType = 'select' | 'point' | 'line' | 'circle' | 'function'
+type ToolType =
+  | 'select'
+  | 'point'
+  | 'segment'
+  | 'line'
+  | 'triangle'
+  | 'square'
+  | 'rectangle'
+  | 'rhombus'
+  | 'parallelogram'
+  | 'circle'
+  | 'function'
+
+export const generateElementId = (prefix = 'el') =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
 export const escapeHtml = (str: string) =>
   (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -114,7 +160,7 @@ export function normalizeCanvasElements(rawElements: any[]): any[] {
     const normType = (el.type || '').toString().toLowerCase()
     if (normType === 'point') return
 
-    if (normType === 'segment' || normType === 'line') {
+    if (normType === 'segment') {
       const fromKey = el.fromId || el.startId || el.from || el.start || (Array.isArray(el.parents) ? el.parents[0] : null)
       const toKey = el.toId || el.endId || el.to || el.end || (Array.isArray(el.parents) ? el.parents[1] : null)
 
@@ -138,6 +184,61 @@ export function normalizeCanvasElements(rawElements: any[]): any[] {
           attributes: {
             strokeColor: el.attributes?.strokeColor || '#3b82f6',
             strokeWidth: el.attributes?.strokeWidth || 2,
+            ...(el.attributes || {})
+          }
+        })
+      }
+    } else if (normType === 'line') {
+      const fromKey = el.fromId || el.startId || el.from || el.start || (Array.isArray(el.parents) ? el.parents[0] : null)
+      const toKey = el.toId || el.endId || el.to || el.end || (Array.isArray(el.parents) ? el.parents[1] : null)
+
+      let fromId = pointMap[fromKey] || fromKey
+      let toId = pointMap[toKey] || toKey
+
+      if (!fromId && typeof fromKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === fromKey.toLowerCase())
+        if (found) fromId = pointMap[found]
+      }
+      if (!toId && typeof toKey === 'string') {
+        const found = Object.keys(pointMap).find(k => k.toLowerCase() === toKey.toLowerCase())
+        if (found) toId = pointMap[found]
+      }
+
+      if (fromId && toId) {
+        normalizedOthers.push({
+          type: 'line',
+          id: el.id || `line_${idx}_${Date.now()}`,
+          parents: [fromId, toId],
+          attributes: {
+            straightFirst: true,
+            straightLast: true,
+            strokeColor: el.attributes?.strokeColor || '#3b82f6',
+            strokeWidth: el.attributes?.strokeWidth || 2,
+            ...(el.attributes || {})
+          }
+        })
+      }
+    } else if (normType === 'polygon') {
+      const rawParents = Array.isArray(el.parents) ? el.parents : (Array.isArray(el.points) ? el.points : [])
+      const mappedParents = rawParents.map((pk: any) => {
+        if (typeof pk === 'string') return pointMap[pk] || pk
+        if (pk && typeof pk === 'object' && pk.id) return pointMap[pk.id] || pk.id
+        return pk
+      }).filter(Boolean)
+
+      if (mappedParents.length >= 3) {
+        normalizedOthers.push({
+          type: 'polygon',
+          subtype: el.subtype || el.attributes?.subtype,
+          id: el.id || `poly_${idx}_${Date.now()}`,
+          parents: mappedParents,
+          attributes: {
+            fillColor: el.attributes?.fillColor || '#3b82f6',
+            fillOpacity: el.attributes?.fillOpacity !== undefined ? el.attributes.fillOpacity : 0.1,
+            borders: {
+              strokeColor: el.attributes?.borders?.strokeColor || el.attributes?.strokeColor || '#3b82f6',
+              strokeWidth: el.attributes?.borders?.strokeWidth || el.attributes?.strokeWidth || 2
+            },
             ...(el.attributes || {})
           }
         })
@@ -250,6 +351,7 @@ export function normalizeCanvasElements(rawElements: any[]): any[] {
 
 export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, initialWidth, initialHeight }: JsxGraphEditorModalProps) {
   const boardRef = useRef<HTMLDivElement>(null)
+  const boardInstanceRef = useRef<any>(null)
   const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
   const [board, setBoard] = useState<any>(null)
   const [activeTool, setActiveTool] = useState<ToolType>('point')
@@ -299,34 +401,10 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
   // Ghost Intersection Point State
   const [selectedGhostPoint, setSelectedGhostPoint] = useState<{ x: number, y: number, scrX: number, scrY: number } | null>(null)
 
-  const getNextPointName = (elements: any[], x?: number, y?: number) => {
-    const existingNames = elements.filter(el => el.type === 'point' && el.attributes?.name).map(el => el.attributes.name);
-
-    if (x !== undefined && y !== undefined && Math.abs(x) < 0.05 && Math.abs(y) < 0.05 && !existingNames.includes('O')) {
-      return 'O';
-    }
-
-    let index = 0;
-    while (true) {
-      let name = '';
-      if (index < 26) {
-        name = String.fromCharCode(65 + index); // A-Z
-      } else {
-        const letter = String.fromCharCode(65 + (index % 26));
-        const num = Math.floor(index / 26);
-        name = `${letter}${num}`;
-      }
-      if (name === 'O') {
-        index++;
-        continue;
-      }
-      if (!existingNames.includes(name)) return name;
-      index++;
-    }
-  }
-
   const isReadyRef = useRef(false)
   const selectedPointsRef = useRef<any[]>([])
+  const dragStartSnapshotRef = useRef<string | null>(null)
+  const isDraggingRef = useRef<boolean>(false)
 
   // Init Board
   useEffect(() => {
@@ -334,8 +412,11 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       if (contextMenuHandlerRef.current) {
         document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
       }
-      if (boardRef.current) {
-        try { JXG.JSXGraph.freeBoard(boardRef.current.id) } catch (e) {}
+      if (boardInstanceRef.current) {
+        try { JXG.JSXGraph.freeBoard(boardInstanceRef.current) } catch (e) { }
+        boardInstanceRef.current = null
+      } else if (boardRef.current && (JXG.JSXGraph as any).boards?.[boardRef.current.id]) {
+        try { JXG.JSXGraph.freeBoard((JXG.JSXGraph as any).boards[boardRef.current.id]) } catch (e) { }
       }
       setBoard(null)
       const emptyState = [{ elements: [], selectedPointIds: [] }]
@@ -376,125 +457,29 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       if (contextMenuHandlerRef.current) {
         document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
       }
-      if (boardRef.current) {
-        try { JXG.JSXGraph.freeBoard(boardRef.current.id) } catch (e) {}
+      if (boardInstanceRef.current) {
+        try { JXG.JSXGraph.freeBoard(boardInstanceRef.current) } catch (e) { }
+        boardInstanceRef.current = null
+      } else if (boardRef.current && (JXG.JSXGraph as any).boards?.[boardRef.current.id]) {
+        try { JXG.JSXGraph.freeBoard((JXG.JSXGraph as any).boards[boardRef.current.id]) } catch (e) { }
       }
     }
   }, [open, initialData])
-
-  const findIntersections = (b: any, stateElements: any[]) => {
-    const box = b.getBoundingBox();
-    const minX = box[0], maxY = box[1], maxX = box[2], minY = box[3];
-    const intersections: { x: number, y: number }[] = [];
-    const steps = 500;
-    const dx = (maxX - minX) / steps;
-
-    const bisection = (f: (x: number) => number, x0: number, x1: number): number | null => {
-      let a = x0, b = x1;
-      let fa = f(a), fb = f(b);
-      if (isNaN(fa) || isNaN(fb) || !isFinite(fa) || !isFinite(fb)) return null;
-      if (fa * fb > 0) return null;
-      for (let i = 0; i < 40; i++) {
-        const m = (a + b) / 2;
-        const fm = f(m);
-        if (isNaN(fm) || !isFinite(fm)) return null;
-        if (Math.abs(fm) < 1e-10) return m;
-        if (fa * fm <= 0) {
-          b = m; fb = fm;
-        } else {
-          a = m; fa = fm;
-        }
-      }
-      return (a + b) / 2;
-    }
-
-    const addPoint = (x: number, y: number) => {
-      if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) return;
-      if (x >= minX - 1 && x <= maxX + 1 && y >= minY - 1 && y <= maxY + 1) {
-        if (!intersections.some(p => Math.abs(p.x - x) < 1e-3 && Math.abs(p.y - y) < 1e-3)) {
-          intersections.push({ x, y });
-        }
-      }
-    }
-
-    const funcGraphs: any[] = [];
-    const vLines: number[] = [];
-
-    stateElements.forEach(el => {
-      if (el.type === 'functiongraph') {
-        const obj = b.objects[el.id];
-        if (obj) {
-          if (el.isVertical) {
-            const num = parseFloat(el.parsedFunc);
-            if (!isNaN(num) && num.toString() === el.parsedFunc.trim()) {
-              vLines.push(num);
-            }
-          } else {
-            funcGraphs.push(obj);
-          }
-        }
-      }
-    });
-
-    if (minX <= 0 && 0 <= maxX) {
-      funcGraphs.forEach(g => {
-        const y = g.Y(0);
-        if (Math.abs(y) < 1e6) addPoint(0, y);
-      });
-    }
-
-    funcGraphs.forEach(g => {
-      const f = (x: number) => g.Y(x);
-      for (let i = 0; i < steps; i++) {
-        const x0 = minX + i * dx;
-        const x1 = minX + (i + 1) * dx;
-        if (f(x0) * f(x1) <= 0) {
-          const root = bisection(f, x0, x1);
-          if (root !== null && Math.abs(f(root)) < 1e-2) addPoint(root, 0);
-        }
-      }
-    });
-
-    for (let i = 0; i < funcGraphs.length; i++) {
-      for (let j = i + 1; j < funcGraphs.length; j++) {
-        const g1 = funcGraphs[i];
-        const g2 = funcGraphs[j];
-        const f = (x: number) => g1.Y(x) - g2.Y(x);
-        for (let k = 0; k < steps; k++) {
-          const x0 = minX + k * dx;
-          const x1 = minX + (k + 1) * dx;
-          if (f(x0) * f(x1) <= 0) {
-            const root = bisection(f, x0, x1);
-            if (root !== null && Math.abs(f(root)) < 1e-2) addPoint(root, g1.Y(root));
-          }
-        }
-      }
-    }
-
-    vLines.forEach(vx => {
-      addPoint(vx, 0);
-      funcGraphs.forEach(g => {
-        addPoint(vx, g.Y(vx));
-      });
-    });
-
-    const existingPoints = stateElements.filter(el => el.type === 'point');
-    return intersections.filter(p => {
-      return !existingPoints.some(ep => Math.abs(ep.parents[0] - p.x) < 0.05 && Math.abs(ep.parents[1] - p.y) < 0.05);
-    });
-  }
 
   const initBoardWithState = (state: HistoryState) => {
     if (contextMenuHandlerRef.current) {
       document.removeEventListener('contextmenu', contextMenuHandlerRef.current, true)
     }
 
-    if (boardRef.current) {
+    if (boardInstanceRef.current) {
       try {
-        JXG.JSXGraph.freeBoard(boardRef.current.id)
-      } catch (e) {
-        console.warn('Error freeing board:', e)
-      }
+        JXG.JSXGraph.freeBoard(boardInstanceRef.current)
+      } catch (e) { }
+      boardInstanceRef.current = null
+    } else if (boardRef.current && (JXG.JSXGraph as any).boards?.[boardRef.current.id]) {
+      try {
+        JXG.JSXGraph.freeBoard((JXG.JSXGraph as any).boards[boardRef.current.id])
+      } catch (e) { }
     }
 
     if (!boardRef.current) return
@@ -632,21 +617,68 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     }, 50)
 
     const newPointMap: any = {}
+
+    // 1. Create all points as draggable free points
     state.elements.forEach(el => {
       if (el.type === 'point') {
         const attrs = el.attributes || { size: 4, name: '', withLabel: false, showInfobox: true, highlight: true }
         const p = b.create('point', el.parents, { ...attrs, id: el.id })
         newPointMap[el.id] = p
         if (attrs.name) newPointMap[attrs.name] = p
-      } else if (el.type === 'segment') {
+      }
+    })
+
+    // 2. Attach bi-directional geometric constraints for special polygons (enables dragging ANY vertex)
+    state.elements.forEach(el => {
+      if (el.type === 'polygon' && el.subtype && Array.isArray(el.parents) && el.parents.length >= 4) {
+        const pA = newPointMap[el.parents[0]]
+        const pB = newPointMap[el.parents[1]]
+        const pC = newPointMap[el.parents[2]]
+        const pD = newPointMap[el.parents[3]]
+
+        if (pA && pB && pC && pD) {
+          if (el.subtype === 'square') {
+            attachSquareConstraints(pA, pB, pC, pD, b)
+          } else if (el.subtype === 'rectangle') {
+            attachRectangleConstraints(pA, pB, pC, pD, b)
+          } else if (el.subtype === 'rhombus') {
+            attachRhombusConstraints(pA, pB, pC, pD, b)
+          } else if (el.subtype === 'parallelogram') {
+            attachParallelogramConstraints(pA, pB, pC, pD, b)
+          }
+        }
+      }
+    })
+
+    // 4. Create geometric objects & shapes
+    state.elements.forEach(el => {
+      if (el.type === 'segment') {
         if (newPointMap[el.parents[0]] && newPointMap[el.parents[1]]) {
-          const attrs = { ...(el.attributes || { strokeColor: '#3b82f6', strokeWidth: 2 }) }
+          const attrs = { strokeColor: '#3b82f6', strokeWidth: 2, ...(el.attributes || {}) }
           if (el.id) attrs.id = el.id
           b.create('segment', [newPointMap[el.parents[0]], newPointMap[el.parents[1]]], attrs)
         }
+      } else if (el.type === 'line') {
+        if (newPointMap[el.parents[0]] && newPointMap[el.parents[1]]) {
+          const attrs = { straightFirst: true, straightLast: true, strokeColor: '#3b82f6', strokeWidth: 2, ...(el.attributes || {}) }
+          if (el.id) attrs.id = el.id
+          b.create('line', [newPointMap[el.parents[0]], newPointMap[el.parents[1]]], attrs)
+        }
+      } else if (el.type === 'polygon') {
+        const polyPoints = (el.parents || []).map((pid: string) => newPointMap[pid]).filter(Boolean)
+        if (polyPoints.length >= 3) {
+          const attrs = {
+            fillColor: '#3b82f6',
+            fillOpacity: 0.1,
+            borders: { strokeColor: '#3b82f6', strokeWidth: 2 },
+            ...(el.attributes || {})
+          }
+          if (el.id) attrs.id = el.id
+          b.create('polygon', polyPoints, attrs)
+        }
       } else if (el.type === 'circle') {
         if (newPointMap[el.parents[0]] && newPointMap[el.parents[1]]) {
-          const attrs = { ...(el.attributes || { strokeColor: '#ef4444', strokeWidth: 2, fillColor: '#ef4444', fillOpacity: 0.1 }) }
+          const attrs = { strokeColor: '#ef4444', strokeWidth: 2, fillColor: '#ef4444', fillOpacity: 0.1, ...(el.attributes || {}) }
           if (el.id) attrs.id = el.id
           b.create('circle', [newPointMap[el.parents[0]], newPointMap[el.parents[1]]], attrs)
         }
@@ -811,6 +843,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
       .map(id => b.objects[id])
       .filter(Boolean)
 
+    boardInstanceRef.current = b
     setBoard(b)
   }
 
@@ -820,6 +853,15 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     const current = currentHist[currentIdx] || { elements: [], selectedPointIds: [] };
 
     return (current.elements || []).map(el => {
+      if (el.type === 'point' && board && board.objects[el.id]) {
+        const pObj = board.objects[el.id];
+        const nx = typeof pObj.X === 'function' ? pObj.X() : (pObj.coords ? pObj.coords.usrCoords[1] : el.parents[0]);
+        const ny = typeof pObj.Y === 'function' ? pObj.Y() : (pObj.coords ? pObj.coords.usrCoords[2] : el.parents[1]);
+        return {
+          ...el,
+          parents: [Math.round(nx * 100) / 100, Math.round(ny * 100) / 100]
+        };
+      }
       if (el.type === 'text') {
         const inputEl = document.getElementById(`inp_${el.id}`) as HTMLInputElement;
         if (inputEl) {
@@ -889,10 +931,14 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         return
       }
 
-      if (activeTool === 'select') return
+      if (activeTool === 'select') {
+        dragStartSnapshotRef.current = JSON.stringify(getCurrentElements())
+        isDraggingRef.current = true
+        return
+      }
 
-      const x = usrCoords[0]
-      const y = usrCoords[1]
+      const rx = Math.round(usrCoords[0] * 100) / 100
+      const ry = Math.round(usrCoords[1] * 100) / 100
 
       const currentElements = getCurrentElements()
 
@@ -908,11 +954,11 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         }
         if (clickedPoint) return // Do not create a new point over an existing user point
 
-        const nextName = getNextPointName(currentElements, x, y);
+        const nextName = getNextPointName(currentElements, rx, ry);
         const attrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true }
-        const p = board.create('point', [x, y], attrs)
-        saveHistory([...currentElements, { type: 'point', parents: [x, y], id: p.id, attributes: attrs }])
-      } else if (activeTool === 'line' || activeTool === 'circle') {
+        const p = board.create('point', [rx, ry], attrs)
+        saveHistory([...currentElements, { type: 'point', parents: [rx, ry], id: p.id, attributes: attrs }])
+      } else if (['segment', 'line', 'circle', 'triangle', 'square', 'rectangle', 'rhombus', 'parallelogram'].includes(activeTool)) {
         let clickedPoint: any = null
         for (const el in board.objects) {
           if (board.objects[el].elType === 'point' && board.objects[el].hasPoint(scrCoords[0], scrCoords[1])) {
@@ -926,9 +972,9 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         let addedNewPoint = false
         let pointAttrs: any = null
         if (!clickedPoint) {
-          const nextName = getNextPointName(currentElements, x, y);
+          const nextName = getNextPointName(currentElements, rx, ry);
           pointAttrs = { size: 4, name: nextName, withLabel: true, showInfobox: true, highlight: true }
-          clickedPoint = board.create('point', [x, y], pointAttrs)
+          clickedPoint = board.create('point', [rx, ry], pointAttrs)
           addedNewPoint = true
         }
 
@@ -936,67 +982,137 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
 
         let nextElements = [...currentElements]
         if (addedNewPoint) {
-          nextElements.push({ type: 'point', parents: [x, y], id: clickedPoint.id, attributes: pointAttrs })
+          nextElements.push({ type: 'point', parents: [rx, ry], id: clickedPoint.id, attributes: pointAttrs })
         }
 
-        if (selectedPointsRef.current.length === 2) {
-          const p1 = selectedPointsRef.current[0]
-          const p2 = selectedPointsRef.current[1]
+        const requiredPoints = (activeTool === 'segment' || activeTool === 'line' || activeTool === 'circle' || activeTool === 'square') ? 2 : 3
 
-          if (activeTool === 'line') {
+        if (selectedPointsRef.current.length === requiredPoints) {
+          const pts = selectedPointsRef.current
+
+          if (activeTool === 'segment') {
             const lineAttrs = { strokeColor: '#3b82f6', strokeWidth: 2 }
-            board.create('segment', [p1, p2], lineAttrs)
-            nextElements.push({ type: 'segment', parents: [p1.id, p2.id], attributes: lineAttrs })
+            board.create('segment', [pts[0], pts[1]], lineAttrs)
+            nextElements.push({ type: 'segment', parents: [pts[0].id, pts[1].id], attributes: lineAttrs })
+          } else if (activeTool === 'line') {
+            const lineAttrs = { straightFirst: true, straightLast: true, strokeColor: '#3b82f6', strokeWidth: 2 }
+            board.create('line', [pts[0], pts[1]], lineAttrs)
+            nextElements.push({ type: 'line', parents: [pts[0].id, pts[1].id], attributes: lineAttrs })
           } else if (activeTool === 'circle') {
             const circleAttrs = { strokeColor: '#ef4444', strokeWidth: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
-            board.create('circle', [p1, p2], circleAttrs)
-            nextElements.push({ type: 'circle', parents: [p1.id, p2.id], attributes: circleAttrs })
+            board.create('circle', [pts[0], pts[1]], circleAttrs)
+            nextElements.push({ type: 'circle', parents: [pts[0].id, pts[1].id], attributes: circleAttrs })
+          } else if (activeTool === 'triangle') {
+            const polyAttrs = { fillColor: '#3b82f6', fillOpacity: 0.1, borders: { strokeColor: '#3b82f6', strokeWidth: 2 } }
+            board.create('polygon', [pts[0], pts[1], pts[2]], polyAttrs)
+            nextElements.push({ type: 'polygon', subtype: 'triangle', parents: [pts[0].id, pts[1].id, pts[2].id], attributes: polyAttrs })
+          } else if (activeTool === 'square') {
+            const p1 = pts[0], p2 = pts[1]
+            const p1X = Math.round((typeof p1.X === 'function' ? p1.X() : p1.coords.usrCoords[1]) * 100) / 100
+            const p1Y = Math.round((typeof p1.Y === 'function' ? p1.Y() : p1.coords.usrCoords[2]) * 100) / 100
+            const p2X = Math.round((typeof p2.X === 'function' ? p2.X() : p2.coords.usrCoords[1]) * 100) / 100
+            const p2Y = Math.round((typeof p2.Y === 'function' ? p2.Y() : p2.coords.usrCoords[2]) * 100) / 100
+
+            const { p3x, p3y, p4x, p4y } = calculateSquareVertices(p1X, p1Y, p2X, p2Y)
+
+            const name3 = getNextPointName(nextElements, p3x, p3y)
+            const p3Id = generateElementId('p')
+            const p3Attrs = { size: 4, name: name3, withLabel: true, showInfobox: true, highlight: true }
+            nextElements.push({ type: 'point', parents: [p3x, p3y], id: p3Id, attributes: p3Attrs })
+
+            const name4 = getNextPointName(nextElements, p4x, p4y)
+            const p4Id = generateElementId('p')
+            const p4Attrs = { size: 4, name: name4, withLabel: true, showInfobox: true, highlight: true }
+            nextElements.push({ type: 'point', parents: [p4x, p4y], id: p4Id, attributes: p4Attrs })
+
+            const polyAttrs = { fillColor: '#3b82f6', fillOpacity: 0.1, borders: { strokeColor: '#3b82f6', strokeWidth: 2 } }
+            nextElements.push({ type: 'polygon', subtype: 'square', parents: [p1.id, p2.id, p3Id, p4Id], attributes: polyAttrs })
+          } else if (activeTool === 'rectangle') {
+            const p1 = pts[0], p2 = pts[1], p3Raw = pts[2]
+            const p1X = Math.round((typeof p1.X === 'function' ? p1.X() : p1.coords.usrCoords[1]) * 100) / 100
+            const p1Y = Math.round((typeof p1.Y === 'function' ? p1.Y() : p1.coords.usrCoords[2]) * 100) / 100
+            const p2X = Math.round((typeof p2.X === 'function' ? p2.X() : p2.coords.usrCoords[1]) * 100) / 100
+            const p2Y = Math.round((typeof p2.Y === 'function' ? p2.Y() : p2.coords.usrCoords[2]) * 100) / 100
+            const p3RawX = Math.round((typeof p3Raw.X === 'function' ? p3Raw.X() : p3Raw.coords.usrCoords[1]) * 100) / 100
+            const p3RawY = Math.round((typeof p3Raw.Y === 'function' ? p3Raw.Y() : p3Raw.coords.usrCoords[2]) * 100) / 100
+
+            const { p3x, p3y, p4x, p4y } = calculateRectangleVertices(p1X, p1Y, p2X, p2Y, p3RawX, p3RawY)
+
+            const p3Id = p3Raw.id || generateElementId('p')
+            const p3Idx = nextElements.findIndex(e => e.id === p3Id)
+            if (p3Idx !== -1) {
+              nextElements[p3Idx] = { ...nextElements[p3Idx], parents: [p3x, p3y] }
+            }
+
+            const name4 = getNextPointName(nextElements, p4x, p4y)
+            const p4Id = generateElementId('p')
+            const p4Attrs = { size: 4, name: name4, withLabel: true, showInfobox: true, highlight: true }
+            nextElements.push({ type: 'point', parents: [p4x, p4y], id: p4Id, attributes: p4Attrs })
+
+            const polyAttrs = { fillColor: '#3b82f6', fillOpacity: 0.1, borders: { strokeColor: '#3b82f6', strokeWidth: 2 } }
+            nextElements.push({ type: 'polygon', subtype: 'rectangle', parents: [p1.id, p2.id, p3Id, p4Id], attributes: polyAttrs })
+          } else if (activeTool === 'rhombus') {
+            const p1 = pts[0], p2 = pts[1], p3Raw = pts[2]
+            const p1X = Math.round((typeof p1.X === 'function' ? p1.X() : p1.coords.usrCoords[1]) * 100) / 100
+            const p1Y = Math.round((typeof p1.Y === 'function' ? p1.Y() : p1.coords.usrCoords[2]) * 100) / 100
+            const p2X = Math.round((typeof p2.X === 'function' ? p2.X() : p2.coords.usrCoords[1]) * 100) / 100
+            const p2Y = Math.round((typeof p2.Y === 'function' ? p2.Y() : p2.coords.usrCoords[2]) * 100) / 100
+            const p3RawX = Math.round((typeof p3Raw.X === 'function' ? p3Raw.X() : p3Raw.coords.usrCoords[1]) * 100) / 100
+            const p3RawY = Math.round((typeof p3Raw.Y === 'function' ? p3Raw.Y() : p3Raw.coords.usrCoords[2]) * 100) / 100
+
+            const { p3x, p3y, p4x, p4y } = calculateRhombusVertices(p1X, p1Y, p2X, p2Y, p3RawX, p3RawY)
+
+            const p3Id = p3Raw.id
+            const p3Idx = nextElements.findIndex(e => e.id === p3Id)
+            if (p3Idx !== -1) {
+              nextElements[p3Idx] = { ...nextElements[p3Idx], parents: [p3x, p3y] }
+            }
+
+            const name4 = getNextPointName(nextElements, p4x, p4y)
+            const p4Id = generateElementId('p')
+            const p4Attrs = { size: 4, name: name4, withLabel: true, showInfobox: true, highlight: true }
+            nextElements.push({ type: 'point', parents: [p4x, p4y], id: p4Id, attributes: p4Attrs })
+
+            const polyAttrs = { fillColor: '#3b82f6', fillOpacity: 0.1, borders: { strokeColor: '#3b82f6', strokeWidth: 2 } }
+            nextElements.push({ type: 'polygon', subtype: 'rhombus', parents: [p1.id, p2.id, p3Id, p4Id], attributes: polyAttrs })
+          } else if (activeTool === 'parallelogram') {
+            const p1 = pts[0], p2 = pts[1], p3 = pts[2]
+            const p1X = Math.round((typeof p1.X === 'function' ? p1.X() : p1.coords.usrCoords[1]) * 100) / 100
+            const p1Y = Math.round((typeof p1.Y === 'function' ? p1.Y() : p1.coords.usrCoords[2]) * 100) / 100
+            const p2X = Math.round((typeof p2.X === 'function' ? p2.X() : p2.coords.usrCoords[1]) * 100) / 100
+            const p2Y = Math.round((typeof p2.Y === 'function' ? p2.Y() : p2.coords.usrCoords[2]) * 100) / 100
+            const p3X = Math.round((typeof p3.X === 'function' ? p3.X() : p3.coords.usrCoords[1]) * 100) / 100
+            const p3Y = Math.round((typeof p3.Y === 'function' ? p3.Y() : p3.coords.usrCoords[2]) * 100) / 100
+
+            const { p4x, p4y } = calculateParallelogramVertices(p1X, p1Y, p2X, p2Y, p3X, p3Y)
+            const name4 = getNextPointName(nextElements, p4x, p4y)
+            const p4Id = generateElementId('p')
+            const p4Attrs = { size: 4, name: name4, withLabel: true, showInfobox: true, highlight: true }
+            nextElements.push({ type: 'point', parents: [p4x, p4y], id: p4Id, attributes: p4Attrs })
+
+            const polyAttrs = { fillColor: '#3b82f6', fillOpacity: 0.1, borders: { strokeColor: '#3b82f6', strokeWidth: 2 } }
+            nextElements.push({ type: 'polygon', subtype: 'parallelogram', parents: [p1.id, p2.id, p3.id, p4Id], attributes: polyAttrs })
           }
 
-          const overriddenSelectedPoints = [...selectedPointsRef.current]
           selectedPointsRef.current = []
-          saveHistory(nextElements, []) // Reset selected points in history when line finishes
-        } else if (addedNewPoint) {
-          saveHistory(nextElements)
+          saveHistory(nextElements, [])
+          initBoardWithState({ elements: nextElements, selectedPointIds: [] })
+          setActiveTool('select')
         } else {
-          // If we just selected an existing point as the first point, update history to save selectedPointIds
           saveHistory(nextElements)
         }
       }
     }
 
     const handleUp = () => {
-      // Check if points or text were dragged (coords changed)
-      const currentElements = getCurrentElements()
-      let changed = false
-      const nextElements = currentElements.map(el => {
-        if (el.type === 'point') {
-          const p = board.objects[el.id]
-          if (p) {
-            const nx = p.coords.usrCoords[1]
-            const ny = p.coords.usrCoords[2]
-            if (Math.abs(nx - el.parents[0]) > 0.001 || Math.abs(ny - el.parents[1]) > 0.001) {
-              changed = true
-              return { ...el, parents: [nx, ny] }
-            }
-          }
-        } else if (el.type === 'text') {
-          const p = board.objects[el.id]
-          const inputEl = document.getElementById(`inp_${el.id}`) as HTMLInputElement;
-          const currentText = inputEl ? inputEl.value : el.text;
-          if (p) {
-            const nx = typeof p.X === 'function' ? p.X() : (p.coords ? p.coords.usrCoords[1] : el.parents[0]);
-            const ny = typeof p.Y === 'function' ? p.Y() : (p.coords ? p.coords.usrCoords[2] : el.parents[1]);
-            if (Math.abs(nx - el.parents[0]) > 0.001 || Math.abs(ny - el.parents[1]) > 0.001 || currentText !== el.text) {
-              changed = true
-              return { ...el, text: currentText, parents: [nx, ny] }
-            }
-          }
+      if (activeTool === 'select' && isDraggingRef.current) {
+        isDraggingRef.current = false
+        const currentElements = getCurrentElements()
+        const newSnapshot = JSON.stringify(currentElements)
+        if (dragStartSnapshotRef.current && newSnapshot !== dragStartSnapshotRef.current) {
+          saveHistory(currentElements)
         }
-        return el
-      })
-      if (changed) {
-        saveHistory(nextElements)
+        dragStartSnapshotRef.current = null
       }
     }
 
@@ -1028,12 +1144,14 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
     }
 
     const currentElements = getCurrentElements()
-    const nextElements = currentElements.map(el => {
+    let nextElements = currentElements.map(el => {
       if (el.id === editingPoint.id) {
         return { ...el, parents: [nx, ny], attributes: { ...el.attributes, name: editingPoint.name, withLabel: !!editingPoint.name } }
       }
       return el
     })
+
+    nextElements = enforcePolygonConstraints(nextElements, editingPoint.id)
 
     setEditingPoint(null)
     saveHistory(nextElements)
@@ -1380,6 +1498,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
 
         if (mfRef.current) mfRef.current.value = '';
         setFuncInput('');
+        handleToolClick('select');
       }
     } catch (err) {
       console.warn("Invalid function syntax:", err);
@@ -1453,110 +1572,164 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         {/* Body */}
         <div className="flex-1 flex min-h-0 bg-slate-100 p-4 gap-4">
           {/* Toolbar */}
-          <div className="w-48 bg-white rounded-xl border border-border p-2 flex flex-col gap-1 shadow-sm shrink-0">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2 pt-2">Công cụ</div>
+          {/* Toolbar */}
+          <div className="w-52 bg-white rounded-xl border border-border p-2 flex flex-col shadow-sm shrink-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1" style={{ maxHeight: 'calc(85vh - 160px)' }}>
+              {/* Group: Cơ bản */}
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Cơ bản</div>
+              <button
+                onClick={() => handleToolClick('select')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'select' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <MousePointer2 className="w-3.5 h-3.5" /> Chọn & Kéo
+              </button>
+              <button
+                onClick={() => handleToolClick('point')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'point' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <CircleDot className="w-3.5 h-3.5" /> Thêm điểm
+              </button>
+              <button
+                onClick={handleAddTextBox}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-slate-600 hover:bg-slate-50 hover:text-primary cursor-pointer border border-transparent hover:border-slate-200"
+                title="Thêm ô nhập chữ vào giữa hình vẽ"
+              >
+                <Type className="w-3.5 h-3.5 text-primary" /> Thêm ô text
+              </button>
 
-            <button
-              onClick={() => handleToolClick('select')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTool === 'select' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <MousePointer2 className="w-4 h-4" /> Chọn & Kéo
-            </button>
-            <button
-              onClick={() => handleToolClick('point')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTool === 'point' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <CircleDot className="w-4 h-4" /> Thêm điểm
-            </button>
-            <button
-              onClick={() => handleToolClick('line')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTool === 'line' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Minus className="w-4 h-4" /> Đoạn thẳng
-            </button>
-            <button
-              onClick={() => handleToolClick('circle')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTool === 'circle' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Circle className="w-4 h-4" /> Đường tròn
-            </button>
-            <button
-              onClick={() => handleToolClick('function')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTool === 'function' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <FunctionSquare className="w-4 h-4" /> Đồ thị hàm
-            </button>
-            <button
-              onClick={handleAddTextBox}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50 hover:text-primary cursor-pointer border border-transparent hover:border-slate-200"
-              title="Thêm ô nhập chữ vào giữa hình vẽ"
-            >
-              <Type className="w-4 h-4 text-primary" /> Thêm ô text
-            </button>
+              <div className="my-1 border-t border-slate-100" />
 
-            <div className="my-1 border-t border-slate-100" />
+              {/* Group: Đường & Đoạn */}
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Đường & Đoạn</div>
+              <button
+                onClick={() => handleToolClick('segment')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'segment' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Minus className="w-3.5 h-3.5" /> Đoạn thẳng
+              </button>
+              <button
+                onClick={() => handleToolClick('line')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'line' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Slash className="w-3.5 h-3.5" /> Đường thẳng
+              </button>
 
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider my-1 px-2">Hiển thị</div>
+              <div className="my-1 border-t border-slate-100" />
 
-            {/* Toggle Grid */}
-            <button
-              type="button"
-              onClick={handleToggleGrid}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                showGrid ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
-              }`}
-              title={showGrid ? "Ẩn lưới ô vuông (sẽ tự động ẩn trục tọa độ)" : "Hiện lưới ô vuông"}
-            >
-              <span className="flex items-center gap-2">
-                <Grid className="w-4 h-4 text-slate-500" /> Lưới ô vuông
-              </span>
-              <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                showGrid ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
-              }`}>
-                {showGrid && <Check className="w-3 h-3 stroke-[3]" />}
-              </span>
-            </button>
+              {/* Group: Hình học */}
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hình học</div>
+              <button
+                onClick={() => handleToolClick('triangle')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'triangle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Triangle className="w-3.5 h-3.5" /> Tam giác
+              </button>
+              <button
+                onClick={() => handleToolClick('square')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'square' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Square className="w-3.5 h-3.5" /> Hình vuông
+              </button>
+              <button
+                onClick={() => handleToolClick('rectangle')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'rectangle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <RectangleHorizontal className="w-3.5 h-3.5" /> Hình chữ nhật
+              </button>
+              <button
+                onClick={() => handleToolClick('rhombus')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'rhombus' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Diamond className="w-3.5 h-3.5" /> Hình thoi
+              </button>
+              <button
+                onClick={() => handleToolClick('parallelogram')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'parallelogram' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Parallelogram className="w-3.5 h-3.5" /> Hình bình hành
+              </button>
+              <button
+                onClick={() => handleToolClick('circle')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'circle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Circle className="w-3.5 h-3.5" /> Hình tròn
+              </button>
 
-            {/* Toggle Axes */}
-            <button
-              type="button"
-              disabled={!showGrid}
-              onClick={handleToggleAxes}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !showGrid
-                  ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400 border border-transparent'
-                  : showAxes
-                  ? 'bg-slate-100 text-slate-800 cursor-pointer'
-                  : 'text-slate-500 hover:bg-slate-50 cursor-pointer'
-              }`}
-              title={
-                !showGrid
-                  ? 'Cần bật Lưới ô vuông để sử dụng Trục tọa độ'
-                  : showAxes
-                  ? 'Ẩn trục tọa độ'
-                  : 'Hiện trục tọa độ'
-              }
-            >
-              <span className="flex items-center gap-2">
-                <Compass className={`w-4 h-4 ${!showGrid ? 'text-slate-300' : 'text-slate-500'}`} /> Trục tọa độ
-              </span>
-              <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                !showGrid
-                  ? 'border-slate-200 bg-slate-100'
-                  : showAxes
-                  ? 'bg-primary border-primary text-white'
-                  : 'border-slate-300 bg-white'
-              }`}>
-                {showGrid && showAxes && <Check className="w-3 h-3 stroke-[3]" />}
-              </span>
-            </button>
+              <div className="my-1 border-t border-slate-100" />
 
-            <div className="mt-auto p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-medium border border-blue-100 leading-relaxed">
+              {/* Group: Hàm số */}
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hàm số</div>
+              <button
+                onClick={() => handleToolClick('function')}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'function' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <FunctionSquare className="w-3.5 h-3.5" /> Đồ thị hàm
+              </button>
+
+              <div className="my-1 border-t border-slate-100" />
+
+              {/* Group: Hiển thị */}
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hiển thị</div>
+              <button
+                type="button"
+                onClick={handleToggleGrid}
+                className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${showGrid ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                title={showGrid ? "Ẩn lưới ô vuông (sẽ tự động ẩn trục tọa độ)" : "Hiện lưới ô vuông"}
+              >
+                <span className="flex items-center gap-2">
+                  <Grid className="w-3.5 h-3.5 text-slate-500" /> Lưới ô vuông
+                </span>
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${showGrid ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
+                  }`}>
+                  {showGrid && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!showGrid}
+                onClick={handleToggleAxes}
+                className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${!showGrid
+                    ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400 border border-transparent'
+                    : showAxes
+                      ? 'bg-slate-100 text-slate-800 cursor-pointer'
+                      : 'text-slate-500 hover:bg-slate-50 cursor-pointer'
+                  }`}
+                title={
+                  !showGrid
+                    ? 'Cần bật Lưới ô vuông để sử dụng Trục tọa độ'
+                    : showAxes
+                      ? 'Ẩn trục tọa độ'
+                      : 'Hiện trục tọa độ'
+                }
+              >
+                <span className="flex items-center gap-2">
+                  <Compass className={`w-3.5 h-3.5 ${!showGrid ? 'text-slate-300' : 'text-slate-500'}`} /> Trục tọa độ
+                </span>
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${!showGrid
+                    ? 'border-slate-200 bg-slate-100'
+                    : showAxes
+                      ? 'bg-primary border-primary text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}>
+                  {showGrid && showAxes && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </span>
+              </button>
+            </div>
+
+            <div className="mt-2 p-2 bg-blue-50 text-blue-800 rounded-lg text-[11px] font-medium border border-blue-100 leading-relaxed shrink-0">
               {activeTool === 'point' && "Click vào bảng để tạo điểm mới."}
-              {activeTool === 'line' && "Click 2 điểm liên tiếp để nối thành đoạn thẳng."}
+              {activeTool === 'segment' && "Click 2 điểm liên tiếp để vẽ đoạn thẳng."}
+              {activeTool === 'line' && "Click 2 điểm liên tiếp để vẽ đường thẳng vô hạn."}
+              {activeTool === 'triangle' && "Click 3 điểm liên tiếp để vẽ tam giác."}
+              {activeTool === 'square' && "Click 2 điểm cạnh đáy để vẽ hình vuông chuẩn (không méo góc)."}
+              {activeTool === 'rectangle' && "Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình chữ nhật."}
+              {activeTool === 'rhombus' && "Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình thoi chuẩn."}
+              {activeTool === 'parallelogram' && "Click 3 điểm để vẽ hình bình hành chuẩn 2 cặp cạnh song song."}
               {activeTool === 'circle' && "Click tâm đường tròn, sau đó click một điểm trên viền."}
               {activeTool === 'function' && "Nhập công thức hàm số rồi nhấn Vẽ để thêm đồ thị."}
-              {activeTool === 'select' && "Kéo thả để di chuyển ô text hoặc điểm. Click chuột phải vào điểm để sửa tọa độ & tên."}
+              {activeTool === 'select' && "Kéo thả để di chuyển các đỉnh. Click chuột phải vào điểm để sửa tọa độ & tên."}
             </div>
           </div>
 

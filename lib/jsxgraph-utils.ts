@@ -54,7 +54,7 @@ export function normalizeAiGeometryJson(parsed: any) {
         const to = (el.to || el.toId || el.end || el.endId || '').toString()
         if (from && to) {
           elements.push({
-            type: 'segment',
+            type: normType === 'line' ? 'line' : 'segment',
             from,
             to,
             parents: [from, to]

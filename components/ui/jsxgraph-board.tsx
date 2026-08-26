@@ -319,7 +319,11 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                   if (foundKey) p2 = newPointMap[foundKey]
                 }
                 if (p1 && p2) {
-                  board.create(normType, [p1, p2], attrs)
+                  if (normType === 'line') {
+                    board.create('line', [p1, p2], { straightFirst: true, straightLast: true, strokeColor: '#3b82f6', strokeWidth: 2, ...attrs })
+                  } else {
+                    board.create('segment', [p1, p2], { strokeColor: '#3b82f6', strokeWidth: 2, ...attrs })
+                  }
                 }
               } else if (normType === 'circle') {
                 const centerKey = el.centerId || el.center || el.centerPoint || (parents ? parents[0] : null)
@@ -381,6 +385,33 @@ export function JsxGraphBoard({ shapeCode = 'board', jsxGraphData, width = '100%
                     pointCoords.push({ x: cx - r, y: cy - r })
                     pointCoords.push({ x: cx + r, y: cy + r })
                   }
+                }
+              } else if (normType === 'polygon') {
+                const rawParents = Array.isArray(parents) ? parents : (Array.isArray(el.points) ? el.points : [])
+                const polyPoints = rawParents.map((pk: any) => {
+                  if (typeof pk === 'string') {
+                    let p = newPointMap[pk]
+                    if (!p) {
+                      const foundKey = Object.keys(newPointMap).find(k => k.toLowerCase() === pk.toLowerCase())
+                      if (foundKey) p = newPointMap[foundKey]
+                    }
+                    return p
+                  }
+                  if (pk && typeof pk === 'object') {
+                    if (pk.id && newPointMap[pk.id]) return newPointMap[pk.id]
+                    if (pk.name && newPointMap[pk.name]) return newPointMap[pk.name]
+                  }
+                  return null
+                }).filter(Boolean)
+
+                if (polyPoints.length >= 3) {
+                  const polyAttrs = {
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.1,
+                    borders: { strokeColor: '#3b82f6', strokeWidth: 2 },
+                    ...attrs
+                  }
+                  board.create('polygon', polyPoints, polyAttrs)
                 }
               } else if (normType === 'functiongraph') {
                 let fg;
