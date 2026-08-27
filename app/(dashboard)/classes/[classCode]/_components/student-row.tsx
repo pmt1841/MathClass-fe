@@ -1,5 +1,5 @@
 import React from 'react'
-import { Mail, Trash2, Loader2 } from 'lucide-react'
+import { Mail, Trash2, Loader2, MessageSquareQuote } from 'lucide-react'
 import { Student } from '@/types'
 import { formatDate } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
@@ -9,11 +9,13 @@ export function StudentRow({
   index,
   isRemoving,
   onRemove,
+  onOpenRemarks,
 }: {
   student: Student
   index: number
   isRemoving: boolean
   onRemove: () => void
+  onOpenRemarks?: () => void
 }) {
   const colors = [
     'from-indigo-400 to-purple-500',
@@ -46,16 +48,29 @@ export function StudentRow({
           {formatDate(student.joinedAt)}
         </span>
       )}
-      <PermissionGuard permission="classroom:remove_student">
-        <button
-          onClick={onRemove}
-          disabled={isRemoving}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 disabled:opacity-50"
-          title="Xóa học sinh khỏi lớp"
-        >
-          {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-        </button>
-      </PermissionGuard>
+      
+      <div className="flex items-center gap-1">
+        {onOpenRemarks && (
+          <button
+            onClick={onOpenRemarks}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200"
+            title="Lịch sử nhận xét (Điểm mạnh & Điểm yếu)"
+          >
+            <MessageSquareQuote className="h-4 w-4" />
+          </button>
+        )}
+
+        <PermissionGuard permission="classroom:remove_student">
+          <button
+            onClick={onRemove}
+            disabled={isRemoving}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 disabled:opacity-50"
+            title="Xóa học sinh khỏi lớp"
+          >
+            {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          </button>
+        </PermissionGuard>
+      </div>
     </div>
   )
 }

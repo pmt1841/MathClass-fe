@@ -47,7 +47,7 @@ describe('submissionService', () => {
       const payload = {
         versionNumber: 2,
         quoteText: 'Phần kết luận',
-        commentText: 'Cần giải thích rõ hơn'
+        content: 'Cần giải thích rõ hơn'
       }
       const mockCreated = {
         id: 3,
@@ -56,7 +56,7 @@ describe('submissionService', () => {
         teacherId: 2,
         teacherName: 'Thầy A',
         quoteText: 'Phần kết luận',
-        commentText: 'Cần giải thích rõ hơn',
+        content: 'Cần giải thích rõ hơn',
         createdAt: '2026-08-26'
       }
       vi.mocked(api.post).mockResolvedValueOnce({ data: mockCreated })
