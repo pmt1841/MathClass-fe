@@ -25,15 +25,71 @@ import { classroomService } from '@/services/classroomService'
 import { assignmentService } from '@/services/assignmentService'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useQueryClient } from '@tanstack/react-query'
+import { chatService } from '@/services/chatService'
 import { ClassroomStudentsPopover } from './ClassroomStudentsPopover'
 import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentChatWidget'
+import { ChatDockProvider, useChatDock } from '@/components/chat/ChatDockContext'
+import { FloatingChatDock } from '@/components/chat/FloatingChatDock'
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────
-const DEFAULT_ANNOUNCEMENTS = [
+export interface TaskItem {
+  id?: number;
+  title?: string;
+  submissionScore?: number;
+  submissionStatus?: string;
+  submissionUpdatedAt?: string;
+  submissionCreatedAt?: string;
+  [key: string]: any;
+}
+
+export interface StudentTask {
+  id: number;
+  title: string;
+  description?: string;
+  isSheet?: boolean;
+  status?: string;
+  submissionStatus?: string;
+  deadline?: string;
+  submissionScore?: number;
+  createdAt?: string;
+  items?: TaskItem[];
+  [key: string]: any;
+}
+
+export interface Announcement {
+  id: number;
+  author: string;
+  initials: string;
+  time: string;
+  pinned: boolean;
+  type: string;
+  content: string;
+  comments: number;
+  createdAt?: string;
+}
+
+export interface ClassroomData {
+  id?: number;
+  className?: string;
+  teacherName?: string;
+  teacherEmail?: string;
+  teacherPhone?: string;
+  teacherAvatarUrl?: string;
+  teacherAvatar?: string;
+  teacherId?: number;
+  studentCount?: number;
+  maxStudents?: number;
+  students?: Array<{ id: number; fullName: string; email?: string; avatarUrl?: string }>;
+  [key: string]: any;
+}
+
+const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 1,
     author: 'Hệ thống',
@@ -51,13 +107,13 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [classroom, setClassroom] = useState<any>(null)
-  const [assignedTasks, setAssignedTasks] = useState<any[]>([])
-  const [completedTasks, setCompletedTasks] = useState<any[]>([])
-  const [overdueTasks, setOverdueTasks] = useState<any[]>([])
+  const [classroom, setClassroom] = useState<ClassroomData | null>(null)
+  const [assignedTasks, setAssignedTasks] = useState<StudentTask[]>([])
+  const [completedTasks, setCompletedTasks] = useState<StudentTask[]>([])
+  const [overdueTasks, setOverdueTasks] = useState<StudentTask[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ completionRate: '0/0', avgScore: '0.0' })
-  const [announcements, setAnnouncements] = useState<any[]>(DEFAULT_ANNOUNCEMENTS)
+  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS)
 
   const [assignedLimit, setAssignedLimit] = useState(5)
   const [overdueLimit, setOverdueLimit] = useState(5)
@@ -131,20 +187,20 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
           assignmentService.getAssignmentSheets({ classCode, status: 'PUBLISHED' })
         ])
         setClassroom(classData)
-        const allAssignments = (assignData?.content || assignData || []).map((a: any) => ({
+        const allAssignments = (assignData?.content || assignData || []).map((a: StudentTask) => ({
           ...a,
           isSheet: false,
           status: 'PUBLISHED'
         }))
-        const publishedAssignments = allAssignments.filter((a: any) => a.status === 'PUBLISHED')
-        const sheets = (sheetsData?.content || []).map((s: any) => ({ ...s, isSheet: true, status: 'PUBLISHED' }))
+        const publishedAssignments = allAssignments.filter((a: StudentTask) => a.status === 'PUBLISHED')
+        const sheets = (sheetsData?.content || []).map((s: StudentTask) => ({ ...s, isSheet: true, status: 'PUBLISHED' }))
 
-        const allTasks = [...publishedAssignments, ...sheets]
+        const allTasks: StudentTask[] = [...publishedAssignments, ...sheets]
 
         const now = new Date()
-        const assigned: any[] = []
-        const completed: any[] = []
-        const overdue: any[] = []
+        const assigned: StudentTask[] = []
+        const completed: StudentTask[] = []
+        const overdue: StudentTask[] = []
 
         allTasks.forEach(task => {
           const subStatus = task.submissionStatus
@@ -161,7 +217,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         })
 
         // Sắp xếp Bài tập cần làm: Bài còn ít thời gian nhất (gần hạn nộp nhất) lên đầu
-        assigned.sort((a: any, b: any) => {
+        assigned.sort((a: StudentTask, b: StudentTask) => {
           if (!a.deadline && !b.deadline) return 0
           if (!a.deadline) return 1 // Bài không có hạn nộp xếp xuống dưới
           if (!b.deadline) return -1
@@ -180,7 +236,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         completed.forEach(task => {
           if (task.submissionStatus === 'GRADED') {
             if (task.isSheet) {
-              const sheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0
+              const sheetScore = task.items?.reduce((sum: number, item: TaskItem) => sum + (item.submissionScore || 0), 0) || 0
               totalScore += sheetScore
               gradedCount++
             } else if (task.submissionScore !== undefined && task.submissionScore !== null) {
@@ -198,7 +254,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
         // Tạo thông báo thật dựa trên bài tập được đăng
         const generatedAnnouncements = allTasks
-          .map((task: any, index: number) => ({
+          .map((task: StudentTask) => ({
             id: task.id + (task.isSheet ? 2000 : 1000),
             author: classData?.teacherName || 'Giáo viên',
             initials: (classData?.teacherName || 'GV').split(' ').pop()?.[0]?.toUpperCase() || 'GV',
@@ -209,7 +265,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             comments: 0,
             createdAt: task.createdAt
           }))
-          .sort((a: any, b: any) => (parseDateSafe(b.createdAt)?.getTime() ?? 0) - (parseDateSafe(a.createdAt)?.getTime() ?? 0));
+          .sort((a: Announcement, b: Announcement) => (parseDateSafe(b.createdAt)?.getTime() ?? 0) - (parseDateSafe(a.createdAt)?.getTime() ?? 0));
 
         if (generatedAnnouncements.length > 0) {
           generatedAnnouncements[0].pinned = true; // Pin the latest announcement
@@ -237,11 +293,114 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const oldAnnouncements = announcements.slice(1, 4) // Max 3 old announcements
 
   return (
+    <ChatDockProvider
+      classId={classroom?.id || 0}
+      classCode={classCode}
+      currentUserId={user?.id || 0}
+    >
+      <StudentClassDetailPageContent
+        classCode={classCode}
+        classroom={classroom}
+        assignedTasks={assignedTasks}
+        completedTasks={completedTasks}
+        overdueTasks={overdueTasks}
+        loading={loading}
+        stats={stats}
+        assignedLimit={assignedLimit}
+        overdueLimit={overdueLimit}
+        completedLimit={completedLimit}
+        loadingMoreAssigned={loadingMoreAssigned}
+        loadingMoreOverdue={loadingMoreOverdue}
+        loadingMoreCompleted={loadingMoreCompleted}
+        handleScrollAssigned={handleScrollAssigned}
+        handleScrollOverdue={handleScrollOverdue}
+        handleScrollCompleted={handleScrollCompleted}
+        teacherName={teacherName}
+        teacherInitials={teacherInitials}
+        teacherEmail={teacherEmail}
+        teacherPhone={teacherPhone}
+        latestAnnouncement={latestAnnouncement}
+        oldAnnouncements={oldAnnouncements}
+        router={router}
+        searchParams={searchParams}
+      />
+    </ChatDockProvider>
+  )
+}
+
+interface StudentClassDetailPageContentProps {
+  classCode: string
+  classroom: ClassroomData | null
+  assignedTasks: StudentTask[]
+  completedTasks: StudentTask[]
+  overdueTasks: StudentTask[]
+  loading: boolean
+  stats: { completionRate: string; avgScore: string }
+  assignedLimit: number
+  overdueLimit: number
+  completedLimit: number
+  loadingMoreAssigned: boolean
+  loadingMoreOverdue: boolean
+  loadingMoreCompleted: boolean
+  handleScrollAssigned: (e: React.UIEvent<HTMLDivElement>) => void
+  handleScrollOverdue: (e: React.UIEvent<HTMLDivElement>) => void
+  handleScrollCompleted: (e: React.UIEvent<HTMLDivElement>) => void
+  teacherName: string
+  teacherInitials: string
+  teacherEmail?: string
+  teacherPhone?: string
+  latestAnnouncement?: Announcement
+  oldAnnouncements: Announcement[]
+  router: any
+  searchParams: any
+}
+
+interface AutoOpenTeacherChatProps {
+  teacherName: string
+  teacherAvatar?: string
+  teacherId?: number
+}
+
+function StudentClassDetailPageContent({
+  classCode,
+  classroom,
+  assignedTasks,
+  completedTasks,
+  overdueTasks,
+  loading,
+  stats,
+  assignedLimit,
+  overdueLimit,
+  completedLimit,
+  loadingMoreAssigned,
+  loadingMoreOverdue,
+  loadingMoreCompleted,
+  handleScrollAssigned,
+  handleScrollOverdue,
+  handleScrollCompleted,
+  teacherName,
+  teacherInitials,
+  teacherEmail,
+  teacherPhone,
+  latestAnnouncement,
+  oldAnnouncements,
+  router,
+  searchParams,
+}: StudentClassDetailPageContentProps) {
+  const queryClient = useQueryClient()
+  const { openChat } = useChatDock()
+  const { hasGroupUnread, groupUnreadCount, hasAnyStudentUnread, unreadStudentIds, studentUnreadCounts } = useClassroomChatUnread(classCode)
+  const teacherId = classroom?.teacherId
+  const hasTeacherUnread = teacherId ? unreadStudentIds.includes(teacherId) : false
+  const teacherUnreadCount = teacherId ? (studentUnreadCounts[teacherId] || 0) : 0
+  const hasOtherStudentUnread = teacherId
+    ? unreadStudentIds.some((id: number) => id !== teacherId)
+    : hasAnyStudentUnread
+
+  return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
 
-      {/* ── Hero & Banner Section ── */}
       <div className="relative bg-white border-b border-border shadow-sm">
-        {/* Background gradient/glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/30 opacity-70" />
 
         <div className="relative z-10 mx-auto max-w-[1600px] px-6 pt-6 pb-8">
@@ -255,7 +414,6 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
 
-            {/* Title & Info */}
             <div className="flex-1 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
@@ -266,7 +424,74 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                   classCode={classCode}
                   studentCount={classroom?.studentCount || 0}
                   maxStudents={classroom?.maxStudents || 0}
+                  hasUnread={hasOtherStudentUnread}
                 />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    openChat({ id: 'group', type: 'CLASS_GROUP', title: 'Chat Lớp' })
+                    try {
+                      await chatService.markGroupAsRead(classCode)
+                      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] })
+                      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] })
+                    } catch (e) {
+                    }
+                  }}
+                  className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/60 px-3.5 py-1 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:text-indigo-800 transition-all cursor-pointer active:scale-95"
+                  title="Mở kênh Chat nhóm Lớp học"
+                >
+                  <div className="relative flex items-center justify-center">
+                    <Users className="h-3.5 w-3.5 text-indigo-600" />
+                    {hasGroupUnread && (
+                      <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span>Chat Lớp</span>
+                  {hasGroupUnread && (
+                    <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                      {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    openChat({
+                      id: 'teacher',
+                      type: 'DIRECT_TEACHER',
+                      title: teacherName,
+                      avatar: classroom?.teacherAvatarUrl || classroom?.teacherAvatar,
+                      targetUserId: classroom?.teacherId,
+                    })
+                    try {
+                      await chatService.markAsRead(classCode)
+                      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] })
+                      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] })
+                    } catch (e) {
+                    }
+                  }}
+                  className="relative inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3.5 py-1 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 transition-all cursor-pointer active:scale-95"
+                  title="Mở khung Chat riêng với Giảng viên"
+                >
+                  <div className="relative flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                    {hasTeacherUnread && (
+                      <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span>Hỏi Giảng viên</span>
+                  {hasTeacherUnread && (
+                    <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                      {teacherUnreadCount > 0 ? `${teacherUnreadCount} mới` : 'Mới'}
+                    </span>
+                  )}
+                </button>
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
@@ -274,7 +499,6 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
               </h1>
             </div>
 
-            {/* Latest Announcement Banner */}
             <div className="lg:w-[500px] xl:w-[600px] flex-shrink-0">
               <div className="bg-amber-50/80 backdrop-blur-md border border-amber-200/60 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2">
@@ -287,12 +511,12 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-full">Tin mới nhất</span>
-                      <span className="text-[11px] text-amber-600/80">{latestAnnouncement.time}</span>
+                      <span className="text-[11px] text-amber-600/80">{latestAnnouncement?.time}</span>
                     </div>
                     <p className="text-sm text-amber-950 font-medium leading-snug line-clamp-2 group-hover:line-clamp-none transition-all duration-300">
-                      {latestAnnouncement.content}
+                      {latestAnnouncement?.content}
                     </p>
-                    <p className="text-[11px] font-semibold text-amber-700 mt-2">— {latestAnnouncement.author}</p>
+                    <p className="text-[11px] font-semibold text-amber-700 mt-2">— {latestAnnouncement?.author}</p>
                   </div>
                 </div>
               </div>
@@ -302,14 +526,11 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         </div>
       </div>
 
-      {/* ── Main Content Grid ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1600px] px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 xl:gap-8">
 
-            {/* ── Column 1 (Left 25%): Quick Info & Calendar ── */}
             <div className="space-y-6 lg:col-span-1 hidden lg:block">
-              {/* Teacher Info */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-slate-300 transition-all duration-200">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Giáo viên phụ trách</h3>
                 <div className="flex items-center gap-3">
@@ -350,10 +571,8 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
               </div>
             </div>
 
-            {/* ── Column 2 (Middle 50%): Productivity Focus ── */}
             <div className="space-y-6 lg:col-span-2">
 
-              {/* Assignments To Do (Accordion) */}
               <details open className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex items-center justify-between p-5 cursor-pointer bg-blue-50/30 hover:bg-blue-50/80 transition-colors">
                   <div className="flex items-center gap-3">
@@ -384,7 +603,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     </div>
                   ) : (
                     <>
-                      {assignedTasks.slice(0, assignedLimit).map((task) => {
+                      {assignedTasks.slice(0, assignedLimit).map((task: StudentTask) => {
                         if (task.isSheet) {
                           return (
                             <details
@@ -416,7 +635,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                 </div>
                               </summary>
                               <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
-                                {task.items?.map((item: any, i: number) => (
+                                {task.items?.map((item: TaskItem, i: number) => (
                                   <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
@@ -496,7 +715,6 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 </div>
               </details>
 
-              {/* Overdue Tasks (Accordion) */}
               <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex items-center justify-between p-5 cursor-pointer bg-red-50/30 hover:bg-red-50/80 transition-colors">
                   <div className="flex items-center gap-3">
@@ -520,33 +738,39 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     <p className="text-xs text-muted-foreground text-center py-2">Bạn không có bài tập nào quá hạn.</p>
                   ) : (
                     <>
-                      {overdueTasks.slice(0, overdueLimit).map((task) => {
+                      {overdueTasks.slice(0, overdueLimit).map((task: StudentTask) => {
                         if (task.isSheet) {
                           return (
                             <details
                               key={task.isSheet ? `sheet-${task.id}` : `task-${task.id}`}
-                              className="group flex flex-col rounded-xl border border-red-100 bg-white shadow-sm hover:shadow-md transition-all [&_summary::-webkit-details-marker]:hidden"
+                              className="group flex flex-col rounded-2xl border border-red-200 bg-white shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-300 [&_summary::-webkit-details-marker]:hidden"
                             >
-                              <summary className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 cursor-pointer hover:bg-red-50/30">
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title} (Phiếu bài tập)</h4>
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
-                                      {task.items?.length || 0} bài tập
-                                    </span>
+                              <summary className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 cursor-pointer">
+                                <div className="flex items-start gap-4">
+                                  <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-300">
+                                    <BookOpen className="h-5 w-5" />
                                   </div>
-                                  <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-red-500">
-                                    <AlertCircle className="h-3 w-3" />
-                                    Hết hạn: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
-                                  </span>
+                                  <div>
+                                    <h4 className="font-bold text-base text-slate-900 group-hover:text-red-700 transition-colors">{task.title} (Phiếu quá hạn)</h4>
+                                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || 'Không có mô tả chi tiết'}</p>
+                                    <div className="flex items-center gap-3 mt-3">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-red-100 text-red-700 border border-red-200">
+                                        <Clock className="h-3 w-3" />
+                                        Đã quá hạn: {task.deadline ? formatDateTime(task.deadline) : ''}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-slate-100 text-slate-600">
+                                        {task.items?.length || 0} bài tập
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100">
-                                  Mở phiếu
+                                <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 transition-all">
+                                  Xem chi tiết
                                   <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                                 </div>
                               </summary>
-                              <div className="p-4 border-t border-red-50 bg-slate-50/30 space-y-3">
-                                {task.items?.map((item: any, i: number) => (
+                              <div className="p-5 border-t border-red-100 bg-red-50/30 space-y-3">
+                                {task.items?.map((item: TaskItem, i: number) => (
                                   <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-100 bg-white p-3 shadow-sm hover:shadow-md transition-all">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
@@ -613,7 +837,6 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 </div>
               </details>
 
-              {/* Completed Tasks (Accordion) */}
               <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
                 <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3">
@@ -637,13 +860,13 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                     <p className="text-xs text-muted-foreground text-center py-2">Bạn chưa hoàn thành bài tập nào.</p>
                   ) : (
                     <>
-                      {completedTasks.slice(0, completedLimit).map((task) => {
+                      {completedTasks.slice(0, completedLimit).map((task: StudentTask) => {
                         if (task.isSheet) {
                           const isGraded = task.submissionStatus === 'GRADED';
-                          const submittedAt = 'Đã hoàn thành'; // Sheets don't have a single submit time currently mapped, or use items' latest
+                          const submittedAt = 'Đã hoàn thành';
 
-                          const totalSheetScore = task.items?.reduce((sum: number, item: any) => sum + (item.submissionScore || 0), 0) || 0;
-                          const allItemsGraded = task.items?.length > 0 && task.items.every((item: any) => item.submissionStatus === 'GRADED');
+                          const totalSheetScore = task.items?.reduce((sum: number, item: TaskItem) => sum + (item.submissionScore || 0), 0) || 0;
+                          const allItemsGraded = (task.items?.length ?? 0) > 0 && task.items!.every((item: TaskItem) => item.submissionStatus === 'GRADED');
 
                           return (
                             <details
@@ -671,7 +894,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                                 </div>
                               </summary>
                               <div className="p-4 border-t border-slate-100 bg-slate-50/30 space-y-3">
-                                {task.items?.map((item: any, i: number) => {
+                                {task.items?.map((item: TaskItem, i: number) => {
                                   const itemGraded = item.submissionStatus === 'GRADED';
                                   const itemSubmittedAt = item.submissionUpdatedAt || item.submissionCreatedAt ? formatDateTime(item.submissionUpdatedAt || item.submissionCreatedAt) : 'Chưa có thông tin';
                                   return (
@@ -760,10 +983,8 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
 
             </div>
 
-            {/* ── Column 3 (Right 25%): Announcements Sidebar ── */}
             <div className="space-y-6 lg:col-span-1">
 
-              {/* Old Announcements */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
                   <div className="flex items-center gap-2.5">
@@ -775,26 +996,20 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {oldAnnouncements.map((ann) => (
-                    <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
-                          {ann.initials}
-                        </div>
-                        <p className="text-xs font-bold text-slate-700">{ann.author}</p>
+                  {oldAnnouncements.map((ann: Announcement) => (
+                    <div
+                      key={ann.id}
+                      className="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 transition-colors flex items-start gap-3 shadow-2xs"
+                    >
+                      <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-bold text-xs">
+                        {ann.initials}
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all duration-300">
-                        {ann.type === 'assignment' ? (
-                          <span className="flex items-center gap-1 text-blue-600 font-medium">
-                            <FileText className="h-3 w-3" /> {ann.content}
-                          </span>
-                        ) : (
-                          ann.content
-                        )}
-                      </p>
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-[10px] text-slate-400">{ann.time}</p>
-
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-xs text-slate-800">{ann.author}</span>
+                          <span className="text-[10px] text-slate-400">{ann.time}</span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{ann.content}</p>
                       </div>
                     </div>
                   ))}
@@ -812,18 +1027,31 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Floating Chat Widget dành cho Học sinh */}
-      {classroom && user && (
-        <ClassroomStudentChatWidget
-          classId={classroom.id}
-          classCode={classCode}
-          studentId={user.id}
-          teacherId={classroom.teacherId}
+      {/* Auto open teacher chat if chat=open in URL */}
+      {searchParams.get('chat') === 'open' && (
+        <AutoOpenTeacherChat
           teacherName={teacherName}
-          teacherAvatar={classroom.teacherAvatarUrl || classroom.teacherAvatar}
-          initialOpen={searchParams.get('chat') === 'open'}
+          teacherAvatar={classroom?.teacherAvatarUrl || classroom?.teacherAvatar}
+          teacherId={classroom?.teacherId}
         />
       )}
+
+      {/* Floating Chat Dock thống nhất duy nhất cho tất cả loại chat */}
+      <FloatingChatDock />
     </div>
   )
+}
+
+function AutoOpenTeacherChat({ teacherName, teacherAvatar, teacherId }: any) {
+  const { openChat } = useChatDock()
+  useEffect(() => {
+    openChat({
+      id: 'teacher',
+      type: 'DIRECT_TEACHER',
+      title: teacherName,
+      avatar: teacherAvatar,
+      targetUserId: teacherId,
+    })
+  }, [openChat, teacherName, teacherAvatar, teacherId])
+  return null
 }

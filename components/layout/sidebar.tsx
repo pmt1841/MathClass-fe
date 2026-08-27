@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { useUnreadChatClasses } from '@/hooks/useUnreadChatClasses'
 import { ReportBugModal } from '@/components/bug-report/ReportBugModal'
 
 export interface NavItem {
@@ -122,6 +123,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const [collapsed, setCollapsed] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const { user } = useAuth()
+  const { hasAnyUnread } = useUnreadChatClasses()
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -186,6 +188,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
           {visibleItems.map((item) => {
             const Icon = item.icon
             const active = !item.isAction && isActive(item.href)
+            const isClassesItem = item.href === '/classes'
 
             if (item.isAction) {
               return (
@@ -217,8 +220,22 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                <div className="relative flex items-center justify-center">
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
+                  {collapsed && isClassesItem && hasAnyUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
+                </div>
                 {!collapsed && <span className="flex-1">{item.label}</span>}
+                {!collapsed && isClassesItem && hasAnyUnread && (
+                  <span className="relative flex h-2.5 w-2.5 ml-auto">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+                )}
                 {!collapsed && item.badge && (
                   <span className="rounded-full bg-accent text-accent-foreground text-xs font-bold px-2 py-0.5">
                     {item.badge}

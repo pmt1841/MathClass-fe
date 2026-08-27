@@ -8,6 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useChatDock } from './ChatDockContext';
+import { Users } from 'lucide-react';
+
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
 
 interface ClassroomStudentChatWidgetProps {
   classId: number;
@@ -33,6 +37,8 @@ export function ClassroomStudentChatWidget({
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { openChat } = useChatDock();
+  const { hasGroupUnread, groupUnreadCount } = useClassroomChatUnread(classCode);
 
   useEffect(() => {
     if (initialOpen) {
@@ -167,18 +173,41 @@ export function ClassroomStudentChatWidget({
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  openChat({
+                    id: 'group',
+                    type: 'CLASS_GROUP',
+                    title: 'Chat Lớp',
+                  })
+                }
+                className="text-xs text-white/90 hover:text-white hover:bg-white/10 rounded-lg px-2 py-1 flex items-center gap-1.5"
+                title="Mở kênh Chat nhóm Lớp học"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Chat Lớp</span>
+                {hasGroupUnread && (
+                  <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Body: Danh sách tin nhắn */}
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8 bg-slate-50/50 dark:bg-slate-900/50">
             {isLoadingHistory && messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-400 text-xs gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Đang nạp tin nhắn...

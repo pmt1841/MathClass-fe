@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, MessageSquare, Send, User as UserIcon } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Search, MessageSquare, Send, Users, User as UserIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useClassChat } from '@/hooks/useClassChat';
 import { ChatMessageItem } from './ChatMessageItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
+import { chatService } from '@/services/chatService';
 
 export interface StudentInfo {
   id: number;
@@ -29,6 +32,19 @@ export function ClassroomTeacherChatPanel({
   students,
   initialStudentId,
 }: ClassroomTeacherChatPanelProps) {
+  const queryClient = useQueryClient();
+  const {
+    hasGroupUnread,
+    groupUnreadCount,
+    unreadStudentIds: unreadStudentIdsFromSummary,
+    studentUnreadCounts,
+  } = useClassroomChatUnread(classCode);
+
+  const unreadStudentIdsSet = useMemo(
+    () => new Set(unreadStudentIdsFromSummary),
+    [unreadStudentIdsFromSummary]
+  );
+
   const targetStudent = useMemo(() => {
     if (initialStudentId && students.length > 0) {
       const found = students.find((s) => s.id === initialStudentId);
@@ -37,6 +53,9 @@ export function ClassroomTeacherChatPanel({
     return students.length > 0 ? students[0] : null;
   }, [initialStudentId, students]);
 
+  const [selectedMode, setSelectedMode] = useState<'GROUP' | 'STUDENT'>(
+    initialStudentId ? 'STUDENT' : 'GROUP'
+  );
   const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(targetStudent);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
@@ -45,8 +64,11 @@ export function ClassroomTeacherChatPanel({
   useEffect(() => {
     if (targetStudent) {
       setSelectedStudent(targetStudent);
+      if (initialStudentId) {
+        setSelectedMode('STUDENT');
+      }
     }
-  }, [targetStudent]);
+  }, [targetStudent, initialStudentId]);
 
   const { user: currentUser } = useAuth();
   const currentUserId = currentUser?.id || 0;
@@ -55,20 +77,43 @@ export function ClassroomTeacherChatPanel({
     messages,
     isLoadingHistory,
     onlineUserIds,
-    unreadStudentIds,
-    clearUnreadForStudent,
     sendMessage,
-    markAsRead,
   } = useClassChat({
     classId,
     classCode,
-    studentId: selectedStudent?.id || 0,
+    studentId: selectedMode === 'STUDENT' && selectedStudent ? selectedStudent.id : 0,
+    isGroupChat: selectedMode === 'GROUP',
     isTeacher: true,
-    enabled: !!selectedStudent,
+    enabled: selectedMode === 'GROUP' || !!selectedStudent,
     currentUserId,
   });
 
-  // Lọc và Sắp xếp danh sách Học sinh: Online & có tin nhắn mới lên trước, Offline bên dưới
+  // Xử lý khi click chọn Chat Lớp (Kênh chung)
+  const handleSelectGroup = async () => {
+    setSelectedMode('GROUP');
+    try {
+      await chatService.markGroupAsRead(classCode);
+      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Xử lý khi click chọn Học sinh 1-1
+  const handleSelectStudent = async (student: StudentInfo) => {
+    setSelectedMode('STUDENT');
+    setSelectedStudent(student);
+    try {
+      await chatService.markDirectAsRead(classCode, student.id);
+      queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['unread-chat-classes'] });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Lọc và Sắp xếp danh sách Học sinh: Có tin nhắn 1-1 chưa đọc & Online lên trước
   const sortedStudents = useMemo(() => {
     const filtered = students.filter(
       (s) =>
@@ -77,8 +122,8 @@ export function ClassroomTeacherChatPanel({
     );
 
     return [...filtered].sort((a, b) => {
-      const aUnread = unreadStudentIds.has(a.id);
-      const bUnread = unreadStudentIds.has(b.id);
+      const aUnread = unreadStudentIdsSet.has(a.id);
+      const bUnread = unreadStudentIdsSet.has(b.id);
       if (aUnread && !bUnread) return -1;
       if (!aUnread && bUnread) return 1;
 
@@ -89,14 +134,7 @@ export function ClassroomTeacherChatPanel({
 
       return (a.fullName || '').localeCompare(b.fullName || '');
     });
-  }, [students, searchQuery, onlineUserIds, unreadStudentIds]);
-
-  useEffect(() => {
-    if (selectedStudent) {
-      markAsRead();
-      clearUnreadForStudent(selectedStudent.id);
-    }
-  }, [selectedStudent, markAsRead, clearUnreadForStudent, messages.length]);
+  }, [students, searchQuery, onlineUserIds, unreadStudentIdsSet]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,14 +142,11 @@ export function ClassroomTeacherChatPanel({
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !selectedStudent) return;
+    if (!inputText.trim()) return;
+    if (selectedMode === 'STUDENT' && !selectedStudent) return;
+
     sendMessage(inputText);
     setInputText('');
-  };
-
-  const handleSelectStudent = (student: StudentInfo) => {
-    setSelectedStudent(student);
-    clearUnreadForStudent(student.id);
   };
 
   const getInitials = (name?: string) => {
@@ -126,18 +161,55 @@ export function ClassroomTeacherChatPanel({
 
   return (
     <div className="flex h-[600px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      {/* Cột Trái: Danh sách Học sinh trong Lớp */}
+      {/* Cột Trái: Mục Chat Lớp + Danh sách Học sinh trong Lớp */}
       <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="p-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 mb-2 px-1 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <UserIcon className="w-4 h-4 text-indigo-600" /> Học sinh trong lớp ({students.length})
+        <div className="p-3 border-b border-slate-200 dark:border-slate-800 shrink-0 space-y-2">
+          {/* Nút Chọn Chat Lớp Chung */}
+          <button
+            type="button"
+            onClick={handleSelectGroup}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+              selectedMode === 'GROUP'
+                ? 'bg-indigo-600 text-white font-bold shadow-md ring-2 ring-indigo-400/30'
+                : 'bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 text-indigo-950 dark:text-indigo-200 border border-indigo-200/60'
+            }`}
+          >
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 relative ${
+                selectedMode === 'GROUP' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-600'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              {hasGroupUnread && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-bold truncate">📢 Chat Lớp (Kênh chung)</p>
+                {hasGroupUnread && (
+                  <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                  </span>
+                )}
+              </div>
+              <p
+                className={`text-[10px] truncate ${
+                  selectedMode === 'GROUP' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                Trao đổi với tất cả học sinh
+              </p>
+            </div>
+          </button>
+
+          <h3 className="font-semibold text-xs text-slate-500 dark:text-slate-400 pt-1 px-1 flex items-center justify-between uppercase tracking-wider">
+            <span className="flex items-center gap-1.5">
+              <UserIcon className="w-3.5 h-3.5 text-indigo-600" /> Trò chuyện 1-1 ({students.length})
             </span>
-            {unreadStudentIds.size > 0 && (
-              <span className="text-[10px] font-bold bg-rose-500 text-white px-2 py-0.5 rounded-full animate-bounce">
-                {unreadStudentIds.size} mới
-              </span>
-            )}
           </h3>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -150,23 +222,26 @@ export function ClassroomTeacherChatPanel({
           </div>
         </div>
 
-        {/* Danh sách học sinh có thể cuộn, chiều cao tương đương hiển thị ~6 học sinh */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[500px]">
+        {/* Danh sách học sinh có thể cuộn */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[460px]">
           {sortedStudents.length === 0 ? (
             <p className="text-xs text-center text-slate-400 py-6">Không tìm thấy học sinh nào</p>
           ) : (
             sortedStudents.map((student) => {
-              const isSelected = selectedStudent?.id === student.id;
+              const isSelected = selectedMode === 'STUDENT' && selectedStudent?.id === student.id;
               const isOnline = onlineUserIds.has(student.id);
-              const hasUnread = unreadStudentIds.has(student.id);
+              const hasUnread = unreadStudentIdsSet.has(student.id);
+              const unreadCount = studentUnreadCounts[student.id] || 0;
 
               return (
                 <button
                   key={student.id}
                   onClick={() => handleSelectStudent(student)}
                   className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all ${
-                    isSelected
-                      ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium shadow-xs'
+                    hasUnread
+                      ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 border border-rose-200 dark:border-rose-800 font-bold shadow-xs'
+                      : isSelected
+                      ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium shadow-xs border border-indigo-200'
                       : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
                   }`}
                 >
@@ -183,29 +258,36 @@ export function ClassroomTeacherChatPanel({
                         isOnline ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
                       }`}
                     />
-                    {/* Chấm Đỏ Thông Báo Tin Nhắn Mới Góc Trên Avatar */}
-                    {hasUnread && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm" />
-                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <p className={`text-xs truncate leading-tight ${hasUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold'}`}>
+                      <p
+                        className={`text-xs truncate leading-tight ${
+                          hasUnread ? 'font-bold text-rose-900 dark:text-white' : 'font-semibold'
+                        }`}
+                      >
                         {student.fullName}
                       </p>
+                      {hasUnread && (
+                        <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                          {unreadCount > 0 ? `${unreadCount} mới` : 'Mới'}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between gap-1 mt-1">
-                      <span className={`text-[10px] font-medium flex items-center gap-1 ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                      <span
+                        className={`text-[10px] font-medium flex items-center gap-1 ${
+                          isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                        }`}
+                      >
                         {isOnline ? 'Online' : 'Offline'}
                       </span>
-
-                      {/* Chấm Đỏ và Chữ Thông Báo Tin Nhắn Mới Nhắc Nhở Như Facebook */}
                       {hasUnread && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 animate-pulse">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                          Tin nhắn mới
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                          Có tin nhắn chưa đọc
                         </span>
                       )}
                     </div>
@@ -217,11 +299,77 @@ export function ClassroomTeacherChatPanel({
         </div>
       </div>
 
-      {/* Cột Phải: Khung Chat 1-1 với Học sinh được chọn */}
+      {/* Cột Phải: Khung Chat Lớp (Chung) hoặc Khung Chat 1-1 */}
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-900">
-        {selectedStudent ? (
+        {selectedMode === 'GROUP' ? (
           <>
-            {/* Header Khung Chat */}
+            {/* Header Khung Chat Lớp */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-indigo-50/40 dark:bg-indigo-950/20">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white font-bold shadow-sm">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    📢 Chat Lớp chung ({classCode})
+                  </h4>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                    Kênh trao đổi chung dành cho toàn bộ học sinh và giảng viên trong lớp
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Tin Nhắn Chat Lớp */}
+            <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
+              {isLoadingHistory && messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+                  Đang nạp tin nhắn chat lớp...
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
+                  <MessageSquare className="w-12 h-12 stroke-1 mb-2 text-indigo-300" />
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Chưa có tin nhắn nào trong kênh Chat Lớp
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Nhập nội dung tin nhắn bên dưới để bắt đầu gửi thông báo hoặc trao đổi với toàn bộ học sinh.
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <ChatMessageItem
+                    key={msg.id}
+                    message={msg}
+                    isMe={msg.senderId === currentUserId}
+                  />
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Gửi Tin Nhắn Chat Lớp */}
+            <form onSubmit={handleSend} className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <Input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Gửi tin nhắn chung cho cả lớp (hỗ trợ công thức toán $latex$)..."
+                  className="flex-1 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-full px-5 h-10 focus-visible:ring-indigo-500"
+                />
+                <Button
+                  type="submit"
+                  disabled={!inputText.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-5 h-10 gap-2"
+                >
+                  <Send className="w-4 h-4" /> Gửi cả lớp
+                </Button>
+              </div>
+            </form>
+          </>
+        ) : selectedStudent ? (
+          <>
+            {/* Header Khung Chat 1-1 với Học sinh */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -255,8 +403,8 @@ export function ClassroomTeacherChatPanel({
               </div>
             </div>
 
-            {/* Content Tin Nhắn */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/40 dark:bg-slate-900/40">
+            {/* Content Tin Nhắn 1-1 */}
+            <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
               {isLoadingHistory && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs">
                   Đang nạp tin nhắn...
@@ -283,7 +431,7 @@ export function ClassroomTeacherChatPanel({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Gửi Tin Nhắn */}
+            {/* Input Gửi Tin Nhắn 1-1 */}
             <form onSubmit={handleSend} className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center gap-3">
                 <Input
@@ -305,7 +453,7 @@ export function ClassroomTeacherChatPanel({
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm">
             <MessageSquare className="w-12 h-12 stroke-1 mb-2 text-slate-300" />
-            Vui lòng chọn một học sinh trong danh sách bên trái để bắt đầu chat 1-1.
+            Vui lòng chọn kênh Chat Lớp hoặc chọn một học sinh trong danh sách để bắt đầu trò chuyện.
           </div>
         )}
       </div>

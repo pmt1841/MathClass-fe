@@ -38,19 +38,24 @@ import { StudentsTab } from './students-tab'
 import { AssignmentsTab } from './assignments-tab'
 import { PendingRequestsTab } from './pending-requests-tab'
 import { useClassDetail, useUpdateClassroom, useDeleteClassroom } from '@/hooks/useClassDetail'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { joinRequestService } from '@/services/joinRequestService'
+import { chatService } from '@/services/chatService'
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
 
 export function ClassDetailPageClient() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const classCode = params?.classCode as string
 
   const initialTab = (searchParams.get('tab') as TabType) || 'students'
   const initialStudentId = searchParams.get('studentId') ? Number(searchParams.get('studentId')) : undefined
 
   const [activeTab, setActiveTab] = useState<TabType>(initialTab)
+  const { hasGroupUnread, hasAnyStudentUnread } = useClassroomChatUnread(classCode)
+  const hasUnreadChat = hasGroupUnread || hasAnyStudentUnread
 
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType
@@ -237,11 +242,22 @@ export function ClassDetailPageClient() {
                 icon={<ClipboardList className="h-4 w-4" />}
                 label="Bài tập"
               />
+
               <TabButton
                 id="tab-chat"
                 active={activeTab === 'chat'}
                 onClick={() => setActiveTab('chat')}
-                icon={<MessageSquare className="h-4 w-4" />}
+                icon={
+                  <div className="relative">
+                    <MessageSquare className="h-4 w-4" />
+                    {hasUnreadChat && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                  </div>
+                }
                 label="Trò chuyện"
               />
               <TabButton

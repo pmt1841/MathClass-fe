@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
+import { useUnreadChatClasses } from '@/hooks/useUnreadChatClasses'
 import { ClassCard } from './class-card'
 import { formatDateTime } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
@@ -27,7 +28,8 @@ import { PermissionGuard } from '@/components/ui/with-permission'
 export function ClassesClient() {
   const { user } = useAuth()
   const userRole = user?.role || 'STUDENT'
-  
+  const { isUnreadClass } = useUnreadChatClasses()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'code-asc'>('name-asc')
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -247,6 +249,7 @@ export function ClassesClient() {
                   userRole={userRole} 
                   isCopied={copiedId === item.id} 
                   onCopyCode={handleCopyCode} 
+                  hasUnreadChat={isUnreadClass(item.id)}
                 />
               ))}
             </div>
