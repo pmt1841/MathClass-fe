@@ -17,13 +17,13 @@ vi.mock('@/services/chatService', () => ({
 
 vi.mock('@stomp/stompjs', () => {
   return {
-    Client: vi.fn().mockImplementation(() => ({
-      activate: vi.fn(),
-      deactivate: vi.fn(),
-      subscribe: vi.fn(),
-      publish: vi.fn(),
-      connected: true,
-    })),
+    Client: vi.fn().mockImplementation(function (this: any) {
+      this.activate = vi.fn();
+      this.deactivate = vi.fn();
+      this.subscribe = vi.fn();
+      this.publish = vi.fn();
+      this.connected = true;
+    }),
   };
 });
 

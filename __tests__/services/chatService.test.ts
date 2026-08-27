@@ -19,7 +19,7 @@ describe('chatService - Unread Summary & Group Unread Count', () => {
   it('getUnreadSummary gọi API GET và map chính xác groupUnreadCount, hasGroupUnread và studentUnreadCounts', async () => {
     const mockApiResponse = {
       data: {
-        data: {
+        result: {
           hasGroupUnread: true,
           groupUnreadCount: 5,
           unreadStudentIds: [20, 30],
