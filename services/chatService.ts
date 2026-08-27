@@ -12,6 +12,7 @@ export interface PageResponse<T> {
 
 export interface ClassroomChatUnreadSummary {
   hasGroupUnread: boolean;
+  groupUnreadCount: number;
   unreadStudentIds: number[];
   studentUnreadCounts: Record<number, number>;
 }
@@ -89,6 +90,7 @@ export const chatService = {
     const data = response.data?.result || response.data || {};
     return {
       hasGroupUnread: Boolean(data.hasGroupUnread),
+      groupUnreadCount: Number(data.groupUnreadCount || 0),
       unreadStudentIds: Array.from(data.unreadStudentIds || []),
       studentUnreadCounts: data.studentUnreadCounts || {},
     };

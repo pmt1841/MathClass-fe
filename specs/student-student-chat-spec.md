@@ -15,13 +15,14 @@ Tài liệu đặc tả yêu cầu cho phần Frontend (`MathClass-fe`) của t�
 
 ## 2. Acceptance Criteria Checklist (AC)
 
-- [ ] **AC-FE-01:** Hook/Provider `useChatDock` quản lý danh sách các cửa sổ chat đang mở (`activeWindows`) và các thao tác (Mở, Thu nhỏ, Đóng, Chuyển tab).
-- [ ] **AC-FE-02:** Component `FloatingChatDock` đặt tại Layout lớp học, hiển thị các cửa sổ `FloatingChatWindow` xếp hàng góc dưới bên phải.
-- [ ] **AC-FE-03:** Click chọn học sinh ở danh sách thành viên lớp (`ClassroomStudentList`) tự động trigger `openChatWindow(student, 'DIRECT_STUDENT')`.
-- [ ] **AC-FE-04:** Kênh Chat Nhóm Lớp subscribe channel STOMP `/topic/classroom/{classId}/group`.
-- [ ] **AC-FE-05:** Kênh Chat Riêng Học sinh subscribe channel STOMP `/topic/classroom/{classId}/direct/{studentId}`.
-- [ ] **AC-FE-06:** Tự động đếm và nảy số tin nhắn chưa đọc (`unreadCount`) trên thanh header tiêu đề của khung chat nổi.
-- [ ] **AC-FE-07:** Hiển thị mượt mà công thức Toán KaTeX trong từng khung chat nổi.
+- [x] **AC-FE-01:** Hook/Provider `useChatDock` quản lý danh sách các cửa sổ chat đang mở (`activeWindows`) và các thao tác (Mở, Thu nhỏ, Đóng, Chuyển tab).
+- [x] **AC-FE-02:** Component `FloatingChatDock` đặt tại Layout lớp học, hiển thị các cửa sổ `FloatingChatWindow` xếp hàng góc dưới bên phải.
+- [x] **AC-FE-03:** Click chọn học sinh ở danh sách thành viên lớp (`ClassroomStudentList`) tự động trigger `openChatWindow(student, 'DIRECT_STUDENT')`.
+- [x] **AC-FE-04:** Kênh Chat Nhóm Lớp subscribe channel STOMP `/topic/classroom/{classId}/group`.
+- [x] **AC-FE-05:** Kênh Chat Riêng Học sinh subscribe channel STOMP `/topic/classroom/{classId}/direct/{studentId}`.
+- [x] **AC-FE-06:** Tự động đếm và hiển thị chính xác số tin nhắn chưa đọc (`unreadCount` và `groupUnreadCount`) trên các nút Chat Lớp (`${groupUnreadCount} mới`) và khung chat nổi mà không bị nảy/nhảy số dồn tích (+2).
+- [x] **AC-FE-07:** Hiển thị mượt mà công thức Toán KaTeX trong từng khung chat nổi.
+- [x] **AC-FE-08:** Quản lý tập trung Unread State tại `ChatDockContext` (Single Source of Truth), tự động reset về 0 khi đọc xong hoặc khi mở khung chat.
 
 ---
 

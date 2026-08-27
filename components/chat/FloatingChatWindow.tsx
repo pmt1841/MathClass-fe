@@ -13,7 +13,7 @@ const PAGE_SIZE = 5; // Hiển thị 5 tin nhắn mỗi lần query để tối 
 
 export function FloatingChatWindow({ window }: { window: ChatWindow }) {
   const queryClient = useQueryClient();
-  const { classId, classCode, currentUserId, closeChat, minimizeChat, toggleChat, incrementUnread, isOnline, stompClient } =
+  const { classId, classCode, currentUserId, closeChat, minimizeChat, toggleChat, isOnline, stompClient } =
     useChatDock();
 
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -145,22 +145,14 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
         if (isGroup) {
           setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
           scrollToBottom(true);
-          if (isFromOthers) {
-            if (window.isMinimized) {
-              incrementUnread(window.id);
-            } else {
-              handleMarkRead();
-            }
+          if (isFromOthers && !window.isMinimized) {
+            handleMarkRead();
           }
         } else if (isTeacher) {
           setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
           scrollToBottom(true);
-          if (isFromOthers) {
-            if (window.isMinimized) {
-              incrementUnread(window.id);
-            } else {
-              handleMarkRead();
-            }
+          if (isFromOthers && !window.isMinimized) {
+            handleMarkRead();
           }
         } else {
           const isRelated =
@@ -170,12 +162,8 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
           if (isRelated) {
             setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
             scrollToBottom(true);
-            if (isFromOthers) {
-              if (window.isMinimized) {
-                incrementUnread(window.id);
-              } else {
-                handleMarkRead();
-              }
+            if (isFromOthers && !window.isMinimized) {
+              handleMarkRead();
             }
           }
         }
@@ -187,7 +175,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
     return () => {
       sub.unsubscribe();
     };
-  }, [stompClient, isGroup, isTeacher, classId, currentUserId, window.targetUserId, window.isMinimized, window.id, incrementUnread, handleMarkRead]);
+  }, [stompClient, isGroup, isTeacher, classId, currentUserId, window.targetUserId, window.isMinimized, handleMarkRead]);
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();

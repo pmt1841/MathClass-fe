@@ -35,6 +35,7 @@ export function ClassroomTeacherChatPanel({
   const queryClient = useQueryClient();
   const {
     hasGroupUnread,
+    groupUnreadCount,
     unreadStudentIds: unreadStudentIdsFromSummary,
     studentUnreadCounts,
   } = useClassroomChatUnread(classCode);
@@ -191,7 +192,7 @@ export function ClassroomTeacherChatPanel({
                 <p className="text-xs font-bold truncate">📢 Chat Lớp (Kênh chung)</p>
                 {hasGroupUnread && (
                   <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                    Mới
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
                   </span>
                 )}
               </div>

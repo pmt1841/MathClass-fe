@@ -37,7 +37,7 @@ export function ChatDockProvider({
 }) {
   const [activeWindows, setActiveWindows] = useState<ChatWindow[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
-  const stompClientRef = useRef<Client | null>(null);
+  const [stompClient, setStompClient] = useState<Client | null>(null);
 
   // Poll danh sách online users
   const fetchOnlineUsers = useCallback(async () => {
@@ -57,6 +57,42 @@ export function ChatDockProvider({
     return () => clearInterval(interval);
   }, [classCode, fetchOnlineUsers]);
 
+  const processedMsgIdsRef = useRef<Set<number>>(new Set());
+
+  // Tự động đồng bộ số đếm unread chuẩn từ server DB mỗi khi unread-summary thay đổi
+  const syncUnreadCounts = useCallback(async () => {
+    if (!classCode) return;
+    try {
+      const summary = await chatService.getUnreadSummary(classCode);
+      const studentCounts = summary.studentUnreadCounts || {};
+      const groupCount = summary.groupUnreadCount || 0;
+      setActiveWindows((prev) =>
+        prev.map((w) => {
+          if (!w.isMinimized) {
+            return w.unreadCount === 0 ? w : { ...w, unreadCount: 0 };
+          }
+          if (w.type === 'CLASS_GROUP') {
+            return w.unreadCount === groupCount ? w : { ...w, unreadCount: groupCount };
+          }
+          if (w.targetUserId) {
+            const serverCount = studentCounts[w.targetUserId] || 0;
+            return w.unreadCount === serverCount ? w : { ...w, unreadCount: serverCount };
+          }
+          return w;
+        })
+      );
+    } catch (e) {
+      // ignore
+    }
+  }, [classCode]);
+
+  useEffect(() => {
+    if (!classCode) return;
+    syncUnreadCounts();
+    const interval = setInterval(syncUnreadCounts, 6000);
+    return () => clearInterval(interval);
+  }, [classCode, syncUnreadCounts]);
+
   // Khởi tạo WebSocket STOMP Client dùng chung cho Chat Dock
   useEffect(() => {
     if (!classId || !currentUserId) return;
@@ -71,20 +107,37 @@ export function ChatDockProvider({
       heartbeatOutgoing: 4000,
       onConnect: () => {
         fetchOnlineUsers();
+        setStompClient(client);
 
-        // Tự động lắng nghe tin nhắn đến riêng của người dùng này để tự tạo tab thu nhỏ thông báo đỏ
-        const userDirectTopic = `/topic/classroom/${classId}/student/${currentUserId}`;
-        client.subscribe(userDirectTopic, (frame) => {
+        const handleIncomingMessage = (frame: { body: string }) => {
           try {
             const newMsg: ChatMessageResponse = JSON.parse(frame.body);
             if (newMsg.senderId === currentUserId) return; // Bỏ qua tin nhắn chính mình gửi
 
+            // Lọc trùng lặp STOMP frame nếu cùng 1 tin nhắn được broadcast qua nhiều topic
+            if (newMsg.id) {
+              if (processedMsgIdsRef.current.has(newMsg.id)) {
+                return;
+              }
+              processedMsgIdsRef.current.add(newMsg.id);
+              if (processedMsgIdsRef.current.size > 100) {
+                const firstVal = processedMsgIdsRef.current.values().next().value;
+                if (firstVal !== undefined) processedMsgIdsRef.current.delete(firstVal);
+              }
+            }
+
+            const isGroupChat = newMsg.chatType === 'CLASS_GROUP';
+            const isTeacherChat =
+              newMsg.chatType === 'DIRECT_TEACHER' ||
+              (newMsg.studentId != null && newMsg.studentId === currentUserId);
+
             setActiveWindows((prev) => {
-              // Tìm cửa sổ hiện tại trùng targetUserId hoặc type DIRECT_TEACHER để chống nhân bản cửa sổ
+              // Tìm cửa sổ hiện tại trùng targetUserId, group hoặc type DIRECT_TEACHER
               const existing = prev.find(
                 (w) =>
+                  (isGroupChat && (w.id === 'group' || w.type === 'CLASS_GROUP')) ||
                   (w.targetUserId && w.targetUserId === newMsg.senderId) ||
-                  (newMsg.chatType === 'DIRECT_TEACHER' && (w.id === 'teacher' || w.type === 'DIRECT_TEACHER'))
+                  (isTeacherChat && (w.id === 'teacher' || w.type === 'DIRECT_TEACHER'))
               );
 
               if (existing) {
@@ -93,11 +146,12 @@ export function ChatDockProvider({
                 }
                 return prev;
               } else {
-                const windowId = newMsg.chatType === 'DIRECT_TEACHER' ? 'teacher' : `student-${newMsg.senderId}`;
+                if (isGroupChat) return prev;
+                const windowId = isTeacherChat ? 'teacher' : `student-${newMsg.senderId}`;
                 const newWin: ChatWindow = {
                   id: windowId,
-                  type: newMsg.chatType === 'DIRECT_TEACHER' ? 'DIRECT_TEACHER' : 'DIRECT_STUDENT',
-                  title: newMsg.senderName || 'Tin nhắn mới',
+                  type: isTeacherChat ? 'DIRECT_TEACHER' : 'DIRECT_STUDENT',
+                  title: newMsg.senderName || (isTeacherChat ? 'Giảng viên phụ trách' : 'Tin nhắn mới'),
                   avatar: newMsg.senderAvatar,
                   targetUserId: newMsg.senderId,
                   isMinimized: true,
@@ -106,17 +160,32 @@ export function ChatDockProvider({
                 return [newWin, ...prev].slice(0, 3);
               }
             });
+
+            // Hoãn đồng bộ nhẹ 300ms chờ DB ghi nhận xong để tránh lệch nhịp số đếm
+            setTimeout(syncUnreadCounts, 300);
           } catch (e) {
             console.error('Lỗi parse STOMP message cho Dock context:', e);
           }
-        });
+        };
+
+        // Subscribe cả 3 topic tin nhắn: Giảng viên, Bạn học & Chat lớp
+        const teacherDirectTopic = `/topic/classroom/${classId}/student/${currentUserId}`;
+        const studentDirectTopic = `/topic/classroom/${classId}/direct/${currentUserId}`;
+        const groupTopic = `/topic/classroom/${classId}/group`;
+
+        client.subscribe(teacherDirectTopic, handleIncomingMessage);
+        client.subscribe(studentDirectTopic, handleIncomingMessage);
+        client.subscribe(groupTopic, handleIncomingMessage);
+      },
+      onDisconnect: () => {
+        setStompClient(null);
       },
     });
 
     client.activate();
-    stompClientRef.current = client;
 
     return () => {
+      setStompClient(null);
       client.deactivate();
     };
   }, [classId, currentUserId, fetchOnlineUsers]);
@@ -211,7 +280,7 @@ export function ChatDockProvider({
         toggleChat,
         incrementUnread,
         isOnline,
-        stompClient: stompClientRef.current,
+        stompClient,
       }}
     >
       {children}

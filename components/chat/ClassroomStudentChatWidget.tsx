@@ -11,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useChatDock } from './ChatDockContext';
 import { Users } from 'lucide-react';
 
+import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
+
 interface ClassroomStudentChatWidgetProps {
   classId: number;
   classCode: string;
@@ -36,6 +38,7 @@ export function ClassroomStudentChatWidget({
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { openChat } = useChatDock();
+  const { hasGroupUnread, groupUnreadCount } = useClassroomChatUnread(classCode);
 
   useEffect(() => {
     if (initialOpen) {
@@ -186,6 +189,11 @@ export function ClassroomStudentChatWidget({
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>Chat Lớp</span>
+                {hasGroupUnread && (
+                  <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                  </span>
+                )}
               </Button>
               <Button
                 variant="ghost"

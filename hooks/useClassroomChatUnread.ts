@@ -12,12 +12,14 @@ export function useClassroomChatUnread(classCode: string) {
     staleTime: 3000,
   })
 
-  const hasGroupUnread = Boolean(data?.hasGroupUnread)
+  const groupUnreadCount = data?.groupUnreadCount || 0
+  const hasGroupUnread = Boolean(data?.hasGroupUnread || groupUnreadCount > 0)
   const unreadStudentIds = data?.unreadStudentIds || []
   const studentUnreadCounts = data?.studentUnreadCounts || {}
 
   return {
     hasGroupUnread,
+    groupUnreadCount,
     unreadStudentIds,
     studentUnreadCounts,
     hasAnyStudentUnread: unreadStudentIds.length > 0,
