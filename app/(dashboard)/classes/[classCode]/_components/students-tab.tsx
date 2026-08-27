@@ -13,9 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ClassroomDetail } from '@/types'
+import { ClassroomDetail, Student } from '@/types'
 import { StatCard } from './stat-card'
 import { StudentRow } from './student-row'
+import { StudentRemarksModal } from './student-remarks-modal'
 import { useClassStudents, useAddStudent, useRemoveStudent } from '@/hooks/useClassDetail'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
@@ -42,6 +43,7 @@ export function StudentsTab({
   const [sortAsc, setSortAsc] = useState(true)
   
   const [studentToRemove, setStudentToRemove] = useState<{ id: number; name: string } | null>(null)
+  const [selectedStudentForRemarks, setSelectedStudentForRemarks] = useState<Student | null>(null)
 
   const isFull = classroom ? (classroom.studentCount ?? 0) >= (classroom.maxStudents ?? Infinity) : false
 
@@ -243,6 +245,7 @@ export function StudentsTab({
                   index={page * size + idx + 1}
                   isRemoving={removeStudentMutation.isPending && studentToRemove?.id === student.id}
                   onRemove={() => setStudentToRemove({ id: student.id, name: student.fullName })}
+                  onOpenRemarks={() => setSelectedStudentForRemarks(student)}
                 />
               ))}
             </div>
@@ -330,6 +333,13 @@ export function StudentsTab({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <StudentRemarksModal
+        open={!!selectedStudentForRemarks}
+        onClose={() => setSelectedStudentForRemarks(null)}
+        student={selectedStudentForRemarks}
+        classCode={classCode}
+      />
     </>
   )
 }
