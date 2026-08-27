@@ -104,6 +104,7 @@ describe('SubmissionDetail', () => {
       SUBMISSION_GRADING: true,
       STUDENT_HINT: true,
       QUESTION_GEN: true,
+      BATCH_QUESTION_GEN: true,
       CANVAS_LATEX: true,
       ERROR_ANALYSIS: true,
     })
@@ -247,6 +248,7 @@ describe('SubmissionDetail', () => {
       SUBMISSION_GRADING: false,
       STUDENT_HINT: false,
       QUESTION_GEN: false,
+      BATCH_QUESTION_GEN: false,
       CANVAS_LATEX: false,
       ERROR_ANALYSIS: false,
     })
