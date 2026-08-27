@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle, Filter } from 'lucide-react'
+import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle, Filter, Sparkles } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,7 @@ import { PublishAssignmentModal } from '@/components/assignments/publish-assignm
 import { PublishSheetModal } from '@/components/assignments/publish-sheet-modal'
 import { EditSheetModal } from '@/components/assignments/edit-sheet-modal'
 import { DeleteAssignmentModal } from './delete-assignment-modal'
+import { AiBatchQuestionGeneratorModal } from '@/components/ai/AiBatchQuestionGeneratorModal'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
@@ -52,6 +53,7 @@ export function AssignmentsPageClient() {
   const [selectedAssignmentDetails, setSelectedAssignmentDetails] = useState<{ id: number, title: string, maxScore?: number }[]>([])
   const selectedAssignments = useMemo(() => selectedAssignmentDetails.map(a => a.id), [selectedAssignmentDetails])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
+  const [showAiBatchModal, setShowAiBatchModal] = useState(false)
   const [page, setPage] = useState(0)
 
   useEffect(() => {
@@ -246,6 +248,14 @@ export function AssignmentsPageClient() {
           <div className="flex items-center gap-2">
             {userRole === 'TEACHER' && (
               <PermissionGuard permission="assignment:create">
+                <button
+                  type="button"
+                  onClick={() => setShowAiBatchModal(true)}
+                  className="flex items-center gap-2 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/15 hover:shadow-indigo-500/25 active:scale-98 cursor-pointer"
+                >
+                  <Sparkles className="h-4.5 w-4.5" />
+                  Tạo hàng loạt bằng AI
+                </button>
                 <Link
                   href="/assignments/create"
                   className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
@@ -664,6 +674,14 @@ export function AssignmentsPageClient() {
           setEditSheetModalOpen(false)
           setEditSheetTarget(null)
         }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['assignments'] })
+        }}
+      />
+
+      <AiBatchQuestionGeneratorModal
+        isOpen={showAiBatchModal}
+        onClose={() => setShowAiBatchModal(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['assignments'] })
         }}

@@ -117,6 +117,11 @@ export const assignmentService = {
     return response.data
   },
 
+  createBatchAssignments: async (dataList: any[]) => {
+    const response = await api.post('/assignments/batch', dataList)
+    return response.data
+  },
+
   updateAssignment: async (assignmentId: number, data: any) => {
     const response = await api.put(`/assignments/${assignmentId}`, data)
     return response.data

@@ -49,6 +49,12 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     icon: FileText,
   },
   {
+    taskCode: 'BATCH_QUESTION_GEN',
+    title: 'Tạo Hàng Loạt Bài Tập từ File / Ảnh AI',
+    description: 'Tự động phân tích tài liệu Word/PDF/Ảnh, bóc tách cấu trúc thành danh sách bài tập.',
+    icon: Sparkles,
+  },
+  {
     taskCode: 'SUBMISSION_GRADING',
     title: 'Chấm bài Tự luận AI',
     description: 'Phân tích lời giải bài tập học sinh, chấm điểm và gợi ý lời nhận xét.',
