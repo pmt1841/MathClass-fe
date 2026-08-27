@@ -155,15 +155,21 @@ export function AiBatchQuestionGeneratorModal({
     setIsSaving(true)
 
     try {
-      const payload = assignmentsList.map((item) => ({
-        title: item.title.trim() || 'Bài tập mới',
-        content: item.content.trim(),
-        allowResubmit: true,
-        images: (batchResponse?.extractedImages || []).map((img) => ({
-          imageCode: img.imageCode,
-          imageUrl: img.imageUrl,
-        })),
-      }))
+      const payload = assignmentsList.map((item) => {
+        const itemContent = item.content.trim()
+        const attachedImages = (batchResponse?.extractedImages || []).filter(
+          (img) => img.imageCode && itemContent.includes(img.imageCode)
+        )
+        return {
+          title: item.title.trim() || 'Bài tập mới',
+          content: itemContent,
+          allowResubmit: true,
+          images: attachedImages.map((img) => ({
+            imageCode: img.imageCode,
+            imageUrl: img.imageUrl,
+          })),
+        }
+      })
 
       await assignmentService.createBatchAssignments(payload)
 
