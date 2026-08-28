@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 const mockUseStudentRemarks = vi.fn()
 const mockCreateMutate = vi.fn()
 const mockDeleteMutate = vi.fn()
+const mockAiEvaluateMutate = vi.fn()
 
 vi.mock('@/hooks/useStudentRemarks', () => ({
   useStudentRemarks: (classCode: string, studentId: number | null) =>
@@ -21,7 +22,21 @@ vi.mock('@/hooks/useStudentRemarks', () => ({
     mutate: mockDeleteMutate,
     isPending: false,
   }),
+  useAiStudentRemarkEvaluation: () => ({
+    mutate: mockAiEvaluateMutate,
+    isPending: false,
+  }),
 }))
+
+const mockUseQuery = vi.fn()
+
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query')
+  return {
+    ...actual,
+    useQuery: (...args: any[]) => mockUseQuery(...args),
+  }
+})
 
 vi.mock('sonner', () => ({
   toast: {
@@ -54,6 +69,10 @@ describe('StudentRemarksModal Component', () => {
         role: 'TEACHER',
         permissions: ['classroom:manage_requests'],
       },
+    })
+    mockUseQuery.mockReturnValue({
+      data: { STUDENT_REMARK: true },
+      isLoading: false,
     })
     mockUseStudentRemarks.mockReturnValue({
       data: [],
@@ -251,5 +270,208 @@ describe('StudentRemarksModal Component', () => {
       screen.getByText(/Chỉ giáo viên phụ trách lớp mới có quyền ghi nhận xét/i)
     ).toBeInTheDocument()
     expect(screen.queryByPlaceholderText(/Tư duy logic tốt/i)).not.toBeInTheDocument()
+  })
+
+  it('hiển thị khối AI Đánh giá và gọi aiEvaluateMutation khi click Quét & Đánh giá', () => {
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    expect(screen.getByText('AI Đánh giá tiến độ')).toBeInTheDocument()
+    expect(screen.getByText('3 ngày')).toBeInTheDocument()
+    expect(screen.getByText('7 ngày')).toBeInTheDocument()
+    expect(screen.getByText('1 tháng')).toBeInTheDocument()
+
+    // Chọn 3 ngày
+    const threeDaysBtn = screen.getByRole('button', { name: '3 ngày' })
+    fireEvent.click(threeDaysBtn)
+
+    const aiScanBtn = screen.getByRole('button', { name: /Quét & Đánh giá/i })
+    fireEvent.click(aiScanBtn)
+
+    expect(mockAiEvaluateMutate).toHaveBeenCalledWith(
+      { days: 3 },
+      expect.any(Object)
+    )
+  })
+
+  it('tự động điền dữ liệu gợi ý và hiển thị banner khi AI evaluate thành công', () => {
+    mockAiEvaluateMutate.mockImplementation((payload, options) => {
+      options?.onSuccess?.({
+        startDate: '2026-08-21',
+        endDate: '2026-08-28',
+        totalAssignments: 5,
+        completedAssignments: 4,
+        overdueAssignments: 0,
+        activeIncompleteAssignments: 1,
+        averageScore: 8.5,
+        strengths: 'AI Điểm mạnh',
+        weaknesses: 'AI Điểm yếu',
+        generalAssessment: 'AI Đánh giá chung',
+      })
+    })
+
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    const aiScanBtn = screen.getByRole('button', { name: /Quét & Đánh giá/i })
+    fireEvent.click(aiScanBtn)
+
+    expect(screen.getByDisplayValue('AI Điểm mạnh')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('AI Điểm yếu')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('AI Đánh giá chung')).toBeInTheDocument()
+
+    // Banner hiển thị
+    expect(screen.getByText(/Đã nộp/i)).toBeInTheDocument()
+
+    // Đóng banner
+    const closeBannerBtn = screen.getByRole('button', { name: 'Đóng' })
+    fireEvent.click(closeBannerBtn)
+
+    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+  })
+
+  it('click vào nhận xét trong danh sách để mở rộng / thu gọn chi tiết', () => {
+    const mockRemarks = [
+      {
+        id: 101,
+        studentId: 10,
+        studentName: 'Lê Thị Bình',
+        teacherId: 1,
+        teacherName: 'Thầy Nguyễn Văn A',
+        strengths: 'Nội dung nhận xét 1',
+        createdAt: '2026-08-27T10:00:00Z',
+        updatedAt: '2026-08-27T10:00:00Z',
+      },
+      {
+        id: 102,
+        studentId: 10,
+        studentName: 'Lê Thị Bình',
+        teacherId: 1,
+        teacherName: 'Thầy Nguyễn Văn A',
+        strengths: 'Nội dung nhận xét 2',
+        createdAt: '2026-08-20T10:00:00Z',
+        updatedAt: '2026-08-20T10:00:00Z',
+      },
+    ]
+
+    mockUseStudentRemarks.mockReturnValue({
+      data: mockRemarks,
+      isLoading: false,
+    })
+
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    // Mặc định nhận xét đầu tiên (index 0) mở, nhận xét thứ 2 (index 1) đóng
+    expect(screen.getByText('Nội dung nhận xét 1')).toBeInTheDocument()
+    expect(screen.queryByText('Nội dung nhận xét 2')).not.toBeInTheDocument()
+
+    // Click vào nhận xét thứ 2 để mở rộng
+    const teacherHeaders = screen.getAllByText('Thầy Nguyễn Văn A')
+    expect(teacherHeaders.length).toBe(2)
+    fireEvent.click(teacherHeaders[1])
+
+    expect(screen.getByText('Nội dung nhận xét 2')).toBeInTheDocument()
+  })
+
+  it('[FE-01] ẩn hoàn toàn khối Trợ lý AI khi cờ STUDENT_REMARK = false', () => {
+    mockUseQuery.mockReturnValue({
+      data: { STUDENT_REMARK: false },
+      isLoading: false,
+    })
+
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    expect(screen.queryByText('AI Đánh giá tiến độ')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Quét & Đánh giá/i })).not.toBeInTheDocument()
+  })
+
+  it('[FE-02] hiển thị toast.error đúng nội dung lỗi khi AI evaluate thất bại (hết credit / lỗi mạng)', () => {
+    mockAiEvaluateMutate.mockImplementation((payload, options) => {
+      options?.onError?.({
+        response: {
+          data: {
+            message: 'Bạn đã hết credit AI. Vui lòng nạp thêm để tiếp tục sử dụng.',
+          },
+        },
+      })
+    })
+
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    const aiScanBtn = screen.getByRole('button', { name: /Quét & Đánh giá/i })
+    fireEvent.click(aiScanBtn)
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'Bạn đã hết credit AI. Vui lòng nạp thêm để tiếp tục sử dụng.'
+    )
+    expect(screen.getByRole('button', { name: /Quét & Đánh giá/i })).not.toBeDisabled()
+  })
+
+  it('[FE-03] hiển thị đúng các nhánh của Banner kết quả AI: bài quá hạn và không có điểm', () => {
+    mockAiEvaluateMutate.mockImplementation((payload, options) => {
+      options?.onSuccess?.({
+        startDate: '2026-08-21',
+        endDate: '2026-08-28',
+        totalAssignments: 3,
+        completedAssignments: 1,
+        overdueAssignments: 2,
+        activeIncompleteAssignments: 0,
+        averageScore: null, // Không có điểm
+        strengths: 'Chăm chỉ nộp bài',
+        weaknesses: 'Nộp muộn',
+        generalAssessment: 'Cần chú ý deadline',
+      })
+    })
+
+    render(
+      <StudentRemarksModal
+        open={true}
+        onClose={vi.fn()}
+        student={mockStudent}
+        classCode="MATH101"
+      />
+    )
+
+    const aiScanBtn = screen.getByRole('button', { name: /Quét & Đánh giá/i })
+    fireEvent.click(aiScanBtn)
+
+    // Kiểm tra nhánh có bài quá hạn (overdue > 0 và active = 0)
+    expect(screen.getByText(/2 bài quá hạn/i)).toBeInTheDocument()
+
+    // Kiểm tra nhánh averageScore = null không render chữ ĐTB
+    expect(screen.queryByText(/• ĐTB:/i)).not.toBeInTheDocument()
   })
 })

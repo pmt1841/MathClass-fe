@@ -20,6 +20,25 @@ export interface CreateStudentRemarkPayload {
   generalAssessment?: string
 }
 
+export interface AiStudentRemarkEvaluatePayload {
+  days?: number
+  startDate?: string
+  endDate?: string
+}
+
+export interface AiStudentRemarkEvaluationResult {
+  startDate: string
+  endDate: string
+  totalAssignments: number
+  completedAssignments: number
+  overdueAssignments?: number
+  activeIncompleteAssignments?: number
+  averageScore?: number | null
+  strengths: string
+  weaknesses: string
+  generalAssessment: string
+}
+
 export const studentRemarkService = {
   getRemarks: async (classCode: string, studentId: number): Promise<StudentRemark[]> => {
     const res = await api.get(`/classrooms/${classCode}/students/${studentId}/remarks`)
@@ -37,5 +56,17 @@ export const studentRemarkService = {
 
   deleteRemark: async (classCode: string, studentId: number, remarkId: number): Promise<void> => {
     await api.delete(`/classrooms/${classCode}/students/${studentId}/remarks/${remarkId}`)
+  },
+
+  evaluateWithAi: async (
+    classCode: string,
+    studentId: number,
+    payload: AiStudentRemarkEvaluatePayload
+  ): Promise<AiStudentRemarkEvaluationResult> => {
+    const res = await api.post(
+      `/classrooms/${classCode}/students/${studentId}/remarks/ai-evaluate`,
+      payload
+    )
+    return res.data
   },
 }

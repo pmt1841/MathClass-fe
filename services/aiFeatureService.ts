@@ -11,7 +11,7 @@ export const AI_FEATURE_TASKS = {
   QUESTION_GEN: 'QUESTION_GEN',
   BATCH_QUESTION_GEN: 'BATCH_QUESTION_GEN',
   CANVAS_LATEX: 'CANVAS_LATEX',
-  ERROR_ANALYSIS: 'ERROR_ANALYSIS',
+  STUDENT_REMARK: 'STUDENT_REMARK',
 } as const
 
 export type AiFeatureTask = (typeof AI_FEATURE_TASKS)[keyof typeof AI_FEATURE_TASKS]
@@ -21,8 +21,8 @@ export const aiFeatureService = {
    * Lấy map taskCode -> enabled.
    * enabled = true khi admin đã cấu hình task, bật cờ enabled và provider ACTIVE.
    */
-  getFeatures: async (): Promise<Record<AiFeatureTask, boolean>> => {
-    const res = await api.get<Record<AiFeatureTask, boolean>>('/ai/features')
+  getFeatures: async (): Promise<Record<string, boolean>> => {
+    const res = await api.get<Record<string, boolean>>('/ai/features')
     return res.data
   }
 }

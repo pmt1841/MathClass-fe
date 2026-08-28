@@ -86,4 +86,30 @@ describe('studentRemarkService', () => {
       expect(api.delete).toHaveBeenCalledWith('/classrooms/MATH101/students/10/remarks/5')
     })
   })
+
+  describe('evaluateWithAi', () => {
+    it('gọi đúng endpoint POST /remarks/ai-evaluate với payload mốc thời gian', async () => {
+      const mockResult = {
+        startDate: '2026-08-21',
+        endDate: '2026-08-28',
+        totalAssignments: 5,
+        completedAssignments: 4,
+        overdueAssignments: 0,
+        activeIncompleteAssignments: 1,
+        averageScore: 8.5,
+        strengths: 'Tư duy logic tốt',
+        weaknesses: 'Tính còn ẩu',
+        generalAssessment: 'Đạt yêu cầu',
+      }
+      vi.mocked(api.post).mockResolvedValueOnce({ data: mockResult })
+
+      const result = await studentRemarkService.evaluateWithAi('MATH101', 10, { days: 7 })
+
+      expect(api.post).toHaveBeenCalledWith(
+        '/classrooms/MATH101/students/10/remarks/ai-evaluate',
+        { days: 7 }
+      )
+      expect(result).toEqual(mockResult)
+    })
+  })
 })

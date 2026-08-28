@@ -2,7 +2,12 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useStudentRemarks, useCreateStudentRemark, useDeleteStudentRemark } from '@/hooks/useStudentRemarks'
+import {
+  useStudentRemarks,
+  useCreateStudentRemark,
+  useDeleteStudentRemark,
+  useAiStudentRemarkEvaluation,
+} from '@/hooks/useStudentRemarks'
 import { studentRemarkService, StudentRemark } from '@/services/studentRemarkService'
 
 vi.mock('@/services/studentRemarkService', () => ({
@@ -10,6 +15,7 @@ vi.mock('@/services/studentRemarkService', () => ({
     getRemarks: vi.fn(),
     createRemark: vi.fn(),
     deleteRemark: vi.fn(),
+    evaluateWithAi: vi.fn(),
   },
 }))
 
@@ -149,6 +155,38 @@ describe('useStudentRemarks hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true))
       expect(result.current.error?.message).toBe('Student ID is missing')
+    })
+  })
+
+  describe('useAiStudentRemarkEvaluation', () => {
+    it('gọi service evaluateWithAi và invalidate credit cache khi thành công', async () => {
+      const mockResult = {
+        startDate: '2026-08-21',
+        endDate: '2026-08-28',
+        totalAssignments: 5,
+        completedAssignments: 4,
+        averageScore: 8.5,
+        strengths: 'Tư duy tốt',
+        weaknesses: 'Tính ẩu',
+        generalAssessment: 'Hoàn thành 4/5 bài',
+      }
+      vi.mocked(studentRemarkService.evaluateWithAi).mockResolvedValueOnce(mockResult)
+
+      const queryClient = createTestQueryClient()
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+      const { result } = renderHook(() => useAiStudentRemarkEvaluation('MATH101', 10), {
+        wrapper: createWrapper(queryClient),
+      })
+
+      result.current.mutate({ days: 7 })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(studentRemarkService.evaluateWithAi).toHaveBeenCalledWith('MATH101', 10, { days: 7 })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user-credit-balance'] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user-credit-transactions'] })
+      expect(result.current.data).toEqual(mockResult)
     })
   })
 })

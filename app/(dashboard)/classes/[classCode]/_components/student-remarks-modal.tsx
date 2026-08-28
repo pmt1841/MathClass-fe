@@ -31,17 +31,21 @@ import {
   History,
   CheckCircle2,
   ChevronDown,
-  ChevronsUpDown,
   AlertTriangle,
+  Calendar,
+  Bot,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Student } from '@/types'
-import { formatDateTime } from '@/lib/utils'
+import { formatDate, formatDateTime } from '@/lib/utils'
 import {
   useStudentRemarks,
   useCreateStudentRemark,
   useDeleteStudentRemark,
+  useAiStudentRemarkEvaluation,
 } from '@/hooks/useStudentRemarks'
+import { useQuery } from '@tanstack/react-query'
+import { aiFeatureService, AI_FEATURE_TASKS } from '@/services/aiFeatureService'
 import { PermissionGuard } from '@/components/ui/with-permission'
 
 interface StudentRemarksModalProps {
@@ -66,10 +70,30 @@ export function StudentRemarksModal({
   // Quản lý danh sách ID của nhận xét đang được mở rộng (mặc định mở nhận xét mới nhất)
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({})
 
+  // State cho trợ lý AI đánh giá
+  const [selectedDays, setSelectedDays] = useState<number>(7)
+  const [scanInfo, setScanInfo] = useState<{
+    startDate: string
+    endDate: string
+    total: number
+    completed: number
+    overdue?: number
+    active?: number
+    avgScore?: number | null
+  } | null>(null)
+
   const studentId = student?.id ?? null
   const { data: remarks = [], isLoading } = useStudentRemarks(classCode, studentId)
   const createMutation = useCreateStudentRemark(classCode, studentId)
   const deleteMutation = useDeleteStudentRemark(classCode, studentId)
+  const aiEvaluateMutation = useAiStudentRemarkEvaluation(classCode, studentId)
+
+  // Kiểm tra cờ bật/tắt tính năng AI từ Admin
+  const { data: aiFeatures } = useQuery({
+    queryKey: ['ai-features'],
+    queryFn: aiFeatureService.getFeatures,
+  })
+  const isAiRemarkEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_REMARK] !== false
 
   // Reset form và trạng thái mở rộng khi đổi học sinh hoặc mở modal
   useEffect(() => {
@@ -79,8 +103,42 @@ export function StudentRemarksModal({
       setGeneralAssessment('')
       setExpandedIds({})
       setRemarkToDelete(null)
+      setScanInfo(null)
+      setSelectedDays(7)
     }
   }, [open, student?.id])
+
+  // Xử lý gọi AI đánh giá tiến độ học sinh
+  const handleAiEvaluate = () => {
+    if (!studentId) return
+    aiEvaluateMutation.mutate(
+      { days: selectedDays },
+      {
+        onSuccess: (res) => {
+          setStrengths(res.strengths || '')
+          setWeaknesses(res.weaknesses || '')
+          setGeneralAssessment(res.generalAssessment || '')
+          setScanInfo({
+            startDate: res.startDate,
+            endDate: res.endDate,
+            total: res.totalAssignments,
+            completed: res.completedAssignments,
+            overdue: res.overdueAssignments,
+            active: res.activeIncompleteAssignments,
+            avgScore: res.averageScore,
+          })
+          toast.success('AI đã quét dữ liệu và điền gợi ý đánh giá thành công!')
+        },
+        onError: (err: any) => {
+          const msg =
+            err?.response?.data?.message ||
+            err?.response?.data ||
+            'Không thể sinh đánh giá từ AI. Vui lòng kiểm tra số dư credit hoặc thử lại.'
+          toast.error(typeof msg === 'string' ? msg : 'AI Đánh giá thất bại')
+        },
+      }
+    )
+  }
 
   // Toggle mở/đóng 1 nhận xét
   const toggleExpand = (id: number) => {
@@ -99,15 +157,6 @@ export function StudentRemarksModal({
     }
     // Mặc định mở nhận xét đầu tiên (mới nhất), các nhận xét cũ hơn thì đóng
     return index === 0
-  }
-
-  const toggleExpandAll = () => {
-    const allExpanded = remarks.every((r, idx) => isExpanded(r.id, idx))
-    const nextState: Record<number, boolean> = {}
-    remarks.forEach((r) => {
-      nextState[r.id] = !allExpanded
-    })
-    setExpandedIds(nextState)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,6 +283,113 @@ export function StudentRemarksModal({
                       </span>
                     </div>
 
+                    {/* Khối Trợ lý AI Quét & Đánh giá học sinh */}
+                    {isAiRemarkEnabled && (
+                      <div className="rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white p-3.5 space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm shadow-indigo-500/20">
+                              <Sparkles className="h-3.5 w-3.5" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <span>AI Đánh giá tiến độ</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700">
+                                  ~5 credit
+                                </span>
+                              </h4>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleAiEvaluate}
+                            disabled={aiEvaluateMutation.isPending}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-semibold shadow-sm shadow-indigo-500/20 hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            {aiEvaluateMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <span>Đang quét...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bot className="h-3.5 w-3.5" />
+                                <span>Quét & Đánh giá</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Thanh chọn mốc thời gian */}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1 mr-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Mốc thời gian:</span>
+                          </span>
+                          {[
+                            { days: 3, label: '3 ngày' },
+                            { days: 7, label: '7 ngày' },
+                            { days: 30, label: '1 tháng' },
+                          ].map((item) => (
+                            <button
+                              key={item.days}
+                              type="button"
+                              onClick={() => setSelectedDays(item.days)}
+                              disabled={aiEvaluateMutation.isPending}
+                              className={`text-[11px] font-medium px-2.5 py-0.5 rounded-lg transition-all border ${
+                                selectedDays === item.days
+                                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                  : 'bg-white/90 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Banner thông báo kết quả quét dữ liệu */}
+                        {scanInfo && (
+                          <div className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] animate-in fade-in duration-200">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                              <span className="truncate">
+                                Quét từ <strong>{formatDate(scanInfo.startDate)}</strong> đến{' '}
+                                <strong>{formatDate(scanInfo.endDate)}</strong> • Đã nộp{' '}
+                                <strong>{scanInfo.completed}/{scanInfo.total}</strong> bài
+                                {scanInfo.active != null && scanInfo.active > 0 && (
+                                  <span className="text-slate-600 font-normal">
+                                    {' '}
+                                    ({scanInfo.active} bài còn hạn
+                                    {scanInfo.overdue != null && scanInfo.overdue > 0
+                                      ? `, ${scanInfo.overdue} quá hạn`
+                                      : ''}
+                                    )
+                                  </span>
+                                )}
+                                {scanInfo.active === 0 &&
+                                  scanInfo.overdue != null &&
+                                  scanInfo.overdue > 0 && (
+                                    <span className="text-amber-700 font-medium">
+                                      {' '}
+                                      ({scanInfo.overdue} bài quá hạn)
+                                    </span>
+                                  )}
+                                {scanInfo.avgScore != null && ` • ĐTB: ${scanInfo.avgScore}`}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setScanInfo(null)}
+                              className="text-emerald-700 hover:text-emerald-900 text-[10px] font-medium ml-1 flex-shrink-0 hover:underline"
+                            >
+                              Đóng
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <form id="remark-form" onSubmit={handleSubmit} className="space-y-3">
                       {/* Điểm mạnh */}
                       <div className="space-y-1">
@@ -316,21 +472,6 @@ export function StudentRemarksModal({
                   <History className="h-3.5 w-3.5 text-slate-600" />
                   <span>Lịch sử nhận xét ({remarks.length})</span>
                 </h3>
-
-                {remarks.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={toggleExpandAll}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 hover:underline transition-all"
-                  >
-                    <ChevronsUpDown className="h-3 w-3" />
-                    <span>
-                      {remarks.every((r, idx) => isExpanded(r.id, idx))
-                        ? 'Thu gọn'
-                        : 'Mở rộng'}
-                    </span>
-                  </button>
-                )}
               </div>
 
               {isLoading ? (

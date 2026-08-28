@@ -37,3 +37,17 @@ export function useDeleteStudentRemark(classCode: string, studentId: number | nu
     },
   })
 }
+
+export function useAiStudentRemarkEvaluation(classCode: string, studentId: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('@/services/studentRemarkService').AiStudentRemarkEvaluatePayload) => {
+      if (!studentId) throw new Error('Student ID is missing')
+      return studentRemarkService.evaluateWithAi(classCode, studentId, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-credit-balance'] })
+      queryClient.invalidateQueries({ queryKey: ['user-credit-transactions'] })
+    },
+  })
+}

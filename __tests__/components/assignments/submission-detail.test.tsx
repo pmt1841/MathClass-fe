@@ -106,7 +106,7 @@ describe('SubmissionDetail', () => {
       QUESTION_GEN: true,
       BATCH_QUESTION_GEN: true,
       CANVAS_LATEX: true,
-      ERROR_ANALYSIS: true,
+      STUDENT_REMARK: true,
     })
   })
 
@@ -250,7 +250,7 @@ describe('SubmissionDetail', () => {
       QUESTION_GEN: false,
       BATCH_QUESTION_GEN: false,
       CANVAS_LATEX: false,
-      ERROR_ANALYSIS: false,
+      STUDENT_REMARK: false,
     })
 
     const queryClient = createQueryClient()
