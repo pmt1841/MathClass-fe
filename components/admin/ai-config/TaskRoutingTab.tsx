@@ -73,10 +73,10 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     icon: Lightbulb,
   },
   {
-    taskCode: 'ERROR_ANALYSIS',
-    title: 'Phân tích Lỗi sai & Gợi ý Sửa',
-    description: 'Bắt lỗi sai trong các bước biến đổi toán học và giải thích chi tiết.',
-    icon: AlertTriangle,
+    taskCode: 'STUDENT_REMARK',
+    title: 'AI Đánh giá & Nhận xét Học sinh',
+    description: 'Quét dữ liệu bài tập và bài nộp theo mốc thời gian để sinh nhận xét điểm mạnh, điểm yếu và phương pháp cải thiện.',
+    icon: Sparkles,
   },
 ]
 
