@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsService, NotificationSettings } from '@/services/settingsService'
 
+import { StorageCleanupCard } from './_components/StorageCleanupCard'
+
 export default function AdminSettingsPage() {
   const router = useRouter()
   const { user } = useAuth()
@@ -88,9 +90,11 @@ export default function AdminSettingsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Cài đặt Quản trị viên</h1>
         <p className="text-muted-foreground mt-2">
-          Quản lý tùy chọn nhận thông báo và hệ thống dành cho Admin.
+          Quản lý tùy chọn nhận thông báo và bảo trì hệ thống dành cho Quản trị viên.
         </p>
       </div>
+
+      <StorageCleanupCard />
 
       <Card className="shadow-sm border-slate-200 bg-white">
         <CardHeader className="pb-4">
@@ -148,3 +152,4 @@ export default function AdminSettingsPage() {
   </div>
 )
 }
+
