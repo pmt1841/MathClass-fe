@@ -30,6 +30,21 @@ import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 
 import { normalizeCanvasElements } from '@/components/ui/jsxgraph-editor-modal'
 
+export const filterReferencedImages = (content: string, description: string, images: any[]) => {
+  if (!images || images.length === 0) return []
+  const fullText = (content || '') + ' ' + (description || '')
+  return images.filter(img => {
+    if (!img) return false
+    const code = (img.imageCode || '').replace('[', '').replace(']', '')
+    const url = img.imageUrl || ''
+    return (
+      (img.imageCode && fullText.includes(img.imageCode)) ||
+      (code && fullText.includes(code)) ||
+      (url && fullText.includes(url))
+    )
+  })
+}
+
 export const embedDrawings = (content: string, drawings: any[]) => {
   if (!drawings || drawings.length === 0) return content
   let newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
@@ -230,7 +245,8 @@ export function AssignmentForm({
       isPushedRef.current = false
       window.history.back()
     }
-    onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
+    const activeImages = filterReferencedImages(data.content, data.description || '', images)
+    onSubmitDraft({ ...data, content: embedDrawings(data.content, drawings), drawings, images: activeImages })
     setLastSavedTime(new Date())
   }
 
@@ -241,7 +257,8 @@ export function AssignmentForm({
         isPushedRef.current = false
         window.history.back()
       }
-      onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings, images })
+      const activeImages = filterReferencedImages(data.content, data.description || '', images)
+      onPublishClick({ ...data, content: embedDrawings(data.content, drawings), drawings, images: activeImages })
     }
   }
 
