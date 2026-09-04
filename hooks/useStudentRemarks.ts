@@ -43,7 +43,7 @@ export function useAiStudentRemarkEvaluation(classCode: string, studentId: numbe
   return useMutation({
     mutationFn: (payload: import('@/services/studentRemarkService').AiStudentRemarkEvaluatePayload) => {
       if (!studentId) throw new Error('Student ID is missing')
-      return studentRemarkService.evaluateWithAi(classCode, studentId, payload)
+      return studentRemarkService.evaluateWithAiAsync(classCode, studentId, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-credit-balance'] })

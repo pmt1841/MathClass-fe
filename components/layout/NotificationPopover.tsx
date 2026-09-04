@@ -150,6 +150,21 @@ export function NotificationPopover() {
         console.log('SSE Message received:', ev.event, ev.data);
         if (ev.event === 'NOTIFICATION') {
           queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        } else if (ev.event === 'AI_JOB_COMPLETED' || ev.event === 'AI_JOB_FAILED') {
+          queryClient.invalidateQueries({ queryKey: ['user-credit-balance'] })
+          queryClient.invalidateQueries({ queryKey: ['user-credit-transactions'] })
+          try {
+            const parsedData = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('mathclass-ai-job', {
+                  detail: { eventType: ev.event, ...parsedData }
+                })
+              )
+            }
+          } catch (e) {
+            console.error('Failed to parse AI job event data:', e)
+          }
         }
       },
       onerror(err) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Sparkles, Loader2, RefreshCw, CheckCircle, X, HelpCircle, BookOpen, Layers, Target, PlusCircle, Replace } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -38,17 +38,51 @@ export function AiQuestionGeneratorModal({
   const [includeExplanation, setIncludeExplanation] = useState<boolean>(false)
 
   const [isLoading, setIsLoading] = useState(false)
+  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
   const [generatedQuestion, setGeneratedQuestion] = useState<AiGeneratedQuestionDTO | null>(null)
   const [activeTab, setActiveTab] = useState<'content' | 'explanation'>('content')
+
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen && abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    onClose()
+  }
 
   if (!isOpen) return null
 
   const handleReset = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setPrompt('')
     setTopic('')
     setIncludeCanvasDiagram(false)
     setIncludeExplanation(false)
     setGeneratedQuestion(null)
+    setJobStatus(null)
+    setJobStatusMessage('')
     setActiveTab('content')
     toast.info('Đã xóa dữ liệu và làm mới')
   }
@@ -59,7 +93,15 @@ export function AiQuestionGeneratorModal({
       return
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setIsLoading(true)
+    setJobStatus('QUEUED')
+    setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
     setGeneratedQuestion(null)
     setActiveTab('content')
 
@@ -73,7 +115,19 @@ export function AiQuestionGeneratorModal({
     }
 
     try {
-      const result = await aiQuestionService.generateQuestion(requestDTO)
+      const result = await aiQuestionService.generateQuestionAsync(requestDTO, {
+        signal: controller.signal,
+        onStatusChange: (status, message) => {
+          setJobStatus(status)
+          if (status === 'QUEUED') {
+            setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+          } else if (status === 'PROCESSING') {
+            setJobStatusMessage('AI đang phân tích và giải đề toán...')
+          } else if (status === 'RETRYING') {
+            setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+          }
+        }
+      })
       const normalizedResult: AiGeneratedQuestionDTO = {
         ...result,
         content: normalizeKatexDelimiters(result.content),
@@ -83,6 +137,9 @@ export function AiQuestionGeneratorModal({
       setActiveTab('content')
       toast.success('Sinh đề bài toán bằng AI thành công!')
     } catch (error: any) {
+      if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
+        return
+      }
       const serverMsg = error?.response?.data?.message || error?.message || ''
       const lower = serverMsg.toLowerCase()
       if (
@@ -98,12 +155,16 @@ export function AiQuestionGeneratorModal({
         lower.includes('openai') ||
         lower.includes('lỗi chi tiết')
       ) {
-        toast.error('Hệ thống đang bảo trì. Vui lòng thử lại sau!')
+        toast.error('Dịch vụ AI hiện đang quá tải hoặc gặp sự cố. Vui lòng thử lại sau.')
       } else {
         toast.error(serverMsg)
       }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
       setIsLoading(false)
+      setJobStatus(null)
     }
   }
 
@@ -115,7 +176,7 @@ export function AiQuestionGeneratorModal({
     } else {
       toast.success('Đã bổ sung bài toán vào trình soạn thảo!')
     }
-    onClose()
+    handleClose()
   }
 
   return (
@@ -141,7 +202,7 @@ export function AiQuestionGeneratorModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -283,11 +344,16 @@ export function AiQuestionGeneratorModal({
               <div className="inline-flex p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                Hệ thống đang phân tích và soạn đề toán...
-              </h3>
+              <div className="flex items-center justify-center gap-2">
+                <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+                  {jobStatus || 'QUEUED'}
+                </span>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  {jobStatusMessage || 'Hệ thống đang phân tích và soạn đề toán...'}
+                </h3>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                Hệ thống đang chuyển đổi công thức Toán học sang định dạng KaTeX và chuẩn hóa cấu trúc bài tập.
+                Tác vụ đang được phân phối qua hàng đợi Redis. Hệ thống tự động chuyển đổi công thức KaTeX và đối chiếu hình học Canvas.
               </p>
             </div>
           )}
@@ -383,7 +449,7 @@ export function AiQuestionGeneratorModal({
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors"
           >
             Hủy bỏ

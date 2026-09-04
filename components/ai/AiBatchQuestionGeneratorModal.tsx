@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Sparkles,
   Loader2,
@@ -55,11 +55,39 @@ export function AiBatchQuestionGeneratorModal({
   const [textContent, setTextContent] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
+  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [batchResponse, setBatchResponse] = useState<BatchGenerateQuestionsResponseDTO | null>(null)
 
   // Danh sách các bài tập lẻ đã được tách ra
   const [assignmentsList, setAssignmentsList] = useState<IndividualAssignmentItem[]>([])
+
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen && abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    onClose()
+  }
 
   if (!isOpen) return null
 
@@ -75,10 +103,16 @@ export function AiBatchQuestionGeneratorModal({
   }
 
   const handleReset = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setSelectedFile(null)
     setTextContent('')
     setBatchResponse(null)
     setAssignmentsList([])
+    setJobStatus(null)
+    setJobStatusMessage('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -90,14 +124,37 @@ export function AiBatchQuestionGeneratorModal({
       return
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setIsLoading(true)
+    setJobStatus('QUEUED')
+    setJobStatusMessage('Đang tải file và đưa vào hàng đợi Redis Queue...')
 
     try {
-      const result = await aiBatchQuestionService.batchGenerateQuestions({
-        file: selectedFile || undefined,
-        textContent: textContent.trim() || undefined,
-        includeExplanation: false,
-      })
+      const result = await aiBatchQuestionService.batchGenerateQuestionsAsync(
+        {
+          file: selectedFile || undefined,
+          textContent: textContent.trim() || undefined,
+          includeExplanation: false,
+        },
+        {
+          signal: controller.signal,
+          onStatusChange: (status, message) => {
+            setJobStatus(status)
+            if (status === 'QUEUED') {
+              setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+            } else if (status === 'PROCESSING') {
+              setJobStatusMessage('AI đang phân tích tài liệu và bóc tách các bài tập...')
+            } else if (status === 'RETRYING') {
+              setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+            }
+          }
+        }
+      )
 
       const separatedAssignments: IndividualAssignmentItem[] = (result.questions || []).map((q, idx) => ({
         id: q.id || `item_${idx + 1}`,
@@ -109,6 +166,9 @@ export function AiBatchQuestionGeneratorModal({
       setAssignmentsList(separatedAssignments)
       toast.success(`AI đã đọc file và tách thành công ${separatedAssignments.length} bài tập!`)
     } catch (error: any) {
+      if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
+        return
+      }
       const serverMsg = error?.response?.data?.message || error?.message || ''
       const lower = serverMsg.toLowerCase()
       if (
@@ -126,7 +186,11 @@ export function AiBatchQuestionGeneratorModal({
         toast.error(serverMsg)
       }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
       setIsLoading(false)
+      setJobStatus(null)
     }
   }
 
@@ -180,7 +244,7 @@ export function AiBatchQuestionGeneratorModal({
       if (onSuccess) {
         onSuccess()
       }
-      onClose()
+      handleClose()
     } catch (error: any) {
       console.error('Failed to create batch assignments:', error)
       const msg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi tạo bài tập'
@@ -215,7 +279,7 @@ export function AiBatchQuestionGeneratorModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -302,7 +366,7 @@ export function AiBatchQuestionGeneratorModal({
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Đang đọc file & tách bài tập...
+                      {jobStatusMessage || 'Đang xử lý qua Redis Queue...'}
                     </>
                   ) : (
                     <>
@@ -398,7 +462,7 @@ export function AiBatchQuestionGeneratorModal({
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
           >
             Đóng
