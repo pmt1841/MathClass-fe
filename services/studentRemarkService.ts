@@ -1,4 +1,6 @@
 import api from '@/lib/axios'
+import { aiJobService } from '@/services/aiJobService'
+import { AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
 
 export interface StudentRemark {
   id: number
@@ -69,4 +71,28 @@ export const studentRemarkService = {
     )
     return res.data
   },
+
+  /**
+   * Đánh giá tiến độ học sinh bằng AI bất đồng bộ qua Redis Queue
+   */
+  evaluateWithAiAsync: async (
+    classCode: string,
+    studentId: number,
+    payload: AiStudentRemarkEvaluatePayload,
+    options?: {
+      onStatusChange?: (status: AiJobStatus, message?: string) => void
+      signal?: AbortSignal
+    }
+  ): Promise<AiStudentRemarkEvaluationResult> => {
+    const res = await api.post<AiJobSubmitResponse>(
+      `/classrooms/${classCode}/students/${studentId}/remarks/ai-evaluate?async=true`,
+      payload,
+      { signal: options?.signal }
+    )
+    return aiJobService.waitForAiJob<AiStudentRemarkEvaluationResult>(res.data.jobId, {
+      onStatusChange: options?.onStatusChange,
+      signal: options?.signal,
+    })
+  },
 }
+

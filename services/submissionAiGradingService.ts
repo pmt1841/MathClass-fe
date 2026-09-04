@@ -1,4 +1,6 @@
 import api from '@/lib/axios'
+import { aiJobService } from '@/services/aiJobService'
+import { AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
 
 /**
  * MAT-250: AI chấm sơ bộ bài làm của học sinh cho giáo viên.
@@ -39,7 +41,7 @@ export interface AiGradingResult {
 
 export const submissionAiGradingService = {
   /**
-   * Gọi backend chạy AI chấm sơ bộ cho 1 bài nộp.
+   * Gọi backend chạy AI chấm sơ bộ cho 1 bài nộp (đồng bộ).
    * @param submissionId ID bài nộp của học sinh
    * @param assignmentId ID bài tập (để backend lấy hình mẫu + maxScore)
    * @param options Cấu hình thêm (như AbortSignal để hủy request)
@@ -55,5 +57,29 @@ export const submissionAiGradingService = {
       { signal: options?.signal }
     )
     return res.data
-  }
+  },
+
+  /**
+   * Gọi backend chạy AI chấm sơ bộ cho 1 bài nộp bất đồng bộ qua Redis Queue.
+   * Nhận phản hồi 202 Accepted ngay lập tức và theo dõi tiến trình qua SSE / Polling Fallback.
+   */
+  submitAiGradingAsync: async (
+    submissionId: number,
+    assignmentId: number,
+    options?: {
+      onStatusChange?: (status: AiJobStatus, message?: string) => void
+      signal?: AbortSignal
+    }
+  ): Promise<AiGradingResult> => {
+    const res = await api.post<AiJobSubmitResponse>(
+      `/submissions/${submissionId}/ai-grading?async=true`,
+      { assignmentId },
+      { signal: options?.signal }
+    )
+    return aiJobService.waitForAiJob<AiGradingResult>(res.data.jobId, {
+      onStatusChange: options?.onStatusChange,
+      signal: options?.signal,
+    })
+  },
 }
+

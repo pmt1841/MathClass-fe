@@ -16,6 +16,7 @@ vi.mock('@/services/studentRemarkService', () => ({
     createRemark: vi.fn(),
     deleteRemark: vi.fn(),
     evaluateWithAi: vi.fn(),
+    evaluateWithAiAsync: vi.fn(),
   },
 }))
 
@@ -170,7 +171,7 @@ describe('useStudentRemarks hooks', () => {
         weaknesses: 'Tính ẩu',
         generalAssessment: 'Hoàn thành 4/5 bài',
       }
-      vi.mocked(studentRemarkService.evaluateWithAi).mockResolvedValueOnce(mockResult)
+      vi.mocked(studentRemarkService.evaluateWithAiAsync).mockResolvedValueOnce(mockResult as any)
 
       const queryClient = createTestQueryClient()
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
@@ -183,7 +184,7 @@ describe('useStudentRemarks hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(studentRemarkService.evaluateWithAi).toHaveBeenCalledWith('MATH101', 10, { days: 7 })
+      expect(studentRemarkService.evaluateWithAiAsync).toHaveBeenCalledWith('MATH101', 10, { days: 7 })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user-credit-balance'] })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['user-credit-transactions'] })
       expect(result.current.data).toEqual(mockResult)

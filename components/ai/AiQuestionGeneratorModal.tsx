@@ -38,6 +38,8 @@ export function AiQuestionGeneratorModal({
   const [includeExplanation, setIncludeExplanation] = useState<boolean>(false)
 
   const [isLoading, setIsLoading] = useState(false)
+  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
   const [generatedQuestion, setGeneratedQuestion] = useState<AiGeneratedQuestionDTO | null>(null)
   const [activeTab, setActiveTab] = useState<'content' | 'explanation'>('content')
 
@@ -49,6 +51,8 @@ export function AiQuestionGeneratorModal({
     setIncludeCanvasDiagram(false)
     setIncludeExplanation(false)
     setGeneratedQuestion(null)
+    setJobStatus(null)
+    setJobStatusMessage('')
     setActiveTab('content')
     toast.info('Đã xóa dữ liệu và làm mới')
   }
@@ -60,6 +64,8 @@ export function AiQuestionGeneratorModal({
     }
 
     setIsLoading(true)
+    setJobStatus('QUEUED')
+    setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
     setGeneratedQuestion(null)
     setActiveTab('content')
 
@@ -73,7 +79,18 @@ export function AiQuestionGeneratorModal({
     }
 
     try {
-      const result = await aiQuestionService.generateQuestion(requestDTO)
+      const result = await aiQuestionService.generateQuestionAsync(requestDTO, {
+        onStatusChange: (status, message) => {
+          setJobStatus(status)
+          if (status === 'QUEUED') {
+            setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+          } else if (status === 'PROCESSING') {
+            setJobStatusMessage('AI đang phân tích và giải đề toán...')
+          } else if (status === 'RETRYING') {
+            setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+          }
+        }
+      })
       const normalizedResult: AiGeneratedQuestionDTO = {
         ...result,
         content: normalizeKatexDelimiters(result.content),
@@ -98,12 +115,13 @@ export function AiQuestionGeneratorModal({
         lower.includes('openai') ||
         lower.includes('lỗi chi tiết')
       ) {
-        toast.error('Hệ thống đang bảo trì. Vui lòng thử lại sau!')
+        toast.error('Dịch vụ AI hiện đang quá tải hoặc gặp sự cố. Vui lòng thử lại sau.')
       } else {
         toast.error(serverMsg)
       }
     } finally {
       setIsLoading(false)
+      setJobStatus(null)
     }
   }
 
@@ -283,11 +301,16 @@ export function AiQuestionGeneratorModal({
               <div className="inline-flex p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                Hệ thống đang phân tích và soạn đề toán...
-              </h3>
+              <div className="flex items-center justify-center gap-2">
+                <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+                  {jobStatus || 'QUEUED'}
+                </span>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  {jobStatusMessage || 'Hệ thống đang phân tích và soạn đề toán...'}
+                </h3>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                Hệ thống đang chuyển đổi công thức Toán học sang định dạng KaTeX và chuẩn hóa cấu trúc bài tập.
+                Tác vụ đang được phân phối qua hàng đợi Redis. Hệ thống tự động chuyển đổi công thức KaTeX và đối chiếu hình học Canvas.
               </p>
             </div>
           )}

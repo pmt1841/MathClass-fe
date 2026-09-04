@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 vi.mock('@/services/aiBatchQuestionService', () => ({
   aiBatchQuestionService: {
     batchGenerateQuestions: vi.fn(),
+    batchGenerateQuestionsAsync: vi.fn(),
   },
 }))
 
@@ -40,6 +41,9 @@ const createWrapper = () => {
 describe('AiBatchQuestionGeneratorModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(aiBatchQuestionService.batchGenerateQuestionsAsync).mockImplementation((params) =>
+      aiBatchQuestionService.batchGenerateQuestions(params)
+    )
   })
 
   it('không render gì khi isOpen = false', () => {

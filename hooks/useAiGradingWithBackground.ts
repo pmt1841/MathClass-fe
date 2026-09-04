@@ -72,7 +72,7 @@ export function useAiGradingWithBackground(): UseAiGradingWithBackgroundReturn {
       setIsGrading(true)
 
       try {
-        const data = await submissionAiGradingService.submitAiGrading(
+        const data = await submissionAiGradingService.submitAiGradingAsync(
           submissionId,
           assignmentId,
           { signal: controller.signal }
@@ -96,7 +96,11 @@ export function useAiGradingWithBackground(): UseAiGradingWithBackgroundReturn {
         }
       } catch (err: any) {
         // Ignore intentional abort cancellations
-        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+        if (
+          err?.name === 'CanceledError' ||
+          err?.code === 'ERR_CANCELED' ||
+          err?.message?.includes('hủy bỏ')
+        ) {
           return
         }
 

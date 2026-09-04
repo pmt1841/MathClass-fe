@@ -55,6 +55,8 @@ export function AiBatchQuestionGeneratorModal({
   const [textContent, setTextContent] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
+  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [batchResponse, setBatchResponse] = useState<BatchGenerateQuestionsResponseDTO | null>(null)
 
@@ -79,6 +81,8 @@ export function AiBatchQuestionGeneratorModal({
     setTextContent('')
     setBatchResponse(null)
     setAssignmentsList([])
+    setJobStatus(null)
+    setJobStatusMessage('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -91,13 +95,29 @@ export function AiBatchQuestionGeneratorModal({
     }
 
     setIsLoading(true)
+    setJobStatus('QUEUED')
+    setJobStatusMessage('Đang tải file và đưa vào hàng đợi Redis Queue...')
 
     try {
-      const result = await aiBatchQuestionService.batchGenerateQuestions({
-        file: selectedFile || undefined,
-        textContent: textContent.trim() || undefined,
-        includeExplanation: false,
-      })
+      const result = await aiBatchQuestionService.batchGenerateQuestionsAsync(
+        {
+          file: selectedFile || undefined,
+          textContent: textContent.trim() || undefined,
+          includeExplanation: false,
+        },
+        {
+          onStatusChange: (status, message) => {
+            setJobStatus(status)
+            if (status === 'QUEUED') {
+              setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+            } else if (status === 'PROCESSING') {
+              setJobStatusMessage('AI đang phân tích tài liệu và bóc tách các bài tập...')
+            } else if (status === 'RETRYING') {
+              setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+            }
+          }
+        }
+      )
 
       const separatedAssignments: IndividualAssignmentItem[] = (result.questions || []).map((q, idx) => ({
         id: q.id || `item_${idx + 1}`,
@@ -127,6 +147,7 @@ export function AiBatchQuestionGeneratorModal({
       }
     } finally {
       setIsLoading(false)
+      setJobStatus(null)
     }
   }
 
@@ -302,7 +323,7 @@ export function AiBatchQuestionGeneratorModal({
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Đang đọc file & tách bài tập...
+                      {jobStatusMessage || 'Đang xử lý qua Redis Queue...'}
                     </>
                   ) : (
                     <>
