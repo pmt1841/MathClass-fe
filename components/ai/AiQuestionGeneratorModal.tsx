@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Sparkles, Loader2, RefreshCw, CheckCircle, X, HelpCircle, BookOpen, Layers, Target, PlusCircle, Replace } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
@@ -43,9 +43,39 @@ export function AiQuestionGeneratorModal({
   const [generatedQuestion, setGeneratedQuestion] = useState<AiGeneratedQuestionDTO | null>(null)
   const [activeTab, setActiveTab] = useState<'content' | 'explanation'>('content')
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen && abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    onClose()
+  }
+
   if (!isOpen) return null
 
   const handleReset = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setPrompt('')
     setTopic('')
     setIncludeCanvasDiagram(false)
@@ -62,6 +92,12 @@ export function AiQuestionGeneratorModal({
       toast.error('Vui lòng nhập nội dung yêu cầu bài toán')
       return
     }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     setIsLoading(true)
     setJobStatus('QUEUED')
@@ -80,6 +116,7 @@ export function AiQuestionGeneratorModal({
 
     try {
       const result = await aiQuestionService.generateQuestionAsync(requestDTO, {
+        signal: controller.signal,
         onStatusChange: (status, message) => {
           setJobStatus(status)
           if (status === 'QUEUED') {
@@ -100,6 +137,9 @@ export function AiQuestionGeneratorModal({
       setActiveTab('content')
       toast.success('Sinh đề bài toán bằng AI thành công!')
     } catch (error: any) {
+      if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
+        return
+      }
       const serverMsg = error?.response?.data?.message || error?.message || ''
       const lower = serverMsg.toLowerCase()
       if (
@@ -120,6 +160,9 @@ export function AiQuestionGeneratorModal({
         toast.error(serverMsg)
       }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
       setIsLoading(false)
       setJobStatus(null)
     }
@@ -133,7 +176,7 @@ export function AiQuestionGeneratorModal({
     } else {
       toast.success('Đã bổ sung bài toán vào trình soạn thảo!')
     }
-    onClose()
+    handleClose()
   }
 
   return (
@@ -159,7 +202,7 @@ export function AiQuestionGeneratorModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -406,7 +449,7 @@ export function AiQuestionGeneratorModal({
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors"
           >
             Hủy bỏ

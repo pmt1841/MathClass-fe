@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Sparkles,
   Loader2,
@@ -63,6 +63,32 @@ export function AiBatchQuestionGeneratorModal({
   // Danh sách các bài tập lẻ đã được tách ra
   const [assignmentsList, setAssignmentsList] = useState<IndividualAssignmentItem[]>([])
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen && abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    onClose()
+  }
+
   if (!isOpen) return null
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,6 +103,10 @@ export function AiBatchQuestionGeneratorModal({
   }
 
   const handleReset = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setSelectedFile(null)
     setTextContent('')
     setBatchResponse(null)
@@ -94,6 +124,12 @@ export function AiBatchQuestionGeneratorModal({
       return
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setIsLoading(true)
     setJobStatus('QUEUED')
     setJobStatusMessage('Đang tải file và đưa vào hàng đợi Redis Queue...')
@@ -106,6 +142,7 @@ export function AiBatchQuestionGeneratorModal({
           includeExplanation: false,
         },
         {
+          signal: controller.signal,
           onStatusChange: (status, message) => {
             setJobStatus(status)
             if (status === 'QUEUED') {
@@ -129,6 +166,9 @@ export function AiBatchQuestionGeneratorModal({
       setAssignmentsList(separatedAssignments)
       toast.success(`AI đã đọc file và tách thành công ${separatedAssignments.length} bài tập!`)
     } catch (error: any) {
+      if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
+        return
+      }
       const serverMsg = error?.response?.data?.message || error?.message || ''
       const lower = serverMsg.toLowerCase()
       if (
@@ -146,6 +186,9 @@ export function AiBatchQuestionGeneratorModal({
         toast.error(serverMsg)
       }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
       setIsLoading(false)
       setJobStatus(null)
     }
@@ -201,7 +244,7 @@ export function AiBatchQuestionGeneratorModal({
       if (onSuccess) {
         onSuccess()
       }
-      onClose()
+      handleClose()
     } catch (error: any) {
       console.error('Failed to create batch assignments:', error)
       const msg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi tạo bài tập'
@@ -236,7 +279,7 @@ export function AiBatchQuestionGeneratorModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -419,7 +462,7 @@ export function AiBatchQuestionGeneratorModal({
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
           >
             Đóng
