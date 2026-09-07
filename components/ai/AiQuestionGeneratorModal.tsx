@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
-import { normalizeKatexDelimiters } from '@/lib/utils'
+import { cn, normalizeKatexDelimiters } from '@/lib/utils'
 import { aiQuestionService, AiGeneratedQuestionDTO, GenerateQuestionRequestDTO } from '@/services/aiQuestionService'
 import dynamic from 'next/dynamic'
 
@@ -44,6 +44,11 @@ export function AiQuestionGeneratorModal({
   const [activeTab, setActiveTab] = useState<'content' | 'explanation'>('content')
 
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isOpenRef = useRef(isOpen)
+
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   useEffect(() => {
     return () => {
@@ -54,22 +59,32 @@ export function AiQuestionGeneratorModal({
     }
   }, [])
 
-  useEffect(() => {
-    if (!isOpen && abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
-  }, [isOpen])
-
   const handleClose = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+    if (isLoading) {
+      toast.info('AI đang tiếp tục soạn đề bài toán ở chế độ nền. Bạn có thể mở lại bất cứ lúc nào.')
     }
     onClose()
   }
 
-  if (!isOpen) return null
+  const handleCancelJob = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsLoading(false)
+    setJobStatus(null)
+    setJobStatusMessage('')
+    toast.info('Đã dừng tác vụ sinh đề AI')
+  }
+
+  const hasContent = Boolean(
+    isLoading ||
+    generatedQuestion ||
+    prompt.trim() ||
+    topic.trim()
+  )
+
+  if (!isOpen && !hasContent) return null
 
   const handleReset = () => {
     if (abortControllerRef.current) {
@@ -135,7 +150,11 @@ export function AiQuestionGeneratorModal({
       }
       setGeneratedQuestion(normalizedResult)
       setActiveTab('content')
-      toast.success('Sinh đề bài toán bằng AI thành công!')
+      if (!isOpenRef.current) {
+        toast.success('AI đã soạn xong bài toán! Bấm vào Trợ lý AI để xem kết quả.')
+      } else {
+        toast.success('Sinh đề bài toán bằng AI thành công!')
+      }
     } catch (error: any) {
       if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
         return
@@ -180,7 +199,13 @@ export function AiQuestionGeneratorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      className={cn(
+        "fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200",
+        !isOpen && "hidden"
+      )}
+      aria-hidden={!isOpen}
+    >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         
         {/* MODAL HEADER */}
@@ -453,13 +478,32 @@ export function AiQuestionGeneratorModal({
 
         {/* MODAL FOOTER */}
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors"
-          >
-            Hủy bỏ
-          </button>
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancelJob}
+                className="px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl transition-colors cursor-pointer"
+              >
+                Dừng tác vụ
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                Chạy ngầm & Đóng
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+            >
+              {generatedQuestion ? 'Đóng' : 'Hủy bỏ'}
+            </button>
+          )}
 
           {generatedQuestion && (
             <div className="flex flex-wrap items-center gap-2.5">

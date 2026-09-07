@@ -348,4 +348,84 @@ describe('AiBatchQuestionGeneratorModal Component', () => {
       ])
     })
   })
+
+  it('tiếp tục chạy ngầm không bị abort khi người dùng đóng modal trong lúc đang xử lý', async () => {
+    let capturedSignal: AbortSignal | undefined
+    let resolvePromise: (value: any) => void
+    const pendingPromise = new Promise((resolve) => {
+      resolvePromise = resolve
+    })
+
+    vi.mocked(aiBatchQuestionService.batchGenerateQuestionsAsync).mockImplementation(
+      async (_params, options) => {
+        capturedSignal = options?.signal
+        return pendingPromise as any
+      }
+    )
+
+    const onCloseMock = vi.fn()
+    const { rerender } = render(
+      <AiBatchQuestionGeneratorModal isOpen={true} onClose={onCloseMock} />,
+      { wrapper: createWrapper() }
+    )
+
+    const textarea = screen.getByPlaceholderText(/Dán toàn bộ nội dung đề bài/i)
+    fireEvent.change(textarea, { target: { value: 'Nội dung đề bài kiểm tra...' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /Tách bài tập bằng AI/i }))
+
+    // Kiểm tra đã bắt đầu gọi API và signal chưa bị abort
+    expect(capturedSignal).toBeDefined()
+    expect(capturedSignal?.aborted).toBe(false)
+
+    // Đóng modal bằng cách chuyển isOpen = false
+    rerender(<AiBatchQuestionGeneratorModal isOpen={false} onClose={onCloseMock} />)
+
+    // Signal vẫn không bị abort!
+    expect(capturedSignal?.aborted).toBe(false)
+
+    // Trả về kết quả hoàn tất trong khi modal đang đóng
+    resolvePromise!({
+      suggestedTitle: 'Đề hoàn thành ngầm',
+      questions: [{ id: 'q1', title: 'Bài 1 ngầm', content: 'Nội dung 1' }],
+      totalQuestions: 1,
+    })
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('AI đã tách xong 1 bài tập!')
+      )
+    })
+  })
+
+  it('hủy tác vụ khi người dùng click nút "Dừng tác vụ"', async () => {
+    let capturedSignal: AbortSignal | undefined
+    vi.mocked(aiBatchQuestionService.batchGenerateQuestionsAsync).mockImplementation(
+      async (_params, options) => {
+        capturedSignal = options?.signal
+        return new Promise(() => {}) // pending mãi
+      }
+    )
+
+    render(
+      <AiBatchQuestionGeneratorModal isOpen={true} onClose={vi.fn()} />,
+      { wrapper: createWrapper() }
+    )
+
+    const textarea = screen.getByPlaceholderText(/Dán toàn bộ nội dung đề bài/i)
+    fireEvent.change(textarea, { target: { value: 'Đề bài...' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /Tách bài tập bằng AI/i }))
+
+    // Nút Dừng tác vụ phải hiển thị khi đang tải
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Dừng tác vụ/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Dừng tác vụ/i }))
+
+    expect(capturedSignal?.aborted).toBe(true)
+    expect(toast.info).toHaveBeenCalledWith('Đã dừng tác vụ AI bóc tách bài tập')
+  })
 })
+
