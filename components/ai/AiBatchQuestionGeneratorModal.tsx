@@ -24,7 +24,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
-import { normalizeKatexDelimiters } from '@/lib/utils'
+import { cn, normalizeKatexDelimiters } from '@/lib/utils'
 import {
   aiBatchQuestionService,
   BatchGenerateQuestionsResponseDTO,
@@ -64,6 +64,11 @@ export function AiBatchQuestionGeneratorModal({
   const [assignmentsList, setAssignmentsList] = useState<IndividualAssignmentItem[]>([])
 
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isOpenRef = useRef(isOpen)
+
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   useEffect(() => {
     return () => {
@@ -74,22 +79,33 @@ export function AiBatchQuestionGeneratorModal({
     }
   }, [])
 
-  useEffect(() => {
-    if (!isOpen && abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
-  }, [isOpen])
-
   const handleClose = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+    if (isLoading) {
+      toast.info('AI đang tiếp tục bóc tách tài liệu ở chế độ nền. Bạn có thể mở lại bất cứ lúc nào.')
     }
     onClose()
   }
 
-  if (!isOpen) return null
+  const handleCancelJob = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsLoading(false)
+    setJobStatus(null)
+    setJobStatusMessage('')
+    toast.info('Đã dừng tác vụ AI bóc tách bài tập')
+  }
+
+  const hasContent = Boolean(
+    isLoading ||
+    batchResponse ||
+    assignmentsList.length > 0 ||
+    selectedFile ||
+    textContent.trim()
+  )
+
+  if (!isOpen && !hasContent) return null
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -164,7 +180,11 @@ export function AiBatchQuestionGeneratorModal({
 
       setBatchResponse(result)
       setAssignmentsList(separatedAssignments)
-      toast.success(`AI đã đọc file và tách thành công ${separatedAssignments.length} bài tập!`)
+      if (!isOpenRef.current) {
+        toast.success(`AI đã tách xong ${separatedAssignments.length} bài tập! Bấm vào Tách đề AI để xem.`)
+      } else {
+        toast.success(`AI đã đọc file và tách thành công ${separatedAssignments.length} bài tập!`)
+      }
     } catch (error: any) {
       if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
         return
@@ -255,7 +275,13 @@ export function AiBatchQuestionGeneratorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      className={cn(
+        "fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200",
+        !isOpen && "hidden"
+      )}
+      aria-hidden={!isOpen}
+    >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         
         {/* MODAL HEADER */}
@@ -460,13 +486,32 @@ export function AiBatchQuestionGeneratorModal({
 
         {/* MODAL FOOTER */}
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
-          >
-            Đóng
-          </button>
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancelJob}
+                className="px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl transition-colors cursor-pointer"
+              >
+                Dừng tác vụ
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                Chạy ngầm & Đóng
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+            >
+              Đóng
+            </button>
+          )}
 
           {batchResponse && assignmentsList.length > 0 && (
             <button
