@@ -132,7 +132,7 @@ export function AiBatchQuestionGeneratorModal({
 
     setIsLoading(true)
     setJobStatus('QUEUED')
-    setJobStatusMessage('Đang tải file và đưa vào hàng đợi Redis Queue...')
+    setJobStatusMessage('Đang tải file và tiếp nhận yêu cầu...')
 
     try {
       const result = await aiBatchQuestionService.batchGenerateQuestionsAsync(
@@ -146,11 +146,11 @@ export function AiBatchQuestionGeneratorModal({
           onStatusChange: (status, message) => {
             setJobStatus(status)
             if (status === 'QUEUED') {
-              setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+              setJobStatusMessage('Đang tiếp nhận yêu cầu...')
             } else if (status === 'PROCESSING') {
-              setJobStatusMessage('AI đang phân tích tài liệu và bóc tách các bài tập...')
+              setJobStatusMessage('AI đang đọc tài liệu và tách từng bài tập...')
             } else if (status === 'RETRYING') {
-              setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+              setJobStatusMessage(message || 'Đang kết nối lại với hệ thống AI...')
             }
           }
         }
@@ -366,7 +366,7 @@ export function AiBatchQuestionGeneratorModal({
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      {jobStatusMessage || 'Đang xử lý qua Redis Queue...'}
+                      {jobStatusMessage || 'Đang xử lý...'}
                     </>
                   ) : (
                     <>

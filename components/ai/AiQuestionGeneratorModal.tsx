@@ -101,7 +101,7 @@ export function AiQuestionGeneratorModal({
 
     setIsLoading(true)
     setJobStatus('QUEUED')
-    setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+    setJobStatusMessage('Đang tiếp nhận yêu cầu...')
     setGeneratedQuestion(null)
     setActiveTab('content')
 
@@ -120,11 +120,11 @@ export function AiQuestionGeneratorModal({
         onStatusChange: (status, message) => {
           setJobStatus(status)
           if (status === 'QUEUED') {
-            setJobStatusMessage('Đang xếp hàng chờ xử lý trong Redis Queue...')
+            setJobStatusMessage('Đang tiếp nhận yêu cầu...')
           } else if (status === 'PROCESSING') {
-            setJobStatusMessage('AI đang phân tích và giải đề toán...')
+            setJobStatusMessage('AI đang soạn đề bài toán và lời giải...')
           } else if (status === 'RETRYING') {
-            setJobStatusMessage(message || 'Đang tự động thử lại kết nối AI...')
+            setJobStatusMessage(message || 'Đang kết nối lại với hệ thống AI...')
           }
         }
       })
@@ -346,14 +346,20 @@ export function AiQuestionGeneratorModal({
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
-                  {jobStatus || 'QUEUED'}
+                  {jobStatus === 'QUEUED'
+                    ? 'ĐANG CHỜ'
+                    : jobStatus === 'PROCESSING'
+                    ? 'ĐANG SOẠN ĐỀ'
+                    : jobStatus === 'RETRYING'
+                    ? 'THỬ LẠI'
+                    : 'ĐANG XỬ LÝ'}
                 </span>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  {jobStatusMessage || 'Hệ thống đang phân tích và soạn đề toán...'}
+                  {jobStatusMessage || 'Hệ thống đang chuẩn bị đề toán...'}
                 </h3>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                Tác vụ đang được phân phối qua hàng đợi Redis. Hệ thống tự động chuyển đổi công thức KaTeX và đối chiếu hình học Canvas.
+                Hệ thống đang tiếp nhận yêu cầu và sẽ tạo đề toán trong giây lát. Vui lòng đợi một chút nhé!
               </p>
             </div>
           )}
