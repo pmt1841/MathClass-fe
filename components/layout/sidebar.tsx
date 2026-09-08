@@ -4,7 +4,6 @@ import {
   Home,
   BookOpen,
   ClipboardList,
-  BarChart3,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -13,7 +12,6 @@ import {
   AlertTriangle,
   Shield,
   FileText,
-  Database,
   Cpu,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -59,11 +57,6 @@ export const adminNavItems: NavItem[] = [
     label: 'Quản lý Báo cáo lỗi',
     href: '/admin/bug-reports',
   },
-  {
-    icon: Database,
-    label: 'Kho bài tập cộng đồng',
-    href: '/admin/community-repo',
-  },
 ]
 
 const navItems: NavItem[] = [
@@ -81,18 +74,6 @@ const navItems: NavItem[] = [
     icon: ClipboardList,
     label: 'Kho bài tập',
     href: '/assignments',
-  },
-  {
-    icon: Users,
-    label: 'Quản lý học sinh',
-    href: '/students',
-    roles: ['TEACHER'],
-  },
-  {
-    icon: BarChart3,
-    label: 'Báo cáo sử dụng',
-    href: '/reports',
-    roles: ['TEACHER'],
   },
   {
     icon: Library,

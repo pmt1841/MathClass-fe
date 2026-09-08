@@ -76,45 +76,60 @@ export function StudentDashboardClient() {
 
       <main className="p-6 space-y-8 max-w-screen-2xl mx-auto">
 
-        {/* Row 1: Thống kê cá nhân (3 Cards) */}
-        <div className="grid gap-5 sm:grid-cols-3">
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Số lớp tham gia</CardTitle>
-              <div className="p-2.5 bg-blue-50 rounded-xl">
-                <BookOpen className="h-5 w-5 text-blue-600" />
+        {/* Row 1: Thống kê cá nhân (3 Cards) - Chữ và số trên cùng 1 dòng, viền mép trên */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Card 1: Số lớp tham gia */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-blue-50 rounded-lg shrink-0">
+                  <BookOpen className="h-4.5 w-4.5 text-blue-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Số lớp tham gia
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">{statsLoading ? '-' : stats?.joinedClasses ?? 0}</div>
-            </CardContent>
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
+                {statsLoading ? '-' : stats?.joinedClasses ?? 0}
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Bài đã chấm xong</CardTitle>
-              <div className="p-2.5 bg-emerald-50 rounded-xl">
-                <Star className="h-5 w-5 text-emerald-600" />
+          {/* Card 2: Bài đã chấm xong */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-emerald-50 rounded-lg shrink-0">
+                  <CheckCircle className="h-4.5 w-4.5 text-emerald-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Bài đã chấm xong
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">{statsLoading ? '-' : stats?.completedTasks ?? 0}</div>
-            </CardContent>
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
+                {statsLoading ? '-' : stats?.completedTasks ?? 0}
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-xl transition-all hover:-translate-y-1 relative overflow-hidden group">
+          {/* Card 3: Bài tập cần làm */}
+          <Card className="border-0 shadow-md shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-lg transition-all hover:-translate-y-0.5 relative overflow-hidden group py-3 px-4 gap-0 justify-center">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl opacity-60 -mr-10 -mt-10 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-bold text-orange-50 uppercase tracking-wider">Bài tập cần làm</CardTitle>
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Flame className="h-5 w-5 text-white" />
+            <div className="flex items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm shrink-0">
+                  <Clock className="h-4.5 w-4.5 text-white" />
+                </div>
+                <span className="text-xs font-bold text-orange-100 uppercase tracking-wider truncate">
+                  Bài tập cần làm
+                </span>
               </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-extrabold text-white">{statsLoading ? '-' : sortedPendingTasks.length}</div>
-            </CardContent>
+              <span className="text-2xl font-black text-white tracking-tight shrink-0">
+                {statsLoading ? '-' : sortedPendingTasks.length}
+              </span>
+            </div>
           </Card>
         </div>
 
@@ -123,13 +138,13 @@ export function StudentDashboardClient() {
 
           {/* Cột trái (65%): Bài tập cần làm */}
           <div className="lg:col-span-8 space-y-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Clock className="w-6 h-6 text-orange-500" /> Bài tập cần làm
-              <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full ml-1">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 min-h-10">
+              <Clock className="w-5 h-5 text-orange-500" /> Bài tập cần làm
+              <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full ml-1 text-xs">
                 {sortedPendingTasks.length}
               </Badge>
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1.5">
               {sortedPendingTasks.map((task: any, index: number) => {
                 const deadlineDate = task.deadline ? parseDateSafe(task.deadline) : null
                 const isUrgent = deadlineDate ? (deadlineDate.getTime() - Date.now() < 24 * 60 * 60 * 1000) : false
@@ -185,15 +200,15 @@ export function StudentDashboardClient() {
 
           {/* Cột phải (35%): Bài tập vừa có điểm */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Star className="w-6 h-6 text-emerald-500 fill-emerald-500/20" /> Vừa có điểm
+                <Star className="w-5 h-5 text-emerald-500 fill-emerald-500/20" /> Vừa có điểm
               </h2>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1.5">
               {gradedTasks.map((task: any) => (
                 <Card key={task.id} className="relative border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 z-10"></div>
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 z-10"></div>
                   <CardContent className="p-0">
                     <div className="p-4 flex gap-3 items-center">
                       <div className="flex-1 min-w-0">

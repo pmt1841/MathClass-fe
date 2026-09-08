@@ -20,7 +20,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Users, BookOpen, CheckCircle, FileText, LayoutDashboard, AlertTriangle, TrendingDown, Bell } from 'lucide-react'
+import {
+  Search,
+  BookOpen,
+  CheckCircle,
+  LayoutDashboard,
+  AlertTriangle,
+  TrendingDown,
+  Users,
+  FileText,
+  BookCopy,
+  PenTool,
+} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardService } from '@/services/dashboardService'
 import { classroomService } from '@/services/classroomService'
@@ -45,7 +56,7 @@ export function TeacherDashboardClient() {
 
   const { data: pendingSubmissionData = [] } = useQuery({
     queryKey: ['pending-submissions'],
-    queryFn: () => dashboardService.getPendingSubmissions(10),
+    queryFn: () => dashboardService.getPendingSubmissions(50),
     staleTime: 2 * 60 * 1000,
   })
 
@@ -85,83 +96,98 @@ export function TeacherDashboardClient() {
         </div>
       </div>
 
-      <main className="p-4 sm:p-6 space-y-8 max-w-screen-2xl mx-auto w-full">
+      <main className="p-4 sm:p-6 space-y-6 max-w-screen-2xl mx-auto w-full">
 
-        {/* Row 1: KPI Cards */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tổng học sinh</CardTitle>
-              <div className="p-2.5 bg-blue-50 rounded-xl">
-                <Users className="h-5 w-5 text-blue-600" />
+        {/* Row 1: KPI Cards - Chữ và số trên cùng 1 dòng, icon phù hợp */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Card 1: Tổng học sinh */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-blue-50 rounded-lg shrink-0">
+                  <Users className="h-4.5 w-4.5 text-blue-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Tổng học sinh
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.managedStudents ?? 125}
-              </div>
-            </CardContent>
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Lớp quản lý</CardTitle>
-              <div className="p-2.5 bg-purple-50 rounded-xl">
-                <BookOpen className="h-5 w-5 text-purple-600" />
+          {/* Card 2: Lớp quản lý */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-purple-50 rounded-lg shrink-0">
+                  <BookOpen className="h-4.5 w-4.5 text-purple-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Lớp quản lý
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.teachingClasses ?? 3}
-              </div>
-            </CardContent>
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Bài đang mở</CardTitle>
-              <div className="p-2.5 bg-emerald-50 rounded-xl">
-                <FileText className="h-5 w-5 text-emerald-600" />
+          {/* Card 3: Bài đang mở */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-emerald-50 rounded-lg shrink-0">
+                  <FileText className="h-4.5 w-4.5 text-emerald-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Bài đang mở
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.openAssignments ?? 0}
-              </div>
-            </CardContent>
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all hover:-translate-y-1 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Phiếu bài tập</CardTitle>
-              <div className="p-2.5 bg-cyan-50 rounded-xl">
-                <FileText className="h-5 w-5 text-cyan-600" />
+          {/* Card 4: Phiếu bài tập */}
+          <Card className="border-0 shadow-sm shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden py-3 px-4 gap-0 justify-center">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-cyan-500"></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-cyan-50 rounded-lg shrink-0">
+                  <BookCopy className="h-4.5 w-4.5 text-cyan-600" />
+                </div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                  Phiếu bài tập
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-extrabold text-slate-800">
+              <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.originalAssignmentSheets ?? 0}
-              </div>
-            </CardContent>
+              </span>
+            </div>
           </Card>
 
-          <Card className="border-0 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-xl transition-all hover:-translate-y-1 relative overflow-hidden group">
+          {/* Card 5: Bài chờ chấm */}
+          <Card className="border-0 shadow-md shadow-orange-500/20 bg-gradient-to-br from-orange-500 to-rose-500 hover:shadow-lg transition-all hover:-translate-y-0.5 relative overflow-hidden group py-3 px-4 gap-0 justify-center">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl opacity-60 -mr-10 -mt-10 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-              <CardTitle className="text-sm font-bold text-orange-50 uppercase tracking-wider">Bài chờ chấm</CardTitle>
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-                <CheckCircle className="h-5 w-5 text-white" />
+            <div className="flex items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm shrink-0">
+                  <PenTool className="h-4.5 w-4.5 text-white" />
+                </div>
+                <span className="text-xs font-bold text-orange-100 uppercase tracking-wider truncate">
+                  Bài chờ chấm
+                </span>
               </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-extrabold text-white">
+              <span className="text-2xl font-black text-white tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.assignmentsToGrade ?? 14}
-              </div>
-            </CardContent>
+              </span>
+            </div>
           </Card>
         </div>
 
@@ -170,7 +196,7 @@ export function TeacherDashboardClient() {
 
           {/* Left Column (65%) */}
           <div className="lg:col-span-8 space-y-4 min-w-0">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 Bài nộp chờ chấm
               </h2>
@@ -201,26 +227,26 @@ export function TeacherDashboardClient() {
               </div>
             </div>
 
-            <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/90 backdrop-blur-md overflow-hidden rounded-xl">
-              <div className="overflow-x-auto">
+            <Card className="border-0 shadow-md shadow-slate-200/50 bg-white/90 backdrop-blur-md overflow-hidden rounded-xl p-0 gap-0">
+              <div className="overflow-x-auto max-h-[440px] overflow-y-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50/80 border-b border-slate-100">
+                  <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-100 shadow-xs">
                     <TableRow className="hover:bg-transparent border-none">
-                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Học sinh</TableHead>
-                      <TableHead className="font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Tên bài tập</TableHead>
-                      <TableHead className="hidden md:table-cell font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Lớp</TableHead>
-                      <TableHead className="hidden sm:table-cell font-semibold text-slate-500 py-4 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
-                      <TableHead className="text-right py-4"></TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Học sinh</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Tên bài tập</TableHead>
+                      <TableHead className="hidden md:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Lớp</TableHead>
+                      <TableHead className="hidden sm:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
+                      <TableHead className="text-right py-3 pr-4"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAssignments.length > 0 ? (
                       filteredAssignments.map((task: any) => (
-                        <TableRow key={task.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100/50 group">
-                          <TableCell className="py-4">
+                        <TableRow key={task.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100/60 group">
+                          <TableCell className="py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex shrink-0 items-center justify-center text-blue-700 font-bold text-sm shadow-inner">
-                                {task.studentName.charAt(0)}
+                                {task.studentName?.charAt(0) || 'H'}
                               </div>
                               <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-slate-800 truncate">{task.studentName}</span>
@@ -228,7 +254,7 @@ export function TeacherDashboardClient() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-slate-600 py-4 font-medium">
+                          <TableCell className="text-slate-600 py-3 font-medium">
                             <div className="flex flex-col min-w-0">
                               <span className="truncate block">{task.assignmentTitle}</span>
                               <span className="text-xs text-slate-500 sm:hidden mt-0.5 truncate">
@@ -236,17 +262,17 @@ export function TeacherDashboardClient() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="hidden md:table-cell py-4">
-                            <Badge variant="outline" className="border-blue-200 text-blue-700 font-semibold bg-blue-50/50">
+                          <TableCell className="hidden md:table-cell py-3">
+                            <Badge variant="outline" className="border-blue-200 text-blue-700 font-semibold bg-blue-50/50 text-xs">
                               {task.className}
                             </Badge>
                           </TableCell>
-                          <TableCell className="hidden sm:table-cell text-slate-500 text-sm py-4 font-medium">
+                          <TableCell className="hidden sm:table-cell text-slate-500 text-sm py-3 font-medium">
                             {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
                           </TableCell>
-                          <TableCell className="text-right py-4">
+                          <TableCell className="text-right py-3 pr-4">
                             <Link href={`/assignments/${task.assignmentId}/submissions/${task.id}`}>
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all opacity-90 group-hover:opacity-100 rounded-lg font-medium px-4">
+                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow-sm transition-all opacity-90 group-hover:opacity-100 rounded-lg font-medium px-3.5 h-8 text-xs">
                                 Chấm ngay
                               </Button>
                             </Link>
@@ -276,23 +302,28 @@ export function TeacherDashboardClient() {
 
           {/* Right Column (35%) - At Risk Students */}
           <div className="lg:col-span-4 space-y-4 min-w-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 Học sinh cần chú ý
               </h2>
+              {atRiskStudents.length > 0 && (
+                <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-200/60 font-semibold text-xs">
+                  {atRiskStudents.length} học sinh
+                </Badge>
+              )}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
               {isLoadingAtRisk ? (
-                <div className="text-center py-8 text-slate-500">Đang tải dữ liệu...</div>
+                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-xs">Đang tải dữ liệu...</div>
               ) : atRiskStudents.length > 0 ? (
                 atRiskStudents.map((student: any, index: number) => {
                   const isLowScore = student.issueType === 'low_score';
                   return (
-                    <Card key={`${student.id}-${index}`} className="border-0 shadow-md shadow-slate-200/40 bg-white hover:shadow-lg transition-all group overflow-hidden rounded-xl">
-                      <CardContent className="p-0">
-                        <div className="p-4 flex items-start gap-4">
-                          <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0 ${isLowScore
+                    <Card key={`${student.id}-${index}`} className="border-0 shadow-sm shadow-slate-200/40 bg-white hover:shadow-md transition-all group overflow-hidden rounded-xl p-0 gap-0">
+                      <CardContent className="p-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shadow-inner shrink-0 ${isLowScore
                             ? 'bg-rose-100 text-rose-700'
                             : 'bg-orange-100 text-orange-700'
                             }`}>
@@ -300,32 +331,30 @@ export function TeacherDashboardClient() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-bold text-slate-900 truncate">{student.name}</h3>
+                              <h3 className="font-bold text-slate-900 truncate text-sm">{student.name}</h3>
                               <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 shrink-0 text-[10px] px-1.5 py-0">
                                 {student.className}
                               </Badge>
                             </div>
-                            <div className="mt-1.5 flex items-center gap-1.5">
+                            <div className="mt-1 flex items-center gap-1.5">
                               {isLowScore ? (
-                                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                                <TrendingDown className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                               ) : (
-                                <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
+                                <AlertTriangle className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                               )}
-                              <p className={`text-sm font-semibold ${isLowScore ? 'text-rose-600' : 'text-orange-600'}`}>
+                              <p className={`text-xs font-semibold truncate ${isLowScore ? 'text-rose-600' : 'text-orange-600'}`}>
                                 {student.detail}
                               </p>
                             </div>
                           </div>
                         </div>
-                        <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
-                        </div>
                       </CardContent>
                     </Card>
                   )
                 })) : (
-                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-sm">
+                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-xs">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p>Không có học sinh nào cần chú ý</p>
+                  <p className="text-sm">Không có học sinh nào cần chú ý</p>
                 </div>
               )}
             </div>
