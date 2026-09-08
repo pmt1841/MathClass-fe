@@ -1,4 +1,5 @@
 import api from '@/lib/axios'
+import { PageResponse } from '@/types'
 
 /**
  * API credit AI của người dùng (MAT-255).
@@ -67,8 +68,18 @@ export const creditService = {
     return res.data
   },
 
-  getMyTransactions: async (): Promise<CreditTransactionItem[]> => {
-    const res = await api.get<CreditTransactionItem[]>('/credits/transactions')
+  getMyTransactions: async (params?: {
+    type?: CreditTransactionType | string
+    page?: number
+    size?: number
+  }): Promise<PageResponse<CreditTransactionItem>> => {
+    const res = await api.get<PageResponse<CreditTransactionItem>>('/credits/transactions', {
+      params: {
+        type: params?.type && params.type !== 'ALL' ? params.type : undefined,
+        page: params?.page ?? 0,
+        size: params?.size ?? 15,
+      },
+    })
     return res.data
   },
 
