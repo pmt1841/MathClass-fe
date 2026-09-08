@@ -27,6 +27,7 @@ import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-
 import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
 import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
 import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
+import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
 
 import { normalizeCanvasElements } from '@/components/ui/jsxgraph-editor-modal'
 
@@ -141,6 +142,8 @@ export function AssignmentForm({
 
   // AI Generator Modal State
   const [showAiModal, setShowAiModal] = useState(false)
+  const { data: aiFeatures } = useAiFeatures()
+  const isAiQuestionGenEnabled = aiFeatures?.[AI_FEATURE_TASKS.QUESTION_GEN] === true
 
   const {
     register,
@@ -850,14 +853,16 @@ export function AssignmentForm({
                 {/* Content Separator Label */}
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAiModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-indigo-500/20 active:scale-98 transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Dùng AI sinh đề bài
-                  </button>
+                  {isAiQuestionGenEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAiModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-indigo-500/20 active:scale-98 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Dùng AI sinh đề bài
+                    </button>
+                  )}
                 </div>
 
                 {/* LaTeX Toolbar is embedded inside CKEditor Component */}

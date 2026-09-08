@@ -93,7 +93,7 @@ export function StudentRemarksModal({
     queryKey: ['ai-features'],
     queryFn: aiFeatureService.getFeatures,
   })
-  const isAiRemarkEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_REMARK] !== false
+  const isAiRemarkEnabled = aiFeatures?.[AI_FEATURE_TASKS.STUDENT_REMARK] === true
 
   // Reset form và trạng thái mở rộng khi đổi học sinh hoặc mở modal
   useEffect(() => {

@@ -12,6 +12,7 @@ import { PublishSheetModal } from '@/components/assignments/publish-sheet-modal'
 import { EditSheetModal } from '@/components/assignments/edit-sheet-modal'
 import { DeleteAssignmentModal } from './delete-assignment-modal'
 import { AiBatchQuestionGeneratorModal } from '@/components/ai/AiBatchQuestionGeneratorModal'
+import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
@@ -54,6 +55,8 @@ export function AssignmentsPageClient() {
   const selectedAssignments = useMemo(() => selectedAssignmentDetails.map(a => a.id), [selectedAssignmentDetails])
   const [publishSheetModalOpen, setPublishSheetModalOpen] = useState(false)
   const [showAiBatchModal, setShowAiBatchModal] = useState(false)
+  const { data: aiFeatures } = useAiFeatures()
+  const isAiBatchGenEnabled = aiFeatures?.[AI_FEATURE_TASKS.BATCH_QUESTION_GEN] === true
   const [page, setPage] = useState(0)
 
   useEffect(() => {
@@ -248,14 +251,16 @@ export function AssignmentsPageClient() {
           <div className="flex items-center gap-2">
             {userRole === 'TEACHER' && (
               <PermissionGuard permission="assignment:create">
-                <button
-                  type="button"
-                  onClick={() => setShowAiBatchModal(true)}
-                  className="flex items-center gap-2 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/15 hover:shadow-indigo-500/25 active:scale-98 cursor-pointer"
-                >
-                  <Sparkles className="h-4.5 w-4.5" />
-                  Tạo hàng loạt bằng AI
-                </button>
+                {isAiBatchGenEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAiBatchModal(true)}
+                    className="flex items-center gap-2 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/15 hover:shadow-indigo-500/25 active:scale-98 cursor-pointer"
+                  >
+                    <Sparkles className="h-4.5 w-4.5" />
+                    Tạo hàng loạt bằng AI
+                  </button>
+                )}
                 <Link
                   href="/assignments/create"
                   className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
