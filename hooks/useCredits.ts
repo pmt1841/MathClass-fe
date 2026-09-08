@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { PageResponse } from '@/types'
 import {
   creditService,
   CreditBalance,
@@ -26,11 +27,23 @@ export function useMyCreditBalance() {
   })
 }
 
-/** Lịch sử giao dịch credit của người dùng hiện tại. */
-export function useMyCreditTransactions() {
-  return useQuery<CreditTransactionItem[]>({
-    queryKey: ['credits', 'me', 'transactions'],
-    queryFn: () => creditService.getMyTransactions(),
+/** Lịch sử giao dịch credit của người dùng hiện tại (hỗ trợ phân trang và filter theo loại). */
+export function useMyCreditTransactions(params?: {
+  type?: string
+  page?: number
+  size?: number
+}) {
+  return useQuery<PageResponse<CreditTransactionItem>>({
+    queryKey: [
+      'credits',
+      'me',
+      'transactions',
+      params?.type ?? 'ALL',
+      params?.page ?? 0,
+      params?.size ?? 15,
+    ],
+    queryFn: () => creditService.getMyTransactions(params),
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 30,
     retry: 1,
   })
