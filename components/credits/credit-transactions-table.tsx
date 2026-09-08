@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { useMyCreditTransactions, CreditTransactionItem } from '@/hooks/useCredits'
 import { formatCreditTransactionDescription } from '@/lib/constants/credit'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateTime, cn } from '@/lib/utils'
 
 const TRANSACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   GRANT_DEFAULT: { label: 'Cấp mặc định', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
@@ -76,11 +76,11 @@ export function CreditTransactionsTable() {
           <CardDescription>Toàn bộ biến động credit của tài khoản.</CardDescription>
         </div>
 
-        {/* Nút select đổi qua lại giữa Tất cả, Sử dụng, Mua */}
+        {/* Nút select đổi qua lại giữa các loại giao dịch */}
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={typeFilter} onValueChange={handleFilterChange}>
-            <SelectTrigger className="w-[180px] h-9 text-xs">
+            <SelectTrigger className="w-[190px] h-9 text-xs">
               <SelectValue placeholder="Loại giao dịch" />
             </SelectTrigger>
             <SelectContent onCloseAutoFocus={(e) => e.preventDefault()}>
@@ -88,6 +88,8 @@ export function CreditTransactionsTable() {
               <SelectItem value="CONSUME">Sử dụng credit</SelectItem>
               <SelectItem value="PURCHASE">Mua / Nạp credit</SelectItem>
               <SelectItem value="REFUND">Hoàn credit</SelectItem>
+              <SelectItem value="GRANT_DEFAULT">Cấp mặc định</SelectItem>
+              <SelectItem value="ADMIN_ADJUST">Điều chỉnh từ Admin</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -107,7 +109,7 @@ export function CreditTransactionsTable() {
               : 'Chưa có giao dịch nào.'}
           </p>
         ) : (
-          <div className={`overflow-x-auto transition-opacity duration-200 ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
+          <div className={cn('overflow-x-auto transition-opacity duration-200', isFetching && 'opacity-60')}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -125,7 +127,10 @@ export function CreditTransactionsTable() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={`font-medium ${TRANSACTION_TYPE_LABELS[txn.type]?.color ?? 'bg-slate-100 text-slate-600'}`}
+                        className={cn(
+                          'font-medium',
+                          TRANSACTION_TYPE_LABELS[txn.type]?.color ?? 'bg-slate-100 text-slate-600'
+                        )}
                       >
                         {TRANSACTION_TYPE_LABELS[txn.type]?.label ?? txn.type}
                       </Badge>
@@ -134,9 +139,10 @@ export function CreditTransactionsTable() {
                       {formatCreditTransactionDescription(txn.description, txn.task)}
                     </TableCell>
                     <TableCell
-                      className={`text-right font-bold whitespace-nowrap ${
+                      className={cn(
+                        'text-right font-bold whitespace-nowrap',
                         (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                      }`}
+                      )}
                     >
                       {(txn.amount ?? 0) >= 0 ? '+' : ''}
                       {txn.amount}
@@ -185,33 +191,52 @@ export function CreditTransactionsTable() {
                 </Button>
 
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - 1 - page) <= 1)
-                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
-                      if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
-                        acc.push('...')
-                      }
-                      acc.push(p)
-                      return acc
-                    }, [])
-                    .map((p, idx) =>
-                      typeof p === 'string' ? (
-                        <span key={`ellipsis-${idx}`} className="px-1 text-xs text-muted-foreground">
-                          ...
-                        </span>
-                      ) : (
+                  {totalPages <= 5
+                    ? Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                         <Button
                           key={p}
-                          variant={page === (p as number) - 1 ? 'default' : 'outline'}
+                          variant={page === p - 1 ? 'default' : 'outline'}
                           size="sm"
-                          className="h-8 w-8 p-0 text-xs"
-                          onClick={() => setPage((p as number) - 1)}
+                          className={cn(
+                            'h-8 w-8 p-0 text-xs',
+                            page === p - 1 && 'bg-slate-900 text-white hover:bg-slate-800'
+                          )}
+                          onClick={() => setPage(p - 1)}
                           disabled={isFetching}
                         >
                           {p}
                         </Button>
-                      )
-                    )}
+                      ))
+                    : Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((p) => p === 1 || p === totalPages || Math.abs(p - 1 - page) <= 1)
+                        .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                          if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
+                            acc.push('...')
+                          }
+                          acc.push(p)
+                          return acc
+                        }, [])
+                        .map((p, idx) =>
+                          typeof p === 'string' ? (
+                            <span key={`ellipsis-${idx}`} className="px-1 text-xs text-muted-foreground">
+                              ...
+                            </span>
+                          ) : (
+                            <Button
+                              key={p}
+                              variant={page === (p as number) - 1 ? 'default' : 'outline'}
+                              size="sm"
+                              className={cn(
+                                'h-8 w-8 p-0 text-xs',
+                                page === (p as number) - 1 && 'bg-slate-900 text-white hover:bg-slate-800'
+                              )}
+                              onClick={() => setPage((p as number) - 1)}
+                              disabled={isFetching}
+                            >
+                              {p}
+                            </Button>
+                          )
+                        )}
                 </div>
 
                 <Button
