@@ -75,7 +75,7 @@ export function RecentTransactionsCard({
               Lịch Sử Nạp Tiền
             </h3>
             <p className="text-xs text-muted-foreground">
-              Toàn bộ các đơn nạp credit thành công của người dùng trong hệ thống
+              50 giao dịch nạp credit thành công gần nhất trong kỳ báo cáo
             </p>
           </div>
         </div>

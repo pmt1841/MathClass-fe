@@ -55,12 +55,12 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
           </div>
         </div>
 
-        <Link href="/admin/logs" passHref>
-          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs font-medium">
+        <Button variant="outline" size="sm" asChild className="h-8 gap-1 text-xs font-medium">
+          <Link href="/admin/logs">
             <span>Xem chi tiết</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       {/* Table */}

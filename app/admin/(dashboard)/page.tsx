@@ -24,8 +24,8 @@ import { AdminDashboardSkeleton } from '@/components/admin/dashboard/AdminDashbo
 import { Button } from '@/components/ui/button'
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth()
-  const hasPermission = !user?.permissions || user.permissions.includes('dashboard:admin_view')
+  const { user, isInitializing } = useAuth()
+  const hasAdminDashboardPermission = !!user?.permissions?.includes('dashboard:admin_view')
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1)
@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
     queryKey: ['adminDashboardStats', selectedMonth, selectedYear],
     queryFn: () => adminDashboardService.getStats(selectedMonth, selectedYear),
     staleTime: 60 * 1000,
-    enabled: hasPermission,
+    enabled: !isInitializing && hasAdminDashboardPermission,
   })
 
   const handlePeriodChange = (month: number, year: number) => {
@@ -49,8 +49,13 @@ export default function AdminDashboardPage() {
     setSelectedYear(year)
   }
 
-  // 1. Kiểm tra phân quyền động: Người dùng thiếu quyền dashboard:admin_view
-  if (user && user.permissions && !user.permissions.includes('dashboard:admin_view')) {
+  // 1. Khi đang nạp trạng thái xác thực
+  if (isInitializing) {
+    return <AdminDashboardSkeleton />
+  }
+
+  // 2. Kiểm tra phân quyền động: Người dùng thiếu quyền dashboard:admin_view
+  if (!hasAdminDashboardPermission) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-4">
@@ -67,16 +72,16 @@ export default function AdminDashboardPage() {
           để xem Trung tâm tổng quan. Vui lòng liên hệ quản trị viên cấp cao để kích hoạt.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/admin/users">
-            <Button variant="default" className="rounded-xl text-xs font-semibold">
+          <Button variant="default" asChild className="rounded-xl text-xs font-semibold">
+            <Link href="/admin/users">
               Quản lý người dùng
-            </Button>
-          </Link>
-          <Link href="/admin/roles">
-            <Button variant="outline" className="rounded-xl text-xs font-semibold">
+            </Link>
+          </Button>
+          <Button variant="outline" asChild className="rounded-xl text-xs font-semibold">
+            <Link href="/admin/roles">
               Quản lý quyền hạn
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     )

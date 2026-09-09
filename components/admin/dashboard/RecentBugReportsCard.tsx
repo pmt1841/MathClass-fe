@@ -68,12 +68,12 @@ export function RecentBugReportsCard({ reports = [] }: RecentBugReportsCardProps
           </div>
         </div>
 
-        <Link href="/admin/bug-reports" passHref>
-          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs font-medium">
+        <Button variant="outline" size="sm" asChild className="h-8 gap-1 text-xs font-medium">
+          <Link href="/admin/bug-reports">
             <span>Xem chi tiết</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       {/* Table */}
