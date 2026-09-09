@@ -13,6 +13,7 @@ import {
   Shield,
   FileText,
   Cpu,
+  LayoutDashboard,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -32,6 +33,11 @@ export interface NavItem {
 }
 
 export const adminNavItems: NavItem[] = [
+  {
+    icon: LayoutDashboard,
+    label: 'Tổng quan',
+    href: '/admin',
+  },
   {
     icon: Users,
     label: 'Quản lý Người dùng',
@@ -135,7 +141,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   })
 
   const isActive = (href: string) => {
-    if (href === '/' || href === '/home') {
+    if (href === '/' || href === '/home' || href === '/admin') {
       return pathname === href
     }
 

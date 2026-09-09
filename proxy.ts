@@ -77,7 +77,7 @@ export function proxy(request: NextRequest) {
    * chuyển hướng Tab 2 vào Trang chủ (/home hoặc /admin/users).
    */
   if (!isAccountLockedReason && isTokenValid && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
-    const dest = userRole === 'ADMIN' ? '/admin/users' : '/home'
+    const dest = userRole === 'ADMIN' ? '/admin' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }
 
