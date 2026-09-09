@@ -61,6 +61,7 @@ export interface GetAssignmentsParams {
   gradeTagId?: number
   subjectTagId?: number
   difficultyTagId?: number
+  tagNames?: string[]
 }
 
 export interface PublishPayload {

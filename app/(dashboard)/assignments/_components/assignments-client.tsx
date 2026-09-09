@@ -76,10 +76,10 @@ export function AssignmentsPageClient() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedClassCode, setSelectedClassCode] = useState<string>('')
   const [tags, setTags] = useState<AssignmentTag[]>([])
-  const [tagFilters, setTagFilters] = useState<Record<string, number | undefined>>({})
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([])
 
   useEffect(() => { assignmentService.getTags().then(setTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
-  useEffect(() => { setPage(0) }, [tagFilters])
+  useEffect(() => { setPage(0) }, [selectedTagNames])
 
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null)
@@ -111,9 +111,7 @@ export function AssignmentsPageClient() {
     page,
     size: pageSize,
     assignmentType,
-    gradeTagId: tagFilters.GRADE,
-    subjectTagId: tagFilters.SUBJECT,
-    difficultyTagId: tagFilters.DIFFICULTY
+    tagNames: selectedTagNames
   })
 
   const assignments = assignmentsData?.items || []
@@ -183,21 +181,10 @@ export function AssignmentsPageClient() {
     router.push(`/assignments/${id}/edit`)
   }
 
-  const handleTagChange = useCallback((ids: number[]) => {
-    const newFilters: Record<string, number> = {}
-    ids.forEach((id) => {
-      const tag = tags.find((t) => t.id === id)
-      if (tag?.type) {
-        newFilters[tag.type] = id
-      }
-    })
-    setTagFilters(newFilters)
-  }, [tags])
-
   const handleClearFilters = useCallback(() => {
     setAssignmentType('ALL')
     setSelectedClassCode('')
-    setTagFilters({})
+    setSelectedTagNames([])
   }, [])
 
   const handleSelectAssignment = useCallback((id: number, selected: boolean) => {
@@ -297,9 +284,9 @@ export function AssignmentsPageClient() {
                 <button className="relative flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all shrink-0">
                   <Filter className="h-4 w-4" />
                   Bộ lọc
-                  {(Boolean(assignmentType !== 'ALL') || Boolean(selectedClassCode) || Object.values(tagFilters).some(Boolean)) && (
+                  {(Boolean(assignmentType !== 'ALL') || Boolean(selectedClassCode) || selectedTagNames.length > 0) && (
                     <span className="rounded-full bg-primary px-1.5 text-xs text-white">
-                      {(assignmentType !== 'ALL' ? 1 : 0) + (selectedClassCode ? 1 : 0) + Object.values(tagFilters).filter(Boolean).length}
+                      {(assignmentType !== 'ALL' ? 1 : 0) + (selectedClassCode ? 1 : 0) + selectedTagNames.length}
                     </span>
                   )}
                 </button>
@@ -307,7 +294,7 @@ export function AssignmentsPageClient() {
               <PopoverContent align="start" className="w-80 space-y-4 p-4">
                 <div className="flex items-center justify-between border-b pb-2">
                   <p className="text-sm font-bold text-foreground">Bộ lọc bài tập</p>
-                  {(assignmentType !== 'ALL' || selectedClassCode || Object.values(tagFilters).some(Boolean)) && (
+                  {(assignmentType !== 'ALL' || selectedClassCode || selectedTagNames.length > 0) && (
                     <button
                       onClick={handleClearFilters}
                       className="text-xs font-semibold text-primary hover:underline"
@@ -353,14 +340,8 @@ export function AssignmentsPageClient() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600">Thẻ bài tập</label>
                   <AssignmentTagInput
-                    value={Object.keys(tagFilters)}
-                    onChange={(selectedTagNames) => {
-                      const newFilters: Record<string, number> = {}
-                      selectedTagNames.forEach((name) => {
-                        newFilters[name] = 1
-                      })
-                      setTagFilters(newFilters)
-                    }}
+                    value={selectedTagNames}
+                    onChange={(tags) => setSelectedTagNames(tags)}
                     placeholder="Nhập tag để lọc..."
                   />
                 </div>

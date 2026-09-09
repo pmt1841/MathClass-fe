@@ -135,6 +135,11 @@ export function AssignmentTagInput({
             onFocus={() => {
               if (inputValue.trim()) setIsOpen(true)
             }}
+            onBlur={() => {
+              if (inputValue.trim()) {
+                addTag(inputValue)
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder={value.length === 0 ? placeholder : 'Thêm tag khác...'}
             className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
@@ -153,6 +158,7 @@ export function AssignmentTagInput({
             <button
               key={item.id}
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => addTag(item.name)}
               className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between transition-colors group cursor-pointer"
             >

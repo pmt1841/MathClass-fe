@@ -38,6 +38,7 @@ interface FetchAssignmentsParams {
   gradeTagId?: number
   subjectTagId?: number
   difficultyTagId?: number
+  tagNames?: string[]
 }
 
 export interface AssignmentSheet extends Assignment {
@@ -45,9 +46,9 @@ export interface AssignmentSheet extends Assignment {
   items?: Assignment[];
 }
 
-export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode, page = 0, size = 6, assignmentType = 'ALL', gradeTagId, subjectTagId, difficultyTagId }: FetchAssignmentsParams) {
+export function useAssignments({ userRole, activeTab, searchQuery, selectedClassCode, page = 0, size = 6, assignmentType = 'ALL', gradeTagId, subjectTagId, difficultyTagId, tagNames }: FetchAssignmentsParams) {
   return useQuery({
-    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode, page, size, assignmentType, gradeTagId, subjectTagId, difficultyTagId],
+    queryKey: ['assignments', userRole, activeTab, searchQuery, selectedClassCode, page, size, assignmentType, gradeTagId, subjectTagId, difficultyTagId, tagNames],
     queryFn: async () => {
       const params: any = { page, size }
       if (searchQuery) {
@@ -56,6 +57,7 @@ export function useAssignments({ userRole, activeTab, searchQuery, selectedClass
       if (gradeTagId) params.gradeTagId = gradeTagId
       if (subjectTagId) params.subjectTagId = subjectTagId
       if (difficultyTagId) params.difficultyTagId = difficultyTagId
+      if (tagNames && tagNames.length > 0) params.tagNames = tagNames
 
       const sortByNewest = (list: AssignmentSheet[]) => {
         return list.sort((a, b) => {
