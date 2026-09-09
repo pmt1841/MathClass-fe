@@ -2,7 +2,8 @@ export interface UserStats {
   totalUsers: number
   teacherCount: number
   studentCount: number
-  newUsersThisWeek: number
+  newUsersInMonth: number
+  newUsersThisWeek?: number
   activeUsersToday: number
 }
 

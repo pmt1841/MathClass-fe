@@ -6,6 +6,7 @@ import {
   Banknote,
   Bug,
   TrendingUp,
+  TrendingDown,
   UserPlus,
   Activity,
   ArrowUpRight,
@@ -66,7 +67,7 @@ export function AdminKpiCards({
         {/* Chỉ số phụ: Mới trong tháng & DAU */}
         <div className="mt-3.5 flex items-center justify-between border-t pt-2.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-            <UserPlus className="h-3.5 w-3.5" /> +{userStats.newUsersThisWeek} trong tháng
+            <UserPlus className="h-3.5 w-3.5" /> +{userStats.newUsersInMonth ?? userStats.newUsersThisWeek ?? 0} trong tháng
           </span>
           <span className="inline-flex items-center gap-1">
             <Activity className="h-3.5 w-3.5 text-amber-500" /> {userStats.activeUsersToday > 0 ? `${userStats.activeUsersToday} DAU` : '- DAU'}
@@ -122,7 +123,11 @@ export function AdminKpiCards({
                 : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
             }`}
           >
-            <TrendingUp className="h-3 w-3" />
+            {revenueStats.growthPercentage >= 0 ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
             {revenueStats.growthPercentage >= 0 ? '+' : ''}
             {revenueStats.growthPercentage}%
           </span>

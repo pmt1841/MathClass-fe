@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { RecentTransaction } from '@/types/admin-dashboard'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface RecentTransactionsCardProps {
   recentTransactions: RecentTransaction[]
@@ -126,17 +127,14 @@ export function RecentTransactionsCard({
                   {/* Người nạp */}
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2.5">
-                      {tx.avatarUrl ? (
-                        <img
-                          src={tx.avatarUrl}
-                          alt={tx.fullName}
-                          className="h-7 w-7 rounded-full object-cover border"
-                        />
-                      ) : (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted font-bold text-[11px] text-muted-foreground">
+                      <Avatar className="h-7 w-7 border">
+                        {tx.avatarUrl && (
+                          <AvatarImage src={tx.avatarUrl} alt={tx.fullName} />
+                        )}
+                        <AvatarFallback className="font-bold text-[11px] text-muted-foreground">
                           {tx.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>
-                      )}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="font-semibold text-foreground truncate max-w-[160px]">
                         {tx.fullName}
                       </span>

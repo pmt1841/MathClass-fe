@@ -45,6 +45,7 @@ const mockStats: AdminDashboardStats = {
     totalUsers: 1250,
     teacherCount: 180,
     studentCount: 1070,
+    newUsersInMonth: 45,
     newUsersThisWeek: 45,
     activeUsersToday: 130,
   },

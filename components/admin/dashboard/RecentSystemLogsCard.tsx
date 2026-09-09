@@ -68,6 +68,7 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
         <table className="w-full text-xs text-left">
           <thead className="text-muted-foreground border-b uppercase tracking-wider font-medium text-[11px]">
             <tr>
+              <th className="py-2.5 px-3">Mức độ</th>
               <th className="py-2.5 px-3">Người thực hiện</th>
               <th className="py-2.5 px-3">Danh mục</th>
               <th className="py-2.5 px-3">Mô tả hành động</th>
@@ -77,7 +78,7 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
           <tbody className="divide-y divide-border/60">
             {logs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="py-8 text-center text-muted-foreground">
                   Chưa có nhật ký ghi nhận
                 </td>
               </tr>
@@ -87,6 +88,15 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
                   key={log.id}
                   className="hover:bg-muted/40 transition-colors group"
                 >
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${getLevelBadgeClass(
+                        log.level
+                      )}`}
+                    >
+                      {log.level || 'INFO'}
+                    </span>
+                  </td>
                   <td className="py-2.5 px-3 font-medium text-foreground max-w-[150px] truncate" title={log.actor}>
                     {log.actor}
                   </td>

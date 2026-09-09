@@ -21,12 +21,13 @@ import { ResetRolePermissionsModal } from './_components/ResetRolePermissionsMod
 import { SaveRolePermissionsModal } from './_components/SaveRolePermissionsModal'
 
 const ROLES = [
+  { id: 'ADMIN', name: 'Quản trị viên' },
   { id: 'TEACHER', name: 'Giáo viên' },
   { id: 'STUDENT', name: 'Học sinh' },
 ]
 
 export default function AdminRolesPage() {
-  const [selectedRole, setSelectedRole] = useState('TEACHER')
+  const [selectedRole, setSelectedRole] = useState('ADMIN')
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([])
   
   const { data: allPermissions, isLoading: isLoadingAll } = useAllPermissions()
@@ -113,8 +114,8 @@ export default function AdminRolesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="TEACHER" onValueChange={setSelectedRole} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <Tabs defaultValue="ADMIN" onValueChange={setSelectedRole} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           {ROLES.map(role => (
             <TabsTrigger key={role.id} value={role.id}>
               {role.name}
@@ -139,23 +140,26 @@ export default function AdminRolesPage() {
                 ) : allPermissions && allPermissions.length > 0 ? (
                   <Accordion type="multiple" className="w-full space-y-3">
                     {Object.entries(
-                      allPermissions
-                        .filter(
-                          (p) =>
-                            !['dashboard:teacher_view', 'dashboard:student_view', 'user:manage'].includes(
-                              p.name
-                            )
-                        )
-                        .reduce((acc, p) => {
-                          const prefix = p.name.split(':')[0]
-                          const groupName =
-                            prefix === 'classroom' ? 'Lớp học' :
-                            prefix === 'assignment' ? 'Bài tập' :
-                            prefix === 'submission' ? 'Bài nộp' : 'Khác'
-                          if (!acc[groupName]) acc[groupName] = []
-                          acc[groupName].push(p)
-                          return acc
-                        }, {} as Record<string, typeof allPermissions>)
+                      allPermissions.reduce((acc, p) => {
+                        const prefix = p.name.split(':')[0]
+                        const groupName =
+                          prefix === 'classroom'
+                            ? 'Lớp học'
+                            : prefix === 'assignment'
+                            ? 'Bài tập'
+                            : prefix === 'submission'
+                            ? 'Bài nộp'
+                            : prefix === 'dashboard'
+                            ? 'Bảng điều khiển & Thống kê'
+                            : prefix === 'user'
+                            ? 'Quản lý người dùng'
+                            : prefix === 'library'
+                            ? 'Thư viện bài tập'
+                            : 'Khác'
+                        if (!acc[groupName]) acc[groupName] = []
+                        acc[groupName].push(p)
+                        return acc
+                      }, {} as Record<string, typeof allPermissions>)
                     ).map(([group, perms]) => {
                       const activeCount = perms.filter(p => selectedPermissionIds.includes(p.id)).length
                       const totalCount = perms.length

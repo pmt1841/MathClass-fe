@@ -37,6 +37,7 @@ export const adminNavItems: NavItem[] = [
     icon: LayoutDashboard,
     label: 'Tổng quan',
     href: '/admin',
+    permission: 'dashboard:admin_view',
   },
   {
     icon: Users,
@@ -133,8 +134,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const visibleItems = itemsToRender.filter((item) => {
     if (item.roles && !item.roles.includes(userRole as 'TEACHER' | 'STUDENT' | 'ADMIN')) return false
     if (item.permission) {
-      const isAdmin = userRole === 'ADMIN'
-      const hasPerm = isAdmin || (user?.permissions?.includes(item.permission) ?? false)
+      const hasPerm = user?.permissions?.includes(item.permission) ?? false
       if (!hasPerm) return false
     }
     return true
