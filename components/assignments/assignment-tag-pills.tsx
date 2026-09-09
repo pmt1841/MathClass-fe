@@ -20,8 +20,8 @@ export function AssignmentTagPills({ tags }: { tags?: AssignmentTag[] }) {
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {tags.map((tag) => {
-        let tagColor = colors[tag.type] || 'border-slate-200 bg-slate-50 text-slate-700'
+      {tags.map((tag, idx) => {
+        let tagColor = (tag.type && colors[tag.type]) || 'border-indigo-100 bg-indigo-50/70 text-indigo-700'
         if (tag.type === 'DIFFICULTY') {
           if (tag.name === 'Dễ') {
             tagColor = 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -32,13 +32,10 @@ export function AssignmentTagPills({ tags }: { tags?: AssignmentTag[] }) {
           }
         }
 
-        const typeLabel =
-          tag.type === 'GRADE' ? 'Khối lớp' : tag.type === 'SUBJECT' ? 'Phân môn' : 'Độ khó'
-
         return (
           <span
-            key={tag.id}
-            title={typeLabel}
+            key={tag.id || `${tag.name}-${idx}`}
+            title={tag.name}
             className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', tagColor)}
           >
             {tag.name}

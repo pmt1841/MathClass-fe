@@ -56,6 +56,7 @@ export function EditAssignmentPageClient() {
           drawings: data.drawings || [],
           images: data.images || [],
           tagIds: data.tags?.map(tag => tag.id) || [],
+          tagNames: data.tags?.map(tag => tag.name) || [],
           allowResubmit: data.allowResubmit ?? false
         })
       } catch (err: any) {

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, BookMarked, Search, Edit, Layers, Clock, BookOpen, CheckCircle, AlertCircle, Filter, Sparkles } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
+import { AssignmentTagInput } from '@/components/assignments/assignment-tag-input'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PublishAssignmentModal } from '@/components/assignments/publish-assignment-modal'
@@ -352,10 +352,16 @@ export function AssignmentsPageClient() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600">Thẻ bài tập</label>
-                  <AssignmentTagSelector
-                    tags={tags}
-                    selectedIds={Object.values(tagFilters).filter((id): id is number => Boolean(id))}
-                    onChange={handleTagChange}
+                  <AssignmentTagInput
+                    value={Object.keys(tagFilters)}
+                    onChange={(selectedTagNames) => {
+                      const newFilters: Record<string, number> = {}
+                      selectedTagNames.forEach((name) => {
+                        newFilters[name] = 1
+                      })
+                      setTagFilters(newFilters)
+                    }}
+                    placeholder="Nhập tag để lọc..."
                   />
                 </div>
               </PopoverContent>

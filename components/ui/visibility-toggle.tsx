@@ -10,6 +10,7 @@ interface VisibilityToggleProps {
   value: AssignmentVisibility
   assignmentId: number
   isSheet?: boolean
+  onRequireTag?: () => void
 }
 
 /**
@@ -19,7 +20,7 @@ interface VisibilityToggleProps {
  * Lưu ý: Bọc trong onClick stopPropagation khi dùng bên trong card có
  * sự kiện click toàn card để tránh navigate nhầm.
  */
-export function VisibilityToggle({ value, assignmentId, isSheet = false }: VisibilityToggleProps) {
+export function VisibilityToggle({ value, assignmentId, isSheet = false, onRequireTag }: VisibilityToggleProps) {
   const [optimistic, setOptimistic] = useState(value === 'PUBLIC')
   const { mutateAsync, isPending } = useUpdateVisibility()
 
@@ -47,8 +48,11 @@ export function VisibilityToggle({ value, assignmentId, isSheet = false }: Visib
         error.response?.data?.error ||
         error.response?.data?.message ||
         (typeof error.response?.data === 'string' ? error.response.data : undefined) ||
-        'Cần gắn đủ Khối lớp, Phân môn và Độ khó trước khi đăng lên Thư viện cộng đồng.'
+        'Bài tập cần có ít nhất 1 tag trước khi công khai lên Thư viện cộng đồng.'
       toast.error(errorMessage)
+      if (checked && onRequireTag) {
+        onRequireTag()
+      }
     }
   }
 
