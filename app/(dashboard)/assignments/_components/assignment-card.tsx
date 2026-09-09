@@ -4,7 +4,7 @@ import { AssignmentSheet } from '@/hooks/useAssignments'
 import { formatDateTime, parseDateSafe } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { AssignmentTagPills } from '@/components/assignments/assignment-tag-pills'
-import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
+import { AssignmentTagInput } from '@/components/assignments/assignment-tag-input'
 import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from 'sonner'
@@ -50,23 +50,13 @@ export function AssignmentCard({
   const isLibraryMode = mode === 'library'
   const [expanded, setExpanded] = useState(false)
   const [tagEditorOpen, setTagEditorOpen] = useState(false)
-  const [availableTags, setAvailableTags] = useState<AssignmentTag[]>([])
-  const [tagIds, setTagIds] = useState(assignment.tags?.map(tag => tag.id) || [])
+  const [tagNames, setTagNames] = useState<string[]>(assignment.tags?.map(tag => tag.name) || [])
   const [isSavingTags, setIsSavingTags] = useState(false)
   const queryClient = useQueryClient()
 
-  const openTagEditor = async () => {
-    if (assignment.visibility === 'PUBLIC') {
-      toast.error('Bài đang được chia sẻ trong Thư viện cộng đồng. Vui lòng chuyển về Riêng tư trước khi chỉnh sửa tag.')
-      return
-    }
-    try {
-      setAvailableTags(await assignmentService.getTags())
-      setTagIds(assignment.tags?.map(tag => tag.id) || [])
-      setTagEditorOpen(true)
-    } catch {
-      toast.error('Không thể tải danh sách tag')
-    }
+  const openTagEditor = () => {
+    setTagNames(assignment.tags?.map(tag => tag.name) || [])
+    setTagEditorOpen(true)
   }
 
   const saveTags = async () => {
@@ -79,7 +69,7 @@ export function AssignmentCard({
         content: detail.content,
         drawings: detail.drawings || [],
         images: detail.images || [],
-        tagIds,
+        tagNames,
       })
       await queryClient.invalidateQueries({ queryKey: ['assignments'] })
       setTagEditorOpen(false)
@@ -94,19 +84,19 @@ export function AssignmentCard({
   const tagEditor = !isSheet && isTeacher && !isLibraryMode ? (
     <Popover open={tagEditorOpen} onOpenChange={setTagEditorOpen}>
       <PopoverTrigger asChild>
-        <button type="button" onClick={openTagEditor} className="text-left">
+        <button type="button" onClick={openTagEditor} className="text-left cursor-pointer">
           <AssignmentTagPills tags={assignment.tags} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 space-y-3">
-        <p className="font-bold text-sm">Phân loại bài tập</p>
-        <AssignmentTagSelector tags={availableTags} selectedIds={tagIds} onChange={setTagIds} />
+      <PopoverContent align="start" sideOffset={6} className="w-80 space-y-3 shadow-lg">
+        <p className="font-bold text-sm">Gắn tag bài tập</p>
+        <AssignmentTagInput value={tagNames} onChange={setTagNames} />
         <div className="flex justify-end">
           <button
             type="button"
             onClick={saveTags}
             disabled={isSavingTags}
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
           >
             {isSavingTags && <Loader2 className="h-4 w-4 animate-spin" />}
             Lưu tag
@@ -513,6 +503,7 @@ export function AssignmentCard({
               value={assignment.visibility ?? 'PRIVATE'}
               assignmentId={assignment.id}
               isSheet={isSheet}
+              onRequireTag={openTagEditor}
             />
           </div>
 

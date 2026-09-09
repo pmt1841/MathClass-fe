@@ -24,7 +24,7 @@ import { formatDateTime } from '@/lib/utils'
 import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 import { toast } from 'sonner'
 import { MediaUploadModal, UploadModalMode } from '@/components/ui/media-upload-modal'
-import { AssignmentTagSelector } from '@/components/assignments/assignment-tag-selector'
+import { AssignmentTagInput } from '@/components/assignments/assignment-tag-input'
 import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
 import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
@@ -79,6 +79,7 @@ const assignmentSchema = z.object({
   drawings: z.array(z.any()).optional(),
   images: z.array(z.any()).optional(),
   tagIds: z.array(z.number()).optional(),
+  tagNames: z.array(z.string()).optional(),
   allowResubmit: z.boolean().optional().default(false)
 })
 
@@ -955,8 +956,8 @@ export function AssignmentForm({
 
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phân loại bài tập</h3>
-              <AssignmentTagSelector tags={availableTags} selectedIds={formValues.tagIds || []} onChange={tagIds => setValue('tagIds', tagIds, { shouldDirty: true })} />
-              <p className="text-xs text-slate-500">Cần đủ ba tag để đăng lên Thư viện cộng đồng.</p>
+              <AssignmentTagInput value={formValues.tagNames || []} onChange={tagNames => setValue('tagNames', tagNames, { shouldDirty: true })} />
+              <p className="text-xs text-slate-500">Cần có ít nhất 1 tag để đăng lên Thư viện cộng đồng.</p>
             </div>
 
             <div className="h-px bg-slate-100 dark:bg-slate-850" />
