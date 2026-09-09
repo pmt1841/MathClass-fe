@@ -26,7 +26,7 @@ export function DashboardHeader() {
   const displayName = user?.fullName || user?.email || 'Người dùng'
   const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
   const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-blue-600 font-semibold shadow-xs' : 'bg-white text-slate-800 font-medium'
-  const homeHref = role === 'ADMIN' ? '/admin/users' : '/home'
+  const homeHref = role === 'ADMIN' ? '/admin' : '/home'
   const profileHref = role === 'ADMIN' ? '/admin/profile' : '/profile'
   const settingsHref = role === 'ADMIN' ? '/admin/settings' : '/settings'
 

@@ -70,7 +70,7 @@ export function useLogin() {
     }
 
     if (role === ROLES.ADMIN) {
-      router.push('/admin/users')
+      router.push('/admin')
     } else {
       router.push('/home')
     }

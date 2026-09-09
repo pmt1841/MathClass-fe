@@ -198,7 +198,7 @@ export default function LoginForm() {
   const handleContinueAsCurrent = () => {
     setShowConflictModal(false)
     const isAdmin = existingUser?.role === 'ADMIN' || existingUser?.roles?.includes('ROLE_ADMIN')
-    router.push(isAdmin ? '/admin/users' : '/home')
+    router.push(isAdmin ? '/admin' : '/home')
   }
 
   const handleSwitchAccount = async () => {

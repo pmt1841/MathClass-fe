@@ -39,7 +39,7 @@ export function HomeClient() {
 
     const role = user?.role || (user as any)?.userRole
     if (role === 'ADMIN') {
-      router.replace('/admin/users')
+      router.replace('/admin')
     }
   }, [isAuthenticated, isInitializing, user, router])
 

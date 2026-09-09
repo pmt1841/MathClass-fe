@@ -13,6 +13,7 @@ import {
   Shield,
   FileText,
   Cpu,
+  LayoutDashboard,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -32,6 +33,12 @@ export interface NavItem {
 }
 
 export const adminNavItems: NavItem[] = [
+  {
+    icon: LayoutDashboard,
+    label: 'Tổng quan',
+    href: '/admin',
+    permission: 'dashboard:admin_view',
+  },
   {
     icon: Users,
     label: 'Quản lý Người dùng',
@@ -127,15 +134,14 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const visibleItems = itemsToRender.filter((item) => {
     if (item.roles && !item.roles.includes(userRole as 'TEACHER' | 'STUDENT' | 'ADMIN')) return false
     if (item.permission) {
-      const isAdmin = userRole === 'ADMIN'
-      const hasPerm = isAdmin || (user?.permissions?.includes(item.permission) ?? false)
+      const hasPerm = user?.permissions?.includes(item.permission) ?? false
       if (!hasPerm) return false
     }
     return true
   })
 
   const isActive = (href: string) => {
-    if (href === '/' || href === '/home') {
+    if (href === '/' || href === '/home' || href === '/admin') {
       return pathname === href
     }
 
