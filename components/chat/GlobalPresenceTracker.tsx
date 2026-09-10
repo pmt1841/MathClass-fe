@@ -17,10 +17,14 @@ export function GlobalPresenceTracker() {
     const wsUrl = `${hostUrl}/ws-chat`;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      webSocketFactory: () => new SockJS(wsUrl, null, { withCredentials: true } as any),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      onConnect: () => {
+        // Duy trì active STOMP subscription
+        client.subscribe('/topic/presence', () => {});
+      },
     });
 
     client.activate();

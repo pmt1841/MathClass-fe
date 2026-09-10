@@ -24,24 +24,39 @@ export function proxy(request: NextRequest) {
    */
   let isTokenValid = false
   let userRole: string | null = null
-  if (token) {
+
+  const isLoggedOut = request.cookies.has('mathclass_logged_out')
+
+  if (!isLoggedOut && token) {
     try {
       const parts = token.split('.')
       if (parts.length === 3) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'))
-        const rawRole = payload.role || payload.userRole || payload.roles?.[0] || payload.authorities?.[0] || ''
-        if (rawRole) {
-          userRole = rawRole.replace('ROLE_', '')
+        // Kiểm tra xem token đã hết hạn chưa (exp tính bằng giây)
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          isTokenValid = false
+        } else {
+          const rawRole = payload.role || payload.userRole || payload.roles?.[0] || payload.authorities?.[0] || ''
+          if (rawRole) {
+            userRole = rawRole.replace('ROLE_', '')
+          }
+          isTokenValid = true
         }
-        isTokenValid = true
       }
     } catch (e) {
       console.error('Error decoding token in middleware', e)
     }
   }
+
   // Fallback: role từ cookie (cho token cũ chưa có claim role — sau khi Backend deploy claim role thì JWT là nguồn chính)
   if (!userRole) {
-    userRole = request.cookies.get('mathclass_role')?.value || null
+    userRole = request.cookies.get('mathclass_role')?.value || request.cookies.get('user_role')?.value || null
+  }
+
+  const hasRoleCookie = request.cookies.has('mathclass_role') || request.cookies.has('user_role')
+  // Nếu người dùng đã xóa cookie vai trò (đã đăng xuất trên client) thì không coi là token hợp lệ
+  if (!hasRoleCookie) {
+    isTokenValid = false
   }
 
   // Loại trừ trang /admin/login khỏi các protected & admin-only routes
@@ -56,8 +71,18 @@ export function proxy(request: NextRequest) {
 
   // 1. Redirect chưa đăng nhập (không token HOẶC token rác/không parse được) khỏi protected routes
   if (isProtectedRoute && !isTokenValid) {
-    const redirectUrl = isAdminRoute ? '/admin/login' : '/'
-    return NextResponse.redirect(new URL(redirectUrl, request.url))
+    const redirectUrl = isAdminRoute ? '/admin/login' : '/login'
+    const response = NextResponse.redirect(new URL(redirectUrl, request.url))
+    response.cookies.delete('mathclass_jwt')
+    response.cookies.delete('mathclass_jwt_refresh')
+    response.cookies.delete('mathclass_role')
+    response.cookies.delete('user_role')
+    response.cookies.delete('mathclass_remember')
+    response.cookies.delete('user_info')
+    if (isLoggedOut) {
+      response.cookies.delete('mathclass_logged_out')
+    }
+    return response
   }
 
   // 1b. Admin routes: FAIL-CLOSED — chỉ cho qua khi xác định được role ADMIN.
@@ -72,11 +97,11 @@ export function proxy(request: NextRequest) {
 
   /*
    * TỰ ĐỘNG NHẬN PHIÊN ĐĂNG NHẬP (CROSS-TAB SESSION SHARING):
-   * Nếu trình duyệt đã có Token hợp lệ (do Tab 1 đã đăng nhập), bất kể có tích "Giữ đăng nhập" hay không,
-   * khi Tab 2 mở các đường dẫn công khai (/, /login, /admin/login, /signup), Middleware sẽ tự động
-   * chuyển hướng Tab 2 vào Trang chủ (/home hoặc /admin/users).
+   * Chỉ tự động chuyển hướng khi người dùng ở trang chủ "/" và đã có phiên đăng nhập hợp lệ.
+   * TUYỆT ĐỐI không tự ý redirect khi người dùng đang ở /login hoặc /admin/login,
+   * tránh việc người dùng bị kẹt trong vòng lặp vô tận khi muốn đăng nhập lại hoặc đổi tài khoản.
    */
-  if (!isAccountLockedReason && isTokenValid && (pathname === '/' || pathname === '/login' || pathname === '/admin/login' || pathname === '/signup')) {
+  if (!isLoggedOut && !isAccountLockedReason && isTokenValid && hasRoleCookie && pathname === '/') {
     const dest = userRole === 'ADMIN' ? '/admin' : '/home'
     return NextResponse.redirect(new URL(dest, request.url))
   }

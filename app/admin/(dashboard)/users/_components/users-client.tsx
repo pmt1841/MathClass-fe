@@ -1,6 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
+import { baseURL } from '@/lib/axios'
 import { useAdminUsers, useUpdateUserStatus } from '@/hooks/useAdmin'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/hooks/useAuth'
@@ -25,7 +29,7 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
 import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatRelativeLastLogin, formatDateTime } from '@/lib/utils'
 import { AdminUser } from '@/types'
 import { StatusSwitch } from './status-switch'
 import { LockUserModal } from './LockUserModal'
@@ -64,6 +68,7 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 // ── Main Client Component ───────────────────────────────────────────────────
 export function UsersClient() {
   const { user: currentUser } = useAuth()
+  const queryClient = useQueryClient()
 
   const [page, setPage] = useState(0)
   const [role, setRole] = useState('ALL')
@@ -86,6 +91,59 @@ export function UsersClient() {
     debouncedSearch || undefined,
     pageSize
   )
+
+  // Realtime Presence: Tự động cập nhật ngay lập tức trạng thái Đang hoạt động / Lần đăng nhập cuối qua WebSocket STOMP
+  useEffect(() => {
+    const hostUrl = baseURL.replace(/\/api\/v\d+$/, '')
+    const wsUrl = `${hostUrl}/ws-chat`
+
+    let client: Client | null = null
+
+    try {
+      client = new Client({
+        webSocketFactory: () => new SockJS(wsUrl, null, { withCredentials: true } as any),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe('/topic/presence', (message) => {
+            try {
+              const payload = JSON.parse(message.body)
+              if (payload && payload.userId) {
+                queryClient.setQueriesData({ queryKey: ['admin-users'] }, (oldData: any) => {
+                  if (!oldData || !oldData.content) return oldData
+                  return {
+                    ...oldData,
+                    content: oldData.content.map((u: AdminUser) => {
+                      if (u.id === payload.userId) {
+                        return {
+                          ...u,
+                          isOnline: payload.isOnline,
+                          online: payload.isOnline,
+                          lastActiveAt: payload.lastActiveAt || u.lastActiveAt,
+                        }
+                      }
+                      return u
+                    }),
+                  }
+                })
+              }
+            } catch (e) {
+              // ignore parse error
+            }
+          })
+        },
+      })
+
+      client.activate()
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      if (client) {
+        client.deactivate()
+      }
+    }
+  }, [queryClient])
 
   const updateUserStatus = useUpdateUserStatus()
 
@@ -112,12 +170,11 @@ export function UsersClient() {
       { userId, isActive: false, reason },
       {
         onSuccess: () => {
-          toast.success('Đã khóa tài khoản thành công và đang gửi email thông báo!')
+          toast.success('Đã khóa tài khoản thành công')
           setUserToLock(null)
         },
         onError: (err: any) => {
-          const message = err?.response?.data?.message || 'Khóa tài khoản thất bại. Vui lòng thử lại!'
-          toast.error(message)
+          toast.error(err.response?.data?.message || 'Không thể khóa tài khoản')
         },
         onSettled: () => {
           setPendingUserId(null)
@@ -134,12 +191,11 @@ export function UsersClient() {
       { userId, isActive: true, reason },
       {
         onSuccess: () => {
-          toast.success('Đã mở khóa tài khoản thành công và gửi email thông báo!')
+          toast.success('Đã mở khóa tài khoản thành công')
           setUserToUnlock(null)
         },
         onError: (err: any) => {
-          const message = err?.response?.data?.message || 'Không thể mở khóa tài khoản. Vui lòng thử lại!'
-          toast.error(message)
+          toast.error(err.response?.data?.message || 'Không thể mở khóa tài khoản')
         },
         onSettled: () => {
           setPendingUserId(null)
@@ -256,19 +312,22 @@ export function UsersClient() {
               <TableHead>Email</TableHead>
               <TableHead className="w-32">Vai trò</TableHead>
               <TableHead className="w-32">Trạng thái</TableHead>
+              <TableHead className="w-44">Lần đăng nhập cuối</TableHead>
               <TableHead className="w-36">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
+                <TableCell colSpan={7} className="h-32 text-center">
                   <Spinner className="mx-auto" />
                 </TableCell>
               </TableRow>
             ) : data?.content && data.content.length > 0 ? (
               data.content.map((user, index) => {
                 const stt = page * (data.size || 10) + index + 1
+                const isSelf = !!currentUser && (currentUser.id === user.id || currentUser.email?.toLowerCase() === user.email?.toLowerCase())
+                const isUserActive = Boolean(user.isOnline || user.online || isSelf)
                 return (
                   <TableRow key={user.id}>
                     <TableCell className="text-muted-foreground">{stt}</TableCell>
@@ -279,6 +338,27 @@ export function UsersClient() {
                   </TableCell>
                   <TableCell>
                     <StatusBadge isActive={user.active} />
+                  </TableCell>
+                  <TableCell>
+                    {isUserActive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Đang hoạt động
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "text-sm",
+                          user.lastActiveAt ? "text-muted-foreground" : "text-slate-400 italic"
+                        )}
+                        title={user.lastActiveAt ? formatDateTime(user.lastActiveAt) : undefined}
+                      >
+                        {formatRelativeLastLogin(user.lastActiveAt)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusSwitch
@@ -294,7 +374,7 @@ export function UsersClient() {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-36 text-center">
+                <TableCell colSpan={7} className="h-36 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Users className="h-8 w-8 opacity-40" />
                     <p className="text-sm">Không tìm thấy người dùng phù hợp</p>

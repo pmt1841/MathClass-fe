@@ -66,6 +66,9 @@ export interface UserResponse {
   gender?: Gender
   provider?: 'LOCAL' | 'GOOGLE'
   hasPassword?: boolean
+  lastActiveAt?: string | null
+  isOnline?: boolean
+  online?: boolean
 }
 
 export interface UpdateProfileRequest {
@@ -99,6 +102,9 @@ export interface AdminUser {
   role: UserRole
   active: boolean
   avatarUrl?: string
+  lastActiveAt?: string | null
+  isOnline?: boolean
+  online?: boolean
 }
 
 // ── Spring Data Page Types ─────────────────────────────────────────────────

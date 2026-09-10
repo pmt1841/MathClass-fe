@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardHeader } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardFooter } from '@/components/layout/footer'
+import { GlobalPresenceTracker } from '@/components/chat/GlobalPresenceTracker'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function AdminLayout({
@@ -60,6 +61,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
+      <GlobalPresenceTracker />
       <DashboardHeader />
 
       <div className="flex flex-1 overflow-hidden">
