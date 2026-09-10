@@ -57,6 +57,45 @@ export function formatDistanceToNowSafe(dateInput: Date | string | number | null
   return dateFnsFormatDistanceToNow(d, { locale: vi, ...options });
 }
 
+export function formatRelativeLastLogin(dateInput: Date | string | number | null | undefined | any[]): string {
+  const d = parseDateSafe(dateInput);
+  if (!d) return 'Chưa đăng nhập';
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+
+  if (diffMs < 0 || diffMs < 60 * 1000) {
+    return 'Vừa xong';
+  }
+
+  const minutes = Math.floor(diffMs / (60 * 1000));
+  if (minutes < 60) {
+    return `${minutes} phút trước`;
+  }
+
+  const hours = Math.floor(diffMs / (60 * 60 * 1000));
+  if (hours < 24) {
+    const remainMinutes = minutes % 60;
+    if (remainMinutes > 0) {
+      return `${hours} giờ ${remainMinutes} phút trước`;
+    }
+    return `${hours} giờ trước`;
+  }
+
+  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (days < 30) {
+    return `${days} ngày trước`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months} tháng trước`;
+  }
+
+  const years = Math.floor(days / 365);
+  return `${Math.max(1, years)} năm trước`;
+}
+
 export function normalizeKatexDelimiters(content: string): string {
   if (!content) return ''
   let result = content

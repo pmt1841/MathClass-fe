@@ -27,13 +27,34 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
    * Tại đây ta bắt lỗi và dispatch logoutSuccess() để dọn dẹp Redux State, tránh việc trang bị kẹt loading vô tận.
    */
   const refreshProfile = useCallback(async () => {
-    if (typeof window !== 'undefined' && !authStorage.isValidSession()) {
-      await logoutSession();
+    if (typeof window === 'undefined') return;
+
+    // Không tải profile nếu đang ở các trang xác thực (login, signup, reset-password...)
+    const isAuthPage =
+      window.location.pathname.includes('/login') ||
+      window.location.pathname.includes('/signup') ||
+      window.location.pathname.includes('/reset-password') ||
+      window.location.pathname.includes('/verify');
+    if (isAuthPage) {
+      dispatch(setInitializing(false));
+      return;
+    }
+
+    if (!authStorage.isValidSession()) {
       authStorage.clearToken();
       authStorage.clearUserInfo();
       dispatch(logoutSuccess());
-      if (window.location.pathname !== '/' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      // Chỉ chuyển hướng nếu đang ở trang được bảo vệ (không phải trang chủ hoặc bất kỳ trang login/auth nào)
+      const isAuthOrPublic =
+        window.location.pathname === '/' ||
+        window.location.pathname.includes('/login') ||
+        window.location.pathname.includes('/signup') ||
+        window.location.pathname.includes('/reset-password') ||
+        window.location.pathname.includes('/verify');
+
+      if (!isAuthOrPublic) {
+        const isAdmin = window.location.pathname.startsWith('/admin');
+        window.location.href = isAdmin ? '/admin/login' : '/login';
       }
       return;
     }
@@ -83,10 +104,13 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handlePermissionRevoked = (e: Event) => {
+      const isAuthPage = typeof window !== 'undefined' && window.location.pathname.includes('/login');
+      if (isAuthPage) return;
+
       const customEvent = e as CustomEvent<{ message?: string }>;
       setModalMessage(customEvent.detail?.message || 'Tính năng không khả dụng cho tài khoản của bạn.');
       setModalOpen(true);
-      refreshProfile();
+      // Không gọi refreshProfile() tại đây để triệt tiêu vòng lặp 403 -> permission-revoked -> refreshProfile
     };
 
     const handleFocus = () => userId && refreshProfile();
@@ -94,7 +118,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     window.addEventListener('permission-revoked', handlePermissionRevoked);
     window.addEventListener('focus', handleFocus);
 
-    const intervalId = userId ? setInterval(refreshProfile, 10000) : null;
+    const intervalId = userId ? setInterval(refreshProfile, 30000) : null;
 
     return () => {
       window.removeEventListener('permission-revoked', handlePermissionRevoked);
