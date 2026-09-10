@@ -25,7 +25,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { AlertTriangle, Eye, Loader2, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
-import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 
 const ERROR_TYPE_LABELS: Record<string, string> = {
@@ -70,202 +69,215 @@ export function BugReportsListClient() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-            Quản lý Báo cáo lỗi Hệ thống
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Danh sách các sự cố do người dùng phản hồi. Theo dõi và cập nhật trạng thái xử lý kịp thời.
-          </p>
-        </div>
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+      {/* ── Synchronized Header ── */}
+      <div className="border-b border-border bg-white py-6">
+        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <AlertTriangle className="h-5.5 w-5.5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Quản lý Báo cáo lỗi Hệ thống
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Danh sách các sự cố do người dùng phản hồi. Theo dõi và cập nhật trạng thái xử lý kịp thời.
+            </p>
+          </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="self-start sm:self-auto gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
-      </div>
-
-      {/* Filter & Stats Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card border border-border p-4 rounded-xl shadow-sm">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">Lọc theo trạng thái:</span>
-          <Select
-            value={statusFilter}
-            onValueChange={(val) => {
-              setStatusFilter(val)
-              setPage(0)
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tất cả trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Tất cả ({totalElements})</SelectItem>
-              <SelectItem value="PENDING">Chờ xử lý (PENDING)</SelectItem>
-              <SelectItem value="IN_PROGRESS">Đang xử lý (IN_PROGRESS)</SelectItem>
-              <SelectItem value="RESOLVED">Đã giải quyết (RESOLVED)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="text-xs text-muted-foreground font-medium self-end sm:self-auto">
-          Múi giờ thời gian hiển thị: <span className="font-bold text-foreground">UTC+7 (Việt Nam)</span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="rounded-xl bg-white gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Table Data */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead className="w-[70px] font-bold text-foreground text-center">STT</TableHead>
-              <TableHead className="font-bold text-foreground">Người gửi</TableHead>
-              <TableHead className="font-bold text-foreground">Loại lỗi sự cố</TableHead>
-              <TableHead className="font-bold text-foreground">Thời gian gửi (UTC+7)</TableHead>
-              <TableHead className="font-bold text-foreground text-center">Trạng thái</TableHead>
-              <TableHead className="w-[110px] font-bold text-foreground text-center">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-36 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-sm font-medium">Đang tải dữ liệu báo cáo...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : reports.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-36 text-center text-muted-foreground">
-                  Chưa có báo cáo sự cố nào phù hợp.
-                </TableCell>
-              </TableRow>
-            ) : (
-              reports.map((item, index) => {
-                const stt = page * pageSize + index + 1
-                return (
-                  <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="text-center font-bold text-muted-foreground">
-                      {stt}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="font-semibold text-foreground">{item.reporterEmail}</div>
-                      {item.reporterName && (
-                        <div className="text-xs text-muted-foreground">{item.reporterName}</div>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-md border border-border">
-                        {ERROR_TYPE_LABELS[item.errorType] || item.errorType}
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="text-sm text-muted-foreground font-mono">
-                      {formatDateTime(item.createdAt)}
-                    </TableCell>
-
-                    <TableCell className="text-center">
-                      <Badge className={STATUS_BADGES[item.status]?.className || ''}>
-                        {STATUS_BADGES[item.status]?.label || item.status}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenDetail(item)}
-                        className="gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
-                      >
-                        <Eye className="h-4 w-4" /> Chi tiết
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination Footer - Luôn hiển thị khi có dữ liệu */}
-        {!isLoading && totalElements > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-muted/20">
-            <div className="flex items-center gap-4">
-              <div className="text-xs text-muted-foreground font-medium">
-                Hiển thị Trang <span className="font-bold text-foreground">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-bold text-foreground">{totalElements}</span> báo cáo)
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span>Số dòng/trang:</span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(val) => {
-                    setPageSize(Number(val))
-                    setPage(0)
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[70px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* ── Main Scroll Area ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-screen-xl px-6 py-5 space-y-4">
+          {/* Filter & Stats Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-border p-4 rounded-xl shadow-xs">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">Lọc theo trạng thái:</span>
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => {
+                  setStatusFilter(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-[180px] bg-white rounded-xl">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả ({totalElements})</SelectItem>
+                  <SelectItem value="PENDING">Chờ xử lý (PENDING)</SelectItem>
+                  <SelectItem value="IN_PROGRESS">Đang xử lý (IN_PROGRESS)</SelectItem>
+                  <SelectItem value="RESOLVED">Đã giải quyết (RESOLVED)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="gap-1 text-xs"
-              >
-                <ChevronLeft className="h-4 w-4" /> Trang trước
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1 || totalPages <= 1}
-                className="gap-1 text-xs"
-              >
-                Trang sau <ChevronRight className="h-4 w-4" />
-              </Button>
+            <div className="text-xs text-muted-foreground font-medium self-end sm:self-auto">
+              Múi giờ thời gian hiển thị: <span className="font-bold text-foreground">UTC+7 (Việt Nam)</span>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Modal Chi Tiết Báo Cáo */}
-      <BugReportDetailModal
-        open={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false)
-          setSelectedReport(null)
-        }}
-        report={selectedReport}
-        onStatusUpdated={() => refetch()}
-      />
+          {/* Table Data */}
+          <div className="rounded-xl border border-border bg-white overflow-hidden shadow-xs">
+            <Table>
+              <TableHeader className="bg-slate-50/80">
+                <TableRow>
+                  <TableHead className="w-[70px] font-bold text-foreground text-center">STT</TableHead>
+                  <TableHead className="font-bold text-foreground">Người gửi</TableHead>
+                  <TableHead className="font-bold text-foreground">Loại lỗi sự cố</TableHead>
+                  <TableHead className="font-bold text-foreground">Thời gian gửi (UTC+7)</TableHead>
+                  <TableHead className="font-bold text-foreground text-center">Trạng thái</TableHead>
+                  <TableHead className="w-[110px] font-bold text-foreground text-center">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-36 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="text-sm font-medium">Đang tải dữ liệu báo cáo...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : reports.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-36 text-center text-muted-foreground">
+                      Chưa có báo cáo sự cố nào phù hợp.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  reports.map((item, index) => {
+                    const stt = page * pageSize + index + 1
+                    return (
+                      <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <TableCell className="text-center font-bold text-muted-foreground">
+                          {stt}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="font-semibold text-foreground">{item.reporterEmail}</div>
+                          {item.reporterName && (
+                            <div className="text-xs text-muted-foreground">{item.reporterName}</div>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-md border border-border">
+                            {ERROR_TYPE_LABELS[item.errorType] || item.errorType}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="text-sm text-muted-foreground font-mono">
+                          {formatDateTime(item.createdAt)}
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          <Badge className={STATUS_BADGES[item.status]?.className || ''}>
+                            {STATUS_BADGES[item.status]?.label || item.status}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDetail(item)}
+                            className="gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
+                          >
+                            <Eye className="h-4 w-4" /> Chi tiết
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+
+            {/* Pagination Footer */}
+            {!isLoading && totalElements > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-slate-50/60">
+                <div className="flex items-center gap-4">
+                  <div className="text-xs text-muted-foreground font-medium">
+                    Hiển thị Trang <span className="font-bold text-foreground">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-bold text-foreground">{totalElements}</span> báo cáo)
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Số dòng/trang:</span>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(val) => {
+                        setPageSize(Number(val))
+                        setPage(0)
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[70px] text-xs bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="gap-1 text-xs bg-white rounded-xl"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Trang trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1 || totalPages <= 1}
+                    className="gap-1 text-xs bg-white rounded-xl"
+                  >
+                    Trang sau <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Chi Tiết Báo Cáo */}
+          <BugReportDetailModal
+            open={showDetailModal}
+            onClose={() => {
+              setShowDetailModal(false)
+              setSelectedReport(null)
+            }}
+            report={selectedReport}
+            onStatusUpdated={() => refetch()}
+          />
+        </div>
+      </div>
     </div>
   )
 }

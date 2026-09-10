@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Info, RotateCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Info, RotateCw, ScrollText } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 export default function AdminLogsPage() {
@@ -89,131 +89,150 @@ export default function AdminLogsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Nhật ký Hệ thống</h2>
-          <p className="text-sm text-muted-foreground">
-            Theo dõi vết thao tác quản trị dữ liệu và nhật ký sự cố hệ thống.
-          </p>
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+      {/* ── Synchronized Header ── */}
+      <div className="border-b border-border bg-white py-6">
+        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <ScrollText className="h-5.5 w-5.5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Nhật ký Hệ thống
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Theo dõi vết thao tác quản trị dữ liệu và nhật ký sự cố hệ thống.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                refetch()
+              }}
+              disabled={isLoading}
+              className="rounded-xl bg-white gap-2"
+              title="Cập nhật danh sách nhật ký mới nhất"
+            >
+              <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={level}
-          onValueChange={(val) => {
-            setLevel(val)
-            setPage(0)
-          }}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Cấp độ" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Tất cả cấp độ</SelectItem>
-            <SelectItem value="INFO">INFO</SelectItem>
-            <SelectItem value="WARNING">WARNING</SelectItem>
-            <SelectItem value="ERROR">ERROR</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* ── Main Scroll Area ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-screen-xl px-6 py-5 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+              <Select
+                value={level}
+                onValueChange={(val) => {
+                  setLevel(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-[150px] h-10 bg-white rounded-xl text-xs font-semibold">
+                  <SelectValue placeholder="Cấp độ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả cấp độ</SelectItem>
+                  <SelectItem value="INFO">INFO</SelectItem>
+                  <SelectItem value="WARNING">WARNING</SelectItem>
+                  <SelectItem value="ERROR">ERROR</SelectItem>
+                </SelectContent>
+              </Select>
 
-        <Select
-          value={resourceType}
-          onValueChange={(val) => {
-            setResourceType(val)
-            setPage(0)
-          }}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Danh mục" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Tất cả danh mục</SelectItem>
-            <SelectItem value="AI_CONFIG">AI_CONFIG (Cấu hình AI)</SelectItem>
-            <SelectItem value="USER">USER (Người dùng)</SelectItem>
-            <SelectItem value="ROLE">ROLE (Phân quyền)</SelectItem>
-            <SelectItem value="COMMUNITY_REPO">COMMUNITY_REPO (Kho tài nguyên)</SelectItem>
-            <SelectItem value="SYSTEM">SYSTEM (Hệ thống)</SelectItem>
-          </SelectContent>
-        </Select>
+              <Select
+                value={resourceType}
+                onValueChange={(val) => {
+                  setResourceType(val)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger className="w-[180px] h-10 bg-white rounded-xl text-xs font-semibold">
+                  <SelectValue placeholder="Danh mục" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả danh mục</SelectItem>
+                  <SelectItem value="AI_CONFIG">AI_CONFIG (Cấu hình AI)</SelectItem>
+                  <SelectItem value="USER">USER (Người dùng)</SelectItem>
+                  <SelectItem value="ROLE">ROLE (Phân quyền)</SelectItem>
+                  <SelectItem value="COMMUNITY_REPO">COMMUNITY_REPO (Kho tài nguyên)</SelectItem>
+                  <SelectItem value="SYSTEM">SYSTEM (Hệ thống)</SelectItem>
+                </SelectContent>
+              </Select>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">Từ ngày:</span>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value)
-              setPage(0)
-            }}
-            className="w-[150px]"
-          />
-        </div>
+              <div className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium">
+                <span>Từ:</span>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setPage(0)
+                  }}
+                  className="w-[145px] h-10 bg-white rounded-xl text-xs"
+                />
+              </div>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">Đến ngày:</span>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value)
-              setPage(0)
-            }}
-            className="w-[150px]"
-          />
-        </div>
+              <div className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium">
+                <span>Đến:</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value)
+                    setPage(0)
+                  }}
+                  className="w-[145px] h-10 bg-white rounded-xl text-xs"
+                />
+              </div>
 
-        <Button
-          variant="outline"
-          onClick={() => {
-            refetch()
-          }}
-          disabled={isLoading}
-          title="Cập nhật danh sách nhật ký mới nhất"
-        >
-          <RotateCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                  setLevel('ALL')
+                  setResourceType('ALL')
+                  setPage(0)
+                }}
+                className="h-10 rounded-xl text-xs"
+              >
+                Xóa bộ lọc
+              </Button>
+            </div>
 
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setStartDate('')
-            setEndDate('')
-            setLevel('ALL')
-            setResourceType('ALL')
-            setPage(0)
-          }}
-        >
-          Xóa bộ lọc
-        </Button>
-      </div>
-
-      {/* Table toolbar: page size selector */}
-      <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Hiển thị:</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(val) => {
-              setPageSize(Number(val))
-              setPage(0)
-            }}
-          >
-            <SelectTrigger id="log-page-size-select" className="h-8 w-[80px] text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="15">15</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-            </SelectContent>
-          </Select>
-          <span>/ trang</span>
-        </div>
-      </div>
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium shrink-0 self-end sm:self-auto">
+              <span>Hiển thị:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => {
+                  setPageSize(Number(val))
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger id="log-page-size-select" className="h-10 w-[75px] text-xs font-bold bg-white rounded-xl border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>/ trang</span>
+            </div>
+          </div>
 
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <Table>
@@ -413,6 +432,10 @@ export default function AdminLogsPage() {
           )}
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
     </div>
   )
 }
+
+

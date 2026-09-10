@@ -4,11 +4,11 @@ import {
   Users,
   School,
   Banknote,
-  Bug,
+  AlertTriangle,
   TrendingUp,
   TrendingDown,
   UserPlus,
-  Activity,
+  Flame,
   ArrowUpRight,
 } from 'lucide-react'
 import { UserStats, ClassroomStats, RevenueStats, BugReportStats } from '@/types/admin-dashboard'
@@ -39,7 +39,7 @@ export function AdminKpiCards({
       {/* 1. Người dùng & Hoạt động */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Người dùng & Hoạt động
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -70,7 +70,7 @@ export function AdminKpiCards({
             <UserPlus className="h-3.5 w-3.5" /> +{userStats.newUsersInMonth ?? userStats.newUsersThisWeek ?? 0} trong tháng
           </span>
           <span className="inline-flex items-center gap-1">
-            <Activity className="h-3.5 w-3.5 text-amber-500" /> {userStats.activeUsersToday > 0 ? `${userStats.activeUsersToday} DAU` : '- DAU'}
+            <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" /> {userStats.activeUsersToday > 0 ? `${userStats.activeUsersToday} truy cập hôm nay` : '- truy cập hôm nay'}
           </span>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function AdminKpiCards({
       {/* 2. Hệ thống Lớp học */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Hệ thống Lớp học
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
@@ -101,7 +101,7 @@ export function AdminKpiCards({
       {/* 3. Doanh thu Nạp Credit */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Doanh thu Nạp Tháng
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -145,11 +145,11 @@ export function AdminKpiCards({
       {/* 4. Báo cáo Sự cố */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Báo cáo Sự cố
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <Bug className="h-5 w-5" />
+            <AlertTriangle className="h-5 w-5" />
           </div>
         </div>
 

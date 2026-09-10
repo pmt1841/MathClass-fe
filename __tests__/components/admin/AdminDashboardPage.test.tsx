@@ -96,7 +96,7 @@ describe('AdminDashboardPage - Page Guard & Permission Verification', () => {
     expect(screen.getByTestId('admin-dashboard-skeleton')).toBeDefined()
     // Không render nội dung dashboard hay lỗi phân quyền
     expect(screen.queryByText('Không có quyền truy cập')).toBeNull()
-    expect(screen.queryByText('Trung Tâm Tổng Quan MathClass')).toBeNull()
+    expect(screen.queryByText('Trung Tâm Tổng Quan Math Class')).toBeNull()
     // Không gọi API backend
     expect(adminDashboardService.getStats).not.toHaveBeenCalled()
   })
@@ -120,7 +120,7 @@ describe('AdminDashboardPage - Page Guard & Permission Verification', () => {
     expect(screen.getByText(/Vui lòng liên hệ quản trị viên cấp cao/)).toBeDefined()
 
     // 2. Kỳ vọng KHÔNG render các thẻ thống kê và dashboard chính
-    expect(screen.queryByText('Trung Tâm Tổng Quan MathClass')).toBeNull()
+    expect(screen.queryByText('Trung Tâm Tổng Quan Math Class')).toBeNull()
     expect(screen.queryByTestId('admin-dashboard-skeleton')).toBeNull()
 
     // 3. API backend không được phép gọi
@@ -143,7 +143,7 @@ describe('AdminDashboardPage - Page Guard & Permission Verification', () => {
 
     // Kỳ vọng nạp và hiển thị màn hình chính
     await waitFor(() => {
-      expect(screen.getByText('Trung Tâm Tổng Quan MathClass')).toBeDefined()
+      expect(screen.getByText('Trung Tâm Tổng Quan Math Class')).toBeDefined()
     })
 
     // API getStats được gọi đúng với tháng/năm hiện tại
