@@ -13,14 +13,27 @@ export function GlobalPresenceTracker() {
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
 
-    const hostUrl = baseURL.replace(/\/api\/v\d+$/, '');
+    const hostUrl = baseURL.replace(/(\/api)?\/v\d+$/, '');
     const wsUrl = `${hostUrl}/ws-chat`;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      webSocketFactory: () => new SockJS(wsUrl, null, { withCredentials: true } as any),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      onConnect: () => {
+        // Duy trì active STOMP subscription và phát event cho các component con cùng dùng
+        client.subscribe('/topic/presence', (message) => {
+          try {
+            const payload = JSON.parse(message.body);
+            if (typeof window !== 'undefined' && payload) {
+              window.dispatchEvent(new CustomEvent('presence-change', { detail: payload }));
+            }
+          } catch (e) {
+            // ignore parse error
+          }
+        });
+      },
     });
 
     client.activate();

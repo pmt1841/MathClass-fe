@@ -49,6 +49,8 @@ export const authStorage = {
     document.cookie = 'mathclass_role=; path=/; max-age=0'
     document.cookie = 'mathclass_jwt=; path=/; max-age=0'
     document.cookie = 'mathclass_remember=; path=/; max-age=0'
+    document.cookie = `${AUTH_KEYS.USER_INFO}=; path=/; max-age=0`
+    document.cookie = 'mathclass_logged_out=1; path=/; max-age=10'
   },
 
   /**

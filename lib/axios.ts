@@ -139,13 +139,17 @@ api.interceptors.response.use(
             } catch (refreshError) {
               // Thông báo thất bại cho các request trong hàng đợi
               processQueue(refreshError);
-              // Gia hạn thất bại -> Đẩy về trang đăng nhập
-              const isAlreadyLoginPage = window.location.pathname.includes('/login');
-              if (!isAlreadyLoginPage) {
+              // Gia hạn thất bại -> Đẩy về trang đăng nhập tương ứng
+              const isAuthPage =
+                window.location.pathname.includes('/login') ||
+                window.location.pathname.includes('/signup') ||
+                window.location.pathname.includes('/reset-password') ||
+                window.location.pathname.includes('/verify');
+              if (!isAuthPage && window.location.pathname !== '/') {
                 authStorage.clearToken();
-                if (window.location.pathname !== '/') {
-                  window.location.href = '/login';
-                }
+                authStorage.clearUserInfo();
+                const isAdmin = window.location.pathname.startsWith('/admin');
+                window.location.href = isAdmin ? '/admin/login' : '/login';
               }
               return Promise.reject(refreshError);
             } finally {
@@ -154,6 +158,15 @@ api.interceptors.response.use(
           }
         }
       } else if (error.response.status === 403) {
+        const isAuthApi =
+          originalRequest?.url?.includes('/auth/') ||
+          originalRequest?.url?.includes('/users/me');
+        const isAuthPage = typeof window !== 'undefined' && (
+          window.location.pathname.includes('/login') ||
+          window.location.pathname.includes('/signup') ||
+          window.location.pathname.includes('/reset-password')
+        );
+
         const msg = 'Tính năng không khả dụng hoặc bạn không có quyền thực hiện thao tác này.';
         error.message = msg;
         if (error.response.data && typeof error.response.data === 'object') {
@@ -162,7 +175,7 @@ api.interceptors.response.use(
           error.response.data = { message: msg };
         }
 
-        if (typeof window !== 'undefined') {
+        if (!isAuthApi && !isAuthPage && typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('permission-revoked', { detail: { message: msg } }));
         }
       }

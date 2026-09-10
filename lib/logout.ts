@@ -21,5 +21,13 @@ export async function logoutSession(): Promise<void> {
     await axios.post(`${baseURL}/auth/logout`, {}, { withCredentials: true })
   } catch (e) {
     console.error('Logout error', e)
+  } finally {
+    if (typeof document !== 'undefined') {
+      document.cookie = 'user_role=; path=/; max-age=0'
+      document.cookie = 'mathclass_role=; path=/; max-age=0'
+      document.cookie = 'user_info=; path=/; max-age=0'
+      document.cookie = 'mathclass_remember=; path=/; max-age=0'
+      document.cookie = 'mathclass_logged_out=1; path=/; max-age=10'
+    }
   }
 }

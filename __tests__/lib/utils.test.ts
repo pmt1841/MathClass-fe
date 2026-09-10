@@ -6,6 +6,7 @@ import {
   formatDateTime,
   formatTime,
   formatDistanceToNowSafe,
+  formatRelativeLastLogin,
 } from '@/lib/utils'
 
 describe('utils', () => {
@@ -75,6 +76,62 @@ describe('utils', () => {
 
     it('returns empty string for invalid date', () => {
       expect(formatDistanceToNowSafe(null)).toBe('')
+    })
+  })
+
+  describe('formatRelativeLastLogin', () => {
+    it('returns "Chưa đăng nhập" when date is null, undefined, or invalid', () => {
+      expect(formatRelativeLastLogin(null)).toBe('Chưa đăng nhập')
+      expect(formatRelativeLastLogin(undefined)).toBe('Chưa đăng nhập')
+      expect(formatRelativeLastLogin('invalid-date')).toBe('Chưa đăng nhập')
+    })
+
+    it('returns "Vừa xong" when under 1 minute', () => {
+      const now = new Date()
+      const d = new Date(now.getTime() - 1000 * 30) // 30s ago
+      expect(formatRelativeLastLogin(d)).toBe('Vừa xong')
+    })
+
+    it('returns "X phút trước" when between 1 and 59 minutes', () => {
+      const now = new Date()
+      const d = new Date(now.getTime() - 1000 * 60 * 25) // 25 mins ago
+      expect(formatRelativeLastLogin(d)).toBe('25 phút trước')
+    })
+
+    it('returns "X giờ Y phút trước" when between 1 and 23 hours with remaining minutes', () => {
+      const now = new Date()
+      const d = new Date(now.getTime() - (1000 * 60 * 60 * 2 + 1000 * 60 * 15)) // 2h 15m ago
+      expect(formatRelativeLastLogin(d)).toBe('2 giờ 15 phút trước')
+    })
+
+    it('returns "X giờ trước" when between 1 and 23 hours with 0 remaining minutes', () => {
+      const now = new Date()
+      const d = new Date(now.getTime() - 1000 * 60 * 60 * 3) // 3h 0m ago
+      expect(formatRelativeLastLogin(d)).toBe('3 giờ trước')
+    })
+
+    it('returns "X ngày trước" when between 1 and 29 days', () => {
+      const now = new Date()
+      const d = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 5) // 5 days ago
+      expect(formatRelativeLastLogin(d)).toBe('5 ngày trước')
+    })
+
+    it('returns "X tháng trước" when between 30 and 364 days (e.g. 60 days -> 2 tháng trước, no 60 ngày)', () => {
+      const now = new Date()
+      const d1 = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 65) // 65 days ago
+      expect(formatRelativeLastLogin(d1)).toBe('2 tháng trước')
+
+      const d2 = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 95) // 95 days ago
+      expect(formatRelativeLastLogin(d2)).toBe('3 tháng trước')
+    })
+
+    it('returns "X năm trước" when 365 days or more (e.g. 750 days -> 2 năm trước, no 24 tháng)', () => {
+      const now = new Date()
+      const d1 = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 400) // ~1.1 years
+      expect(formatRelativeLastLogin(d1)).toBe('1 năm trước')
+
+      const d2 = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 750) // ~2 years
+      expect(formatRelativeLastLogin(d2)).toBe('2 năm trước')
     })
   })
 })
