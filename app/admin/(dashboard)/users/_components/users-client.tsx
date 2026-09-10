@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Client } from '@stomp/stompjs'
-import SockJS from 'sockjs-client'
-import { baseURL } from '@/lib/axios'
 import { useAdminUsers, useUpdateUserStatus } from '@/hooks/useAdmin'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/hooks/useAuth'
@@ -92,56 +89,35 @@ export function UsersClient() {
     pageSize
   )
 
-  // Realtime Presence: Tự động cập nhật ngay lập tức trạng thái Đang hoạt động / Lần đăng nhập cuối qua WebSocket STOMP
+  // Realtime Presence: Lắng nghe sự kiện presence-change từ GlobalPresenceTracker (dùng chung kết nối WebSocket STOMP)
   useEffect(() => {
-    const hostUrl = baseURL.replace(/\/api\/v\d+$/, '')
-    const wsUrl = `${hostUrl}/ws-chat`
-
-    let client: Client | null = null
-
-    try {
-      client = new Client({
-        webSocketFactory: () => new SockJS(wsUrl, null, { withCredentials: true } as any),
-        reconnectDelay: 5000,
-        onConnect: () => {
-          client?.subscribe('/topic/presence', (message) => {
-            try {
-              const payload = JSON.parse(message.body)
-              if (payload && payload.userId) {
-                queryClient.setQueriesData({ queryKey: ['admin-users'] }, (oldData: any) => {
-                  if (!oldData || !oldData.content) return oldData
-                  return {
-                    ...oldData,
-                    content: oldData.content.map((u: AdminUser) => {
-                      if (u.id === payload.userId) {
-                        return {
-                          ...u,
-                          isOnline: payload.isOnline,
-                          online: payload.isOnline,
-                          lastActiveAt: payload.lastActiveAt || u.lastActiveAt,
-                        }
-                      }
-                      return u
-                    }),
-                  }
-                })
+    const handlePresenceChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ userId: number; isOnline: boolean; lastActiveAt?: string }>
+      const payload = customEvent.detail
+      if (payload && payload.userId) {
+        queryClient.setQueriesData({ queryKey: ['admin-users'] }, (oldData: any) => {
+          if (!oldData || !oldData.content) return oldData
+          return {
+            ...oldData,
+            content: oldData.content.map((u: AdminUser) => {
+              if (u.id === payload.userId) {
+                return {
+                  ...u,
+                  isOnline: payload.isOnline,
+                  online: payload.isOnline,
+                  lastActiveAt: payload.lastActiveAt || u.lastActiveAt,
+                }
               }
-            } catch (e) {
-              // ignore parse error
-            }
-          })
-        },
-      })
-
-      client.activate()
-    } catch (e) {
-      // ignore
+              return u
+            }),
+          }
+        })
+      }
     }
 
+    window.addEventListener('presence-change', handlePresenceChange)
     return () => {
-      if (client) {
-        client.deactivate()
-      }
+      window.removeEventListener('presence-change', handlePresenceChange)
     }
   }, [queryClient])
 
@@ -312,7 +288,7 @@ export function UsersClient() {
               <TableHead>Email</TableHead>
               <TableHead className="w-32">Vai trò</TableHead>
               <TableHead className="w-32">Trạng thái</TableHead>
-              <TableHead className="w-44">Lần đăng nhập cuối</TableHead>
+              <TableHead className="w-44">Hoạt động gần nhất</TableHead>
               <TableHead className="w-36">Hành động</TableHead>
             </TableRow>
           </TableHeader>
