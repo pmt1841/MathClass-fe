@@ -14,7 +14,7 @@ export interface AssignmentDrawing {
 export type TagType = 'GRADE' | 'SUBJECT' | 'DIFFICULTY'
 export interface AssignmentTag { id: number; name: string; type?: TagType }
 
-export interface SheetSiblingDto {
+export interface SheetSiblingResponse {
   id: number
   title?: string
   submissionStatus?: string
@@ -46,7 +46,7 @@ export interface AssignmentResponse {
   drawings?: AssignmentDrawing[]
   sheetId?: number
   sheetTitle?: string
-  sheetSiblings?: SheetSiblingDto[]
+  sheetSiblings?: SheetSiblingResponse[]
   tags?: AssignmentTag[]
   allowResubmit?: boolean
 }

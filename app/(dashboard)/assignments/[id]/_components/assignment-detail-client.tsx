@@ -14,7 +14,7 @@ import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
 import { classroomService } from '@/services/classroomService'
-import { assignmentService, SheetSiblingDto } from '@/services/assignmentService'
+import { assignmentService, SheetSiblingResponse } from '@/services/assignmentService'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { CountdownTimer } from './countdown-timer'
 import { StudentAssignmentLayout } from './student-assignment-layout'
@@ -58,7 +58,7 @@ interface AssignmentDetail {
   images?: { id: number; imageCode: string; imageUrl: string }[]
   sheetId?: number
   sheetTitle?: string
-  sheetSiblings?: SheetSiblingDto[]
+  sheetSiblings?: SheetSiblingResponse[]
   allowResubmit?: boolean
 }
 

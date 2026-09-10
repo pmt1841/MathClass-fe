@@ -15,7 +15,7 @@ export interface JoinRequestResponse {
   requestedAt: string
 }
 
-export interface ProcessJoinRequestDto {
+export interface ProcessJoinRequest {
   status: 'APPROVED' | 'REJECTED'
 }
 
@@ -41,7 +41,7 @@ export const joinRequestService = {
     return response.data
   },
 
-  processJoinRequest: async (requestId: number, data: ProcessJoinRequestDto): Promise<JoinRequestResponse> => {
+  processJoinRequest: async (requestId: number, data: ProcessJoinRequest): Promise<JoinRequestResponse> => {
     const response = await api.put<JoinRequestResponse>(`/classrooms/join-requests/${requestId}`, data)
     return response.data
   }
