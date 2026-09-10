@@ -12,7 +12,7 @@
 - `components/` → Các React component được tổ chức theo module/feature:
   - `ui/` → Các base UI components (Shadcn UI + Radix UI)
   - `assignments/`, `auth/`, `dashboard/`, `landing/`, `layout/`, `providers/` → Các component theo chức năng
-- `lib/` → Chứa cấu hình Axios API client (`axios.ts`), hàm tiện ích (`utils.ts`), 
+- `lib/` → Chứa cấu hình Axios API client (`axios.ts`), hàm tiện ích (`utils.ts`),
 - `services` -> logic gọi API (`api/`, `actions/`)
 - `hooks/` → Các React custom hooks dùng chung
 - `types/` → Các định nghĩa TypeScript interface/type dùng chung
@@ -28,6 +28,10 @@
   - Component files & folders (trong components/): PascalCase (ví dụ: `AssignmentCard.tsx`).
   - Helper functions, hooks, variables: camelCase (ví dụ: `useAssignment.ts`, `formatDate.ts`).
   - Routes & App Router folders: kebab-case hoặc Next.js routing patterns (ví dụ: `[id]`, `(auth)`).
+  - TypeScript Type/Interface:
+    - Request payload gửi lên Backend: bắt buộc dùng hậu tố `*Request` (ví dụ: `CreateAssignmentRequest`, `LoginRequest`).
+    - Response dữ liệu nhận về từ Backend: bắt buộc dùng hậu tố `*Response` (ví dụ: `UserResponse`, `AssignmentResponse`).
+    - Tuyệt đối KHÔNG dùng hậu tố `*Dto`.
 - Styles: Sử dụng class Tailwind CSS kết hợp với utility helper `cn()` (từ `lib/utils.ts` sử dụng `clsx` và `tailwind-merge`) khi ghép class động.
 
 ## 4. Architecture Patterns

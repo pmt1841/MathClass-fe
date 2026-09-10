@@ -19,19 +19,28 @@ Chi tiết danh sách Tech Stack và thư viện được quản lý tập trung
 
 ---
 
-## 3. Skill Trigger Rules (Tự Động Kích Hoạt Skill)
+## 3. Skill Trigger Rules (Quy chuẩn kích hoạt Skill theo Vòng đời SDLC)
 
-AI cần tự động áp dụng các skill sau theo đúng loại tác vụ:
+AI **BẮT BUỘC** phải đối chiếu và kích hoạt skill theo đúng thứ tự các bước trong vòng đời phát triển giao diện:
 
-- **Khi thảo luận, làm rõ ý tưởng, UI layout hoặc UX workflow mới trước khi code:** ➔ Sử dụng skill [brainstorming](skills/brainstorming/SKILL.md)
-- **Khi Refactor, tối ưu hóa code component, custom hook hoặc util chưa sạch:** ➔ Sử dụng skill [clean-code](skills/clean-code/SKILL.md)
-- **Khi đánh giá, review Frontend code hoặc kiểm tra chất lượng Pull Request:** ➔ Sử dụng skill [code-reviewer](skills/code-reviewer/SKILL.md)
-- **Khi tạo/sửa UI Component, Layout, Page Next.js:** ➔ Sử dụng skill [senior-frontend](skills/senior-frontend/SKILL.md)
-- **Khi xử lý Routing, Server Actions, Server Components:** ➔ Sử dụng skill [nextjs-best-practices](skills/nextjs-best-practices/SKILL.md)
-- **Khi định nghĩa Type/Interface phức tạp, xử lý Generics hoặc Type safety:** ➔ Sử dụng skill [typescript-pro](skills/typescript-pro/SKILL.md)
-- **Khi làm việc với End-to-End Test (E2E) hoặc Playwright Automation:** ➔ Sử dụng skill [e2e-testing-patterns](skills/e2e-testing-patterns/SKILL.md) hoặc [playwright-skill](skills/playwright-skill/SKILL.md)
-- **Khi viết kịch bản test giao diện web app thực tế (UI Testing):** ➔ Sử dụng skill [webapp-testing](skills/webapp-testing/SKILL.md)
-- **Khi viết Unit Test / Component Test:** ➔ Sử dụng skill [unit-testing-test-generate](skills/unit-testing-test-generate/SKILL.md)
+1. 💡 **Lên ý tưởng & Thiết kế UX/UI (Khởi tạo):**
+   - Khi thảo luận tính năng mới, làm rõ UI layout, wireframe, hoặc flow người dùng: ➔ Bắt buộc kích hoạt [brainstorming](skills/brainstorming/SKILL.md)
+
+2. 📐 **Định nghĩa Kiểu dữ liệu & API Contract (Type Safety Phase):**
+   - Khi định nghĩa Type/Interface, DTO mapping, Generics hoặc xử lý Type phức tạp: ➔ Bắt buộc kích hoạt [typescript-pro](skills/typescript-pro/SKILL.md)
+
+3. ⚛️ **Xây dựng Giao diện & Component (Frontend Development):**
+   - Khi tạo/sửa UI Component, Layout, xử lý responsive, Tailwind CSS: ➔ Bắt buộc áp dụng [senior-frontend](skills/senior-frontend/SKILL.md)
+   - Khi xử lý Routing, Server Components (RSC), Client Components, Server Actions: ➔ Kích hoạt [nextjs-best-practices](skills/nextjs-best-practices/SKILL.md)
+   - Khi Refactor code component, custom hook hoặc util để tối ưu độ sạch: ➔ Kích hoạt [clean-code](skills/clean-code/SKILL.md)
+
+4. 🧪 **Kiểm thử Giao diện & Chức năng (Verification Phase):**
+   - Khi viết Unit Test / Component Test (Jest/Vitest/React Testing Library): ➔ Kích hoạt [unit-testing-test-generate](skills/unit-testing-test-generate/SKILL.md)
+   - Khi viết kịch bản test giao diện web app thực tế (UI Testing): ➔ Kích hoạt [webapp-testing](skills/webapp-testing/SKILL.md)
+   - Khi viết End-to-End Test (E2E) hoặc tự động hóa Playwright: ➔ Kích hoạt [e2e-testing-patterns](skills/e2e-testing-patterns/SKILL.md) hoặc [playwright-skill](skills/playwright-skill/SKILL.md)
+
+5. 🔍 **Đánh giá & Review (Quality Gate):**
+   - Khi hoàn thành tính năng, trước khi commit hoặc review Pull Request: ➔ Bắt buộc kích hoạt [code-reviewer](skills/code-reviewer/SKILL.md)
 
 ---
 
@@ -40,7 +49,11 @@ AI cần tự động áp dụng các skill sau theo đúng loại tác vụ:
 - **Server Component First:** Mặc định mọi component trong `app/` đều là **React Server Components (RSC)**. Chỉ thêm chỉ dẫn `'use client'` ở dòng đầu tiên của file khi thực sự cần dùng state (`useState`), hooks (`useEffect`), event listeners (`onClick`), hoặc browser APIs.
 - **Axios Client Centralization:** Bắt buộc sử dụng Axios instance đã được cấu hình sẵn tại `@/lib/axios` cho mọi yêu cầu gửi lên Backend. **Không tự ý gọi `axios.get` mặc định hoặc tạo instance mới**.
 - **Styling Standards:** Toàn bộ UI phải sử dụng Tailwind CSS classes. Sử dụng helper `cn()` (từ `@/lib/utils`) khi ghép chuỗi class động. **Không dùng inline styles (`style={{...}}`)**.
-- **Naming Conventions:**
+- **Type & Interface Naming Conventions:**
+  - **Dữ liệu gửi lên Backend (Request):** Bắt buộc sử dụng hậu tố `*Request` (ví dụ: `CreateAssignmentRequest`, `LoginRequest`, `UpdateProfileRequest`).
+  - **Dữ liệu nhận về từ Backend (Response):** Bắt buộc sử dụng hậu tố `*Response` cho các model phản hồi từ API (ví dụ: `UserResponse`, `AssignmentResponse`, `ClassroomResponse`).
+  - **Tuyệt đối KHÔNG** sử dụng hậu tố `*Dto` (như `AssignmentDto`, `UserDto`) trong TypeScript interface/type.
+- **File & Folder Naming Conventions:**
   - Component files & folders (trong `components/`): `PascalCase.tsx` (ví dụ: `AssignmentCard.tsx`).
   - Hooks, utils, services: `camelCase.ts` (ví dụ: `useAssignment.ts`, `formatDate.ts`).
   - App Router folders: `kebab-case` hoặc theo chuẩn Next.js (ví dụ: `(dashboard)`, `[id]`).
