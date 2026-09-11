@@ -9,7 +9,7 @@
 
 ## 2. Cấu hình Môi trường (.env)
 
-Tại thư mục gốc của frontend (`MathClass-ui/`), tạo một file `.env.local` (hoặc `.env`):
+Tại thư mục gốc của frontend (`MathClass-fe/`), tạo một file `.env.local` (hoặc `.env`):
 
 ```env
 # Địa chỉ API của backend local
@@ -21,7 +21,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 
 ## 3. Cài đặt thư viện & Chạy dự án (Running)
 
-Mở terminal tại thư mục `MathClass-ui/`:
+Mở terminal tại thư mục `MathClass-fe/`:
 
 ### Cài đặt dependencies
 

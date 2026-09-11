@@ -27,7 +27,7 @@ Khắc phục triệt để các lỗ hổng bảo mật (XSS, Session Hijacking
 
 ## Project Structure & Proposed Changes
 
-Các thay đổi sẽ được áp dụng trực tiếp lên các tệp nguồn sau của dự án `MathClass-ui`:
+Các thay đổi sẽ được áp dụng trực tiếp lên các tệp nguồn sau của dự án `MathClass-fe`:
 
 ### 1. Khắc phục XSS tiềm ẩn (`dangerouslySetInnerHTML`)
 

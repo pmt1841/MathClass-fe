@@ -20,6 +20,18 @@ vi.mock('@/components/ui/with-permission', () => ({
   PermissionGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+vi.mock('@/hooks/useAiFeatures', () => ({
+  useAiFeatures: () => ({
+    data: {
+      BATCH_QUESTION_GEN: true,
+    },
+    isLoading: false,
+  }),
+  AI_FEATURE_TASKS: {
+    BATCH_QUESTION_GEN: 'BATCH_QUESTION_GEN',
+  },
+}))
+
 vi.mock('@/hooks/useAssignments', () => ({
   useAssignments: () => ({
     data: { content: [], totalPages: 0, totalElements: 0 },

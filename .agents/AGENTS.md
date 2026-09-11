@@ -1,6 +1,6 @@
-# Frontend AI Agent Guidelines (MathClass-ui)
+# Frontend AI Agent Guidelines (MathClass-fe)
 
-Tập tin này định nghĩa quy tắc hoạt động, thứ tự nạp ngữ cảnh và quy chuẩn phát triển dành cho AI Agent khi làm việc trong dự án **MathClass-ui**.
+Tập tin này định nghĩa quy tắc hoạt động, thứ tự nạp ngữ cảnh và quy chuẩn phát triển dành cho AI Agent khi làm việc trong dự án **MathClass-fe**.
 
 ---
 
