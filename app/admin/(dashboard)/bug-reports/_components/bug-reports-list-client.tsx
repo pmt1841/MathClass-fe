@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { AlertTriangle, Eye, Loader2, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { AlertTriangle, Eye, Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 const ERROR_TYPE_LABELS: Record<string, string> = {
@@ -106,10 +106,8 @@ export function BugReportsListClient() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-screen-xl px-6 py-5 space-y-4">
           {/* Filter & Stats Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-border p-4 rounded-xl shadow-xs">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">Lọc theo trạng thái:</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
               <Select
                 value={statusFilter}
                 onValueChange={(val) => {
@@ -117,7 +115,7 @@ export function BugReportsListClient() {
                   setPage(0)
                 }}
               >
-                <SelectTrigger className="w-[180px] bg-white rounded-xl">
+                <SelectTrigger id="bug-report-status-filter" className="h-10 w-[200px] bg-white rounded-xl border border-border text-xs font-semibold">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -129,7 +127,7 @@ export function BugReportsListClient() {
               </Select>
             </div>
 
-            <div className="text-xs text-muted-foreground font-medium self-end sm:self-auto">
+            <div className="text-xs text-muted-foreground font-medium shrink-0 self-end sm:self-auto">
               Múi giờ thời gian hiển thị: <span className="font-bold text-foreground">UTC+7 (Việt Nam)</span>
             </div>
           </div>
