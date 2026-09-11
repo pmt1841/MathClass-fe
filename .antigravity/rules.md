@@ -1,8 +1,8 @@
-# Project Context — MathClass-ui
+# Project Context — MathClass-fe
 
 ## 1. Project Overview
 
-- MathClass-ui: Giao diện người dùng (Frontend) cho nền tảng bài tập toán THPT (Trung học Phổ thông) trực tuyến.
+- MathClass-fe: Giao diện người dùng (Frontend) cho nền tảng bài tập toán THPT (Trung học Phổ thông) trực tuyến.
 - Mục đích: Xây dựng một giao diện web trực quan, hiện đại, mượt mà giúp học sinh và giáo viên THPT tương tác qua các bài tập môn Toán trực tuyến dễ dàng, hỗ trợ hiển thị ký hiệu toán học (LaTeX) chính xác.
 - Ưu tiên: UX/UI trực quan, code sạch, dễ bảo trì và mở rộng.
 

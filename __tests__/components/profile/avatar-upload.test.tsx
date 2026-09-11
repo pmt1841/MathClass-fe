@@ -13,6 +13,12 @@ vi.mock('@/hooks/useProfile', () => ({
   })
 }))
 
+vi.mock('@/components/ui/avatar', () => ({
+  Avatar: ({ children, className }: any) => <div className={className}>{children}</div>,
+  AvatarImage: ({ src, alt, className }: any) => src ? <img src={src} alt={alt} className={className} /> : null,
+  AvatarFallback: ({ children, className }: any) => <div className={className}>{children}</div>,
+}))
+
 describe('AvatarUpload', () => {
   let queryClient: QueryClient
 
@@ -35,7 +41,7 @@ describe('AvatarUpload', () => {
     expect(screen.getByText('JD')).toBeInTheDocument()
   })
 
-  it.skip('renders image when avatarUrl is provided', () => {
+  it('renders image when avatarUrl is provided', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <AvatarUpload currentAvatarUrl="https://example.com/avatar.png" fullName="John Doe" />
