@@ -1,16 +1,16 @@
-# Specification: System Audit Log Frontend (`MathClass-ui`)
+# Specification: System Audit Log Frontend (`MathClass-fe`)
 
 ## 1. Executive Summary & Objectives
 
-Giao diện Nhật ký Hệ thống (System Audit Log UI) dành cho Quản trị viên trên **MathClass-ui** cho phép xem, lọc, phân trang và xem chi tiết các nhật ký thao tác dữ liệu (CRUD) và nhật ký sự cố hệ thống.
+Giao diện Nhật ký Hệ thống (System Audit Log UI) dành cho Quản trị viên trên **MathClass-fe** cho phép xem, lọc, phân trang và xem chi tiết các nhật ký thao tác dữ liệu (CRUD) và nhật ký sự cố hệ thống.
 
 ---
 
 ## 2. Component Specifications
 
 ### 2.1. Page Route & Location
-- **File:** [app/admin/(dashboard)/logs/page.tsx](file:///d:/tien/codegym/Module_6/MathClass/MathClass-ui/app/admin/(dashboard)/logs/page.tsx)
-- **Hook:** `useAdminLogs` trong [hooks/useAdmin.ts](file:///d:/tien/codegym/Module_6/MathClass/MathClass-ui/hooks/useAdmin.ts)
+- **File:** [app/admin/(dashboard)/logs/page.tsx](file:///d:/tien/codegym/Module_6/MathClass/MathClass-fe/app/admin/(dashboard)/logs/page.tsx)
+- **Hook:** `useAdminLogs` trong [hooks/useAdmin.ts](file:///d:/tien/codegym/Module_6/MathClass/MathClass-fe/hooks/useAdmin.ts)
 
 ---
 
