@@ -39,7 +39,7 @@ export function AdminKpiCards({
       {/* 1. Người dùng & Hoạt động */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
             Người dùng & Hoạt động
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -78,7 +78,7 @@ export function AdminKpiCards({
       {/* 2. Hệ thống Lớp học */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
             Hệ thống Lớp học
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
@@ -101,7 +101,7 @@ export function AdminKpiCards({
       {/* 3. Doanh thu Nạp Credit */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
             Doanh thu Nạp Tháng
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -145,7 +145,7 @@ export function AdminKpiCards({
       {/* 4. Báo cáo Sự cố */}
       <div className="relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/40">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
             Báo cáo Sự cố
           </span>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
