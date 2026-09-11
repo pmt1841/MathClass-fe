@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
                 <LayoutDashboard className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Trung Tâm Tổng Quan Math Class
+                Trung Tâm Tổng Quan MathClass
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">

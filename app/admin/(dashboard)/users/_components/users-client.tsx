@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
-import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Users, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { cn, formatRelativeLastLogin, formatDateTime } from '@/lib/utils'
 import { AdminUser } from '@/types'
 import { StatusSwitch } from './status-switch'
@@ -81,7 +81,7 @@ export function UsersClient() {
 
   const debouncedSearch = useDebounce(search, 300)
 
-  const { data, isLoading } = useAdminUsers(
+  const { data, isLoading, refetch } = useAdminUsers(
     page,
     role === 'ALL' ? undefined : role,
     statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
@@ -226,9 +226,22 @@ export function UsersClient() {
                   {' '}người dùng.
                 </>
               ) : (
-                'Quản lý tài khoản người dùng trong hệ thống Math Class.'
+                'Quản lý tài khoản người dùng trong hệ thống MathClass.'
               )}
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="rounded-xl bg-white gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, RotateCcw } from 'lucide-react'
+import { Calendar, RotateCcw, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface MonthYearSelectorProps {
@@ -76,12 +76,6 @@ export function MonthYearSelector({
             disabled={disabled}
             aria-label="Chọn tháng báo cáo"
             className="h-9.5 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer shadow-xs"
-            style={{
-              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 0.65rem center',
-              backgroundSize: '0.85em',
-            }}
           >
             {MONTHS.map((m) => (
               <option key={m.value} value={m.value}>
@@ -89,6 +83,7 @@ export function MonthYearSelector({
               </option>
             ))}
           </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
         {/* Dropdown Năm */}
@@ -98,13 +93,7 @@ export function MonthYearSelector({
             onChange={handleYearChange}
             disabled={disabled}
             aria-label="Chọn năm báo cáo"
-            className="h-9.5 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer shadow-xs"
-            style={{
-              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 0.65rem center',
-              backgroundSize: '0.85em',
-            }}
+            className="h-9.5 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer shadow-xs"
           >
             {years.map((y) => (
               <option key={y} value={y}>
@@ -112,6 +101,7 @@ export function MonthYearSelector({
               </option>
             ))}
           </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
       </div>
 

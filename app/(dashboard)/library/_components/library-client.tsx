@@ -71,7 +71,9 @@ export function LibraryClient() {
 
   const handleRefresh = () => {
     const activeRefetch = activeTab === 'SINGLE' ? refetchAssignments : refetchSheets
-    activeRefetch().then(() => toast.success('Đã cập nhật danh sách thư viện'))
+    activeRefetch()
+      .then(() => toast.success('Đã cập nhật danh sách thư viện'))
+      .catch(() => toast.error('Không thể làm mới danh sách thư viện'))
   }
 
   return (
