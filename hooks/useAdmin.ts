@@ -1,11 +1,20 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { adminService } from '@/services/adminService'
 
-export function useAdminUsers(page: number, role?: string, isActive?: boolean, search?: string, size: number = 10) {
+export function useAdminUsers(
+  page: number,
+  role?: string,
+  isActive?: boolean,
+  search?: string,
+  size: number = 10,
+  options?: { enabled?: boolean },
+  excludeRole?: string
+) {
   return useQuery({
-    queryKey: ['admin-users', page, role, isActive, search, size],
-    queryFn: () => adminService.getUsers(page, role, isActive, search, size),
+    queryKey: ['admin-users', page, role, isActive, search, size, excludeRole],
+    queryFn: () => adminService.getUsers(page, role, isActive, search, size, excludeRole),
     placeholderData: keepPreviousData,
+    ...options,
   })
 }
 

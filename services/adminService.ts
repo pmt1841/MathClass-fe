@@ -21,11 +21,19 @@ export interface Permission {
 }
 
 export const adminService = {
-  getUsers: async (page: number, role?: string, isActive?: boolean, search?: string, size: number = 10) => {
+  getUsers: async (
+    page: number,
+    role?: string,
+    isActive?: boolean,
+    search?: string,
+    size: number = 10,
+    excludeRole?: string
+  ) => {
     const params = new URLSearchParams()
     params.append('page', page.toString())
     params.append('size', size.toString())
     if (role) params.append('role', role)
+    if (excludeRole) params.append('excludeRole', excludeRole)
     if (isActive !== undefined) params.append('isActive', String(isActive))
     if (search) params.append('search', search)
 

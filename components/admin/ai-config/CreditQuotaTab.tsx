@@ -13,6 +13,10 @@ import {
   Coins,
   ChevronLeft,
   ChevronRight,
+  Search,
+  ChevronsUpDown,
+  Check,
+  X,
 } from 'lucide-react'
 import {
   Card,
@@ -26,6 +30,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover'
+import { useAdminUsers } from '@/hooks/useAdmin'
+import { useDebounce } from '@/hooks/useDebounce'
+import { AdminUser } from '@/types'
 import {
   Table,
   TableBody,
@@ -601,10 +613,159 @@ function UserRoleBadge({ role }: { role?: string | null }) {
   )
 }
 
+interface UserSearchSelectProps {
+  value: AdminUser | null
+  onChange: (user: AdminUser | null) => void
+  disabled?: boolean
+}
+
+function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
+
+  const { data, isLoading, isFetching } = useAdminUsers(
+    0,
+    undefined,
+    undefined,
+    debouncedSearch.trim() || undefined,
+    20,
+    { enabled: open },
+    'ADMIN'
+  )
+  const users = data?.content || []
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen)
+        if (!isOpen) setSearch('')
+      }}
+    >
+      <PopoverTrigger asChild>
+        <div className="relative w-full">
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+              'w-full justify-between h-9 px-3 text-xs font-normal border-slate-200 bg-white hover:bg-slate-50',
+              value && 'pr-14',
+              !value && 'text-slate-400'
+            )}
+          >
+            <span className="truncate text-left flex-1 mr-2">
+              {value ? (
+                <span className="font-medium text-slate-800">
+                  {value.email}
+                  {value.fullName ? ` (${value.fullName})` : ''}
+                </span>
+              ) : (
+                'Chọn người dùng (email)...'
+              )}
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+          {value && !disabled && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={(e) => {
+                e.stopPropagation()
+                onChange(null)
+              }}
+              className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Bỏ chọn"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] sm:w-[380px] p-0 shadow-lg border-slate-200" align="start">
+        <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50/70">
+          {isFetching ? (
+            <Loader2 className="h-3.5 w-3.5 text-indigo-600 animate-spin shrink-0 ml-1" />
+          ) : (
+            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0 ml-1" />
+          )}
+          <input
+            className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-800"
+            placeholder="Tìm theo email hoặc họ tên..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-slate-400 hover:text-slate-600 mr-1 p-0.5 rounded"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="max-h-56 overflow-y-auto p-1 text-xs">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-6 text-slate-500 gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+              <span>Đang tìm kiếm...</span>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="py-6 text-center text-slate-400 text-xs">
+              Không tìm thấy người dùng nào phù hợp
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {users.map((user) => {
+                const isSelected = value?.id === user.id
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(user)
+                      setOpen(false)
+                      setSearch('')
+                    }}
+                    className={cn(
+                      'w-full flex items-center justify-between p-2 rounded-md text-left transition-colors',
+                      isSelected
+                        ? 'bg-indigo-50 text-indigo-900 font-medium'
+                        : 'hover:bg-slate-100/80 text-slate-700'
+                    )}
+                  >
+                    <div className="min-w-0 flex-1 mr-2">
+                      <div className="truncate font-medium text-slate-900">{user.email}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {user.fullName || 'Chưa cập nhật tên'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <UserRoleBadge role={user.role} />
+                      {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 ml-1" />}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 function AdjustAndLedgerSection() {
   const adjustMutation = useAdjustCredit()
   const [typeFilter, setTypeFilter] = useState('ALL')
-  const [adjustForm, setAdjustForm] = useState({ userId: '', amount: '', reason: '' })
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
+  const [adjustForm, setAdjustForm] = useState({ amount: '', reason: '' })
   const [adjusting, setAdjusting] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -634,18 +795,27 @@ function AdjustAndLedgerSection() {
   const totalPages = pageData?.totalPages ?? 0
 
   const handleAdjust = async () => {
-    const userId = parseInt(adjustForm.userId)
-    const amount = parseInt(adjustForm.amount)
-    if (Number.isNaN(userId) || Number.isNaN(amount) || amount === 0) return
+    if (!selectedUser) {
+      toast.error('Vui lòng chọn người dùng theo email.')
+      return
+    }
+    const amount = parseInt(adjustForm.amount, 10)
+    if (Number.isNaN(amount) || amount === 0) {
+      toast.error('Số credit điều chỉnh phải khác 0.')
+      return
+    }
     setAdjusting(true)
     try {
       await adjustMutation.mutateAsync({
-        userId,
+        userId: selectedUser.id,
         amount,
         reason: adjustForm.reason.trim() || undefined,
       })
-      toast.success(`Đã điều chỉnh ${amount >= 0 ? '+' : ''}${amount} credit cho user #${userId}`)
-      setAdjustForm({ userId: '', amount: '', reason: '' })
+      toast.success(
+        `Đã điều chỉnh ${amount >= 0 ? '+' : ''}${amount} credit cho ${selectedUser.email}`
+      )
+      setSelectedUser(null)
+      setAdjustForm({ amount: '', reason: '' })
     } catch (e) {
       toast.error(handleApiError(e, 'Không thể điều chỉnh credit.'))
     } finally {
@@ -668,12 +838,11 @@ function AdjustAndLedgerSection() {
         {/* Form điều chỉnh */}
         <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">User ID</Label>
-            <Input
-              type="number"
-              placeholder="123"
-              value={adjustForm.userId}
-              onChange={(e) => setAdjustForm((prev) => ({ ...prev, userId: e.target.value }))}
+            <Label className="text-xs">Người dùng (Email)</Label>
+            <UserSearchSelect
+              value={selectedUser}
+              onChange={setSelectedUser}
+              disabled={adjusting}
             />
           </div>
           <div className="space-y-1.5">
@@ -696,7 +865,7 @@ function AdjustAndLedgerSection() {
           <div className="flex items-end">
             <Button
               className="w-full"
-              disabled={adjusting || !adjustForm.userId || !adjustForm.amount}
+              disabled={adjusting || !selectedUser || !adjustForm.amount}
               onClick={handleAdjust}
             >
               {adjusting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}

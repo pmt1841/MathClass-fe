@@ -4,6 +4,7 @@ import { CreditQuotaTab } from '@/components/admin/ai-config/CreditQuotaTab'
 
 const updateTaskConfig = vi.fn().mockResolvedValue({})
 const updateDefaultCredits = vi.fn().mockResolvedValue({})
+const adjustCreditMock = vi.fn().mockResolvedValue({})
 
 vi.mock('@/hooks/useAdminCredits', () => ({
   useAdminTaskCreditConfigs: () => ({
@@ -28,7 +29,7 @@ vi.mock('@/hooks/useAdminCredits', () => ({
   useCreateCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useUpdateCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useDeleteCreditPackage: () => ({ mutateAsync: vi.fn() }),
-  useAdjustCredit: () => ({ mutateAsync: vi.fn() }),
+  useAdjustCredit: () => ({ mutateAsync: adjustCreditMock }),
   useAdminCreditTransactions: () => ({
     data: {
       content: [
@@ -58,6 +59,45 @@ vi.mock('@/hooks/useAdminCredits', () => ({
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
+}))
+
+vi.mock('@/hooks/useAdmin', () => ({
+  useAdminUsers: (
+    _page?: number,
+    _role?: string,
+    _isActive?: boolean,
+    _search?: string,
+    _size?: number,
+    _options?: { enabled?: boolean },
+    excludeRole?: string
+  ) => {
+    const allUsers = [
+      {
+        id: 1,
+        email: 'student@example.com',
+        fullName: 'Học sinh Test',
+        role: 'STUDENT',
+        active: true,
+      },
+      {
+        id: 2,
+        email: 'admin@example.com',
+        fullName: 'Quản trị viên Hệ thống',
+        role: 'ADMIN',
+        active: true,
+      },
+    ]
+    const content = excludeRole ? allUsers.filter((u) => u.role !== excludeRole) : allUsers
+    return {
+      data: {
+        content,
+        totalElements: content.length,
+        totalPages: 1,
+      },
+      isLoading: false,
+      isFetching: false,
+    }
+  },
 }))
 
 describe('CreditQuotaTab', () => {
@@ -123,5 +163,40 @@ describe('CreditQuotaTab', () => {
     expect(formatCreditTransactionDescription(null, 'CANVAS_LATEX')).toBe(
       'Tác vụ "Trợ lý AI Canvas (Chữ viết tay & Phác thảo)"'
     )
+  })
+
+  it('should adjust credit successfully when user is selected from combobox', async () => {
+    render(<CreditQuotaTab />)
+
+    // Mở combobox tìm người dùng
+    const selectTrigger = screen.getByText('Chọn người dùng (email)...')
+    fireEvent.click(selectTrigger)
+
+    // Xác nhận tài khoản role ADMIN bị loại bỏ, không hiển thị trong danh sách
+    expect(screen.queryByText('Quản trị viên Hệ thống')).toBeNull()
+
+    // Chọn người dùng từ danh sách popover
+    const userOption = await screen.findByText('Học sinh Test')
+    fireEvent.click(userOption)
+
+    // Nhập số credit
+    const amountInput = screen.getByPlaceholderText('100 hoặc -50')
+    fireEvent.change(amountInput, { target: { value: '50' } })
+
+    // Nhập lý do
+    const reasonInput = screen.getByPlaceholderText('Hoàn tiền lỗi hệ thống')
+    fireEvent.change(reasonInput, { target: { value: 'Thưởng học sinh chăm chỉ' } })
+
+    // Bấm nút điều chỉnh
+    const submitBtn = screen.getByRole('button', { name: 'Điều chỉnh' })
+    fireEvent.click(submitBtn)
+
+    await waitFor(() => {
+      expect(adjustCreditMock).toHaveBeenCalledWith({
+        userId: 1,
+        amount: 50,
+        reason: 'Thưởng học sinh chăm chỉ',
+      })
+    })
   })
 })
