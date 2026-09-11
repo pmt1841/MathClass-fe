@@ -131,15 +131,15 @@ export function ClassesClient() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
-          <div className="flex flex-col sm:flex-row gap-3 bg-white p-3.5 rounded-2xl border border-border shadow-sm">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Tìm kiếm theo tên lớp, mã lớp..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/70"
+                className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
             <div className="flex items-center gap-2 min-w-[180px]">
@@ -147,7 +147,7 @@ export function ClassesClient() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full h-11 px-3 py-2 rounded-xl border border-border bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
+                className="w-full h-11 px-3 py-2 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 cursor-pointer"
               >
                 <option value="name-asc">Tên lớp: A - Z</option>
                 <option value="name-desc">Tên lớp: Z - A</option>

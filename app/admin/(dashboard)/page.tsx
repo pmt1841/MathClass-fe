@@ -4,8 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import {
   RefreshCw,
-  Sparkles,
-  ShieldCheck,
+  LayoutDashboard,
   AlertCircle,
   ShieldAlert,
 } from 'lucide-react'
@@ -120,83 +119,89 @@ export default function AdminDashboardPage() {
 
   return (
     <div
-      className={`space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto transition-opacity duration-200 ${
+      className={`flex-1 flex flex-col overflow-hidden bg-slate-50/50 transition-opacity duration-200 ${
         isFetching ? 'opacity-80' : 'opacity-100'
       }`}
     >
-      {/* Top Welcome Bar */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Bảng Điều Khiển Quản Trị
-            </span>
+      {/* ── Synchronized Header Bar ─────────────────────────────────────────────── */}
+      <div className="border-b border-border bg-white py-6">
+        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <LayoutDashboard className="h-5.5 w-5.5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Trung Tâm Tổng Quan MathClass
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Báo cáo số liệu kỳ <span className="font-semibold text-foreground">Tháng {selectedMonth}/{selectedYear}</span>.
+            </p>
           </div>
-          <h1 className="mt-1.5 text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            Trung Tâm Tổng Quan MathClass
-            <Sparkles className="h-5 w-5 text-amber-500" />
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Báo cáo số liệu kỳ <span className="font-semibold text-foreground">Tháng {selectedMonth}/{selectedYear}</span> về người dùng, lớp học, doanh thu và lưu lượng AI.
-          </p>
-        </div>
 
-        {/* Bộ chọn Tháng / Năm & Nút Refresh */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
-          <MonthYearSelector
-            selectedMonth={selectedMonth}
-            selectedYear={selectedYear}
-            onChange={handlePeriodChange}
-            disabled={isFetching}
+          {/* Bộ chọn Tháng / Năm & Nút Refresh */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <MonthYearSelector
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onChange={handlePeriodChange}
+              disabled={isFetching}
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="rounded-xl inline-flex items-center gap-1.5 text-xs font-semibold h-9 bg-white"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
+              />
+              {isFetching ? 'Đang tải...' : 'Làm mới'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Scroll Area ───────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+          {/* 1. Hàng KPI Cards (4 Thẻ chỉ số chính) */}
+          <AdminKpiCards
+            userStats={data.userStats}
+            classroomStats={data.classroomStats}
+            revenueStats={data.revenueStats}
+            bugReportStats={data.bugReportStats}
           />
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="rounded-xl inline-flex items-center gap-1.5 text-xs font-semibold h-9"
-          >
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
-            />
-            {isFetching ? 'Đang tải...' : 'Làm mới'}
-          </Button>
+          {/* 2. Hàng Biểu Đồ Xu Hướng Năm (Tia mảnh 12 tháng: Người dùng & Doanh thu) */}
+          <AnnualTrendCards
+            userTrends={data.userTrends}
+            revenueTrends={data.revenueTrends}
+            year={selectedYear}
+          />
+
+          {/* 3. Bento Middle: Biểu đồ tròn AI (2/3) + Thống kê Gói nạp (1/3) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <AiDistributionDonutChart aiTaskUsages={data.aiTaskUsages} />
+            </div>
+            <div className="lg:col-span-1">
+              <CreditPackageSalesCard packageSales={data.packageSales} />
+            </div>
+          </div>
+
+          {/* 4. Bottom: Bảng Lịch Sử Nạp Tiền Có Phân Trang Trực Tiếp */}
+          <RecentTransactionsCard recentTransactions={data.recentTransactions} />
+
+          {/* 5. Bottom: 2 Bảng Xem Trước Ghi Log Hệ Thống và Báo Cáo Sự Cố Trên Cùng 1 Hàng */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RecentSystemLogsCard logs={data.recentSystemLogs} />
+            <RecentBugReportsCard reports={data.recentBugReports} />
+          </div>
         </div>
-      </div>
-
-      {/* 1. Hàng KPI Cards (4 Thẻ chỉ số chính) */}
-      <AdminKpiCards
-        userStats={data.userStats}
-        classroomStats={data.classroomStats}
-        revenueStats={data.revenueStats}
-        bugReportStats={data.bugReportStats}
-      />
-
-      {/* 2. Hàng Biểu Đồ Xu Hướng Năm (Tia mảnh 12 tháng: Người dùng & Doanh thu) */}
-      <AnnualTrendCards
-        userTrends={data.userTrends}
-        revenueTrends={data.revenueTrends}
-        year={selectedYear}
-      />
-
-      {/* 3. Bento Middle: Biểu đồ tròn AI (2/3) + Thống kê Gói nạp (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <AiDistributionDonutChart aiTaskUsages={data.aiTaskUsages} />
-        </div>
-        <div className="lg:col-span-1">
-          <CreditPackageSalesCard packageSales={data.packageSales} />
-        </div>
-      </div>
-
-      {/* 3. Bottom: Bảng Lịch Sử Nạp Tiền Có Phân Trang Trực Tiếp */}
-      <RecentTransactionsCard recentTransactions={data.recentTransactions} />
-
-      {/* 4. Bottom: 2 Bảng Xem Trước Ghi Log Hệ Thống và Báo Cáo Sự Cố Trên Cùng 1 Hàng */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentSystemLogsCard logs={data.recentSystemLogs} />
-        <RecentBugReportsCard reports={data.recentBugReports} />
       </div>
     </div>
   )

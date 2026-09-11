@@ -192,7 +192,7 @@ describe('Admin Dashboard Components', () => {
     expect(screen.getByText(/180/)).toBeDefined()
     expect(screen.getByText(/1070/)).toBeDefined()
     expect(screen.getByText(/45 trong tháng/)).toBeDefined()
-    expect(screen.getByText(/130 DAU/)).toBeDefined()
+    expect(screen.getByText(/130 truy cập hôm nay/)).toBeDefined()
 
     // Kiểm tra thẻ lớp học
     expect(screen.getByText('52')).toBeDefined()

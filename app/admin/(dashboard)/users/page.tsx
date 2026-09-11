@@ -1,8 +1,8 @@
 import { UsersClient } from './_components/users-client'
 
 export const metadata = {
-  title: 'Quản lý Người dùng – Math Class',
-  description: 'Quản lý tài khoản người dùng trong hệ thống Math Class',
+  title: 'Quản lý Người dùng – MathClass',
+  description: 'Quản lý tài khoản người dùng trong hệ thống MathClass',
 }
 
 export default function AdminUsersPage() {

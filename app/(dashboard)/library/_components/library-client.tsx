@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Library, Search, BookOpen, Layers, Loader2, BookX } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Library, Search, BookOpen, Layers, BookX, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import { AssignmentCard } from '@/app/(dashboard)/assignments/_components/assignment-card'
 import { CloneConfirmDialog, CloneTarget } from './clone-confirm-dialog'
 import { useLibraryAssignments, useLibrarySheets } from '@/hooks/useLibrary'
@@ -51,11 +51,13 @@ export function LibraryClient() {
   const {
     data: assignmentPage,
     isLoading: loadingAssignments,
+    refetch: refetchAssignments,
   } = useLibraryAssignments({ ...queryParams, enabled: activeTab === 'SINGLE' })
 
   const {
     data: sheetPage,
     isLoading: loadingSheets,
+    refetch: refetchSheets,
   } = useLibrarySheets({ ...queryParams, enabled: activeTab === 'SHEET' })
 
   const isLoading = activeTab === 'SINGLE' ? loadingAssignments : loadingSheets
@@ -67,108 +69,146 @@ export function LibraryClient() {
     setCloneTarget({ id, title, isSheet, authorName })
   }
 
+  const handleRefresh = () => {
+    const activeRefetch = activeTab === 'SINGLE' ? refetchAssignments : refetchSheets
+    activeRefetch()
+      .then(() => toast.success('Đã cập nhật danh sách thư viện'))
+      .catch(() => toast.error('Không thể làm mới danh sách thư viện'))
+  }
+
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-6 space-y-6 max-w-7xl mx-auto">
-
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
-            <Library className="h-5 w-5" />
-          </div>
+    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="border-b border-border bg-white py-6">
+        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Thư viện dùng chung</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Khám phá và clone bài tập từ cộng đồng giáo viên
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Library className="h-5.5 w-5.5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Thư viện dùng chung</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Khám phá và clone bài tập từ cộng đồng giáo viên.
             </p>
           </div>
-        </div>
 
-        {/* ── Tabs ───────────────────────────────────────────────────── */}
-        <div className="flex gap-1 rounded-xl bg-muted/60 p-1 w-fit">
-          {TABS.map(({ key, label, icon: Icon }) => (
+          <div className="flex items-center gap-2">
             <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                activeTab === key
-                  ? 'bg-white text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              onClick={handleRefresh}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
+              title="Làm mới"
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <RefreshCw className={`h-4.5 w-4.5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
-          ))}
-        </div>
-
-        {/* ── Search ─────────────────────────────────────────────────── */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm kiếm theo tiêu đề..."
-            className="pl-9"
-            id="library-search"
-          />
-        </div>
-
-        {/* ── Content ────────────────────────────────────────────────── */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-            <BookX className="h-12 w-12 opacity-30" />
-            <p className="text-sm">
-              {searchQuery
-                ? `Không tìm thấy kết quả cho "${searchQuery}"`
-                : 'Chưa có bài tập nào được chia sẻ công khai.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((item, index) => (
-              <AssignmentCard
-                key={item.id}
-                assignment={item}
-                userRole={userRole}
-                activeTab={activeTab}
-                index={index}
-                mode="library"
-                onClone={handleCloneClick}
-                onEdit={() => {}}
-                onDelete={() => {}}
-                onPublish={() => {}}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+
+          {/* ── Search & Tabs Toolbar ─────────────────────────────────── */}
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tiêu đề..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+                id="library-search"
               />
-            ))}
-          </div>
-        )}
+            </div>
 
-        {/* ── Pagination ─────────────────────────────────────────────── */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="px-3 py-1.5 rounded-lg text-sm border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Trước
-            </button>
-            <span className="text-sm text-muted-foreground">
-              Trang {page + 1} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="px-3 py-1.5 rounded-lg text-sm border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Sau
-            </button>
+            <div className="flex bg-slate-200/60 p-1 rounded-xl items-center gap-1 shrink-0">
+              {TABS.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    activeTab === key
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+
+          {/* ── Content ────────────────────────────────────────────────── */}
+          {isLoading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="h-6 bg-slate-200 rounded-lg w-3/4" />
+                    <div className="h-4 bg-slate-100 rounded-lg w-1/2" />
+                  </div>
+                  <div className="h-10 bg-slate-100 rounded-xl w-full" />
+                </div>
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 bg-white border border-border rounded-2xl text-center space-y-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+                <BookX className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                {searchQuery ? 'Không tìm thấy bài tập phù hợp' : 'Chưa có bài tập nào được chia sẻ'}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {searchQuery
+                  ? `Không tìm thấy kết quả cho "${searchQuery}". Thử tìm kiếm với từ khóa khác.`
+                  : 'Chưa có bài tập nào được chia sẻ công khai từ cộng đồng giáo viên.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {items.map((item, index) => (
+                <AssignmentCard
+                  key={item.id}
+                  assignment={item}
+                  userRole={userRole}
+                  activeTab={activeTab}
+                  index={index}
+                  mode="library"
+                  onClone={handleCloneClick}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                  onPublish={() => {}}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ── Pagination ─────────────────────────────────────────────── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-4 py-2 rounded-xl text-sm font-semibold border border-border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                Trước
+              </button>
+              <span className="text-sm text-muted-foreground font-medium px-2">
+                Trang {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-2 rounded-xl text-sm font-semibold border border-border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                Sau
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Clone Dialog ───────────────────────────────────────────────── */}
@@ -181,3 +221,4 @@ export function LibraryClient() {
     </div>
   )
 }
+
