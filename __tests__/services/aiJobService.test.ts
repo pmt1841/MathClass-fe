@@ -6,6 +6,7 @@ import { AiJobResultResponse } from '@/types/aiJob'
 vi.mock('@/lib/axios', () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }))
 
@@ -125,6 +126,48 @@ describe('aiJobService', () => {
       controller.abort()
 
       await expect(promise).rejects.toThrow('Tác vụ AI đã bị người dùng hủy bỏ')
+    })
+  })
+
+  describe('cancelJob', () => {
+    it('gọi đúng POST /ai/jobs/{jobId}/cancel và trả về kết quả hủy khi force = false', async () => {
+      const mockCancelRes = {
+        jobId: 'job-cancel-999',
+        status: 'CANCELLED',
+        cancelled: true,
+        refunded: true,
+        refundedCredits: 4,
+        code: 'SUCCESS',
+        message: 'Đã hủy tác vụ trong hàng chờ và hoàn lại 4 credit.',
+      }
+
+      vi.mocked(axiosInstance.post).mockResolvedValue({ data: mockCancelRes } as any)
+
+      const result = await aiJobService.cancelJob('job-cancel-999')
+      expect(axiosInstance.post).toHaveBeenCalledWith('/ai/jobs/job-cancel-999/cancel', null, {
+        params: undefined,
+      })
+      expect(result).toEqual(mockCancelRes)
+    })
+
+    it('gọi POST /ai/jobs/{jobId}/cancel với params force = true khi người dùng chấp nhận mất credit', async () => {
+      const mockCancelRes = {
+        jobId: 'job-cancel-force',
+        status: 'CANCELLED',
+        cancelled: true,
+        refunded: false,
+        refundedCredits: 0,
+        code: 'CANCELLED_WITHOUT_REFUND',
+        message: 'Đã hủy tác vụ đang xử lý (không hoàn credit).',
+      }
+
+      vi.mocked(axiosInstance.post).mockResolvedValue({ data: mockCancelRes } as any)
+
+      const result = await aiJobService.cancelJob('job-cancel-force', true)
+      expect(axiosInstance.post).toHaveBeenCalledWith('/ai/jobs/job-cancel-force/cancel', null, {
+        params: { force: true },
+      })
+      expect(result).toEqual(mockCancelRes)
     })
   })
 })

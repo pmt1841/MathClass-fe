@@ -3,8 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { toast } from 'sonner'
 import { AiBatchQuestionGeneratorModal } from '@/components/ai/AiBatchQuestionGeneratorModal'
 import { aiBatchQuestionService } from '@/services/aiBatchQuestionService'
+import { aiJobService } from '@/services/aiJobService'
 import { assignmentService } from '@/services/assignmentService'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+vi.mock('@/services/aiJobService', () => ({
+  aiJobService: {
+    getJobStatus: vi.fn(),
+    cancelJob: vi.fn(),
+  },
+}))
 
 vi.mock('@/services/aiBatchQuestionService', () => ({
   aiBatchQuestionService: {
@@ -398,14 +406,31 @@ describe('AiBatchQuestionGeneratorModal Component', () => {
     })
   })
 
-  it('hủy tác vụ khi người dùng click nút "Dừng tác vụ"', async () => {
+  it('hủy tác vụ khi người dùng click nút "Dừng tác vụ" và xác nhận trong dialog', async () => {
     let capturedSignal: AbortSignal | undefined
     vi.mocked(aiBatchQuestionService.batchGenerateQuestionsAsync).mockImplementation(
       async (_params, options) => {
         capturedSignal = options?.signal
-        return new Promise(() => {}) // pending mãi
+        await options?.onJobCreated?.('job-test-cancel')
+        return new Promise(() => { }) // pending mãi
       }
     )
+    vi.mocked(aiJobService.getJobStatus).mockResolvedValue({
+      jobId: 'job-test-cancel',
+      taskCode: 'BATCH_QUESTION_GEN',
+      status: 'QUEUED',
+      retryCount: 0,
+      createdAt: new Date().toISOString(),
+    })
+    vi.mocked(aiJobService.cancelJob).mockResolvedValue({
+      jobId: 'job-test-cancel',
+      status: 'CANCELLED',
+      cancelled: true,
+      refunded: true,
+      refundedCredits: 5,
+      code: 'SUCCESS',
+      message: 'Đã hủy tác vụ trong hàng chờ và hoàn lại 5 credit.',
+    })
 
     render(
       <AiBatchQuestionGeneratorModal isOpen={true} onClose={vi.fn()} />,
@@ -424,8 +449,79 @@ describe('AiBatchQuestionGeneratorModal Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Dừng tác vụ/i }))
 
-    expect(capturedSignal?.aborted).toBe(true)
-    expect(toast.info).toHaveBeenCalledWith('Đã dừng tác vụ AI bóc tách bài tập')
+    // Dialog xác nhận mở ra
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Dừng tác vụ & Hoàn credit/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Dừng tác vụ & Hoàn credit/i }))
+
+    await waitFor(() => {
+      expect(aiJobService.cancelJob).toHaveBeenCalledWith('job-test-cancel', false)
+      expect(capturedSignal?.aborted).toBe(true)
+      expect(toast.success).toHaveBeenCalledWith('Đã hủy tác vụ trong hàng chờ và hoàn lại 5 credit.')
+    })
+  })
+
+  it('graceful fallback khi backend báo ALREADY_PROCESSING: không abort và hiển thị toast hướng dẫn lịch sự', async () => {
+    let capturedSignal: AbortSignal | undefined
+    vi.mocked(aiBatchQuestionService.batchGenerateQuestionsAsync).mockImplementation(
+      async (_params, options) => {
+        capturedSignal = options?.signal
+        await options?.onJobCreated?.('job-race-condition')
+        return new Promise(() => { }) // pending chờ kết quả
+      }
+    )
+    vi.mocked(aiJobService.getJobStatus).mockResolvedValue({
+      jobId: 'job-race-condition',
+      taskCode: 'BATCH_QUESTION_GEN',
+      status: 'QUEUED',
+      retryCount: 0,
+      createdAt: new Date().toISOString(),
+    })
+    // Giả lập Race Condition: lúc user bấm hủy, Worker đã bốc job sang PROCESSING
+    vi.mocked(aiJobService.cancelJob).mockResolvedValue({
+      jobId: 'job-race-condition',
+      status: 'PROCESSING',
+      cancelled: false,
+      refunded: false,
+      refundedCredits: 0,
+      code: 'ALREADY_PROCESSING',
+      message: 'Tác vụ AI đã bắt đầu xử lý. Hệ thống tiếp tục thực hiện để tránh lãng phí credit.',
+    })
+
+    render(
+      <AiBatchQuestionGeneratorModal isOpen={true} onClose={vi.fn()} />,
+      { wrapper: createWrapper() }
+    )
+
+    const textarea = screen.getByPlaceholderText(/Dán toàn bộ nội dung đề bài/i)
+    fireEvent.change(textarea, { target: { value: 'Đề bài...' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /Tách bài tập bằng AI/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Dừng tác vụ/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Dừng tác vụ/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Dừng tác vụ & Hoàn credit/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Dừng tác vụ & Hoàn credit/i }))
+
+    await waitFor(() => {
+      expect(aiJobService.cancelJob).toHaveBeenCalledWith('job-race-condition', false)
+      // Tác vụ KHÔNG bị abort! Vẫn tiếp tục chạy!
+      expect(capturedSignal?.aborted).toBe(false)
+      // Hiển thị toast thông báo lịch sự
+      expect(toast.info).toHaveBeenCalledWith(
+        expect.stringContaining('AI vừa bắt đầu xử lý đề bài cho bạn!'),
+        expect.anything()
+      )
+    })
   })
 })
 

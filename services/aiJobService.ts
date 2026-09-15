@@ -1,8 +1,8 @@
 import axiosInstance from '@/lib/axios'
-import { AiJobResultResponse, AiJobStatus, AiJobEventPayload } from '@/types/aiJob'
+import { AiJobResultResponse, AiJobStatus, AiJobEventPayload, AiJobCancelResponse } from '@/types/aiJob'
 
 export interface WaitForAiJobOptions {
-  onStatusChange?: (status: AiJobStatus, message?: string) => void
+  onStatusChange?: (status: AiJobStatus, message?: string, job?: AiJobResultResponse) => void
   pollIntervalMs?: number
   timeoutMs?: number
   signal?: AbortSignal
@@ -16,6 +16,18 @@ export const aiJobService = {
    */
   async getJobStatus<T = unknown>(jobId: string): Promise<AiJobResultResponse<T>> {
     const res = await axiosInstance.get<AiJobResultResponse<T>>(`/ai/jobs/${jobId}`)
+    return res.data
+  },
+
+  /**
+   * Hủy tác vụ AI đang trong hàng đợi hoặc đang xử lý.
+   * @param jobId Mã tác vụ AI
+   * @param force Nếu true, hủy ngay cả khi AI đã bước vào PROCESSING (chấp nhận mất credit)
+   */
+  async cancelJob(jobId: string, force = false): Promise<AiJobCancelResponse> {
+    const res = await axiosInstance.post<AiJobCancelResponse>(`/ai/jobs/${jobId}/cancel`, null, {
+      params: force ? { force: true } : undefined,
+    })
     return res.data
   },
 
@@ -37,11 +49,13 @@ export const aiJobService = {
 
     return new Promise<T>((resolve, reject) => {
       let isSettled = false
+      let initialPollTimer: NodeJS.Timeout | null = null
       let pollTimer: NodeJS.Timeout | null = null
       let timeoutTimer: NodeJS.Timeout | null = null
 
       const cleanup = () => {
         isSettled = true
+        if (initialPollTimer) clearTimeout(initialPollTimer)
         if (pollTimer) clearInterval(pollTimer)
         if (timeoutTimer) clearTimeout(timeoutTimer)
         if (typeof window !== 'undefined') {
@@ -96,7 +110,7 @@ export const aiJobService = {
           const job = await aiJobService.getJobStatus<T>(jobId)
           if (isSettled) return
 
-          onStatusChange?.(job.status, job.errorMessage)
+          onStatusChange?.(job.status, job.errorMessage, job as AiJobResultResponse)
 
           if (job.status === 'COMPLETED') {
             cleanup()
@@ -123,7 +137,8 @@ export const aiJobService = {
         reject(new Error('Quá thời gian chờ xử lý tác vụ AI (Timeout sau 2 phút)'))
       }, timeoutMs)
 
-      // Chạy poll ban đầu sau 1s, rồi lặp lại mỗi pollIntervalMs
+      // Chạy poll ban đầu ngay sau 250ms để bắt kịp PROCESSING tức thì, rồi lặp lại mỗi pollIntervalMs
+      initialPollTimer = setTimeout(doPoll, 250)
       pollTimer = setInterval(doPoll, pollIntervalMs)
     })
   }

@@ -15,6 +15,10 @@ import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import { cn, normalizeKatexDelimiters } from '@/lib/utils'
 import { aiQuestionService, AiGeneratedQuestionDTO, GenerateQuestionRequestDTO } from '@/services/aiQuestionService'
+import { aiJobService } from '@/services/aiJobService'
+import { AiJobStatus } from '@/types/aiJob'
+import { AiJobCancelConfirmDialog } from '@/components/ai/AiJobCancelConfirmDialog'
+import { useQueryClient } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
@@ -37,13 +41,20 @@ export function AiQuestionGeneratorModal({
   const [includeCanvasDiagram, setIncludeCanvasDiagram] = useState<boolean>(false)
   const [includeExplanation, setIncludeExplanation] = useState<boolean>(false)
 
+  const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(false)
-  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<AiJobStatus | null>(null)
   const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [reservedCredits, setReservedCredits] = useState<number>(0)
   const [generatedQuestion, setGeneratedQuestion] = useState<AiGeneratedQuestionDTO | null>(null)
   const [activeTab, setActiveTab] = useState<'content' | 'explanation'>('content')
 
+  const cancelRequestedRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const activeJobIdRef = useRef<string | null>(null)
   const isOpenRef = useRef(isOpen)
 
   useEffect(() => {
@@ -66,15 +77,90 @@ export function AiQuestionGeneratorModal({
     onClose()
   }
 
-  const handleCancelJob = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+  const executeCancelJob = async (force = false) => {
+    const jobId = activeJobIdRef.current
+    setIsCancelling(true)
+
+    try {
+      if (jobId) {
+        const res = await aiJobService.cancelJob(jobId, force)
+
+        if (res.code === 'ALREADY_PROCESSING' || (!res.cancelled && res.status === 'PROCESSING')) {
+          // Graceful Fallback: AI đã chạy sang PROCESSING, từ chối hủy ngầm để bảo vệ credit cho user
+          setJobStatus('PROCESSING')
+          setJobStatusMessage('AI đang soạn đề bài toán và lời giải...')
+          setIsCancelling(false)
+          setIsCancelDialogOpen(false)
+          toast.info(
+            'AI vừa bắt đầu xử lý đề bài cho bạn! Tác vụ đang tiếp tục chạy để không lãng phí credit. Bạn vui lòng đợi kết quả nhé!',
+            { duration: 5000 }
+          )
+          return
+        }
+
+        if (res.refunded) {
+          toast.success(res.message || 'Đã dừng tác vụ và hoàn lại credit.')
+        } else if (res.cancelled) {
+          toast.info(res.message || 'Đã dừng tác vụ đang xử lý (không hoàn credit).')
+        } else {
+          toast.info(res.message)
+        }
+      } else {
+        toast.info('Đã dừng tác vụ sinh đề AI')
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      setIsLoading(false)
+      setJobStatus(null)
+      setJobStatusMessage('')
+      setReservedCredits(0)
+      activeJobIdRef.current = null
+      setActiveJobId(null)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi hủy tác vụ'
+      toast.error(msg)
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['credits'] })
+      setIsCancelling(false)
+      setIsCancelDialogOpen(false)
     }
-    setIsLoading(false)
-    setJobStatus(null)
-    setJobStatusMessage('')
-    toast.info('Đã dừng tác vụ sinh đề AI')
+  }
+
+  const handleCancelJob = async () => {
+    // Nếu tác vụ đã hoàn thành hoặc đã có câu hỏi tạo xong thì không thể hủy
+    if (jobStatus === 'COMPLETED' || generatedQuestion) {
+      setJobStatus('COMPLETED')
+      setIsCancelling(false)
+      setIsCancelDialogOpen(true)
+      return
+    }
+
+    const jobId = activeJobIdRef.current
+    if (!jobId) {
+      // Người dùng bấm Dừng khi request submit đang bay lên server
+      cancelRequestedRef.current = true
+      setIsCancelling(true)
+      setJobStatusMessage('Đang hủy tác vụ và hoàn credit...')
+      return
+    }
+
+    // Tra cứu realtime trạng thái thực tế từ Backend và mở dialog xác nhận
+    setIsCancelling(true)
+    try {
+      const currentJob = await aiJobService.getJobStatus(jobId)
+      setJobStatus(currentJob.status)
+      if (typeof currentJob.reservedCredits === 'number') {
+        setReservedCredits(currentJob.reservedCredits)
+      }
+    } catch {
+      // Giữ nguyên status hiện tại nếu có lỗi mạng
+    } finally {
+      setIsCancelling(false)
+      setIsCancelDialogOpen(true)
+    }
   }
 
   const hasContent = Boolean(
@@ -91,11 +177,15 @@ export function AiQuestionGeneratorModal({
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    activeJobIdRef.current = null
+    setActiveJobId(null)
     setPrompt('')
     setTopic('')
     setIncludeCanvasDiagram(false)
     setIncludeExplanation(false)
     setGeneratedQuestion(null)
+    setReservedCredits(0)
+    setIsLoading(false)
     setJobStatus(null)
     setJobStatusMessage('')
     setActiveTab('content')
@@ -114,9 +204,10 @@ export function AiQuestionGeneratorModal({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    cancelRequestedRef.current = false
     setIsLoading(true)
     setJobStatus('QUEUED')
-    setJobStatusMessage('Đang tiếp nhận yêu cầu...')
+    setJobStatusMessage('Đang tiếp nhận yêu cầu trong hàng chờ...')
     setGeneratedQuestion(null)
     setActiveTab('content')
 
@@ -132,14 +223,39 @@ export function AiQuestionGeneratorModal({
     try {
       const result = await aiQuestionService.generateQuestionAsync(requestDTO, {
         signal: controller.signal,
-        onStatusChange: (status, message) => {
+        onJobCreated: async (jobId) => {
+          activeJobIdRef.current = jobId
+          setActiveJobId(jobId)
+          if (cancelRequestedRef.current) {
+            try {
+              const res = await aiJobService.cancelJob(jobId)
+              if (res.refunded) {
+                toast.success(res.message || `Đã dừng tác vụ và hoàn lại ${res.refundedCredits || ''} credit.`)
+              } else {
+                toast.info(res.message || 'Đã dừng tác vụ AI.')
+              }
+            } catch (err: any) {
+              toast.error(err?.response?.data?.message || 'Lỗi khi hủy tác vụ')
+            } finally {
+              queryClient.invalidateQueries({ queryKey: ['credits'] })
+              setIsCancelling(false)
+              controller.abort()
+            }
+          }
+        },
+        onStatusChange: (status, message, job) => {
           setJobStatus(status)
+          if (typeof job?.reservedCredits === 'number') {
+            setReservedCredits(job.reservedCredits)
+          }
           if (status === 'QUEUED') {
-            setJobStatusMessage('Đang tiếp nhận yêu cầu...')
+            setJobStatusMessage('Đang tiếp nhận yêu cầu trong hàng chờ...')
           } else if (status === 'PROCESSING') {
             setJobStatusMessage('AI đang soạn đề bài toán và lời giải...')
           } else if (status === 'RETRYING') {
             setJobStatusMessage(message || 'Đang kết nối lại với hệ thống AI...')
+          } else if (status === 'COMPLETED') {
+            queryClient.invalidateQueries({ queryKey: ['credits'] })
           }
         }
       })
@@ -149,13 +265,16 @@ export function AiQuestionGeneratorModal({
         explanation: result.explanation ? normalizeKatexDelimiters(result.explanation) : result.explanation
       }
       setGeneratedQuestion(normalizedResult)
+      setJobStatus('COMPLETED')
       setActiveTab('content')
+      queryClient.invalidateQueries({ queryKey: ['credits'] })
       if (!isOpenRef.current) {
         toast.success('AI đã soạn xong bài toán! Bấm vào Trợ lý AI để xem kết quả.')
       } else {
         toast.success('Sinh đề bài toán bằng AI thành công!')
       }
     } catch (error: any) {
+      setJobStatus(null)
       if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
         return
       }
@@ -183,7 +302,8 @@ export function AiQuestionGeneratorModal({
         abortControllerRef.current = null
       }
       setIsLoading(false)
-      setJobStatus(null)
+      activeJobIdRef.current = null
+      setActiveJobId(null)
     }
   }
 
@@ -207,7 +327,7 @@ export function AiQuestionGeneratorModal({
       aria-hidden={!isOpen}
     >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-        
+
         {/* MODAL HEADER */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-blue-500/10 dark:from-purple-950/30 dark:via-indigo-950/30 dark:to-blue-950/30">
           <div className="flex items-center gap-2.5">
@@ -374,10 +494,10 @@ export function AiQuestionGeneratorModal({
                   {jobStatus === 'QUEUED'
                     ? 'ĐANG CHỜ'
                     : jobStatus === 'PROCESSING'
-                    ? 'ĐANG SOẠN ĐỀ'
-                    : jobStatus === 'RETRYING'
-                    ? 'THỬ LẠI'
-                    : 'ĐANG XỬ LÝ'}
+                      ? 'ĐANG SOẠN ĐỀ'
+                      : jobStatus === 'RETRYING'
+                        ? 'THỬ LẠI'
+                        : 'ĐANG XỬ LÝ'}
                 </span>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                   {jobStatusMessage || 'Hệ thống đang chuẩn bị đề toán...'}
@@ -407,22 +527,20 @@ export function AiQuestionGeneratorModal({
                   <div className="flex bg-slate-100 dark:bg-slate-850 p-1 rounded-xl text-xs font-bold">
                     <button
                       onClick={() => setActiveTab('content')}
-                      className={`px-3 py-1 rounded-lg transition-all ${
-                        activeTab === 'content'
+                      className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'content'
                           ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
                           : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       Đề bài toán
                     </button>
                     {generatedQuestion.explanation && (
                       <button
                         onClick={() => setActiveTab('explanation')}
-                        className={`px-3 py-1 rounded-lg transition-all ${
-                          activeTab === 'explanation'
+                        className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'explanation'
                             ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-xs'
                             : 'text-slate-500 hover:text-slate-800'
-                        }`}
+                          }`}
                       >
                         Lời giải chi tiết
                       </button>
@@ -459,11 +577,11 @@ export function AiQuestionGeneratorModal({
                     </span>
                   </div>
                   <div className="w-full">
-                    <JsxGraphBoard 
+                    <JsxGraphBoard
                       shapeCode="ai_preview"
-                      jsxGraphData={generatedQuestion.canvasData} 
-                      width="100%" 
-                      height={300} 
+                      jsxGraphData={generatedQuestion.canvasData}
+                      width="100%"
+                      height={300}
                       readOnly={false}
                       onChange={(updatedCanvasData) => {
                         setGeneratedQuestion(prev => prev ? { ...prev, canvasData: updatedCanvasData } : prev)
@@ -530,6 +648,16 @@ export function AiQuestionGeneratorModal({
           )}
         </div>
       </div>
+
+      <AiJobCancelConfirmDialog
+        open={isCancelDialogOpen}
+        status={jobStatus}
+        reservedCredits={reservedCredits}
+        hasResult={Boolean(generatedQuestion)}
+        isCancelling={isCancelling}
+        onClose={() => setIsCancelDialogOpen(false)}
+        onConfirmCancel={executeCancelJob}
+      />
     </div>
   )
 }

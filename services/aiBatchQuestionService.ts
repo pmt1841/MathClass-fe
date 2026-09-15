@@ -1,6 +1,6 @@
 import axiosInstance from '@/lib/axios'
 import { aiJobService } from '@/services/aiJobService'
-import { AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
+import { AiJobResultResponse, AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
 
 export interface BatchQuestionItemDTO {
   id?: string
@@ -86,7 +86,8 @@ export const aiBatchQuestionService = {
   async batchGenerateQuestionsAsync(
     params: BatchGenerateQuestionsParams,
     options?: {
-      onStatusChange?: (status: AiJobStatus, message?: string) => void
+      onJobCreated?: (jobId: string) => void | Promise<void>
+      onStatusChange?: (status: AiJobStatus, message?: string, job?: AiJobResultResponse) => void
       signal?: AbortSignal
     }
   ): Promise<BatchGenerateQuestionsResponseDTO> {
@@ -98,10 +99,18 @@ export const aiBatchQuestionService = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        signal: options?.signal,
       }
     )
-    return aiJobService.waitForAiJob<BatchGenerateQuestionsResponseDTO>(response.data.jobId, {
+    const jobId = response.data.jobId
+    if (options?.onJobCreated) {
+      await options.onJobCreated(jobId)
+    }
+
+    if (options?.signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
+
+    return aiJobService.waitForAiJob<BatchGenerateQuestionsResponseDTO>(jobId, {
       onStatusChange: options?.onStatusChange,
       signal: options?.signal,
     })

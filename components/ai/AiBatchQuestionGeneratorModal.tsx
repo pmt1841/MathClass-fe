@@ -29,6 +29,9 @@ import {
   aiBatchQuestionService,
   BatchGenerateQuestionsResponseDTO,
 } from '@/services/aiBatchQuestionService'
+import { aiJobService } from '@/services/aiJobService'
+import { AiJobStatus } from '@/types/aiJob'
+import { AiJobCancelConfirmDialog } from '@/components/ai/AiJobCancelConfirmDialog'
 import { assignmentService } from '@/services/assignmentService'
 
 export interface IndividualAssignmentItem {
@@ -55,15 +58,21 @@ export function AiBatchQuestionGeneratorModal({
   const [textContent, setTextContent] = useState('')
 
   const [isLoading, setIsLoading] = useState(false)
-  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<AiJobStatus | null>(null)
   const [jobStatusMessage, setJobStatusMessage] = useState<string>('')
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [batchResponse, setBatchResponse] = useState<BatchGenerateQuestionsResponseDTO | null>(null)
+  const [reservedCredits, setReservedCredits] = useState<number>(0)
 
   // Danh sách các bài tập lẻ đã được tách ra
   const [assignmentsList, setAssignmentsList] = useState<IndividualAssignmentItem[]>([])
 
+  const cancelRequestedRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const activeJobIdRef = useRef<string | null>(null)
   const isOpenRef = useRef(isOpen)
 
   useEffect(() => {
@@ -86,15 +95,90 @@ export function AiBatchQuestionGeneratorModal({
     onClose()
   }
 
-  const handleCancelJob = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+  const executeCancelJob = async (force = false) => {
+    const jobId = activeJobIdRef.current
+    setIsCancelling(true)
+
+    try {
+      if (jobId) {
+        const res = await aiJobService.cancelJob(jobId, force)
+
+        if (res.code === 'ALREADY_PROCESSING' || (!res.cancelled && res.status === 'PROCESSING')) {
+          // Graceful Fallback: AI đã chạy sang PROCESSING, từ chối hủy ngầm để bảo vệ credit cho user
+          setJobStatus('PROCESSING')
+          setJobStatusMessage('AI đang đọc tài liệu và tách từng bài tập...')
+          setIsCancelling(false)
+          setIsCancelDialogOpen(false)
+          toast.info(
+            'AI vừa bắt đầu xử lý đề bài cho bạn! Tác vụ đang tiếp tục chạy để không lãng phí credit. Bạn vui lòng đợi kết quả nhé!',
+            { duration: 5000 }
+          )
+          return
+        }
+
+        if (res.refunded) {
+          toast.success(res.message || 'Đã dừng tác vụ và hoàn lại credit.')
+        } else if (res.cancelled) {
+          toast.info(res.message || 'Đã dừng tác vụ đang xử lý (không hoàn credit).')
+        } else {
+          toast.info(res.message)
+        }
+      } else {
+        toast.info('Đã dừng tác vụ AI bóc tách bài tập')
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      setIsLoading(false)
+      setJobStatus(null)
+      setJobStatusMessage('')
+      setReservedCredits(0)
+      activeJobIdRef.current = null
+      setActiveJobId(null)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi hủy tác vụ'
+      toast.error(msg)
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['credits'] })
+      setIsCancelling(false)
+      setIsCancelDialogOpen(false)
     }
-    setIsLoading(false)
-    setJobStatus(null)
-    setJobStatusMessage('')
-    toast.info('Đã dừng tác vụ AI bóc tách bài tập')
+  }
+
+  const handleCancelJob = async () => {
+    // Nếu tác vụ đã hoàn thành hoặc đã có bài tập được tách thì chuyển sang dialog không thể hủy
+    if (jobStatus === 'COMPLETED' || batchResponse || assignmentsList.length > 0) {
+      setJobStatus('COMPLETED')
+      setIsCancelling(false)
+      setIsCancelDialogOpen(true)
+      return
+    }
+
+    const jobId = activeJobIdRef.current
+    if (!jobId) {
+      // Người dùng bấm Dừng khi request submit đang bay lên server
+      cancelRequestedRef.current = true
+      setIsCancelling(true)
+      setJobStatusMessage('Đang hủy tác vụ và hoàn credit...')
+      return
+    }
+
+    // Tra cứu realtime trạng thái thực tế từ Backend và mở dialog xác nhận
+    setIsCancelling(true)
+    try {
+      const currentJob = await aiJobService.getJobStatus(jobId)
+      setJobStatus(currentJob.status)
+      if (typeof currentJob.reservedCredits === 'number') {
+        setReservedCredits(currentJob.reservedCredits)
+      }
+    } catch {
+      // Giữ nguyên status hiện tại nếu có lỗi mạng
+    } finally {
+      setIsCancelling(false)
+      setIsCancelDialogOpen(true)
+    }
   }
 
   const hasContent = Boolean(
@@ -123,12 +207,15 @@ export function AiBatchQuestionGeneratorModal({
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    activeJobIdRef.current = null
+    setActiveJobId(null)
     setSelectedFile(null)
     setTextContent('')
     setBatchResponse(null)
     setAssignmentsList([])
     setJobStatus(null)
     setJobStatusMessage('')
+    setReservedCredits(0)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -146,9 +233,10 @@ export function AiBatchQuestionGeneratorModal({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    cancelRequestedRef.current = false
     setIsLoading(true)
     setJobStatus('QUEUED')
-    setJobStatusMessage('Đang tải file và tiếp nhận yêu cầu...')
+    setJobStatusMessage('Đang tải file và tiếp nhận yêu cầu trong hàng chờ...')
 
     try {
       const result = await aiBatchQuestionService.batchGenerateQuestionsAsync(
@@ -159,14 +247,39 @@ export function AiBatchQuestionGeneratorModal({
         },
         {
           signal: controller.signal,
-          onStatusChange: (status, message) => {
+          onJobCreated: async (jobId) => {
+            activeJobIdRef.current = jobId
+            setActiveJobId(jobId)
+            if (cancelRequestedRef.current) {
+              try {
+                const res = await aiJobService.cancelJob(jobId)
+                if (res.refunded) {
+                  toast.success(res.message || `Đã dừng tác vụ và hoàn lại ${res.refundedCredits || ''} credit.`)
+                } else {
+                  toast.info(res.message || 'Đã dừng tác vụ AI.')
+                }
+              } catch (err: any) {
+                toast.error(err?.response?.data?.message || 'Lỗi khi hủy tác vụ')
+              } finally {
+                queryClient.invalidateQueries({ queryKey: ['credits'] })
+                setIsCancelling(false)
+                controller.abort()
+              }
+            }
+          },
+          onStatusChange: (status, message, job) => {
             setJobStatus(status)
+            if (typeof job?.reservedCredits === 'number') {
+              setReservedCredits(job.reservedCredits)
+            }
             if (status === 'QUEUED') {
-              setJobStatusMessage('Đang tiếp nhận yêu cầu...')
+              setJobStatusMessage('Đang tiếp nhận yêu cầu trong hàng chờ...')
             } else if (status === 'PROCESSING') {
               setJobStatusMessage('AI đang đọc tài liệu và tách từng bài tập...')
             } else if (status === 'RETRYING') {
               setJobStatusMessage(message || 'Đang kết nối lại với hệ thống AI...')
+            } else if (status === 'COMPLETED') {
+              queryClient.invalidateQueries({ queryKey: ['credits'] })
             }
           }
         }
@@ -180,12 +293,15 @@ export function AiBatchQuestionGeneratorModal({
 
       setBatchResponse(result)
       setAssignmentsList(separatedAssignments)
+      setJobStatus('COMPLETED')
+      queryClient.invalidateQueries({ queryKey: ['credits'] })
       if (!isOpenRef.current) {
         toast.success(`AI đã tách xong ${separatedAssignments.length} bài tập! Bấm vào Tách đề AI để xem.`)
       } else {
         toast.success(`AI đã đọc file và tách thành công ${separatedAssignments.length} bài tập!`)
       }
     } catch (error: any) {
+      setJobStatus(null)
       if (controller.signal.aborted || error?.name === 'AbortError' || error?.message?.includes('hủy bỏ')) {
         return
       }
@@ -210,7 +326,8 @@ export function AiBatchQuestionGeneratorModal({
         abortControllerRef.current = null
       }
       setIsLoading(false)
-      setJobStatus(null)
+      activeJobIdRef.current = null
+      setActiveJobId(null)
     }
   }
 
@@ -283,7 +400,7 @@ export function AiBatchQuestionGeneratorModal({
       aria-hidden={!isOpen}
     >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
-        
+
         {/* MODAL HEADER */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
           <div className="flex items-center gap-3">
@@ -314,18 +431,17 @@ export function AiBatchQuestionGeneratorModal({
 
         {/* MODAL BODY */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
+
           {/* STEP 1: UPLOAD FILE */}
           {!batchResponse && (
             <div className="space-y-5">
               {/* Dropzone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center cursor-pointer transition-all ${
-                  selectedFile
+                className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center cursor-pointer transition-all ${selectedFile
                     ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10'
                     : 'border-slate-300 dark:border-slate-700 hover:border-indigo-500 bg-slate-50/50 dark:bg-slate-850/50'
-                }`}
+                  }`}
               >
                 <input
                   ref={fileInputRef}
@@ -408,7 +524,7 @@ export function AiBatchQuestionGeneratorModal({
           {/* STEP 2: REVIEW SEPARATED INDIVIDUAL ASSIGNMENTS */}
           {batchResponse && (
             <div className="space-y-5">
-              
+
               {/* Header Info Bar */}
               <div className="bg-slate-50 dark:bg-slate-850/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -535,6 +651,16 @@ export function AiBatchQuestionGeneratorModal({
           )}
         </div>
       </div>
+
+      <AiJobCancelConfirmDialog
+        open={isCancelDialogOpen}
+        status={jobStatus}
+        reservedCredits={reservedCredits}
+        hasResult={Boolean(batchResponse || assignmentsList.length > 0)}
+        isCancelling={isCancelling}
+        onClose={() => setIsCancelDialogOpen(false)}
+        onConfirmCancel={executeCancelJob}
+      />
     </div>
   )
 }

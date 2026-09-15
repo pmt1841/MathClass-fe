@@ -1,6 +1,6 @@
 import axiosInstance from '@/lib/axios'
 import { aiJobService } from '@/services/aiJobService'
-import { AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
+import { AiJobResultResponse, AiJobStatus, AiJobSubmitResponse } from '@/types/aiJob'
 
 export interface GenerateQuestionRequestDTO {
   prompt: string
@@ -67,16 +67,25 @@ export const aiQuestionService = {
   async generateQuestionAsync(
     dto: GenerateQuestionRequestDTO,
     options?: {
-      onStatusChange?: (status: AiJobStatus, message?: string) => void
+      onJobCreated?: (jobId: string) => void | Promise<void>
+      onStatusChange?: (status: AiJobStatus, message?: string, job?: AiJobResultResponse) => void
       signal?: AbortSignal
     }
   ): Promise<AiGeneratedQuestionDTO> {
     const response = await axiosInstance.post<AiJobSubmitResponse>(
       '/ai/generate-question?async=true',
-      dto,
-      { signal: options?.signal }
+      dto
     )
-    return aiJobService.waitForAiJob<AiGeneratedQuestionDTO>(response.data.jobId, {
+    const jobId = response.data.jobId
+    if (options?.onJobCreated) {
+      await options.onJobCreated(jobId)
+    }
+
+    if (options?.signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
+
+    return aiJobService.waitForAiJob<AiGeneratedQuestionDTO>(jobId, {
       onStatusChange: options?.onStatusChange,
       signal: options?.signal
     })

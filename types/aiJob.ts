@@ -1,4 +1,14 @@
-export type AiJobStatus = 'QUEUED' | 'PROCESSING' | 'RETRYING' | 'COMPLETED' | 'FAILED'
+export type AiJobStatus = 'QUEUED' | 'PROCESSING' | 'RETRYING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+
+export interface AiJobCancelResponse {
+  jobId: string
+  status: AiJobStatus
+  cancelled: boolean
+  refunded: boolean
+  refundedCredits: number
+  code?: 'SUCCESS' | 'ALREADY_PROCESSING' | 'CANCELLED_WITHOUT_REFUND' | 'COMPLETED' | 'ALREADY_CANCELLED' | string
+  message: string
+}
 
 export interface AiJobSubmitResponse {
   jobId: string
@@ -16,6 +26,7 @@ export interface AiJobResultResponse<T = unknown> {
   result?: T
   errorMessage?: string
   retryCount: number
+  reservedCredits?: number
   createdAt: string
   completedAt?: string
 }

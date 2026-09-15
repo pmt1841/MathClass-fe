@@ -155,7 +155,7 @@ function CostPerTaskSection() {
           Chi phí Credit theo Tác vụ AI
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Credit trừ theo token đầu ra của mỗi lượt gọi AI: 1 credit = N token (cột Token/credit), tối thiểu bằng phí cột đầu.
+          Credit trừ theo tổng token (bao gồm prompt người dùng nhập + token đầu ra do AI sinh): 1 credit = N token (cột Token/credit), tối thiểu bằng phí cột đầu.
         </CardDescription>
       </CardHeader>
       <CardContent>
