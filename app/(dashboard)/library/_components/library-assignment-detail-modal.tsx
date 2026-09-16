@@ -24,7 +24,7 @@ import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
 import dynamic from 'next/dynamic'
 import { extractDrawings } from '@/lib/editor-utils'
-import type { AssignmentDrawingResponse, AssignmentImageResponse } from '@/services/assignmentService'
+import type { AssignmentDrawing, AssignmentImage } from '@/services/assignmentService'
 
 const JsxGraphBoard = dynamic(
   () => import('@/components/ui/jsxgraph-board').then((mod) => mod.JsxGraphBoard),
@@ -70,7 +70,7 @@ export function LibraryAssignmentDetailModal({
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (match) {
         const shapeCode = match[1]
-        const drawing = drawings?.find((d: AssignmentDrawingResponse) => d.shapeCode === shapeCode)
+        const drawing = drawings?.find((d: AssignmentDrawing) => d.shapeCode === shapeCode)
         if (drawing) {
           let width: string | number = '100%'
           let height: string | number = 300
@@ -94,7 +94,7 @@ export function LibraryAssignmentDetailModal({
       const imageMatch = part.match(/^\[(IMAGE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (imageMatch) {
         const imageCode = imageMatch[1]
-        const image = assignment.images?.find((img: AssignmentImageResponse) => img.imageCode === `[${imageCode}]`)
+        const image = assignment.images?.find((img: AssignmentImage) => img.imageCode === `[${imageCode}]`)
         if (image) {
           let width: string | number = 'auto'
           let height: string | number = 'auto'

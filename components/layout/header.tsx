@@ -50,7 +50,7 @@ export function DashboardHeader() {
               <button
                 id="user-menu-btn"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-primary-foreground/10 transition-colors"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-primary-foreground/10 transition-colors cursor-pointer"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20 overflow-hidden">
                   {user?.avatarUrl ? (
@@ -99,7 +99,7 @@ export function DashboardHeader() {
                           setDropdownOpen(false)
                           setShowLogoutModal(true)
                         }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/5 transition-colors"
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/5 transition-colors cursor-pointer"
                       >
                         <LogOut className="h-4 w-4" />
                         Đăng xuất

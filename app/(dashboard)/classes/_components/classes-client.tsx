@@ -98,7 +98,7 @@ export function ClassesClient() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
               title="Làm mới"
             >
               <RefreshCw className={`h-4.5 w-4.5 ${loading ? 'animate-spin' : ''}`} />
@@ -107,7 +107,7 @@ export function ClassesClient() {
               <PermissionGuard permission="classroom:create">
                 <button
                   onClick={() => setCreateModalOpen(true)}
-                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 cursor-pointer"
                 >
                   <Plus className="h-4.5 w-4.5" />
                   Tạo lớp học mới
@@ -118,7 +118,7 @@ export function ClassesClient() {
               <PermissionGuard permission="classroom:join">
                 <button
                   onClick={() => setJoinModalOpen(true)}
-                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
+                  className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 cursor-pointer"
                 >
                   <Plus className="h-4.5 w-4.5" />
                   Xin vào lớp

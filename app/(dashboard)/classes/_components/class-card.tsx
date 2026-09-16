@@ -58,7 +58,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
           </div>
           <button
             onClick={() => onCopyCode(item.classCode, item.id)}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${
+            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all cursor-pointer ${
               isCopied
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
                 : 'bg-white border-slate-200 text-muted-foreground hover:text-slate-800 hover:border-slate-300 active:scale-95'

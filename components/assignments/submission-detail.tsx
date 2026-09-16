@@ -24,7 +24,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
 import 'katex/dist/katex.min.css'
-import { extractDrawings } from '@/app/(dashboard)/assignments/[id]/_components/student-assignment-layout'
+import { extractDrawings } from '@/lib/editor-utils'
 import { separateAdjacentMath } from '@/lib/editor-utils'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
 import { InlineCommentPopover } from './inline-comment-popover'
@@ -424,7 +424,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     const { content: cleanContent, extractedDrawings } = extractDrawings(normalizedRaw)
     const parts = cleanContent.split(/(\[SHAPE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\]|\[IMAGE_[a-zA-Z0-9_]+(?:\|[^\]]*)?\])/g)
 
-    return parts.map((part, index) => {
+    return parts.map((part: string, index: number) => {
       const match = part.match(/^\[(SHAPE_[a-zA-Z0-9_]+)(?:\|([^\]]+))?\]$/)
       if (match) {
         const shapeCode = match[1]

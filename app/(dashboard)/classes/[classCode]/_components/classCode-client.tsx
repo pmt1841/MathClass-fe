@@ -186,7 +186,7 @@ export function ClassDetailPageClient() {
                       <PermissionGuard permission="classroom:update">
                         <button
                           onClick={() => setIsEditModalOpen(true)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-1 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
                           title="Chỉnh sửa thông tin"
                         >
                           <Edit className="h-3.5 w-3.5" />
@@ -212,7 +212,7 @@ export function ClassDetailPageClient() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyCode}
-                className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border bg-white text-sm font-mono font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border bg-white text-sm font-mono font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
               >
                 {codeCopied ? (
                   <Check className="h-3.5 w-3.5 text-emerald-500" />

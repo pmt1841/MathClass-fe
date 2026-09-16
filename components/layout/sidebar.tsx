@@ -162,7 +162,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
       >
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors"
+          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white shadow-sm hover:bg-muted transition-colors cursor-pointer"
         >
           {collapsed ? (
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -184,7 +184,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                   type="button"
                   onClick={() => setShowReportModal(true)}
                   title={collapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left cursor-pointer ${
                     collapsed ? 'justify-center' : ''
                   } text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
                 >
