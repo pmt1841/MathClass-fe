@@ -5,6 +5,7 @@ import { Library, Search, BookOpen, Layers, BookX, RefreshCw } from 'lucide-reac
 import { toast } from 'sonner'
 import { AssignmentCard } from '@/app/(dashboard)/assignments/_components/assignment-card'
 import { CloneConfirmDialog, CloneTarget } from './clone-confirm-dialog'
+import { LibraryAssignmentDetailModal } from './library-assignment-detail-modal'
 import { useLibraryAssignments, useLibrarySheets } from '@/hooks/useLibrary'
 import { useAuth } from '@/hooks/useAuth'
 import { AssignmentSheet } from '@/hooks/useAssignments'
@@ -25,6 +26,7 @@ export function LibraryClient() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(0)
   const [cloneTarget, setCloneTarget] = useState<CloneTarget | null>(null)
+  const [previewAssignmentId, setPreviewAssignmentId] = useState<number | null>(null)
 
   // Debounce search input 500ms + reset trang về 0 khi search mới
   useEffect(() => {
@@ -178,6 +180,7 @@ export function LibraryClient() {
                   index={index}
                   mode="library"
                   onClone={handleCloneClick}
+                  onPreview={(id) => setPreviewAssignmentId(id)}
                   onEdit={() => {}}
                   onDelete={() => {}}
                   onPublish={() => {}}
@@ -210,6 +213,13 @@ export function LibraryClient() {
           )}
         </div>
       </div>
+
+      {/* ── Detail Modal ───────────────────────────────────────────────── */}
+      <LibraryAssignmentDetailModal
+        assignmentId={previewAssignmentId}
+        onClose={() => setPreviewAssignmentId(null)}
+        onClone={handleCloneClick}
+      />
 
       {/* ── Clone Dialog ───────────────────────────────────────────────── */}
       {cloneTarget && (

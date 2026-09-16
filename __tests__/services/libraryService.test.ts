@@ -26,6 +26,16 @@ describe('libraryService', () => {
     expect(result).toEqual(mockData)
   })
 
+  it('getPublicAssignmentDetail - gọi GET /library/assignments/:id', async () => {
+    const mockDetail = { id: 10, title: 'Bài tập 10', content: 'Nội dung đề bài' }
+    vi.mocked(api.get).mockResolvedValueOnce({ data: mockDetail })
+
+    const result = await libraryService.getPublicAssignmentDetail(10)
+
+    expect(api.get).toHaveBeenCalledWith('/library/assignments/10')
+    expect(result).toEqual(mockDetail)
+  })
+
   it('getPublicSheets - gọi GET /library/assignment-sheets kèm params', async () => {
     const params: LibrarySearchParams = { keyword: 'Phiếu ôn tập', page: 0, size: 10 }
     const mockData = { content: [{ id: 2, title: 'Phiếu 1' }], totalElements: 1 }

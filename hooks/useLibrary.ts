@@ -6,6 +6,7 @@ import { libraryService, LibrarySearchParams, UpdateVisibilityPayload } from '@/
 const LIBRARY_KEYS = {
   assignments: (params: LibrarySearchParams) => ['library', 'assignments', params] as const,
   sheets: (params: LibrarySearchParams) => ['library', 'sheets', params] as const,
+  detail: (id: number | null) => ['library', 'detail', id] as const,
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -22,6 +23,18 @@ export function useLibraryAssignments(params: LibrarySearchParams) {
     staleTime: 2 * 60 * 1000,
     placeholderData: keepPreviousData,
     enabled,
+  })
+}
+
+/**
+ * Lấy chi tiết bài tập đơn lẻ công khai từ thư viện.
+ */
+export function useLibraryAssignmentDetail(id: number | null) {
+  return useQuery({
+    queryKey: LIBRARY_KEYS.detail(id),
+    queryFn: () => libraryService.getPublicAssignmentDetail(id!),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

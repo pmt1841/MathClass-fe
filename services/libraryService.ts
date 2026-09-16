@@ -32,6 +32,16 @@ export const libraryService = {
   },
 
   /**
+   * GET /api/library/assignments/:id
+   * Xem chi tiết bài tập đơn lẻ công khai trong thư viện.
+   * Yêu cầu permission: library:read
+   */
+  getPublicAssignmentDetail: async (id: number): Promise<AssignmentResponse> => {
+    const res = await api.get<AssignmentResponse>(`/library/assignments/${id}`)
+    return res.data
+  },
+
+  /**
    * GET /api/library/assignment-sheets
    * Tìm kiếm phiếu bài tập công khai trong thư viện.
    * Yêu cầu permission: library:read

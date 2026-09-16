@@ -58,18 +58,24 @@ export function VisibilityToggle({ value, assignmentId, isSheet = false, onRequi
 
   return (
     <div
-      className="flex items-center gap-1.5"
-      onClick={(e) => e.stopPropagation()} // Ngăn sự kiện click lan ra card
+      className="flex items-center gap-1.5 cursor-pointer select-none"
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!isPending) {
+          handleToggle(!optimistic)
+        }
+      }}
+      title={optimistic ? 'Bài tập đang công khai (Bấm để chuyển về riêng tư)' : 'Bài tập đang riêng tư (Bấm để công khai lên thư viện)'}
     >
       <Switch
         checked={optimistic}
         onCheckedChange={handleToggle}
         disabled={isPending}
-        className="data-[state=checked]:bg-emerald-500 h-4 w-7"
+        className="data-[state=checked]:bg-emerald-500 h-4 w-7 cursor-pointer"
         id={`visibility-toggle-${assignmentId}`}
       />
       <span
-        className={`text-xs font-medium transition-colors ${
+        className={`text-xs font-medium transition-colors cursor-pointer ${
           optimistic ? 'text-emerald-600' : 'text-muted-foreground'
         }`}
       >

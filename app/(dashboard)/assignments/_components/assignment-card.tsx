@@ -28,6 +28,8 @@ interface AssignmentCardProps {
   onPublish: (id: number, isSheet?: boolean) => void
   /** Callback khi bấm Clone (chỉ dùng ở mode='library') */
   onClone?: (id: number, title: string, isSheet: boolean, authorName?: string) => void
+  /** Callback khi bấm Xem chi tiết bài tập thư viện */
+  onPreview?: (id: number) => void
 }
 
 export function AssignmentCard({
@@ -44,6 +46,7 @@ export function AssignmentCard({
   onDelete,
   onPublish,
   onClone,
+  onPreview,
 }: AssignmentCardProps) {
   const isTeacher = userRole === 'TEACHER'
   const isSheet = assignment.type === 'SHEET'
@@ -133,7 +136,9 @@ export function AssignmentCard({
           }`} />
 
         <div
-          className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50 transition-colors"
+          className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+            isSheet ? 'cursor-pointer hover:bg-slate-50/50' : 'cursor-default'
+          }`}
           onClick={() => isSheet && setExpanded(!expanded)}
         >
           <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -196,7 +201,7 @@ export function AssignmentCard({
                     disabled={!isSheet && assignment.hasSubmissions}
                     className={`p-2 rounded-lg transition-all relative group/editbtn ${!isSheet && assignment.hasSubmissions
                       ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                      : 'text-muted-foreground hover:bg-slate-100 hover:text-primary'
+                      : 'text-muted-foreground hover:bg-slate-100 hover:text-primary cursor-pointer'
                       }`}
                     title={isSheet ? "Sửa tên đề mục và mô tả phiếu" : (assignment.hasSubmissions ? "" : "Sửa nội dung")}
                   >
@@ -212,7 +217,7 @@ export function AssignmentCard({
                 <PermissionGuard permission="assignment:delete">
                   <button
                     onClick={() => onDelete(assignment.id, assignment.title, isSheet)}
-                    className="p-2 rounded-lg text-muted-foreground hover:bg-slate-100 hover:text-destructive transition-all"
+                    className="p-2 rounded-lg text-muted-foreground hover:bg-slate-100 hover:text-destructive transition-all cursor-pointer"
                     title={isSheet ? "Xóa phiếu bài tập" : "Xóa bài tập"}
                   >
                     <Trash2 className="h-4.5 w-4.5" />
@@ -222,7 +227,7 @@ export function AssignmentCard({
                 <PermissionGuard permission="assignment:publish">
                   <button
                     onClick={() => onPublish(assignment.id, isSheet)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer ${activeTab === 'DRAFT'
                       ? 'bg-primary text-white hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
                       : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
                       }`}
@@ -236,7 +241,7 @@ export function AssignmentCard({
               <div onClick={(e) => e.stopPropagation()}>
                 <Link
                   href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
-                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer active:scale-95 ${assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
                     ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                     : 'bg-primary text-white hover:bg-primary/95'
                     }`}
@@ -254,7 +259,7 @@ export function AssignmentCard({
             )}
 
             {isSheet && (
-              <div className="flex items-center gap-1 text-xs font-semibold text-slate-500 bg-slate-100 group-hover:bg-slate-200/80 px-3 py-2 rounded-xl transition-all">
+              <div className="flex items-center gap-1 text-xs font-semibold text-slate-500 bg-slate-100 group-hover:bg-slate-200/80 px-3 py-2 rounded-xl transition-all cursor-pointer">
                 <span>{expanded ? 'Thu gọn' : 'Chi tiết'}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
               </div>
@@ -296,7 +301,7 @@ export function AssignmentCard({
                           e.stopPropagation()
                           onEdit(item.id, false, false)
                         }}
-                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary transition-all"
+                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary transition-all cursor-pointer"
                         title="Sửa bài tập này"
                       >
                         <Edit className="h-4 w-4" />
@@ -309,7 +314,7 @@ export function AssignmentCard({
                           e.stopPropagation()
                           onDelete(item.id, item.title, false)
                         }}
-                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-destructive transition-all"
+                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-destructive transition-all cursor-pointer"
                         title="Xóa bài tập này"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -348,7 +353,10 @@ export function AssignmentCard({
           : 'bg-gradient-to-r from-blue-500 to-indigo-600'
         }`} />
 
-      <div className="p-6 flex-1 flex flex-col cursor-pointer" onClick={() => isSheet && setExpanded(!expanded)}>
+      <div
+        className={`p-6 flex-1 flex flex-col ${isSheet ? 'cursor-pointer' : 'cursor-default'}`}
+        onClick={() => isSheet && setExpanded(!expanded)}
+      >
         {!isSheet && <div className="mb-3">{tagEditor}</div>}
         <div className="flex items-start justify-between gap-4 mb-3">
           <h3 className="font-bold text-foreground text-lg line-clamp-2 leading-tight flex items-center gap-2">
@@ -428,7 +436,7 @@ export function AssignmentCard({
               {!isTeacher && (
                 <Link
                   href={`/assignments/${item.id}?classCode=${assignment.classCode}`}
-                  className="text-xs font-semibold text-primary hover:underline flex-shrink-0"
+                  className="text-xs font-semibold text-primary hover:underline cursor-pointer flex-shrink-0"
                 >
                   {item.submissionStatus === 'GRADED' ? 'Xem điểm' : item.submissionStatus ? 'Sửa bài nộp' : 'Làm bài'}
                 </Link>
@@ -441,7 +449,7 @@ export function AssignmentCard({
                         e.stopPropagation()
                         onEdit(item.id, false, false)
                       }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary transition-all"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-primary transition-all cursor-pointer"
                       title="Sửa bài tập này"
                     >
                       <Edit className="h-4 w-4" />
@@ -454,7 +462,7 @@ export function AssignmentCard({
                         e.stopPropagation()
                         onDelete(item.id, item.title, false)
                       }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-destructive transition-all"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-destructive transition-all cursor-pointer"
                       title="Xóa bài tập này"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -476,7 +484,7 @@ export function AssignmentCard({
                 disabled={!isSheet && assignment.hasSubmissions}
                 className={`p-2 rounded-lg transition-all relative group/editbtn ${!isSheet && assignment.hasSubmissions
                   ? 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                  : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm'
+                  : 'text-muted-foreground hover:bg-white hover:text-primary hover:shadow-sm cursor-pointer'
                   }`}
                 title={isSheet ? "Sửa tên đề mục và mô tả phiếu" : (assignment.hasSubmissions ? "" : "Sửa nội dung")}
               >
@@ -491,7 +499,7 @@ export function AssignmentCard({
             <PermissionGuard permission="assignment:delete">
               <button
                 onClick={() => onDelete(assignment.id, assignment.title, isSheet)}
-                className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all"
+                className="p-2 rounded-lg text-muted-foreground hover:bg-white hover:text-destructive hover:shadow-sm transition-all cursor-pointer"
                 title={isSheet ? "Xóa phiếu bài tập" : "Xóa bài tập"}
               >
                 <Trash2 className="h-4 w-4" />
@@ -510,7 +518,7 @@ export function AssignmentCard({
           <PermissionGuard permission="assignment:publish">
             <button
               onClick={() => onPublish(assignment.id, isSheet)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${activeTab === 'DRAFT'
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer ${activeTab === 'DRAFT'
                 ? 'bg-primary text-white hover:bg-primary/95 hover:shadow-md hover:shadow-primary/20'
                 : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
                 }`}
@@ -521,12 +529,31 @@ export function AssignmentCard({
           </PermissionGuard>
         </div>
       ) : isLibraryMode ? (
-        /* Footer ở mode library: nút Clone */
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
+        /* Footer ở mode library: nút Chi tiết & Clone */
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
+          {!isSheet ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPreview?.(assignment.id)
+              }}
+              className="px-3.5 py-2 rounded-xl text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-primary transition-all shadow-xs cursor-pointer"
+            >
+              Chi tiết
+            </button>
+          ) : (
+            <div />
+          )}
+
           <PermissionGuard permission="library:clone">
             <button
-              onClick={() => onClone?.(assignment.id, assignment.title, isSheet, assignment.teacherName)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm active:scale-95"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onClone?.(assignment.id, assignment.title, isSheet, assignment.teacherName)
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <GitFork className="h-4 w-4" />
               Clone về
@@ -537,7 +564,7 @@ export function AssignmentCard({
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <Link
             href={`/assignments/${assignment.id}?classCode=${assignment.classCode}`}
-            className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 ${assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
+            className={`flex w-full items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer active:scale-95 ${assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
                 ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 : 'bg-primary text-white hover:bg-primary/95'
               }`}

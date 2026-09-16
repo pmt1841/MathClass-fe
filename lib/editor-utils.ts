@@ -328,3 +328,26 @@ export const normalizeLatexToMarkdown = (input: string): string => {
 
   return processedLines.filter(l => l.length > 0).join('\n\n')
 }
+
+export const extractDrawings = (content: string) => {
+  if (!content) return { content: '', extractedDrawings: [] }
+  let extractedDrawings: any[] = []
+  let newContent = content
+  const match = content.match(/<!-- DRAWINGS_DATA_START\n([\s\S]*?)\nDRAWINGS_DATA_END -->/)
+  if (match) {
+    try {
+      extractedDrawings = JSON.parse(match[1])
+      newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
+    } catch (e) {
+      console.error("Failed to parse drawings", e)
+    }
+  }
+  return { content: newContent, extractedDrawings }
+}
+
+export const embedDrawings = (content: string, drawings: any[]) => {
+  if (!drawings || drawings.length === 0) return content
+  let newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
+  newContent += `\n\n<!-- DRAWINGS_DATA_START\n${JSON.stringify(drawings)}\nDRAWINGS_DATA_END -->`
+  return newContent
+}

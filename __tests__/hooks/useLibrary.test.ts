@@ -4,6 +4,7 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   useLibraryAssignments,
+  useLibraryAssignmentDetail,
   useLibrarySheets,
   useCloneAssignment,
   useCloneSheet,
@@ -14,6 +15,7 @@ import { libraryService, LibrarySearchParams, UpdateVisibilityPayload } from '@/
 vi.mock('@/services/libraryService', () => ({
   libraryService: {
     getPublicAssignments: vi.fn(),
+    getPublicAssignmentDetail: vi.fn(),
     getPublicSheets: vi.fn(),
     cloneAssignment: vi.fn(),
     cloneSheet: vi.fn(),
@@ -83,6 +85,35 @@ describe('useLibrary hooks', () => {
 
       expect(result.current.fetchStatus).toBe('idle')
       expect(libraryService.getPublicAssignments).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useLibraryAssignmentDetail', () => {
+    it('gọi libraryService.getPublicAssignmentDetail khi id có giá trị', async () => {
+      const mockDetail = { id: 10, title: 'Bài tập tích phân 12', content: 'Nội dung tích phân' }
+      vi.mocked(libraryService.getPublicAssignmentDetail).mockResolvedValueOnce(mockDetail as any)
+
+      const queryClient = createTestQueryClient()
+      const { result } = renderHook(() => useLibraryAssignmentDetail(10), {
+        wrapper: createWrapper(queryClient),
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(libraryService.getPublicAssignmentDetail).toHaveBeenCalledWith(10)
+      expect(result.current.data).toEqual(mockDetail)
+    })
+
+    it('không gọi API khi id là null (enabled = false)', () => {
+      const queryClient = createTestQueryClient()
+      const { result } = renderHook(() => useLibraryAssignmentDetail(null), {
+        wrapper: createWrapper(queryClient),
+      })
+
+      expect(result.current.fetchStatus).toBe('idle')
+      expect(libraryService.getPublicAssignmentDetail).not.toHaveBeenCalled()
     })
   })
 

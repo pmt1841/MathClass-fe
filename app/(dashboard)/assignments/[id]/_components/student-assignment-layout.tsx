@@ -19,7 +19,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import TiptapEditor from '@/components/ui/tiptap'
-import { markdownToHtml, normalizeLatexToMarkdown, separateAdjacentMath } from '@/lib/editor-utils'
+import { markdownToHtml, normalizeLatexToMarkdown, separateAdjacentMath, extractDrawings, embedDrawings } from '@/lib/editor-utils'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSubmissionComments } from '@/hooks/useSubmissionComments'
@@ -42,29 +42,6 @@ import { normalizeAiGeometryJson } from '@/lib/jsxgraph-utils'
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 const HandwritingSketchModal = dynamic(() => import('@/components/assignments/HandwritingSketchModal').then(mod => mod.HandwritingSketchModal), { ssr: false })
-
-export const extractDrawings = (content: string) => {
-  if (!content) return { content: '', extractedDrawings: [] }
-  let extractedDrawings: any[] = []
-  let newContent = content
-  const match = content.match(/<!-- DRAWINGS_DATA_START\n([\s\S]*?)\nDRAWINGS_DATA_END -->/)
-  if (match) {
-    try {
-      extractedDrawings = JSON.parse(match[1])
-      newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
-    } catch (e) {
-      console.error("Failed to parse drawings", e)
-    }
-  }
-  return { content: newContent, extractedDrawings }
-}
-
-export const embedDrawings = (content: string, drawings: any[]) => {
-  if (!drawings || drawings.length === 0) return content
-  let newContent = content.replace(/\n\n<!-- DRAWINGS_DATA_START[\s\S]*?DRAWINGS_DATA_END -->/g, '')
-  newContent += `\n\n<!-- DRAWINGS_DATA_START\n${JSON.stringify(drawings)}\nDRAWINGS_DATA_END -->`
-  return newContent
-}
 
 interface StudentAssignmentLayoutProps {
   assignment: any
