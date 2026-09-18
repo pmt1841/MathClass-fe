@@ -16,7 +16,7 @@ interface AssignmentTagInputProps {
 export function AssignmentTagInput({
   value = [],
   onChange,
-  placeholder = 'Nhập tag bài tập...',
+  placeholder = 'Nhập thẻ bài tập...',
   disabled = false,
   className,
 }: AssignmentTagInputProps) {
@@ -112,7 +112,7 @@ export function AssignmentTagInput({
                 removeTag(index)
               }}
               className="rounded-full p-0.5 hover:bg-primary/30 text-primary transition-colors cursor-pointer"
-              title="Xóa tag"
+              title="Xóa thẻ"
             >
               <X className="w-3 h-3" />
             </button>
@@ -141,7 +141,7 @@ export function AssignmentTagInput({
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder={value.length === 0 ? placeholder : 'Thêm tag khác...'}
+            placeholder={value.length === 0 ? placeholder : 'Thêm thẻ khác...'}
             className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
           {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400 flex-shrink-0" />}
@@ -152,7 +152,7 @@ export function AssignmentTagInput({
       {isOpen && inputValue.trim().length > 0 && availableSuggestions.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg p-1.5 space-y-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
           <p className="px-2.5 py-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Gợi ý tag đã có
+            Gợi ý thẻ đã có
           </p>
           {availableSuggestions.map((item) => (
             <button

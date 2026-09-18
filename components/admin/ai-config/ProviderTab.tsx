@@ -79,7 +79,7 @@ function KeyCooldownBadge({ expiresAt, initialSeconds }: { expiresAt?: string; i
   return (
     <div
       className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 mt-1 whitespace-nowrap w-[116px] select-none"
-      title={`Key đang trong thời gian cooldown do lỗi 429 Quota Exceeded. Tự động phục hồi sau ${formatted}`}
+      title={`API Key đang trong thời gian tạm nghỉ do lỗi 429 Vượt hạn mức (Quota Exceeded). Tự động phục hồi sau ${formatted}`}
     >
       <Timer className="w-3 h-3 text-amber-500 shrink-0" />
       <span>Tạm nghỉ <span className="font-mono tabular-nums font-bold">({formatted})</span></span>
@@ -470,7 +470,7 @@ export function ProviderTab() {
                       </div>
                     ) : keys.length === 0 ? (
                       <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                        Chưa có API Key nào cho Provider này. Bấm "+ Thêm Key" để bổ sung.
+                        Chưa có API Key nào cho nhà cung cấp này. Bấm "+ Thêm Key" để bổ sung.
                       </div>
                     ) : (
                       <div className="rounded-md border overflow-x-auto">
@@ -478,7 +478,7 @@ export function ProviderTab() {
                           <TableHeader>
                             <TableRow className="bg-slate-50 text-xs">
                               <TableHead className="w-[180px] px-3">Tên Key / Ghi chú</TableHead>
-                              <TableHead className="w-[170px] px-3">API Key</TableHead>
+                              <TableHead className="w-[170px] px-3">Mã API Key</TableHead>
                               <TableHead className="w-[110px] px-3 text-center">Ưu tiên</TableHead>
                               <TableHead className="w-[150px] px-3 text-center">Sử dụng cuối</TableHead>
                               <TableHead className="w-[140px] px-3 text-center">Trạng thái</TableHead>
@@ -493,7 +493,7 @@ export function ProviderTab() {
                                 </TableCell>
                                 <TableCell className="font-mono text-xs text-slate-600 px-3">
                                   <span className="bg-slate-50 px-2 py-1 rounded border border-slate-200 inline-block my-1 truncate max-w-full">
-                                    {k.maskedApiKey || 'Key đã mã hóa'}
+                                    {k.maskedApiKey || 'API Key đã mã hóa'}
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-center px-3">
@@ -505,13 +505,13 @@ export function ProviderTab() {
                                       setKeyModalOpen(true)
                                     }}
                                     className="group inline-flex items-center gap-1 cursor-pointer focus:outline-hidden"
-                                    title="Bấm để chỉnh sửa độ ưu tiên và thông tin Key"
+                                    title="Bấm để chỉnh sửa độ ưu tiên và thông tin API Key"
                                   >
                                     <Badge
                                       variant="secondary"
                                       className="font-mono text-xs group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors"
                                     >
-                                      Priority: {k.priority}
+                                      Ưu tiên: {k.priority}
                                       <Edit2 className="w-2.5 h-2.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
                                     </Badge>
                                   </button>

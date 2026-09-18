@@ -76,9 +76,9 @@ export function AssignmentCard({
       })
       await queryClient.invalidateQueries({ queryKey: ['assignments'] })
       setTagEditorOpen(false)
-      toast.success('Đã cập nhật tag')
+      toast.success('Đã cập nhật thẻ bài tập')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật tag')
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật thẻ bài tập')
     } finally {
       setIsSavingTags(false)
     }
@@ -92,7 +92,7 @@ export function AssignmentCard({
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-80 space-y-3 shadow-lg">
-        <p className="font-bold text-sm">Gắn tag bài tập</p>
+        <p className="font-bold text-sm">Gắn thẻ bài tập</p>
         <AssignmentTagInput value={tagNames} onChange={setTagNames} />
         <div className="flex justify-end">
           <button
@@ -102,7 +102,7 @@ export function AssignmentCard({
             className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
           >
             {isSavingTags && <Loader2 className="h-4 w-4 animate-spin" />}
-            Lưu tag
+            Lưu thẻ
           </button>
         </div>
       </PopoverContent>
@@ -369,7 +369,7 @@ export function AssignmentCard({
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-600 border border-violet-200 flex-shrink-0"
               >
                 <GitFork className="h-2.5 w-2.5" />
-                Clone
+                Bản sao
               </span>
             )}
           </h3>
@@ -556,7 +556,7 @@ export function AssignmentCard({
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <GitFork className="h-4 w-4" />
-              Clone về
+              Sao chép về kho
             </button>
           </PermissionGuard>
         </div>

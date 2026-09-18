@@ -154,6 +154,56 @@ describe('useLogin hook', () => {
     expect(result.current.loginError).toContain('Tài khoản này không có quyền truy cập')
   })
 
+  it('thông báo đúng cổng khi tài khoản ADMIN đăng nhập nhầm vào cổng người dùng thường', async () => {
+    const mockLoginRes: LoginResponse = {
+      id: 10,
+      email: 'admin@mathclass.edu.vn',
+      role: 'ADMIN',
+    }
+    vi.mocked(authService.login).mockResolvedValueOnce(mockLoginRes)
+
+    const { result } = renderHook(() => useLogin())
+
+    let loginResult: any
+    await act(async () => {
+      loginResult = await result.current.login(
+        { email: 'admin@mathclass.edu.vn', password: 'password' },
+        false,
+        'STUDENT'
+      )
+    })
+
+    expect(loginResult).toBe(false)
+    expect(logoutSession).toHaveBeenCalled()
+    expect(result.current.loginError).toContain('Đây là tài khoản Quản trị viên')
+    expect(result.current.loginError).toContain('/admin/login')
+  })
+
+  it('thông báo đúng cổng khi tài khoản USER đăng nhập nhầm vào cổng Admin', async () => {
+    const mockLoginRes: LoginResponse = {
+      id: 11,
+      email: 'student@mathclass.edu.vn',
+      role: 'STUDENT',
+    }
+    vi.mocked(authService.login).mockResolvedValueOnce(mockLoginRes)
+
+    const { result } = renderHook(() => useLogin())
+
+    let loginResult: any
+    await act(async () => {
+      loginResult = await result.current.login(
+        { email: 'student@mathclass.edu.vn', password: 'password' },
+        false,
+        'ADMIN'
+      )
+    })
+
+    expect(loginResult).toBe(false)
+    expect(logoutSession).toHaveBeenCalled()
+    expect(result.current.loginError).toContain('Tài khoản này không có quyền Quản trị viên')
+    expect(result.current.loginError).toContain('/login')
+  })
+
   it('xử lý lỗi đăng nhập sai tài khoản/mật khẩu và hiển thị message từ API', async () => {
     const mockError = {
       response: {

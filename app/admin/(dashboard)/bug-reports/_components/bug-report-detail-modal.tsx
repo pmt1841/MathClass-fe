@@ -38,6 +38,8 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   UI_KATEX: 'Lỗi hiển thị giao diện / KaTeX',
   SUBMISSION_PROBLEM: 'Lỗi không nộp bài / không tải đề',
   PERFORMANCE: 'Lỗi tốc độ / không phản hồi',
+  AI_ASSISTANT: 'Lỗi trợ lý AI',
+  CREDIT_TRANSACTION: 'Lỗi giao dịch Credit',
   OTHER: 'Lỗi khác',
 }
 
@@ -133,7 +135,7 @@ export function BugReportDetailModal({
 
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <Calendar className="h-3.5 w-3.5" /> Thời gian gửi (UTC+7)
+                  <Calendar className="h-3.5 w-3.5" /> Thời gian gửi
                 </div>
                 <div className="font-semibold text-foreground">{formatDateTime(report.createdAt)}</div>
                 <div className="text-xs text-muted-foreground">

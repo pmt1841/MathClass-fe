@@ -45,6 +45,12 @@ export function formatDateTime(dateInput: Date | string | number | null | undefi
   return format(d, 'HH:mm:ss dd/MM/yyyy');
 }
 
+export function formatDateTime24h(dateInput: Date | string | number | null | undefined | any[]): string {
+  const d = parseDateSafe(dateInput);
+  if (!d) return '';
+  return format(d, 'HH:mm:ss dd-MM-yyyy');
+}
+
 export function formatTime(dateInput: Date | string | number | null | undefined | any[]): string {
   const d = parseDateSafe(dateInput);
   if (!d) return '';

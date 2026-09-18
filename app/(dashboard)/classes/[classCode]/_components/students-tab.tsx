@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useFormik } from 'formik'
 import * as yup from 'yup'
-import { Users, UserPlus, Search, Loader2, RefreshCw, UserX, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { Users, UserPlus, Search, Loader2, UserX, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -199,13 +200,11 @@ export function StudentsTab({
               />
             </div>
 
-            <button
+            <RefreshButton
               onClick={() => refetchStudents()}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
-              title="Làm mới"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingStudents ? 'animate-spin' : ''}`} />
-            </button>
+              iconOnly
+              className="h-9 w-9 rounded-lg"
+            />
           </div>
         </div>
 

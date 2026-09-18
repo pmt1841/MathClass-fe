@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 
 import { ResetRolePermissionsModal } from './_components/ResetRolePermissionsModal'
 import { SaveRolePermissionsModal } from './_components/SaveRolePermissionsModal'
+import { RefreshButton } from '@/components/ui/refresh-button'
 
 const ROLES = [
   { id: 'ADMIN', name: 'Quản trị viên' },
@@ -114,6 +115,10 @@ export default function AdminRolesPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <RefreshButton
+              onClick={() => refetch()}
+              title="Làm mới danh sách quyền hạn"
+            />
             <ResetRolePermissionsModal
               roleId={selectedRole}
               roleName={currentRoleName}

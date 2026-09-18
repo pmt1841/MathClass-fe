@@ -29,8 +29,94 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Info, RotateCw, ScrollText } from 'lucide-react'
-import { formatDateTime } from '@/lib/utils'
+import { RefreshButton } from '@/components/ui/refresh-button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { ChevronLeft, ChevronRight, ScrollText, Calendar as CalendarIcon, ChevronDown, ChevronUp, Terminal, User as UserIcon, Activity } from 'lucide-react'
+import { formatDateTime24h } from '@/lib/utils'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+
+interface DateFilterInputProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}
+
+function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
+  const [open, setOpen] = useState(false)
+
+  // Parse dd-MM-yyyy string to Date
+  const selectedDate = (() => {
+    if (!value) return undefined
+    const parts = value.split('-')
+    if (parts.length === 3 && parts[0].length === 2 && parts[2].length === 4) {
+      const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+      return !isNaN(d.getTime()) ? d : undefined
+    }
+    return undefined
+  })()
+
+  // Format input while typing dd-mm-yyyy
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/[^0-9-]/g, '')
+    // Auto-insert hyphen
+    if (raw.length === 2 && !raw.includes('-') && !e.target.value.endsWith('-')) {
+      raw = raw + '-'
+    } else if (raw.length === 5 && raw.split('-').length === 2 && !e.target.value.endsWith('-')) {
+      raw = raw + '-'
+    }
+    if (raw.length <= 10) {
+      onChange(raw)
+    }
+  }
+
+  const handleSelectDate = (date: Date | undefined) => {
+    if (date) {
+      const dd = String(date.getDate()).padStart(2, '0')
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const yyyy = date.getFullYear()
+      onChange(`${dd}-${mm}-${yyyy}`)
+    } else {
+      onChange('')
+    }
+    setOpen(false)
+  }
+
+  return (
+    <div className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium">
+      <span>{label}:</span>
+      <div className="relative flex items-center">
+        <Input
+          type="text"
+          placeholder="dd-mm-yyyy"
+          value={value}
+          onChange={handleInputChange}
+          maxLength={10}
+          className="w-[145px] h-10 bg-white rounded-xl text-xs font-mono pr-8 border-slate-200 hover:border-slate-300 focus-visible:ring-primary/20 placeholder:text-slate-400 text-slate-800"
+        />
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="absolute right-2 text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
+              title="Chọn ngày từ lịch"
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 shadow-lg border-slate-200 bg-white" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleSelectDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminLogsPage() {
   const [page, setPage] = useState(0)
@@ -39,22 +125,29 @@ export default function AdminLogsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null)
+  const [isTechOpen, setIsTechOpen] = useState(false)
   const [pageSize, setPageSize] = useState(10)
 
   const formatIsoDate = (dateString: string, isEnd: boolean = false) => {
     if (!dateString) return undefined
-    let cleanDate = dateString.trim()
-    if (cleanDate.includes('/')) {
-      cleanDate = cleanDate.replace(/\//g, '-')
-    }
+    let cleanDate = dateString.trim().replace(/\//g, '-')
     const parts = cleanDate.split('-')
     if (parts.length === 3) {
       if (parts[0].length === 2 && parts[2].length === 4) {
         // DD-MM-YYYY -> YYYY-MM-DD
-        cleanDate = `${parts[2]}-${parts[1]}-${parts[0]}`
+        const day = parts[0]
+        const month = parts[1]
+        const year = parts[2]
+        cleanDate = `${year}-${month}-${day}`
+      } else if (parts[0].length === 4 && parts[2].length === 2) {
+        // YYYY-MM-DD
+        cleanDate = `${parts[0]}-${parts[1]}-${parts[2]}`
+      } else {
+        return undefined
       }
+      return isEnd ? `${cleanDate}T23:59:59` : `${cleanDate}T00:00:00`
     }
-    return isEnd ? `${cleanDate}T23:59:59` : `${cleanDate}T00:00:00`
+    return undefined
   }
 
   const { data, isLoading, refetch } = useAdminLogs(
@@ -66,6 +159,42 @@ export default function AdminLogsPage() {
     pageSize
   )
 
+const LEVEL_LABELS: Record<string, string> = {
+  INFO: 'Thông tin',
+  WARNING: 'Cảnh báo',
+  ERROR: 'Lỗi',
+}
+
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  AI_CONFIG: 'Cấu hình AI',
+  USER: 'Người dùng',
+  ROLE: 'Phân quyền',
+  COMMUNITY_REPO: 'Kho tài nguyên',
+  SYSTEM: 'Hệ thống',
+  STORAGE: 'Lưu trữ Đám mây',
+  CREDIT: 'Giao dịch Credit',
+  BUG_REPORT: 'Báo cáo sự cố',
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  CREATE_AI_PROVIDER: 'Thêm mới Nhà cung cấp AI',
+  UPDATE_AI_PROVIDER: 'Cập nhật thông tin Nhà cung cấp AI',
+  DELETE_AI_PROVIDER: 'Xóa Nhà cung cấp AI',
+  ADD_AI_API_KEY: 'Thêm mới API Key AI',
+  DELETE_AI_API_KEY: 'Xóa API Key AI',
+  PATCH_AI_API_KEY_STATUS: 'Thay đổi trạng thái API Key AI',
+  UPDATE_AI_API_KEY: 'Cập nhật thông tin API Key AI',
+  UPDATE_AI_TASK_CONFIG: 'Cập nhật cấu hình tác vụ AI',
+  UPDATE_PROMPT: 'Cập nhật System Prompt',
+  RESET_PROMPT: 'Khôi phục System Prompt về mặc định',
+  ROLLBACK_PROMPT: 'Hoàn tác System Prompt về phiên bản trước',
+}
+
+const formatActionDescription = (action?: string) => {
+  if (!action) return '---'
+  return ACTION_LABELS[action] || action
+}
+
   const renderStatusBadge = (status?: string) => {
     if (!status) return <span className="text-muted-foreground">---</span>
     const isSuccess = status === 'SUCCESS'
@@ -74,7 +203,7 @@ export default function AdminLogsPage() {
         variant={isSuccess ? 'outline' : 'destructive'}
         className={isSuccess ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : ''}
       >
-        {status}
+        {isSuccess ? 'Thành công' : 'Thất bại'}
       </Badge>
     )
   }
@@ -82,8 +211,8 @@ export default function AdminLogsPage() {
   const renderResourceTypeBadge = (resType?: string) => {
     if (!resType) return <span className="text-muted-foreground">---</span>
     return (
-      <Badge variant="secondary" className="font-mono text-xs">
-        {resType}
+      <Badge variant="secondary" className="font-medium text-xs">
+        {RESOURCE_TYPE_LABELS[resType] || resType}
       </Badge>
     )
   }
@@ -108,18 +237,10 @@ export default function AdminLogsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                refetch()
-              }}
-              disabled={isLoading}
-              className="rounded-xl bg-white gap-2"
+            <RefreshButton
+              onClick={() => refetch()}
               title="Cập nhật danh sách nhật ký mới nhất"
-            >
-              <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </Button>
+            />
           </div>
         </div>
       </div>
@@ -142,9 +263,9 @@ export default function AdminLogsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả cấp độ</SelectItem>
-                  <SelectItem value="INFO">INFO</SelectItem>
-                  <SelectItem value="WARNING">WARNING</SelectItem>
-                  <SelectItem value="ERROR">ERROR</SelectItem>
+                  <SelectItem value="INFO">Thông tin (INFO)</SelectItem>
+                  <SelectItem value="WARNING">Cảnh báo (WARNING)</SelectItem>
+                  <SelectItem value="ERROR">Lỗi (ERROR)</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -160,42 +281,37 @@ export default function AdminLogsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả danh mục</SelectItem>
-                  <SelectItem value="AI_CONFIG">AI_CONFIG (Cấu hình AI)</SelectItem>
-                  <SelectItem value="USER">USER (Người dùng)</SelectItem>
-                  <SelectItem value="ROLE">ROLE (Phân quyền)</SelectItem>
-                  <SelectItem value="COMMUNITY_REPO">COMMUNITY_REPO (Kho tài nguyên)</SelectItem>
-                  <SelectItem value="SYSTEM">SYSTEM (Hệ thống)</SelectItem>
+                  <SelectItem value="AI_CONFIG">Cấu hình AI</SelectItem>
+                  <SelectItem value="STORAGE">Lưu trữ Đám mây</SelectItem>
+                  <SelectItem value="CREDIT">Giao dịch Credit</SelectItem>
+                  <SelectItem value="BUG_REPORT">Báo cáo sự cố</SelectItem>
+                  <SelectItem value="USER">Người dùng</SelectItem>
+                  <SelectItem value="ROLE">Phân quyền</SelectItem>
+                  <SelectItem value="COMMUNITY_REPO">Kho tài nguyên</SelectItem>
+                  <SelectItem value="SYSTEM">Hệ thống</SelectItem>
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium">
-                <span>Từ:</span>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value)
-                    setPage(0)
-                  }}
-                  className="w-[145px] h-10 bg-white rounded-xl text-xs"
-                />
-              </div>
+              <DateFilterInput
+                label="Từ"
+                value={startDate}
+                onChange={(val) => {
+                  setStartDate(val)
+                  setPage(0)
+                }}
+              />
 
-              <div className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium">
-                <span>Đến:</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value)
-                    setPage(0)
-                  }}
-                  className="w-[145px] h-10 bg-white rounded-xl text-xs"
-                />
-              </div>
+              <DateFilterInput
+                label="Đến"
+                value={endDate}
+                onChange={(val) => {
+                  setEndDate(val)
+                  setPage(0)
+                }}
+              />
 
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   setStartDate('')
@@ -204,7 +320,7 @@ export default function AdminLogsPage() {
                   setResourceType('ALL')
                   setPage(0)
                 }}
-                className="h-10 rounded-xl text-xs"
+                className="h-10 rounded-xl text-xs border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-xs font-medium"
               >
                 Xóa bộ lọc
               </Button>
@@ -242,7 +358,7 @@ export default function AdminLogsPage() {
               <TableHead className="w-[170px]">Thời gian</TableHead>
               <TableHead className="w-[100px]">Cấp độ</TableHead>
               <TableHead className="w-[140px]">Danh mục</TableHead>
-              <TableHead className="w-[200px]">Actor (Email)</TableHead>
+              <TableHead className="w-[200px]">Người thực hiện (Email)</TableHead>
               <TableHead>Mô tả hành động</TableHead>
 
               <TableHead className="w-[140px]">Địa chỉ IP</TableHead>
@@ -266,7 +382,7 @@ export default function AdminLogsPage() {
                     className="cursor-pointer hover:bg-slate-100/80 transition-colors"
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">{stt}</TableCell>
-                    <TableCell className="text-xs">{formatDateTime(log.timestamp) || '---'}</TableCell>
+                    <TableCell className="text-xs font-mono text-slate-700">{formatDateTime24h(log.timestamp) || '---'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -284,15 +400,15 @@ export default function AdminLogsPage() {
                             : ''
                         }
                       >
-                        {log.level}
+                        {(log.level && LEVEL_LABELS[log.level]) || log.level}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium text-xs text-slate-700">
-                      {log.resourceType}
+                      {(log.resourceType && RESOURCE_TYPE_LABELS[log.resourceType]) || log.resourceType || '---'}
                     </TableCell>
                     <TableCell className="text-xs">{log.actor || 'Hệ thống'}</TableCell>
                     <TableCell className="text-xs font-medium text-slate-900">
-                      {log.action}
+                      {formatActionDescription(log.action)}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {log.ipAddress || '---'}
@@ -344,90 +460,131 @@ export default function AdminLogsPage() {
       )}
 
       {/* Modal Xem Chi tiết Log */}
-      <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+      <Dialog
+        open={!!selectedLog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedLog(null)
+            setIsTechOpen(false)
+          }
+        }}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Info className="h-5 w-5 text-blue-600" />
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <Activity className="h-5 w-5 text-primary" />
               Chi tiết Nhật ký Hệ thống #{selectedLog?.id}
             </DialogTitle>
-            <DialogDescription>
-              Thông tin chi tiết về ngữ cảnh thực thi thao tác và môi trường client.
+            <DialogDescription className="text-xs text-muted-foreground">
+              Thông tin chi tiết về ngữ cảnh thực thi thao tác và môi trường hệ thống.
             </DialogDescription>
           </DialogHeader>
 
           {selectedLog && (
-            <div className="space-y-4 pt-2 text-sm">
-              <div className="grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 border text-xs">
-                <div>
-                  <span className="text-muted-foreground block mb-1">Thời gian thực thi:</span>
-                  <span className="font-semibold">{formatDateTime(selectedLog.timestamp) || '---'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Trạng thái:</span>
-                  {renderStatusBadge(selectedLog.status)}
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Cấp độ (Level):</span>
-                  <Badge
-                    variant={
-                      selectedLog.level === 'ERROR'
-                        ? 'destructive'
-                        : selectedLog.level === 'WARNING'
-                        ? 'secondary'
-                        : 'default'
-                    }
-                    className={
-                      selectedLog.level === 'INFO'
-                        ? 'bg-blue-500'
-                        : selectedLog.level === 'WARNING'
-                        ? 'bg-amber-500 text-white'
-                        : ''
-                    }
-                  >
-                    {selectedLog.level}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Danh mục (Resource Type):</span>
-                  {renderResourceTypeBadge(selectedLog.resourceType)}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-muted-foreground">Actor (Email/User):</span>
-                  <span className="font-medium">{selectedLog.actor}</span>
-                </div>
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-muted-foreground">Resource ID:</span>
-                  <span className="font-mono">{selectedLog.resourceId || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-muted-foreground">Client IP Address:</span>
-                  <span className="font-mono">{selectedLog.ipAddress || 'Unknown'}</span>
-                </div>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground block mb-1 font-medium">
-                  Mô tả hành động:
-                </span>
-                <div className="rounded-md bg-slate-100 p-3 text-slate-800 font-mono text-xs whitespace-pre-wrap">
-                  {selectedLog.action}
-                </div>
-              </div>
-
-              {selectedLog.userAgent && (
-                <div>
-                  <span className="text-muted-foreground block mb-1 font-medium">
-                    User-Agent (Trình duyệt / Thiết bị):
-                  </span>
-                  <div className="rounded-md bg-slate-100 p-3 text-slate-700 font-mono text-[11px] break-all">
-                    {selectedLog.userAgent}
+            <div className="space-y-4 pt-1 text-sm">
+              {/* ── Khu vực Nghiệp vụ Quản trị viên (Mặc định hiển thị nổi bật) ── */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block mb-1 font-medium">Thời gian thực thi:</span>
+                    <span className="font-semibold text-slate-800 font-mono">
+                      {formatDateTime24h(selectedLog.timestamp) || '---'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1 font-medium">Trạng thái:</span>
+                    {renderStatusBadge(selectedLog.status)}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1 font-medium">Cấp độ:</span>
+                    <Badge
+                      variant={
+                        selectedLog.level === 'ERROR'
+                          ? 'destructive'
+                          : selectedLog.level === 'WARNING'
+                          ? 'secondary'
+                          : 'default'
+                      }
+                      className={
+                        selectedLog.level === 'INFO'
+                          ? 'bg-blue-500'
+                          : selectedLog.level === 'WARNING'
+                          ? 'bg-amber-500 text-white'
+                          : ''
+                      }
+                    >
+                      {(selectedLog.level && LEVEL_LABELS[selectedLog.level]) || selectedLog.level}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-1 font-medium">Danh mục phân hệ:</span>
+                    {renderResourceTypeBadge(selectedLog.resourceType)}
                   </div>
                 </div>
-              )}
+
+                <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                    <UserIcon className="h-3.5 w-3.5 text-slate-500" />
+                    Người thực hiện:
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedLog.actor || 'Hệ thống'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground block mb-1 text-xs font-medium">
+                    Mô tả hành động:
+                  </span>
+                  <div className="rounded-lg bg-white p-3 border border-slate-200 text-slate-800 text-xs leading-relaxed break-words shadow-2xs font-sans">
+                    {formatActionDescription(selectedLog.action)}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Khu vực Thông tin Kỹ thuật (Thu gọn mặc định cho Dev & Kiểm toán) ── */}
+              <Collapsible open={isTechOpen} onOpenChange={setIsTechOpen} className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-xs font-semibold text-slate-700 select-none cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Terminal className="h-4 w-4 text-slate-500" />
+                      Thông tin kỹ thuật (Dành cho Kỹ thuật viên & Kiểm toán)
+                    </span>
+                    {isTechOpen ? (
+                      <ChevronUp className="h-4 w-4 text-slate-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-slate-500" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="p-3.5 space-y-2.5 border-t border-slate-200 bg-slate-50/40 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                    <span className="text-muted-foreground">Mã tài nguyên (Resource ID):</span>
+                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800">
+                      {selectedLog.resourceId || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                    <span className="text-muted-foreground">Địa chỉ IP:</span>
+                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800">
+                      {selectedLog.ipAddress || 'Không xác định'}
+                    </span>
+                  </div>
+                  {selectedLog.userAgent && (
+                    <div className="pt-1">
+                      <span className="text-muted-foreground block mb-1">
+                        Thiết bị & Trình duyệt (User-Agent):
+                      </span>
+                      <div className="rounded bg-slate-100 p-2 text-slate-600 font-mono text-[11px] break-all leading-snug">
+                        {selectedLog.userAgent}
+                      </div>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           )}
         </DialogContent>

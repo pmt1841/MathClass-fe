@@ -71,7 +71,7 @@ export function SystemPromptTab() {
             <div>
               <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 <MessageSquareCode className="h-5 w-5 text-indigo-500 shrink-0" />
-                Quản lý câu lệnh mẫu System Prompts
+                Quản lý câu lệnh mẫu (System Prompts)
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm mt-1">
                 Tùy chỉnh các câu lệnh điều khiển AI cho từng tác vụ hệ thống, khôi phục mặc định và theo dõi lịch sử phiên bản.

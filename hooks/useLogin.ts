@@ -90,9 +90,19 @@ export function useLogin() {
 
       if (expectedRole && role !== expectedRole) {
         await logoutSession()
-        setLoginError(
-          'Tài khoản này không có quyền truy cập khu vực này. Vui lòng đăng nhập đúng cổng cho vai trò của bạn.'
-        )
+        if (role === ROLES.ADMIN) {
+          setLoginError(
+            'Đây là tài khoản Quản trị viên. Vui lòng đăng nhập tại Cổng Quản trị hệ thống (/admin/login).'
+          )
+        } else if (expectedRole === ROLES.ADMIN) {
+          setLoginError(
+            'Tài khoản này không có quyền Quản trị viên. Vui lòng đăng nhập tại Cổng dành cho Giáo viên & Học sinh (/login).'
+          )
+        } else {
+          setLoginError(
+            'Tài khoản này không có quyền truy cập khu vực này. Vui lòng đăng nhập đúng cổng cho vai trò của bạn.'
+          )
+        }
         setIsLoading(false)
         return false
       }

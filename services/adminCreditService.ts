@@ -50,6 +50,20 @@ export interface CreditAdjustRequest {
   reason?: string
 }
 
+export interface BatchCreditAdjustRequest {
+  userIds: number[]
+  amount: number
+  reason?: string
+}
+
+export interface BatchCreditAdjustResponse {
+  total: number
+  successCount: number
+  failureCount: number
+  errors: string[]
+  message: string
+}
+
 export const adminCreditService = {
   // Chi phí credit theo task
   getTaskCreditConfigs: async (): Promise<TaskCreditConfig[]> => {
@@ -102,6 +116,12 @@ export const adminCreditService = {
   // Điều chỉnh credit thủ công
   adjust: async (data: CreditAdjustRequest): Promise<{ message: string }> => {
     const res = await api.post<{ message: string }>('/admin/credits/adjust', data)
+    return res.data
+  },
+
+  // Điều chỉnh credit hàng loạt cho nhiều user
+  adjustBatch: async (data: BatchCreditAdjustRequest): Promise<BatchCreditAdjustResponse> => {
+    const res = await api.post<BatchCreditAdjustResponse>('/admin/credits/adjust-batch', data)
     return res.data
   },
 

@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, GraduationCap, Presentation } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAppDispatch } from "@/lib/redux/hooks"
+import { setSelectedRole } from "@/lib/redux/features/authSlice"
 
 export function Hero() {
   const router = useRouter()
+  const dispatch = useAppDispatch()
 
   const handleLogin = (role: string) => {
-    sessionStorage.setItem('selectedRole', role)
+    dispatch(setSelectedRole(role))
     router.push('/login')
   }
 
@@ -53,7 +56,7 @@ export function Hero() {
             className="w-full sm:w-auto h-14 px-8 text-base text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
           >
             <GraduationCap className="mr-2 h-5 w-5 text-slate-500" />
-            Tôi là Học viên
+            Tôi là Học sinh
           </Button>
         </div>
 

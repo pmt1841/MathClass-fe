@@ -24,7 +24,9 @@ import {
   Lightbulb,
   AlertTriangle,
   Save,
-  Sparkles,
+  FileStack,
+  GraduationCap,
+  Route,
 } from 'lucide-react'
 import {
   AiProvider,
@@ -52,7 +54,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     taskCode: 'BATCH_QUESTION_GEN',
     title: 'Tạo Hàng Loạt Bài Tập từ File / Ảnh AI',
     description: 'Tự động phân tích tài liệu Word/PDF/Ảnh, bóc tách cấu trúc thành danh sách bài tập.',
-    icon: Sparkles,
+    icon: FileStack,
   },
   {
     taskCode: 'SUBMISSION_GRADING',
@@ -76,7 +78,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
     taskCode: 'STUDENT_REMARK',
     title: 'AI Đánh giá & Nhận xét Học sinh',
     description: 'Quét dữ liệu bài tập và bài nộp theo mốc thời gian để sinh nhận xét điểm mạnh, điểm yếu và phương pháp cải thiện.',
-    icon: Sparkles,
+    icon: GraduationCap,
   },
 ]
 
@@ -321,7 +323,7 @@ export function TaskRoutingTab() {
     <div className="space-y-4 sm:space-y-6">
       <div>
         <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-amber-500 shrink-0" />
+          <Route className="h-5 w-5 text-indigo-600 shrink-0" />
           Định tuyến Tác vụ Hệ thống (Task Routing)
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">

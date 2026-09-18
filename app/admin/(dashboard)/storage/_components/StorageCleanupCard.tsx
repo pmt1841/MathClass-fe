@@ -31,8 +31,6 @@ import {
   Layers,
   Settings,
   Save,
-  CheckCircle2,
-  HelpCircle,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { storageAdminService } from '@/services/storageAdminService'

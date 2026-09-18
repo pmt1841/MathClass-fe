@@ -3,21 +3,28 @@ import {
   bugReportService,
   BugReportResponse,
   BugReportStatus,
+  BugErrorType,
   PageResponse,
 } from '@/services/bugReportService'
 
 interface UseBugReportsParams {
+  errorType?: BugErrorType
   status?: BugReportStatus
+  startDate?: string
+  endDate?: string
   page: number
   size: number
 }
 
-export function useBugReports({ status, page, size }: UseBugReportsParams) {
+export function useBugReports({ errorType, status, startDate, endDate, page, size }: UseBugReportsParams) {
   return useQuery<PageResponse<BugReportResponse>>({
-    queryKey: ['bug-reports', status, page, size],
+    queryKey: ['bug-reports', errorType, status, startDate, endDate, page, size],
     queryFn: async () => {
       const res = await bugReportService.getReports({
+        errorType,
         status,
+        startDate,
+        endDate,
         page,
         size,
       })

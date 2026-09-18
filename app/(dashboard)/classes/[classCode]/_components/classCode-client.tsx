@@ -42,6 +42,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { joinRequestService } from '@/services/joinRequestService'
 import { chatService } from '@/services/chatService'
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
+import { RefreshButton } from '@/components/ui/refresh-button'
 
 export function ClassDetailPageClient() {
   const params = useParams()
@@ -73,7 +74,7 @@ export function ClassDetailPageClient() {
     }
   }, [isStudent, classCode, router])
 
-  const { data: classroom, isLoading: loadingClass } = useClassDetail(classCode)
+  const { data: classroom, isLoading: loadingClass, refetch: refetchClassroom } = useClassDetail(classCode)
   const updateMutation = useUpdateClassroom(classCode)
   const deleteMutation = useDeleteClassroom()
 
@@ -210,6 +211,11 @@ export function ClassDetailPageClient() {
             </div>
 
             <div className="flex items-center gap-2">
+              <RefreshButton
+                onClick={() => refetchClassroom()}
+                iconOnly
+                title="Làm mới thông tin lớp học"
+              />
               <button
                 onClick={handleCopyCode}
                 className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border bg-white text-sm font-mono font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm cursor-pointer"

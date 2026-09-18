@@ -17,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssignments, useDeleteAssignment } from '@/hooks/useAssignments'
 import { useMyClassrooms } from '@/hooks/useClassrooms'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import {
   Pagination,
   PaginationContent,
@@ -78,7 +79,7 @@ export function AssignmentsPageClient() {
   const [tags, setTags] = useState<AssignmentTag[]>([])
   const [selectedTagNames, setSelectedTagNames] = useState<string[]>([])
 
-  useEffect(() => { assignmentService.getTags().then(setTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
+  useEffect(() => { assignmentService.getTags().then(setTags).catch(() => toast.error('Không thể tải danh sách thẻ bài tập')) }, [])
   useEffect(() => { setPage(0) }, [selectedTagNames])
 
   const [publishModalOpen, setPublishModalOpen] = useState(false)
@@ -103,7 +104,7 @@ export function AssignmentsPageClient() {
 
   const { data: myClasses = [] } = useMyClassrooms()
 
-  const { data: assignmentsData, isLoading: loading } = useAssignments({
+  const { data: assignmentsData, isLoading: loading, refetch } = useAssignments({
     userRole,
     activeTab,
     searchQuery,
@@ -236,6 +237,10 @@ export function AssignmentsPageClient() {
           </div>
 
           <div className="flex items-center gap-2">
+            <RefreshButton
+              onClick={() => refetch()}
+              title="Làm mới danh sách bài tập"
+            />
             {userRole === 'TEACHER' && (
               <PermissionGuard permission="assignment:create">
                 {isAiBatchGenEnabled && (
@@ -342,7 +347,7 @@ export function AssignmentsPageClient() {
                   <AssignmentTagInput
                     value={selectedTagNames}
                     onChange={(tags) => setSelectedTagNames(tags)}
-                    placeholder="Nhập tag để lọc..."
+                    placeholder="Nhập thẻ để lọc..."
                   />
                 </div>
               </PopoverContent>

@@ -39,7 +39,9 @@ const ERROR_TYPE_OPTIONS: { value: BugErrorType; label: string }[] = [
   { value: 'UI_KATEX', label: '2. Lỗi hiển thị giao diện / công thức Toán (KaTeX)' },
   { value: 'SUBMISSION_PROBLEM', label: '3. Lỗi không nộp bài / không tải được đề bài' },
   { value: 'PERFORMANCE', label: '4. Lỗi tốc độ / không phản hồi' },
-  { value: 'OTHER', label: '5. Khác' },
+  { value: 'AI_ASSISTANT', label: '5. Lỗi trợ lý AI' },
+  { value: 'CREDIT_TRANSACTION', label: '6. Lỗi giao dịch Credit' },
+  { value: 'OTHER', label: '7. Khác' },
 ]
 
 const formSchema = z.object({

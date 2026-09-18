@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, RefreshCw, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil, RotateCcw } from 'lucide-react'
+import { Search, BookOpen, FileText, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Pencil, RotateCcw } from 'lucide-react'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { toast } from 'sonner'
 import { Assignment } from '@/types'
 import { AssignmentRow } from './assignment-row'
@@ -110,13 +111,11 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
               />
             </div>
 
-            <button
+            <RefreshButton
               onClick={() => refetch()}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
-              title="Làm mới"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+              iconOnly
+              className="h-9 w-9 rounded-lg"
+            />
           </div>
         </div>
 

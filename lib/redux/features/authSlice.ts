@@ -14,12 +14,14 @@ interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
+  selectedRole: string;
 }
 
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   isInitializing: true,
+  selectedRole: 'STUDENT',
 };
 
 export const authSlice = createSlice({
@@ -41,9 +43,12 @@ export const authSlice = createSlice({
     setInitializing: (state, action: PayloadAction<boolean>) => {
       state.isInitializing = action.payload;
     },
+    setSelectedRole: (state, action: PayloadAction<string>) => {
+      state.selectedRole = action.payload;
+    },
   },
 });
 
-export const { setAuth, logoutSuccess, setInitializing } = authSlice.actions;
+export const { setAuth, logoutSuccess, setInitializing, setSelectedRole } = authSlice.actions;
 
 export default authSlice.reducer;

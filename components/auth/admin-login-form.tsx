@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useState, useEffect } from 'react'
 import { Mail, Calculator, ShieldCheck, Lock } from 'lucide-react'
+import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 import {
@@ -64,6 +65,7 @@ export default function AdminLoginForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onTouched',
     defaultValues: {
       email: '',
       password: '',
@@ -126,6 +128,10 @@ export default function AdminLoginForm() {
       }
     } else if (result === true) {
       broadcastEvent('LOGIN')
+    } else {
+      // Đăng nhập thất bại: xóa trắng mật khẩu và focus lại input mật khẩu
+      form.setValue('password', '')
+      form.setFocus('password')
     }
   }
 
@@ -206,14 +212,36 @@ export default function AdminLoginForm() {
 
         {/* Form section */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-5">
             {/* Error Message Alert */}
             {loginError && (
               <div
                 role="alert"
-                className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-destructive text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200"
+                className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-destructive text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200 leading-relaxed"
               >
-                {loginError}
+                {loginError.includes('/login') && !loginError.includes('/admin/login') ? (
+                  <p>
+                    {loginError.replace('(/login).', '')}{' '}
+                    <Link
+                      href="/login"
+                      className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
+                    >
+                      Cổng Giáo viên & Học sinh &rarr;
+                    </Link>
+                  </p>
+                ) : loginError.includes('/admin/login') ? (
+                  <p>
+                    {loginError.replace('(/admin/login).', '')}{' '}
+                    <Link
+                      href="/admin/login"
+                      className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
+                    >
+                      Cổng Quản trị hệ thống &rarr;
+                    </Link>
+                  </p>
+                ) : (
+                  <p>{loginError}</p>
+                )}
               </div>
             )}
 
@@ -230,7 +258,7 @@ export default function AdminLoginForm() {
                       <Input
                         {...field}
                         type="email"
-                        placeholder="admin@mathclass.edu.vn"
+                        placeholder="Nhập email quản trị"
                         className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:border-primary rounded-xl"
                         autoComplete="email"
                       />
@@ -249,13 +277,16 @@ export default function AdminLoginForm() {
                 <FormItem>
                   <FormLabel className="text-foreground font-medium text-sm">Mật khẩu</FormLabel>
                   <FormControl>
-                    <PasswordInput
-                      {...field}
-                      placeholder="••••••••"
-                      maxLength={256}
-                      className="h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:border-primary rounded-xl"
-                      autoComplete="current-password"
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                      <PasswordInput
+                        {...field}
+                        placeholder="Nhập mật khẩu"
+                        maxLength={256}
+                        className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:border-primary rounded-xl"
+                        autoComplete="current-password"
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage className="text-destructive text-xs" />
                 </FormItem>
@@ -276,7 +307,7 @@ export default function AdminLoginForm() {
                     />
                   </FormControl>
                   <FormLabel className="text-sm text-foreground font-normal cursor-pointer select-none">
-                    Ghi nhớ phiên đăng nhập
+                    Giữ đăng nhập
                   </FormLabel>
                 </FormItem>
               )}

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import LoginForm from '@/components/auth/login-form'
 
 // Mock next/navigation
-let mockRole: string | null = 'STUDENT'
+let mockRole: string | null = null
 let mockReason: string | null = null
 
 vi.mock('next/navigation', () => ({
@@ -24,9 +24,13 @@ vi.mock('next/navigation', () => ({
 }))
 
 // Mock Redux hooks
+let mockReduxRole: string | null = 'STUDENT'
+
+const mockUseAppSelector = vi.fn()
+
 vi.mock('@/lib/redux/hooks', () => ({
   useAppDispatch: () => vi.fn(),
-  useAppSelector: vi.fn(),
+  useAppSelector: (...args: any[]) => mockUseAppSelector(...args),
 }))
 
 // Mock SocialLoginButton to isolate LoginForm testing
@@ -50,18 +54,26 @@ vi.mock('@/hooks/useLogin', () => ({
 describe('LoginForm Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+    localStorage.clear()
     mockIsLoading = false
     mockLoginError = null
     mockRole = 'STUDENT'
     mockReason = null
+    mockReduxRole = 'STUDENT'
+
+    // Reset selector implementation so it reads mockReduxRole at call time
+    mockUseAppSelector.mockImplementation((selector: (state: any) => any) =>
+      selector({ auth: { selectedRole: mockReduxRole } })
+    )
   })
 
   it('renders login form elements correctly', () => {
     render(<LoginForm />)
 
     expect(screen.getByRole('heading', { name: /Đăng nhập Học sinh/i })).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Nhập email')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Nhập mật khẩu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeInTheDocument()
     expect(screen.getByTestId('social-login-button')).toBeInTheDocument()
   })
@@ -81,10 +93,10 @@ describe('LoginForm Component', () => {
   it('submits form with valid data', async () => {
     render(<LoginForm />)
 
-    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập email'), {
       target: { value: 'student@example.com' },
     })
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập mật khẩu'), {
       target: { value: 'password123' },
     })
 
@@ -99,15 +111,21 @@ describe('LoginForm Component', () => {
     })
   })
 
-  it('does not restrict role when no explicit role is provided', async () => {
+  it('defaults to STUDENT role when no explicit role is selected', async () => {
     mockRole = null
+    mockReduxRole = null
+
+    // Re-apply implementation after clearAllMocks with null role
+    mockUseAppSelector.mockImplementation((selector: (state: any) => any) =>
+      selector({ auth: { selectedRole: null } })
+    )
 
     render(<LoginForm />)
 
-    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập email'), {
       target: { value: 'teacher@example.com' },
     })
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập mật khẩu'), {
       target: { value: 'password123' },
     })
 
@@ -117,7 +135,7 @@ describe('LoginForm Component', () => {
       expect(mockLogin).toHaveBeenCalledWith(
         { email: 'teacher@example.com', password: 'password123' },
         false,
-        undefined
+        'STUDENT'
       )
     })
   })

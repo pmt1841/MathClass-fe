@@ -10,6 +10,36 @@ interface RecentSystemLogsCardProps {
   logs?: RecentSystemLog[]
 }
 
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  AI_CONFIG: 'Cấu hình AI',
+  USER: 'Người dùng',
+  ROLE: 'Phân quyền',
+  COMMUNITY_REPO: 'Kho tài nguyên',
+  SYSTEM: 'Hệ thống',
+  STORAGE: 'Lưu trữ Đám mây',
+  CREDIT: 'Giao dịch Credit',
+  BUG_REPORT: 'Báo cáo sự cố',
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  CREATE_AI_PROVIDER: 'Thêm mới Nhà cung cấp AI',
+  UPDATE_AI_PROVIDER: 'Cập nhật thông tin Nhà cung cấp AI',
+  DELETE_AI_PROVIDER: 'Xóa Nhà cung cấp AI',
+  ADD_AI_API_KEY: 'Thêm mới API Key AI',
+  DELETE_AI_API_KEY: 'Xóa API Key AI',
+  PATCH_AI_API_KEY_STATUS: 'Thay đổi trạng thái API Key AI',
+  UPDATE_AI_API_KEY: 'Cập nhật thông tin API Key AI',
+  UPDATE_AI_TASK_CONFIG: 'Cập nhật cấu hình tác vụ AI',
+  UPDATE_PROMPT: 'Cập nhật System Prompt',
+  RESET_PROMPT: 'Khôi phục System Prompt về mặc định',
+  ROLLBACK_PROMPT: 'Hoàn tác System Prompt về phiên bản trước',
+}
+
+const formatActionDescription = (action?: string) => {
+  if (!action) return '---'
+  return ACTION_LABELS[action] || action
+}
+
 export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
   const formatTime = (isoString: string) => {
     try {
@@ -102,11 +132,11 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground border">
-                      {log.resourceType || 'SYSTEM'}
+                      {(log.resourceType && RESOURCE_TYPE_LABELS[log.resourceType]) || log.resourceType || 'Hệ thống'}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-foreground/80 max-w-[200px] truncate" title={log.action}>
-                    {log.action}
+                  <td className="py-2.5 px-3 text-foreground/80 max-w-[200px] truncate" title={formatActionDescription(log.action)}>
+                    {formatActionDescription(log.action)}
                   </td>
                   <td className="py-2.5 px-3 text-right text-muted-foreground whitespace-nowrap font-mono text-[11px]">
                     {formatTime(log.createdAt)}

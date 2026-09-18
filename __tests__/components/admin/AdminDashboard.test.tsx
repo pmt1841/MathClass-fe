@@ -317,7 +317,7 @@ describe('Admin Dashboard Components', () => {
 
     expect(screen.getByText('Nhật Ký Hệ Thống')).toBeDefined()
     expect(screen.getByText('admin@mathclass.edu.vn')).toBeDefined()
-    expect(screen.getByText('USER')).toBeDefined()
+    expect(screen.getByText('Người dùng')).toBeDefined()
     expect(screen.getByText('Cập nhật phân quyền giảng viên')).toBeDefined()
     const link = screen.getByRole('link', { name: /xem chi tiết/i })
     expect(link.getAttribute('href')).toBe('/admin/logs')

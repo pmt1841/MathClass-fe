@@ -80,12 +80,12 @@ export function ApiKeyDialog({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">
-              {isEdit ? `Chỉnh sửa API Key: ${initialData?.name || `Key #${initialData?.id}`}` : `Thêm API Key cho ${providerName || 'Provider'}`}
+              {isEdit ? `Chỉnh sửa API Key: ${initialData?.name || `Key #${initialData?.id}`}` : `Thêm API Key cho ${providerName || 'nhà cung cấp'}`}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {isEdit
-                ? 'Cập nhật tên gợi nhớ, độ ưu tiên hoặc nhập chuỗi Key mới để thay thế.'
-                : 'Nhập API Key dạng plaintext. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.'}
+                ? 'Cập nhật tên gợi nhớ, độ ưu tiên hoặc nhập chuỗi API Key mới để thay thế.'
+                : 'Nhập chuỗi API Key. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -94,7 +94,7 @@ export function ApiKeyDialog({
               <Label htmlFor="key-name">Tên gợi nhớ (Tùy chọn)</Label>
               <Input
                 id="key-name"
-                placeholder="VD: Key Gemini Chấm bài 01"
+                placeholder="VD: Gemini Chấm bài 01"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -102,11 +102,11 @@ export function ApiKeyDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="api-key">
-                {isEdit ? 'Chuỗi API Key mới (Để trống nếu giữ nguyên)' : 'Chuỗi API Key (Plaintext)'}
+                {isEdit ? 'Chuỗi API Key mới (Để trống nếu giữ nguyên)' : 'Chuỗi API Key'}
               </Label>
               <PasswordInput
                 id="api-key"
-                placeholder={isEdit ? 'Nhập nếu muốn đổi Key mới...' : 'Nhập API Key tại đây...'}
+                placeholder={isEdit ? 'Nhập nếu muốn đổi Key mới...' : 'Nhập chuỗi API Key tại đây...'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 required={!isEdit}
@@ -114,12 +114,12 @@ export function ApiKeyDialog({
               <p className="text-[11px] text-muted-foreground">
                 {isEdit
                   ? `Key hiện tại: ${initialData?.maskedApiKey || 'Đã mã hóa'}`
-                  : 'API Key sẽ được che mờ hoàn toàn trên giao diện sau khi tạo.'}
+                  : 'Mã API Key sẽ được che mờ an toàn trên giao diện sau khi tạo.'}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="priority">Mức ưu tiên (Priority)</Label>
+              <Label htmlFor="priority">Mức độ ưu tiên</Label>
               <Input
                 id="priority"
                 type="number"

@@ -49,8 +49,8 @@ describe('AdminLoginForm Component', () => {
     render(<AdminLoginForm />)
 
     expect(screen.getByRole('heading', { name: 'Đăng nhập Hệ thống Quản trị' })).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('admin@mathclass.edu.vn')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Nhập email quản trị')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Nhập mật khẩu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Đăng nhập Quản trị' })).toBeInTheDocument()
   })
 
@@ -69,10 +69,10 @@ describe('AdminLoginForm Component', () => {
   it('submits form with ADMIN expected role', async () => {
     render(<AdminLoginForm />)
 
-    fireEvent.change(screen.getByPlaceholderText('admin@mathclass.edu.vn'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập email quản trị'), {
       target: { value: 'admin@mathclass.edu.vn' },
     })
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+    fireEvent.change(screen.getByPlaceholderText('Nhập mật khẩu'), {
       target: { value: 'admin123' },
     })
 
@@ -104,6 +104,26 @@ describe('AdminLoginForm Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Tài khoản của bạn đã bị khóa!')).toBeInTheDocument()
+    })
+  })
+
+  it('resets password field when login fails', async () => {
+    mockLogin.mockResolvedValue(false)
+
+    render(<AdminLoginForm />)
+
+    const emailInput = screen.getByPlaceholderText('Nhập email quản trị')
+    const passwordInput = screen.getByPlaceholderText('Nhập mật khẩu') as HTMLInputElement
+
+    fireEvent.change(emailInput, { target: { value: 'admin@mathclass.edu.vn' } })
+    fireEvent.change(passwordInput, { target: { value: 'wrong_password' } })
+    expect(passwordInput.value).toBe('wrong_password')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập Quản trị' }))
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalled()
+      expect(passwordInput.value).toBe('')
     })
   })
 })

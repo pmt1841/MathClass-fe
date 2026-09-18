@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
+import { PasswordStrengthMeter, PASSWORD_CRITERIA_MESSAGE } from '@/components/ui/password-strength-meter'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,24 +32,31 @@ import {
 import { useSignup } from '@/hooks/useSignup'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
+import { setSelectedRole } from '@/lib/redux/features/authSlice'
 
 const formSchema = z.object({
   fullName: z
     .string()
     .min(2, 'Họ và tên phải có ít nhất 2 ký tự')
     .regex(/^[\p{L}\s]+$/u, 'Họ và tên chỉ được chứa chữ cái và khoảng trắng')
-    .min(1, 'Họ và tên là bắt buộc'),
-  email: z.string().email('Email không hợp lệ').min(1, 'Email là bắt buộc'),
+    .trim(),
+  email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ').toLowerCase().trim(),
   phoneNumber: z
     .string()
-    .length(10, 'Số điện thoại phải có đúng 10 chữ số')
-    .regex(/^0[0-9]+$/, 'Số điện thoại phải bắt đầu bằng số 0 và chỉ chứa số')
-    .min(1, 'Số điện thoại là bắt buộc'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  confirmPassword: z.string(),
+    .regex(/^[0-9]{10}$/, 'Số điện thoại phải có đúng 10 chữ số')
+    .trim(),
+  password: z
+    .string()
+    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất một chữ hoa')
+    .regex(/[a-z]/, 'Mật khẩu phải chứa ít nhất một chữ thường')
+    .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất một chữ số')
+    .regex(/[^A-Za-z0-9]/, 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt'),
+  confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Mật khẩu nhập lại không khớp",
-  path: ["confirmPassword"],
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword'],
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -56,6 +64,8 @@ type FormValues = z.infer<typeof formSchema>
 export default function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const dispatch = useAppDispatch()
+  const reduxSelectedRole = useAppSelector((state) => state.auth.selectedRole)
   
   const [alertConfig, setAlertConfig] = useState({
     isOpen: false,
@@ -64,13 +74,17 @@ export default function SignupForm() {
     isSuccess: false
   })
   
-  const [queryRole, setQueryRole] = useState<string>(ROLES.STUDENT)
+  const [queryRole, setQueryRole] = useState<string>(reduxSelectedRole || ROLES.STUDENT)
   const signupMutation = useSignup()
 
   useEffect(() => {
-    const savedRole = searchParams.get('role') || sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE) || ROLES.STUDENT
-    setQueryRole(savedRole === ROLES.TEACHER ? ROLES.TEACHER : ROLES.STUDENT)
-  }, [searchParams])
+    const paramRole = searchParams.get('role')
+    const activeRole = paramRole || reduxSelectedRole || ROLES.STUDENT
+    setQueryRole(activeRole === ROLES.TEACHER ? ROLES.TEACHER : ROLES.STUDENT)
+    if (paramRole) {
+      dispatch(setSelectedRole(paramRole))
+    }
+  }, [searchParams, reduxSelectedRole, dispatch])
 
   const roleText = queryRole === ROLES.TEACHER ? ' Giáo viên' : ' Học sinh'
   const subtitleText = queryRole === ROLES.TEACHER ? 'Tạo tài khoản để giao bài và chấm điểm' : 'Tạo tài khoản để tham gia lớp học'
@@ -196,6 +210,7 @@ export default function SignupForm() {
                   <FormControl>
                     <PasswordInput placeholder="••••••••" className="py-5 pl-3" {...field} />
                   </FormControl>
+                  <PasswordStrengthMeter password={field.value || ''} />
                   <FormMessage />
                 </FormItem>
               )}

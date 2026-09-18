@@ -13,6 +13,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { profileService } from '@/services/profileService'
 import { ChangePasswordRequest } from '@/types'
 import { SetPasswordCard } from './SetPasswordCard'
+import { PasswordStrengthMeter, evaluatePassword, PASSWORD_CRITERIA_MESSAGE } from '@/components/ui/password-strength-meter'
 import {
   Dialog,
   DialogContent,
@@ -118,8 +119,19 @@ export function ChangePasswordCard() {
       return
     }
 
-    if (!formData.newPassword || formData.newPassword.length < 6) {
-      setValidationError('Mật khẩu mới phải có tối thiểu 6 ký tự.')
+    if (!formData.newPassword) {
+      setValidationError('Vui lòng nhập mật khẩu mới.')
+      return
+    }
+
+    const strength = evaluatePassword(formData.newPassword)
+    if (!strength.isValid) {
+      setValidationError(PASSWORD_CRITERIA_MESSAGE)
+      return
+    }
+
+    if (formData.newPassword.length > 24) {
+      setValidationError('Mật khẩu mới không được vượt quá 24 ký tự.')
       return
     }
 
@@ -210,7 +222,7 @@ export function ChangePasswordCard() {
                     id="newPassword"
                     name="newPassword"
                     type={showNew ? 'text' : 'password'}
-                    placeholder="Tối thiểu 6 ký tự"
+                    placeholder="Tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt)"
                     value={formData.newPassword}
                     onChange={handleChange}
                     disabled={isPending}
@@ -226,6 +238,7 @@ export function ChangePasswordCard() {
                     {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <PasswordStrengthMeter password={formData.newPassword} />
               </div>
 
               {/* Xác nhận mật khẩu mới */}

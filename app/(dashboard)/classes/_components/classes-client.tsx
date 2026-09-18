@@ -5,12 +5,12 @@ import {
   BookOpen,
   Search,
   Plus,
-  RefreshCw,
   ArrowUpDown,
   GraduationCap,
   Clock,
   BookMarked
 } from 'lucide-react'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { CreateClassModal } from '@/components/dashboard/create-class-modal'
 import { JoinClassModal } from '@/components/dashboard/join-class-modal'
 import { joinRequestService } from '@/services/joinRequestService'
@@ -89,20 +89,17 @@ export function ClassesClient() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Lớp học của tôi</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {userRole === 'TEACHER' 
-                ? 'Xem và quản lý toàn bộ danh sách lớp học bạn đang giảng dạy.' 
+              {userRole === 'TEACHER'
+                ? 'Xem và quản lý toàn bộ danh sách lớp học bạn đang giảng dạy.'
                 : 'Xem và truy cập toàn bộ danh sách lớp học bạn đang tham gia.'}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <RefreshButton
               onClick={handleRefresh}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm cursor-pointer"
-              title="Làm mới"
-            >
-              <RefreshCw className={`h-4.5 w-4.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+              iconOnly
+            />
             {userRole === 'TEACHER' && (
               <PermissionGuard permission="classroom:create">
                 <button
@@ -242,13 +239,13 @@ export function ClassesClient() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredClasses.map((item, idx) => (
-                <ClassCard 
-                  key={item.id} 
-                  item={item} 
-                  gradient={gradients[idx % gradients.length]} 
-                  userRole={userRole} 
-                  isCopied={copiedId === item.id} 
-                  onCopyCode={handleCopyCode} 
+                <ClassCard
+                  key={item.id}
+                  item={item}
+                  gradient={gradients[idx % gradients.length]}
+                  userRole={userRole}
+                  isCopied={copiedId === item.id}
+                  onCopyCode={handleCopyCode}
                   hasUnreadChat={isUnreadClass(item.id)}
                 />
               ))}

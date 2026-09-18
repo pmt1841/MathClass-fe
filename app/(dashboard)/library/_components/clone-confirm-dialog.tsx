@@ -50,13 +50,13 @@ export function CloneConfirmDialog({ target, onClose }: CloneConfirmDialogProps)
         await cloneAssignment.mutateAsync({ id: target.id, title: title.trim() })
       }
 
-      toast.success('Clone thành công! Bài tập đã được thêm vào Kho bài của bạn.', {
+      toast.success('Sao chép thành công! Bài tập đã được thêm vào Kho bài của bạn.', {
         description: 'Truy cập trang Kho bài tập để xem và chỉnh sửa bản sao.',
         duration: 4000,
       })
       onClose()
     } catch {
-      toast.error('Clone thất bại. Vui lòng thử lại.')
+      toast.error('Sao chép thất bại. Vui lòng thử lại.')
     }
   }
 
@@ -66,11 +66,11 @@ export function CloneConfirmDialog({ target, onClose }: CloneConfirmDialogProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitFork className="h-5 w-5 text-violet-500" />
-            Clone về kho cá nhân
+            Sao chép về kho cá nhân
           </DialogTitle>
           <DialogDescription>
             Đặt tên cho bản sao của bạn. Bài tập sẽ được lưu ở trạng thái{' '}
-            <strong>Nháp (DRAFT)</strong> và <strong>Riêng tư (PRIVATE)</strong>.
+            <strong>Bản nháp</strong> và <strong>Riêng tư</strong>.
             {target.authorName && (
               <span className="block mt-1 text-muted-foreground">
                 Nguồn gốc: <strong>{target.authorName}</strong>
@@ -104,12 +104,12 @@ export function CloneConfirmDialog({ target, onClose }: CloneConfirmDialogProps)
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Đang clone...
+                Đang sao chép...
               </>
             ) : (
               <>
                 <GitFork className="h-4 w-4" />
-                Clone về
+                Sao chép về
               </>
             )}
           </Button>

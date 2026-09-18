@@ -139,7 +139,7 @@ export function TestConnectionTab() {
       <div>
         <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-purple-600 shrink-0" />
-          Công cụ Kiểm tra Kết nối Trực tiếp (Test Connection Bench)
+          Công cụ Kiểm tra Kết nối Trực tiếp
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           Thử nghiệm kết nối thực tế tới Provider với API Key và Giao thức đã cấu hình.
@@ -180,7 +180,7 @@ export function TestConnectionTab() {
                 </Select>
                 {providers.length === 0 && (
                   <p className="text-[11px] text-amber-600 font-medium">
-                    ⚠️ Vui lòng sang Tab 1 để tạo Provider trước khi sử dụng công cụ Test Connection.
+                    ⚠️ Vui lòng sang Tab 1 để tạo Provider trước khi sử dụng Công cụ Kiểm tra kết nối.
                   </p>
                 )}
               </div>

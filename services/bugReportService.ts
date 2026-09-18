@@ -5,6 +5,8 @@ export type BugErrorType =
   | 'UI_KATEX'
   | 'SUBMISSION_PROBLEM'
   | 'PERFORMANCE'
+  | 'AI_ASSISTANT'
+  | 'CREDIT_TRANSACTION'
   | 'OTHER'
 
 export type BugReportStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
@@ -64,7 +66,14 @@ export const bugReportService = {
   },
 
   // Lấy danh sách báo cáo cho Admin
-  getReports: async (params?: { status?: BugReportStatus; page?: number; size?: number }) => {
+  getReports: async (params?: {
+    errorType?: BugErrorType
+    status?: BugReportStatus
+    startDate?: string
+    endDate?: string
+    page?: number
+    size?: number
+  }) => {
     const response = await api.get('/admin/bug-reports', { params })
     return response.data
   },

@@ -5,12 +5,14 @@ import {
   TaskCreditConfig,
   DefaultCreditConfig,
   CreditAdjustRequest,
+  BatchCreditAdjustRequest,
+  BatchCreditAdjustResponse,
   CreditPackageCreateRequest,
   CreditPackageUpdateRequest,
 } from '@/services/adminCreditService'
 import { CreditPackage, CreditTransactionItem } from '@/services/creditService'
 
-export type { TaskCreditConfig, DefaultCreditConfig }
+export type { TaskCreditConfig, DefaultCreditConfig, BatchCreditAdjustRequest, BatchCreditAdjustResponse }
 
 /** Danh sách chi phí credit theo task AI (admin). */
 export function useAdminTaskCreditConfigs() {
@@ -88,6 +90,18 @@ export function useAdjustCredit() {
   const queryClient = useQueryClient()
   return useMutation<{ message: string }, Error, CreditAdjustRequest>({
     mutationFn: (data) => adminCreditService.adjust(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-credit-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['credits', 'me'] })
+    },
+  })
+}
+
+/** Điều chỉnh credit hàng loạt cho nhiều người dùng. */
+export function useBatchAdjustCredit() {
+  const queryClient = useQueryClient()
+  return useMutation<BatchCreditAdjustResponse, Error, BatchCreditAdjustRequest>({
+    mutationFn: (data) => adminCreditService.adjustBatch(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-credit-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['credits', 'me'] })

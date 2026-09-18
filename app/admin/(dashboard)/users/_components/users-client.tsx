@@ -23,14 +23,21 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
-import { Search, Users, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatRelativeLastLogin, formatDateTime } from '@/lib/utils'
 import { AdminUser } from '@/types'
 import { StatusSwitch } from './status-switch'
 import { LockUserModal } from './LockUserModal'
 import { UnlockUserModal } from './UnlockUserModal'
+
+const ROLE_LABELS: Record<AdminUser['role'], string> = {
+  ADMIN: 'Quản trị viên',
+  TEACHER: 'Giáo viên',
+  STUDENT: 'Học sinh',
+}
 
 // ── Role Badge ─────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: AdminUser['role'] }) {
@@ -41,7 +48,7 @@ function RoleBadge({ role }: { role: AdminUser['role'] }) {
   }
   return (
     <Badge className={cn('rounded-full font-medium', styles[role])}>
-      {role}
+      {ROLE_LABELS[role] || role}
     </Badge>
   )
 }
@@ -232,16 +239,9 @@ export function UsersClient() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+            <RefreshButton
               onClick={() => refetch()}
-              disabled={isLoading}
-              className="rounded-xl bg-white gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </Button>
+            />
           </div>
         </div>
       </div>
@@ -272,9 +272,9 @@ export function UsersClient() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                  <SelectItem value="ADMIN">ADMIN</SelectItem>
-                  <SelectItem value="TEACHER">TEACHER</SelectItem>
-                  <SelectItem value="STUDENT">STUDENT</SelectItem>
+                  <SelectItem value="ADMIN">Quản trị viên</SelectItem>
+                  <SelectItem value="TEACHER">Giáo viên</SelectItem>
+                  <SelectItem value="STUDENT">Học sinh</SelectItem>
                 </SelectContent>
               </Select>
 

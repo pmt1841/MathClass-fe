@@ -98,8 +98,10 @@ Cấu trúc bắt buộc: `<type>/<mã-task-jira>/<tên-tính-năng>` (tên tín
 
 ### 💬 Quy tắc Commit Message (Conventional Commits)
 
-Cấu trúc: `<type>(<mã-task-jira>): <nội dung mô tả ngắn gọn>`
+- **Cấu trúc bắt buộc:** `<type>(<mã-task-jira>): <nội dung mô tả ngắn gọn>`
+- **Quy định ngôn ngữ:** Nội dung mô tả commit (`<nội dung mô tả ngắn gọn>`) **bắt buộc phải hoàn toàn bằng tiếng Việt có dấu**, hoặc bằng **tiếng Anh** (nếu người dùng yêu cầu). Tuyệt đối không sử dụng tiếng Việt không dấu.
 
+Ví dụ:
 - `feat(MAT-101): xây dựng giao diện nộp bài tập tự luận`
 - `fix(MAT-205): khắc phục lỗi hiển thị công thức toán KaTeX`
 - `refactor(MAT-302): tối ưu hóa component Navbar sử dụng Server Component`

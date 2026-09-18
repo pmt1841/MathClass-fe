@@ -28,8 +28,8 @@ import { TwoFactorVerifyModal } from './TwoFactorVerifyModal'
 import { SocialLoginButton } from './social-login-button'
 import { AccountLockedModal } from './account-locked-modal'
 import { AUTH_KEYS, ROLES } from '@/lib/constants/auth'
-import { useAppDispatch } from '@/lib/redux/hooks'
-import { logoutSuccess } from '@/lib/redux/features/authSlice'
+import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
+import { logoutSuccess, setSelectedRole } from '@/lib/redux/features/authSlice'
 import { authStorage } from '@/lib/auth-storage'
 import { logoutSession } from '@/lib/logout'
 import { useAuthChannel } from '@/hooks/useAuthChannel'
@@ -49,10 +49,11 @@ export default function LoginForm() {
   const router = useRouter()
   const pathname = usePathname()
   const dispatch = useAppDispatch()
+  const reduxSelectedRole = useAppSelector((state) => state.auth.selectedRole)
   const { broadcastEvent } = useAuthChannel()
 
-  const [role, setRole] = useState<string>(ROLES.STUDENT)
-  const [explicitRole, setExplicitRole] = useState<string | null>(null)
+  const [role, setRole] = useState<string>(reduxSelectedRole || ROLES.STUDENT)
+  const [explicitRole, setExplicitRole] = useState<string | null>(reduxSelectedRole || null)
   
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
   const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
@@ -73,10 +74,12 @@ export default function LoginForm() {
 
   useEffect(() => {
     const paramRole = searchParams.get('role')
-    const storedRole = sessionStorage.getItem(AUTH_KEYS.SELECTED_ROLE)
-    const savedRole = paramRole || storedRole || ROLES.STUDENT
-    setRole(savedRole)
-    setExplicitRole(paramRole || storedRole)
+    const activeRole = paramRole || reduxSelectedRole || ROLES.STUDENT
+    setRole(activeRole)
+    setExplicitRole(activeRole)
+    if (paramRole) {
+      dispatch(setSelectedRole(paramRole))
+    }
 
     // Kiểm tra query parameter để mở Modal cảnh báo tài khoản bị khóa
     const reason = searchParams.get('reason')
@@ -93,7 +96,7 @@ export default function LoginForm() {
       }
       setShowLockedModal(true)
     }
-  }, [searchParams])
+  }, [searchParams, reduxSelectedRole, dispatch])
 
   useEffect(() => {
     if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
@@ -133,6 +136,7 @@ export default function LoginForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onTouched',
     defaultValues: {
       email: '',
       password: '',
@@ -218,24 +222,46 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Header */}
         <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
             Đăng nhập{roleText}
           </h1>
-          <p className="text-muted-foreground text-base">
+          <p className="text-muted-foreground text-sm sm:text-base">
             Nhập thông tin để truy cập tài khoản của bạn
           </p>
         </div>
 
         {/* Form */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-6">
             {/* Error Message */}
             {loginError && (
-              <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
-                <p className="text-sm text-destructive font-medium">{loginError}</p>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive font-medium leading-relaxed">
+                {loginError.includes('/admin/login') ? (
+                  <p>
+                    {loginError.replace('(/admin/login).', '')}{' '}
+                    <Link
+                      href="/admin/login"
+                      className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
+                    >
+                      Cổng Quản trị hệ thống &rarr;
+                    </Link>
+                  </p>
+                ) : loginError.includes('/login') ? (
+                  <p>
+                    {loginError.replace('(/login).', '')}{' '}
+                    <Link
+                      href="/login"
+                      className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
+                    >
+                      Cổng Giáo viên & Học sinh &rarr;
+                    </Link>
+                  </p>
+                ) : (
+                  <p>{loginError}</p>
+                )}
               </div>
             )}
 
@@ -250,7 +276,7 @@ export default function LoginForm() {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
                       <Input
-                        placeholder="you@example.com"
+                        placeholder="Nhập email"
                         className="pl-10 py-5"
                         {...field}
                       />
@@ -270,7 +296,7 @@ export default function LoginForm() {
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
                     <PasswordInput
-                      placeholder="••••••••"
+                      placeholder="Nhập mật khẩu"
                       className="pl-3 py-5"
                       maxLength={256}
                       {...field}

@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -77,6 +78,7 @@ import {
   useUpdateCreditPackage,
   useDeleteCreditPackage,
   useAdjustCredit,
+  useBatchAdjustCredit,
   useAdminCreditTransactions,
 } from '@/hooks/useAdminCredits'
 
@@ -176,81 +178,81 @@ function CostPerTaskSection() {
                   <TableHead className="w-28 text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
-            <TableBody>
-              {(configs || []).map((config) => {
-                const draft = draftFor(config.task, config.costPerCall, config.tokensPerCredit, config.enabled)
-                const dirty =
-                  draft.costPerCall !== config.costPerCall ||
-                  draft.tokensPerCredit !== (config.tokensPerCredit ?? 0) ||
-                  draft.enabled !== config.enabled
-                return (
-                  <TableRow key={config.task}>
-                    <TableCell className="font-medium">{getCreditTaskLabel(config.task)}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="h-9 w-24 font-mono"
-                        value={draft.costPerCall}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [config.task]: {
-                              ...draft,
-                              costPerCall: Math.max(0, parseInt(e.target.value) || 0),
-                            },
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="1000"
-                        className="h-9 w-24 font-mono"
-                        value={draft.tokensPerCredit > 0 ? draft.tokensPerCredit : ''}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [config.task]: {
-                              ...draft,
-                              tokensPerCredit: Math.max(0, parseInt(e.target.value) || 0),
-                            },
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={draft.enabled}
-                        onCheckedChange={(val) =>
-                          setDrafts((prev) => ({ ...prev, [config.task]: { ...draft, enabled: val } }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!dirty || saving === config.task}
-                        onClick={() =>
-                          handleSave(config.task, draft.costPerCall, draft.tokensPerCredit, draft.enabled)
-                        }
-                      >
-                        {saving === config.task ? (
-                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Save className="mr-1.5 h-3.5 w-3.5" />
-                        )}
-                        Lưu
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+              <TableBody>
+                {(configs || []).map((config) => {
+                  const draft = draftFor(config.task, config.costPerCall, config.tokensPerCredit, config.enabled)
+                  const dirty =
+                    draft.costPerCall !== config.costPerCall ||
+                    draft.tokensPerCredit !== (config.tokensPerCredit ?? 0) ||
+                    draft.enabled !== config.enabled
+                  return (
+                    <TableRow key={config.task}>
+                      <TableCell className="font-medium">{getCreditTaskLabel(config.task)}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          className="h-9 w-24 font-mono"
+                          value={draft.costPerCall}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [config.task]: {
+                                ...draft,
+                                costPerCall: Math.max(0, parseInt(e.target.value) || 0),
+                              },
+                            }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="1000"
+                          className="h-9 w-24 font-mono"
+                          value={draft.tokensPerCredit > 0 ? draft.tokensPerCredit : ''}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [config.task]: {
+                                ...draft,
+                                tokensPerCredit: Math.max(0, parseInt(e.target.value) || 0),
+                              },
+                            }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={draft.enabled}
+                          onCheckedChange={(val) =>
+                            setDrafts((prev) => ({ ...prev, [config.task]: { ...draft, enabled: val } }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!dirty || saving === config.task}
+                          onClick={() =>
+                            handleSave(config.task, draft.costPerCall, draft.tokensPerCredit, draft.enabled)
+                          }
+                        >
+                          {saving === config.task ? (
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Save className="mr-1.5 h-3.5 w-3.5" />
+                          )}
+                          Lưu
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
@@ -613,27 +615,49 @@ function UserRoleBadge({ role }: { role?: string | null }) {
   )
 }
 
-interface UserSearchSelectProps {
-  value: AdminUser | null
-  onChange: (user: AdminUser | null) => void
+interface UserMultiSelectProps {
+  values: AdminUser[]
+  onChange: (users: AdminUser[]) => void
   disabled?: boolean
 }
 
-function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) {
+function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
+
+  const isSearchActive = Boolean(search.trim())
+  const hasDebouncedQuery = Boolean(debouncedSearch.trim())
 
   const { data, isLoading, isFetching } = useAdminUsers(
     0,
     undefined,
     undefined,
     debouncedSearch.trim() || undefined,
-    20,
-    { enabled: open },
+    50,
+    { enabled: open && hasDebouncedQuery },
     'ADMIN'
   )
-  const users = data?.content || []
+  const users = hasDebouncedQuery ? (data?.content || []) : []
+
+  const isSelected = (userId: number) => values.some((u) => u.id === userId)
+
+  const handleToggle = (user: AdminUser) => {
+    if (isSelected(user.id)) {
+      onChange(values.filter((u) => u.id !== user.id))
+    } else {
+      onChange([...values, user])
+    }
+  }
+
+  const handleSelectAllInResult = () => {
+    const newUsers = users.filter((u) => !isSelected(u.id))
+    onChange([...values, ...newUsers])
+  }
+
+  const handleClearAll = () => {
+    onChange([])
+  }
 
   return (
     <Popover
@@ -653,39 +677,43 @@ function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) 
             disabled={disabled}
             className={cn(
               'w-full justify-between h-9 px-3 text-xs font-normal border-slate-200 bg-white hover:bg-slate-50',
-              value && 'pr-14',
-              !value && 'text-slate-400'
+              values.length > 0 && 'pr-14',
+              values.length === 0 && 'text-slate-400'
             )}
           >
             <span className="truncate text-left flex-1 mr-2">
-              {value ? (
+              {values.length === 0 ? (
+                'Chọn người dùng (email, họ tên)...'
+              ) : values.length === 1 ? (
                 <span className="font-medium text-slate-800">
-                  {value.email}
-                  {value.fullName ? ` (${value.fullName})` : ''}
+                  {values[0].email}
+                  {values[0].fullName ? ` (${values[0].fullName})` : ''}
                 </span>
               ) : (
-                'Chọn người dùng (email)...'
+                <span className="font-medium text-indigo-700">
+                  Đã chọn {values.length} người dùng ({values[0].email}, ...)
+                </span>
               )}
             </span>
             <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
           </Button>
-          {value && !disabled && (
+          {values.length > 0 && !disabled && (
             <button
               type="button"
               tabIndex={-1}
               onClick={(e) => {
                 e.stopPropagation()
-                onChange(null)
+                handleClearAll()
               }}
               className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Bỏ chọn"
+              title="Bỏ chọn tất cả"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] sm:w-[380px] p-0 shadow-lg border-slate-200" align="start">
+      <PopoverContent className="w-[340px] sm:w-[420px] p-0 shadow-lg border-slate-200" align="start">
         <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50/70">
           {isFetching ? (
             <Loader2 className="h-3.5 w-3.5 text-indigo-600 animate-spin shrink-0 ml-1" />
@@ -694,7 +722,7 @@ function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) 
           )}
           <input
             className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-800"
-            placeholder="Tìm theo email hoặc họ tên..."
+            placeholder="Tìm theo email hoặc họ tên"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -710,8 +738,44 @@ function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) 
           )}
         </div>
 
-        <div className="max-h-56 overflow-y-auto p-1 text-xs">
-          {isLoading ? (
+        {/* Quick action bar */}
+        {(values.length > 0 || (isSearchActive && users.length > 0)) && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 text-[11px] border-b border-slate-100 text-slate-500">
+            <span>
+              Đã chọn: <strong className="text-indigo-600">{values.length}</strong>
+            </span>
+            <div className="flex items-center gap-2">
+              {isSearchActive && users.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSelectAllInResult}
+                  className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+                >
+                  Chọn tất cả kết quả ({users.length})
+                </button>
+              )}
+              {values.length > 0 && (
+                <>
+                  {isSearchActive && users.length > 0 && <span className="text-slate-300">|</span>}
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="text-rose-600 hover:text-rose-800 font-medium hover:underline"
+                  >
+                    Bỏ chọn tất cả
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="max-h-60 overflow-y-auto p-1 text-xs">
+          {!isSearchActive ? (
+            <div className="py-8 text-center text-slate-400 text-xs">
+              Nhập email hoặc họ tên để tìm kiếm người dùng
+            </div>
+          ) : isLoading || (isSearchActive && !hasDebouncedQuery) || isFetching ? (
             <div className="flex items-center justify-center py-6 text-slate-500 gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
               <span>Đang tìm kiếm...</span>
@@ -723,32 +787,39 @@ function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) 
           ) : (
             <div className="space-y-0.5">
               {users.map((user) => {
-                const isSelected = value?.id === user.id
+                const selected = isSelected(user.id)
                 return (
                   <button
                     key={user.id}
                     type="button"
-                    onClick={() => {
-                      onChange(user)
-                      setOpen(false)
-                      setSearch('')
-                    }}
+                    onClick={() => handleToggle(user)}
                     className={cn(
                       'w-full flex items-center justify-between p-2 rounded-md text-left transition-colors',
-                      isSelected
-                        ? 'bg-indigo-50 text-indigo-900 font-medium'
+                      selected
+                        ? 'bg-indigo-50/90 text-indigo-950 font-medium'
                         : 'hover:bg-slate-100/80 text-slate-700'
                     )}
                   >
-                    <div className="min-w-0 flex-1 mr-2">
-                      <div className="truncate font-medium text-slate-900">{user.email}</div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {user.fullName || 'Chưa cập nhật tên'}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+                      <div
+                        className={cn(
+                          'h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors',
+                          selected
+                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                            : 'border-slate-300 bg-white'
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium text-slate-900">{user.email}</div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          {user.fullName || 'Chưa cập nhật tên'}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <UserRoleBadge role={user.role} />
-                      {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 ml-1" />}
                     </div>
                   </button>
                 )
@@ -762,10 +833,12 @@ function UserSearchSelect({ value, onChange, disabled }: UserSearchSelectProps) 
 }
 
 function AdjustAndLedgerSection() {
-  const adjustMutation = useAdjustCredit()
+  const batchAdjustMutation = useBatchAdjustCredit()
   const [typeFilter, setTypeFilter] = useState('ALL')
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
-  const [adjustForm, setAdjustForm] = useState({ amount: '', reason: '' })
+  const [selectedUsers, setSelectedUsers] = useState<AdminUser[]>([])
+  const [amount, setAmount] = useState('')
+  const [reasonPreset, setReasonPreset] = useState<'SYSTEM_REFUND' | 'OTHER'>('SYSTEM_REFUND')
+  const [customReason, setCustomReason] = useState('')
   const [adjusting, setAdjusting] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -774,6 +847,8 @@ function AdjustAndLedgerSection() {
     data: pageData,
     isLoading: txLoading,
     isPlaceholderData,
+    refetch: refetchTransactions,
+    isFetching: txFetching,
   } = useAdminCreditTransactions({
     type: typeFilter === 'ALL' ? undefined : typeFilter,
     page,
@@ -795,27 +870,52 @@ function AdjustAndLedgerSection() {
   const totalPages = pageData?.totalPages ?? 0
 
   const handleAdjust = async () => {
-    if (!selectedUser) {
-      toast.error('Vui lòng chọn người dùng theo email.')
+    if (selectedUsers.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một người dùng.')
       return
     }
-    const amount = parseInt(adjustForm.amount, 10)
-    if (Number.isNaN(amount) || amount === 0) {
+    const parsedAmount = parseInt(amount, 10)
+    if (Number.isNaN(parsedAmount) || parsedAmount === 0) {
       toast.error('Số credit điều chỉnh phải khác 0.')
       return
     }
+
+    let finalReason = ''
+    if (reasonPreset === 'SYSTEM_REFUND') {
+      finalReason = 'Hoàn tiền do lỗi hệ thống'
+    } else {
+      if (!customReason.trim()) {
+        toast.error('Vui lòng nhập lý do cụ thể.')
+        return
+      }
+      finalReason = customReason.trim()
+    }
+
     setAdjusting(true)
     try {
-      await adjustMutation.mutateAsync({
-        userId: selectedUser.id,
-        amount,
-        reason: adjustForm.reason.trim() || undefined,
+      const res = await batchAdjustMutation.mutateAsync({
+        userIds: selectedUsers.map((u) => u.id),
+        amount: parsedAmount,
+        reason: finalReason,
       })
-      toast.success(
-        `Đã điều chỉnh ${amount >= 0 ? '+' : ''}${amount} credit cho ${selectedUser.email}`
-      )
-      setSelectedUser(null)
-      setAdjustForm({ amount: '', reason: '' })
+
+      if (res.failureCount === 0) {
+        toast.success(
+          `Đã điều chỉnh ${parsedAmount >= 0 ? '+' : ''}${parsedAmount} credit cho ${res.successCount} người dùng.`
+        )
+      } else if (res.successCount > 0) {
+        toast.warning(
+          `Thành công ${res.successCount} người dùng, thất bại ${res.failureCount} người dùng.`
+        )
+      } else {
+        toast.error(res.message || 'Điều chỉnh thất bại cho tất cả người dùng.')
+      }
+
+      setSelectedUsers([])
+      setAmount('')
+      setCustomReason('')
+      setReasonPreset('SYSTEM_REFUND')
+      refetchTransactions()
     } catch (e) {
       toast.error(handleApiError(e, 'Không thể điều chỉnh credit.'))
     } finally {
@@ -831,66 +931,142 @@ function AdjustAndLedgerSection() {
           Điều chỉnh Credit & Sổ cái giao dịch
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Admin cộng/trừ credit thủ công cho người dùng (ví dụ hoàn tiền lỗi hệ thống) và tra cứu sổ cái.
+          Admin cộng/trừ credit thủ công cho một hoặc nhiều người dùng cùng lúc (ví dụ hoàn tiền lỗi hệ thống) và tra cứu sổ cái.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Form điều chỉnh */}
-        <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Người dùng (Email)</Label>
-            <UserSearchSelect
-              value={selectedUser}
-              onChange={setSelectedUser}
-              disabled={adjusting}
-            />
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Người dùng (chọn nhiều)</Label>
+              <UserMultiSelect
+                values={selectedUsers}
+                onChange={setSelectedUsers}
+                disabled={adjusting}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Số credit (+/-)</Label>
+              <Input
+                type="number"
+                placeholder="100 hoặc -50"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={adjusting}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Lý do điều chỉnh</Label>
+              <Select
+                value={reasonPreset}
+                onValueChange={(val: 'SYSTEM_REFUND' | 'OTHER') => setReasonPreset(val)}
+                disabled={adjusting}
+              >
+                <SelectTrigger className="h-9 text-xs bg-white">
+                  <SelectValue placeholder="Chọn lý do" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SYSTEM_REFUND">Hoàn tiền do lỗi hệ thống</SelectItem>
+                  <SelectItem value="OTHER">Lý do khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                disabled={adjusting || selectedUsers.length === 0 || !amount}
+                onClick={handleAdjust}
+              >
+                {adjusting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+                Điều chỉnh {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ''}
+              </Button>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Số credit (+/-)</Label>
-            <Input
-              type="number"
-              placeholder="100 hoặc -50"
-              value={adjustForm.amount}
-              onChange={(e) => setAdjustForm((prev) => ({ ...prev, amount: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Lý do</Label>
-            <Input
-              placeholder="Hoàn tiền lỗi hệ thống"
-              value={adjustForm.reason}
-              onChange={(e) => setAdjustForm((prev) => ({ ...prev, reason: e.target.value }))}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              className="w-full"
-              disabled={adjusting || !selectedUser || !adjustForm.amount}
-              onClick={handleAdjust}
-            >
-              {adjusting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-              Điều chỉnh
-            </Button>
-          </div>
+
+          {/* Ô nhập khi chọn "Lý do khác" */}
+          {reasonPreset === 'OTHER' && (
+            <div className="pt-1 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Label className="text-xs text-slate-700">
+                Lý do cụ thể <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                placeholder="Nhập chi tiết lý do điều chỉnh credit (ví dụ: Thu bù credit, thưởng sự kiện...)"
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                disabled={adjusting}
+                className="bg-white"
+                autoFocus
+              />
+            </div>
+          )}
+
+          {/* Danh sách chip các user đã chọn */}
+          {selectedUsers.length > 0 && (
+            <div className="pt-1 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-600">
+                  Người dùng đã chọn ({selectedUsers.length}):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedUsers([])}
+                  disabled={adjusting}
+                  className="text-[11px] text-rose-600 hover:text-rose-800 hover:underline"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200 shadow-inner">
+                {selectedUsers.map((u) => (
+                  <Badge
+                    key={u.id}
+                    variant="secondary"
+                    className="pl-2 pr-1 py-0.5 text-xs font-normal bg-slate-50 text-slate-800 border border-slate-200 shadow-sm flex items-center gap-1 hover:bg-slate-100"
+                  >
+                    <span className="truncate max-w-[200px]">
+                      {u.email}
+                      {u.fullName ? ` (${u.fullName})` : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUsers((prev) => prev.filter((item) => item.id !== u.id))}
+                      disabled={adjusting}
+                      className="rounded-full p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
+                      title={`Bỏ chọn ${u.email}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bộ lọc + sổ cái */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm font-semibold text-slate-800">Sổ cái giao dịch</p>
-          <div className="w-full sm:w-44">
-            <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Lọc theo loại" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tất cả loại</SelectItem>
-                <SelectItem value="GRANT_DEFAULT">Cấp mặc định</SelectItem>
-                <SelectItem value="PURCHASE">Nạp credit</SelectItem>
-                <SelectItem value="ADMIN_ADJUST">Điều chỉnh</SelectItem>
-                <SelectItem value="CONSUME">Tiêu thụ</SelectItem>
-                <SelectItem value="REFUND">Hoàn lại</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-44">
+              <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Lọc theo loại" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả loại</SelectItem>
+                  <SelectItem value="GRANT_DEFAULT">Cấp mặc định</SelectItem>
+                  <SelectItem value="PURCHASE">Nạp credit</SelectItem>
+                  <SelectItem value="ADMIN_ADJUST">Điều chỉnh</SelectItem>
+                  <SelectItem value="CONSUME">Tiêu thụ</SelectItem>
+                  <SelectItem value="REFUND">Hoàn lại</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <RefreshButton
+              onClick={() => refetchTransactions()}
+              title="Làm mới sổ cái giao dịch"
+            />
           </div>
         </div>
 
@@ -951,9 +1127,8 @@ function AdjustAndLedgerSection() {
                           {formatCreditTransactionDescription(txn.description, txn.task)}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-bold text-xs whitespace-nowrap ${
-                            (txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                          }`}
+                          className={`text-right font-bold text-xs whitespace-nowrap ${(txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}
                         >
                           {(txn.amount ?? 0) >= 0 ? '+' : ''}
                           {txn.amount}
@@ -1019,9 +1194,8 @@ function AdjustAndLedgerSection() {
                           key={p}
                           variant={page === p - 1 ? 'default' : 'outline'}
                           size="sm"
-                          className={`h-8 w-8 p-0 text-xs ${
-                            page === p - 1 ? 'bg-slate-900 text-white hover:bg-slate-800' : ''
-                          }`}
+                          className={`h-8 w-8 p-0 text-xs ${page === p - 1 ? 'bg-slate-900 text-white hover:bg-slate-800' : ''
+                            }`}
                           onClick={() => setPage(p - 1)}
                         >
                           {p}

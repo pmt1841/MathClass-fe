@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Library, Search, BookOpen, Layers, BookX, RefreshCw } from 'lucide-react'
+import { Library, Search, BookOpen, Layers, BookX } from 'lucide-react'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { toast } from 'sonner'
 import { AssignmentCard } from '@/app/(dashboard)/assignments/_components/assignment-card'
 import { CloneConfirmDialog, CloneTarget } from './clone-confirm-dialog'
@@ -91,18 +92,15 @@ export function LibraryClient() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Thư viện dùng chung</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Khám phá và clone bài tập từ cộng đồng giáo viên.
+              Khám phá và sao chép bài tập từ cộng đồng giáo viên.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <RefreshButton
               onClick={handleRefresh}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
-              title="Làm mới"
-            >
-              <RefreshCw className={`h-4.5 w-4.5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+              iconOnly
+            />
           </div>
         </div>
       </div>

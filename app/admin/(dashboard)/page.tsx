@@ -21,6 +21,7 @@ import { MonthYearSelector } from '@/components/admin/dashboard/MonthYearSelecto
 import { AnnualTrendCards } from '@/components/admin/dashboard/AnnualTrendCards'
 import { AdminDashboardSkeleton } from '@/components/admin/dashboard/AdminDashboardSkeleton'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 
 export default function AdminDashboardPage() {
   const { user, isInitializing } = useAuth()
@@ -78,7 +79,7 @@ export default function AdminDashboardPage() {
           </Button>
           <Button variant="outline" asChild className="rounded-xl text-xs font-semibold">
             <Link href="/admin/roles">
-              Quản lý quyền hạn
+              Quản lý Quyền hạn
             </Link>
           </Button>
         </div>
@@ -119,9 +120,8 @@ export default function AdminDashboardPage() {
 
   return (
     <div
-      className={`flex-1 flex flex-col overflow-hidden bg-slate-50/50 transition-opacity duration-200 ${
-        isFetching ? 'opacity-80' : 'opacity-100'
-      }`}
+      className={`flex-1 flex flex-col overflow-hidden bg-slate-50/50 transition-opacity duration-200 ${isFetching ? 'opacity-80' : 'opacity-100'
+        }`}
     >
       {/* ── Synchronized Header Bar ─────────────────────────────────────────────── */}
       <div className="border-b border-border bg-white py-6">
@@ -149,18 +149,9 @@ export default function AdminDashboardPage() {
               disabled={isFetching}
             />
 
-            <Button
-              variant="outline"
-              size="sm"
+            <RefreshButton
               onClick={() => refetch()}
-              disabled={isFetching}
-              className="rounded-xl inline-flex items-center gap-1.5 text-xs font-semibold h-9 bg-white"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
-              />
-              {isFetching ? 'Đang tải...' : 'Làm mới'}
-            </Button>
+            />
           </div>
         </div>
       </div>

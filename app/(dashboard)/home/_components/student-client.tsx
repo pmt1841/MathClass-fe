@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Clock, Trophy, Flame, BookOpen, Star, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { dashboardService } from '@/services/dashboardService'
 import { isPast } from 'date-fns'
 import { parseDateSafe, formatDistanceToNowSafe } from '@/lib/utils'
@@ -21,23 +22,31 @@ export function StudentDashboardClient() {
     else setGreeting('Chào buổi tối')
   }, [])
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['student-stats'],
     queryFn: dashboardService.getStudentStats,
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: pendingTasks = [] } = useQuery({
+  const { data: pendingTasks = [], refetch: refetchPending } = useQuery({
     queryKey: ['student-pending-tasks'],
     queryFn: () => dashboardService.getStudentPendingTasks(5),
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: gradedTasks = [] } = useQuery({
+  const { data: gradedTasks = [], refetch: refetchGraded } = useQuery({
     queryKey: ['student-graded-tasks'],
     queryFn: () => dashboardService.getStudentGradedTasks(5),
     staleTime: 2 * 60 * 1000,
   })
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchStats(),
+      refetchPending(),
+      refetchGraded(),
+    ])
+  }
 
   // Filter and sort pending tasks
   const sortedPendingTasks = React.useMemo(() => {
@@ -70,6 +79,13 @@ export function StudentDashboardClient() {
             <p className="text-sm text-slate-500 mt-1 font-medium">
               Hôm nay bạn có <span className="font-bold text-orange-600">{sortedPendingTasks.length} bài tập</span> cần hoàn thành. Cố lên nhé!
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <RefreshButton
+              onClick={handleRefresh}
+              title="Làm mới bảng điều khiển"
+            />
           </div>
         </div>
       </div>

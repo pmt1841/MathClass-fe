@@ -14,6 +14,7 @@ import {
   FileText,
   Cpu,
   LayoutDashboard,
+  HardDrive,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -46,18 +47,23 @@ export const adminNavItems: NavItem[] = [
   },
   {
     icon: Shield,
-    label: 'Quản lý quyền hạn',
+    label: 'Quản lý Quyền hạn',
     href: '/admin/roles',
   },
   {
     icon: Cpu,
-    label: 'Cấu hình AI Services',
+    label: 'Cấu hình Dịch vụ AI',
     href: '/admin/ai-config',
   },
   {
     icon: FileText,
     label: 'Nhật ký hệ thống',
     href: '/admin/logs',
+  },
+  {
+    icon: HardDrive,
+    label: 'Quản lý Lưu trữ',
+    href: '/admin/storage',
   },
   {
     icon: AlertTriangle,
@@ -156,9 +162,8 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   return (
     <>
       <aside
-        className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${
-          collapsed ? 'w-16' : 'w-64'
-        }`}
+        className={`relative flex flex-col bg-white border-r border-border transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'
+          }`}
       >
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -184,9 +189,8 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                   type="button"
                   onClick={() => setShowReportModal(true)}
                   title={collapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left cursor-pointer ${
-                    collapsed ? 'justify-center' : ''
-                  } text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left cursor-pointer ${collapsed ? 'justify-center' : ''
+                    } text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0 text-destructive" />
                   {!collapsed && <span className="flex-1 font-semibold">{item.label}</span>}
@@ -199,13 +203,11 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                  collapsed ? 'justify-center' : ''
-                } ${
-                  active
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${collapsed ? 'justify-center' : ''
+                  } ${active
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 <div className="relative flex items-center justify-center">
                   <Icon className={`h-5 w-5 flex-shrink-0 ${active ? 'text-primary' : ''}`} />

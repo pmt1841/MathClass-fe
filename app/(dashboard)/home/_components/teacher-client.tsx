@@ -33,6 +33,7 @@ import {
   PenTool,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { dashboardService } from '@/services/dashboardService'
 import { classroomService } from '@/services/classroomService'
 import Link from 'next/link'
@@ -42,29 +43,38 @@ export function TeacherDashboardClient() {
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, refetch: refetchStats } = useQuery({
     queryKey: ['teacher-stats'],
     queryFn: dashboardService.getTeacherStats,
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: classesData = [] } = useQuery({
+  const { data: classesData = [], refetch: refetchClasses } = useQuery({
     queryKey: ['my-classes'],
     queryFn: classroomService.getMyClassrooms,
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: pendingSubmissionData = [] } = useQuery({
+  const { data: pendingSubmissionData = [], refetch: refetchSubmissions } = useQuery({
     queryKey: ['pending-submissions'],
     queryFn: () => dashboardService.getPendingSubmissions(50),
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: atRiskStudents = [], isLoading: isLoadingAtRisk } = useQuery({
+  const { data: atRiskStudents = [], isLoading: isLoadingAtRisk, refetch: refetchAtRisk } = useQuery({
     queryKey: ['at-risk-students'],
     queryFn: dashboardService.getAtRiskStudents,
     staleTime: 2 * 60 * 1000,
   })
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchStats(),
+      refetchClasses(),
+      refetchSubmissions(),
+      refetchAtRisk(),
+    ])
+  }
 
   // Filter logic
   const filteredAssignments = useMemo(() => {
@@ -92,6 +102,13 @@ export function TeacherDashboardClient() {
             <p className="text-sm text-slate-500 mt-1 font-medium">
               {selectedClass === 'all' ? 'Hiển thị dữ liệu của tất cả các lớp.' : `Hiển thị dữ liệu của ${classesData.find((c: any) => c.classCode === selectedClass)?.className || 'lớp'}.`}
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <RefreshButton
+              onClick={handleRefresh}
+              title="Làm mới bảng điều khiển"
+            />
           </div>
         </div>
       </div>

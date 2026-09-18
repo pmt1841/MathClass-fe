@@ -15,16 +15,20 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { PasswordInput } from "@/components/ui/password-input"
+import { PasswordStrengthMeter, PASSWORD_CRITERIA_MESSAGE } from "@/components/ui/password-strength-meter"
 import { useToast } from "@/hooks/use-toast"
 import { useResetPassword } from "@/hooks/useResetPassword"
 import { AUTH_KEYS } from "@/lib/constants/auth"
 
 const resetPasswordSchema = z.object({
-  newPassword: z.string().min(6, {
-    message: "Mật khẩu phải có ít nhất 6 ký tự.",
-  }).max(24, {
-    message: "Mật khẩu không được vượt quá 24 ký tự.",
-  }),
+  newPassword: z
+    .string()
+    .min(8, { message: "Mật khẩu phải có ít nhất 8 ký tự." })
+    .max(24, { message: "Mật khẩu không được vượt quá 24 ký tự." })
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,24}$/,
+      PASSWORD_CRITERIA_MESSAGE
+    ),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Mật khẩu không khớp.",
@@ -110,6 +114,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                       {...field} 
                     />
                   </FormControl>
+                  <PasswordStrengthMeter password={field.value || ''} />
                   <FormMessage />
                 </FormItem>
               )}
