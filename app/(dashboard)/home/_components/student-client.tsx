@@ -64,7 +64,7 @@ export function StudentDashboardClient() {
     <div className="flex-1 bg-slate-50/50 min-h-screen">
       {/* Inline Topbar (Page Header) */}
       <div className="border-b border-border bg-white py-6 shadow-sm">
-        <div className="mx-auto max-w-screen-2xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{greeting}! 👋</h1>
             <p className="text-sm text-slate-500 mt-1 font-medium">
@@ -74,7 +74,7 @@ export function StudentDashboardClient() {
         </div>
       </div>
 
-      <main className="p-6 space-y-8 max-w-screen-2xl mx-auto">
+      <main className="p-4 sm:p-6 space-y-6 max-w-screen-2xl mx-auto w-full">
 
         {/* Row 1: Thống kê cá nhân (3 Cards) - Chữ và số trên cùng 1 dòng, viền mép trên */}
         <div className="grid gap-4 sm:grid-cols-3">

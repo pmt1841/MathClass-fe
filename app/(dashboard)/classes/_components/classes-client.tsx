@@ -80,7 +80,7 @@ export function ClassesClient() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       <div className="border-b border-border bg-white py-6">
-        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -130,7 +130,7 @@ export function ClassesClient() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-6 w-full">
           <div className="flex flex-wrap items-center gap-3 w-full">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -182,8 +182,8 @@ export function ClassesClient() {
           )}
 
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-[210px] rounded-2xl border border-border bg-white p-6 flex flex-col justify-between shadow-sm animate-pulse">
                   <div className="space-y-3">
                     <div className="h-6 bg-slate-200 rounded-lg w-2/3" />
@@ -240,7 +240,7 @@ export function ClassesClient() {
               )}
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredClasses.map((item, idx) => (
                 <ClassCard 
                   key={item.id} 

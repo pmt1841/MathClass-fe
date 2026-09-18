@@ -159,7 +159,7 @@ export function ClassDetailPageClient() {
     <div>
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
         <div className="border-b border-border bg-white py-5">
-          <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/classes')}
@@ -226,7 +226,7 @@ export function ClassDetailPageClient() {
         </div>
 
         <div className="bg-white border-b border-border">
-          <div className="mx-auto max-w-screen-xl px-6">
+          <div className="mx-auto max-w-screen-2xl px-4 sm:px-6">
             <div className="flex gap-1">
               <TabButton
                 id="tab-students"
@@ -291,7 +291,7 @@ export function ClassDetailPageClient() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+          <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-6 w-full">
             {activeTab === 'students' ? (
               <StudentsTab classCode={classCode} classroom={classroom || null} loadingClass={loadingClass} />
             ) : activeTab === 'assignments' ? (

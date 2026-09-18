@@ -98,7 +98,7 @@ export default function AdminRolesPage() {
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       {/* ── Synchronized Header ── */}
       <div className="border-b border-border bg-white py-6">
-        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -132,7 +132,7 @@ export default function AdminRolesPage() {
 
       {/* ── Main Scroll Area ── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-6 w-full">
           <Tabs defaultValue="ADMIN" onValueChange={setSelectedRole} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           {ROLES.map(role => (

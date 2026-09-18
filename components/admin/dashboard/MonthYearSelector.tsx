@@ -1,8 +1,15 @@
 'use client'
 
 import React from 'react'
-import { Calendar, RotateCcw, ChevronDown } from 'lucide-react'
+import { Calendar, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface MonthYearSelectorProps {
   selectedMonth: number
@@ -42,14 +49,6 @@ export function MonthYearSelector({
   const isCurrentPeriod =
     selectedMonth === currentMonth && selectedYear === currentYear
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onChange(Number(e.target.value), selectedYear)
-  }
-
-  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onChange(selectedMonth, Number(e.target.value))
-  }
-
   const handleResetToCurrent = () => {
     onChange(currentMonth, currentYear)
   }
@@ -69,40 +68,50 @@ export function MonthYearSelector({
       {/* 2 Dropdown Tháng & Năm Cao Cấp */}
       <div className="flex items-center gap-2">
         {/* Dropdown Tháng */}
-        <div className="relative">
-          <select
-            value={selectedMonth}
-            onChange={handleMonthChange}
-            disabled={disabled}
-            aria-label="Chọn tháng báo cáo"
-            className="h-9.5 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer shadow-xs"
-          >
+        <Select
+          value={String(selectedMonth)}
+          onValueChange={(val) => onChange(Number(val), selectedYear)}
+          disabled={disabled}
+        >
+          <SelectTrigger className="h-9.5 w-[110px] rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-primary/15 shadow-xs">
+            <SelectValue placeholder="Chọn tháng" />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-slate-200 shadow-lg rounded-xl p-1">
             {MONTHS.map((m) => (
-              <option key={m.value} value={m.value}>
+              <SelectItem
+                key={m.value}
+                value={String(m.value)}
+                hideIndicator
+                className="text-xs font-semibold cursor-pointer rounded-lg px-3 py-1.5 focus:bg-slate-100 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:font-bold transition-colors"
+              >
                 {m.label}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        </div>
+          </SelectContent>
+        </Select>
 
         {/* Dropdown Năm */}
-        <div className="relative">
-          <select
-            value={selectedYear}
-            onChange={handleYearChange}
-            disabled={disabled}
-            aria-label="Chọn năm báo cáo"
-            className="h-9.5 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer shadow-xs"
-          >
+        <Select
+          value={String(selectedYear)}
+          onValueChange={(val) => onChange(selectedMonth, Number(val))}
+          disabled={disabled}
+        >
+          <SelectTrigger className="h-9.5 w-[110px] rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-primary/15 shadow-xs">
+            <SelectValue placeholder="Chọn năm" />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-slate-200 shadow-lg rounded-xl p-1">
             {years.map((y) => (
-              <option key={y} value={y}>
+              <SelectItem
+                key={y}
+                value={String(y)}
+                hideIndicator
+                className="text-xs font-semibold cursor-pointer rounded-lg px-3 py-1.5 focus:bg-slate-100 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:font-bold transition-colors"
+              >
                 Năm {y}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        </div>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Badge Trạng thái / Nút Trở về Tháng hiện tại */}
@@ -125,3 +134,4 @@ export function MonthYearSelector({
     </div>
   )
 }
+

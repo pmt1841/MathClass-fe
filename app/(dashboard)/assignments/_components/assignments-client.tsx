@@ -218,7 +218,7 @@ export function AssignmentsPageClient() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       <div className="border-b border-border bg-white py-6">
-        <div className="mx-auto max-w-screen-xl px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -262,7 +262,7 @@ export function AssignmentsPageClient() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-screen-xl px-6 py-8 space-y-6">
+        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-6 w-full">
 
           {/* Thanh công cụ lọc bài tập flex-wrap mượt mà */}
           <div className="flex flex-wrap items-center gap-3 w-full">
@@ -396,8 +396,8 @@ export function AssignmentsPageClient() {
           </div>
 
           {loading ? (
-            <div className={activeTab === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
-              {[1, 2, 3].map((i) => (
+            <div className={activeTab === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
+              {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
                   className={`rounded-2xl border border-border bg-white p-6 shadow-sm animate-pulse flex flex-col justify-between ${activeTab === 'SHEET' ? 'h-24' : 'h-48'
@@ -504,7 +504,7 @@ export function AssignmentsPageClient() {
               )}
             </div>
           ) : (
-            <div className={activeTab === 'SHEET' || assignmentType === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"}>
+            <div className={activeTab === 'SHEET' || assignmentType === 'SHEET' ? "flex flex-col gap-4" : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
               {displayAssignments.map((assignment, index) => (
                 <AssignmentCard
                   key={assignment.type === 'SHEET' ? `sheet-${assignment.id}` : `assignment-${assignment.id}`}
