@@ -242,4 +242,30 @@ describe('useLogin hook', () => {
     expect(loginResult).toBe(false)
     expect(result.current.loginError).toBe('Không thể kết nối máy chủ. Vui lòng thử lại sau.')
   })
+
+  it('xóa sạch cờ mathclass_logged_out khi đăng nhập thành công để không bị middleware chặn', async () => {
+    document.cookie = 'mathclass_logged_out=1; path=/; max-age=10'
+    expect(document.cookie).toContain('mathclass_logged_out')
+
+    const mockLoginRes: LoginResponse = {
+      id: 2,
+      email: 'teacher@example.com',
+      fullName: 'Giáo Viên B',
+      role: 'TEACHER',
+      token: 'teacher-token-123',
+    }
+    vi.mocked(authService.login).mockResolvedValueOnce(mockLoginRes)
+
+    const { result } = renderHook(() => useLogin())
+
+    await act(async () => {
+      await result.current.login(
+        { email: 'teacher@example.com', password: 'password' },
+        false,
+        'TEACHER'
+      )
+    })
+
+    expect(document.cookie).not.toContain('mathclass_logged_out=1')
+  })
 })

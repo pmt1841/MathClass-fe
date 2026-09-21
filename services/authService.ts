@@ -66,6 +66,9 @@ export interface ResetPasswordPayload {
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const { data } = await api.post<LoginResponse>('/auth/login', credentials)
+    if (typeof document !== 'undefined') {
+      document.cookie = 'mathclass_logged_out=; path=/; max-age=0; SameSite=Lax'
+    }
     return data
   },
   register: async (credentials: SignupCredentials) => {

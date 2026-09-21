@@ -49,8 +49,10 @@ export function useLogin() {
       })
     )
 
-    // Lưu cookie mathclass_role và mathclass_remember cho middleware nhận diện vai trò tức thì
+    // Lưu cookie mathclass_role và mathclass_remember cho middleware nhận diện vai trò tức thì,
+    // đồng thời xóa sạch cookie mathclass_logged_out nếu còn sót lại từ lần logout trước đó
     if (typeof document !== 'undefined') {
+      document.cookie = 'mathclass_logged_out=; path=/; max-age=0; SameSite=Lax'
       const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 : ''
       const maxAgeStr = cookieMaxAge ? `; max-age=${cookieMaxAge}` : ''
       document.cookie = `mathclass_role=${role}; path=/${maxAgeStr}; SameSite=Lax`
@@ -107,6 +109,11 @@ export function useLogin() {
         return false
       }
 
+      // Đăng nhập thành công -> xóa bỏ ngay cờ mathclass_logged_out
+      if (typeof document !== 'undefined') {
+        document.cookie = 'mathclass_logged_out=; path=/; max-age=0; SameSite=Lax'
+      }
+
       // Nếu tài khoản yêu cầu xác thực cấp 2 (2FA Google Authenticator)
       if (data.is2faRequired) {
         setIsLoading(false)
@@ -143,5 +150,6 @@ export function useLogin() {
     completeLoginSession,
     isLoading,
     loginError,
+    setLoginError,
   }
 }

@@ -44,7 +44,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function LoginForm() {
-  const { login, completeLoginSession, isLoading, loginError } = useLogin()
+  const { login, completeLoginSession, isLoading, loginError, setLoginError } = useLogin()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -52,8 +52,7 @@ export default function LoginForm() {
   const reduxSelectedRole = useAppSelector((state) => state.auth.selectedRole)
   const { broadcastEvent } = useAuthChannel()
 
-  const [role, setRole] = useState<string>(reduxSelectedRole || ROLES.STUDENT)
-  const [explicitRole, setExplicitRole] = useState<string | null>(reduxSelectedRole || null)
+  const role = reduxSelectedRole || ROLES.STUDENT
   
   const [showLockedModal, setShowLockedModal] = useState<boolean>(false)
   const [lockedReason, setLockedReason] = useState<string | undefined>(undefined)
@@ -72,11 +71,13 @@ export default function LoginForm() {
   const [existingUser, setExistingUser] = useState<any>(null)
   const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
 
+  // Tự động xóa thông báo lỗi cũ khi người dùng đổi vai trò qua Header
+  useEffect(() => {
+    setLoginError?.('')
+  }, [reduxSelectedRole, setLoginError])
+
   useEffect(() => {
     const paramRole = searchParams.get('role')
-    const activeRole = paramRole || reduxSelectedRole || ROLES.STUDENT
-    setRole(activeRole)
-    setExplicitRole(activeRole)
     if (paramRole) {
       dispatch(setSelectedRole(paramRole))
     }
@@ -96,7 +97,7 @@ export default function LoginForm() {
       }
       setShowLockedModal(true)
     }
-  }, [searchParams, reduxSelectedRole, dispatch])
+  }, [searchParams, dispatch])
 
   useEffect(() => {
     if (loginError && (loginError.includes('đã bị khóa') || loginError.includes('bị khóa'))) {
@@ -157,7 +158,7 @@ export default function LoginForm() {
     const res = await login(
       { email: values.email, password: values.password },
       !!values.rememberMe,
-      explicitRole || undefined
+      role
     )
 
     if (res && typeof res === 'object' && res.is2faRequired) {

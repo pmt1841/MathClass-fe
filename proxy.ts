@@ -25,7 +25,9 @@ export function proxy(request: NextRequest) {
   let isTokenValid = false
   let userRole: string | null = null
 
-  const isLoggedOut = request.cookies.has('mathclass_logged_out')
+  const rawLoggedOut = request.cookies.has('mathclass_logged_out')
+  // Chỉ coi là đã đăng xuất nếu có cờ mathclass_logged_out VÀ không có cookie vai trò (chưa được cấp phiên mới)
+  const isLoggedOut = rawLoggedOut && !request.cookies.has('mathclass_role') && !request.cookies.has('user_role')
 
   if (!isLoggedOut && token) {
     try {

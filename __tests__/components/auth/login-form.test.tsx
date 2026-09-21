@@ -40,6 +40,7 @@ vi.mock('@/components/auth/social-login-button', () => ({
 
 // Mock custom hook useLogin
 const mockLogin = vi.fn()
+const mockSetLoginError = vi.fn()
 let mockIsLoading = false
 let mockLoginError: string | null = null
 
@@ -48,6 +49,7 @@ vi.mock('@/hooks/useLogin', () => ({
     login: mockLogin,
     isLoading: mockIsLoading,
     loginError: mockLoginError,
+    setLoginError: mockSetLoginError,
   }),
 }))
 

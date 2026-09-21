@@ -41,25 +41,21 @@ describe('Landing Header Component', () => {
     expect(screen.getByRole('button', { name: 'Dùng thử miễn phí' })).toBeInTheDocument()
   })
 
-  it('shows switch to "Đăng nhập Giáo viên" and "Đăng ký Học sinh" when on login page with student role', () => {
+  it('shows switch to "Đăng nhập Giáo viên" when on login page with student role', () => {
     mockPathname = '/login'
     mockSelectedRole = 'STUDENT'
     render(<Header />)
 
     // Khi đang ở cổng Học sinh, nút đổi vai trò trên header hiển thị "Đăng nhập Giáo viên"
     expect(screen.getByRole('button', { name: 'Đăng nhập Giáo viên' })).toBeInTheDocument()
-    // Nút đăng ký hiển thị "Đăng ký Học sinh"
-    expect(screen.getByRole('button', { name: 'Đăng ký Học sinh' })).toBeInTheDocument()
   })
 
-  it('shows switch to "Đăng nhập Học sinh" and "Đăng ký Giáo viên" when on login page with teacher role', () => {
+  it('shows switch to "Đăng nhập Học sinh" when on login page with teacher role', () => {
     mockPathname = '/login'
     mockSelectedRole = 'TEACHER'
     render(<Header />)
 
     // Khi đang ở cổng Giáo viên, nút đổi vai trò trên header hiển thị "Đăng nhập Học sinh"
     expect(screen.getByRole('button', { name: 'Đăng nhập Học sinh' })).toBeInTheDocument()
-    // Nút đăng ký hiển thị "Đăng ký Giáo viên"
-    expect(screen.getByRole('button', { name: 'Đăng ký Giáo viên' })).toBeInTheDocument()
   })
 })

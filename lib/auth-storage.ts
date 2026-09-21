@@ -25,7 +25,8 @@ export const authStorage = {
       localStorage.setItem('auth_persistence', 'session')
     }
 
-    // Clear old storage to prevent stale data
+    // Clear old storage and clear logged_out cookie to ensure clean session
+    document.cookie = 'mathclass_logged_out=; path=/; max-age=0; SameSite=Lax'
     localStorage.removeItem(AUTH_KEYS.TOKEN)
     sessionStorage.removeItem(AUTH_KEYS.TOKEN)
   },
