@@ -41,10 +41,6 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Đang hoạt động
-          </p>
         </div>
 
         <div className="flex items-center justify-between gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all">
