@@ -77,6 +77,7 @@ export function ReportBugModal({
   const [sendingOtp, setSendingOtp] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [otpCooldown, setOtpCooldown] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
 
   const imageFilesRef = useRef(imageFiles)
   imageFilesRef.current = imageFiles
@@ -144,6 +145,7 @@ export function ReportBugModal({
         return []
       })
       setOtpSent(false)
+      setIsDragging(false)
     }
   }, [open, defaultEmail, form])
 
@@ -172,8 +174,7 @@ export function ReportBugModal({
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
+  const processFiles = (files: File[]) => {
     if (files.length === 0) return
 
     if (imageFiles.length + files.length > 3) {
@@ -198,7 +199,41 @@ export function ReportBugModal({
     }
 
     setImageFiles((prev) => [...prev, ...validFiles])
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    processFiles(files)
     e.target.value = ''
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (imageFiles.length < 3) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (imageFiles.length >= 3) {
+      toast.error('Bạn chỉ được phép đính kèm tối đa 3 ảnh')
+      return
+    }
+
+    const files = Array.from(e.dataTransfer.files || [])
+    processFiles(files)
   }
 
   const handleRemoveImage = (index: number) => {
@@ -450,7 +485,14 @@ export function ReportBugModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`grid grid-cols-3 gap-3 p-1 rounded-xl transition-all ${
+                  isDragging ? 'bg-primary/5 ring-2 ring-primary/40 ring-dashed' : ''
+                }`}
+              >
                 {imageFiles.map((item, idx) => (
                   <div key={idx} className="relative aspect-video rounded-lg border border-border bg-muted overflow-hidden group">
                     <img
@@ -469,9 +511,17 @@ export function ReportBugModal({
                 ))}
 
                 {imageFiles.length < 3 && (
-                  <label className="flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 hover:bg-muted cursor-pointer transition-all">
-                    <Upload className="h-5 w-5 text-muted-foreground mb-1" />
-                    <span className="text-xs font-medium text-muted-foreground">Tải ảnh lên</span>
+                  <label
+                    className={`flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed transition-all cursor-pointer ${
+                      isDragging
+                        ? 'border-primary bg-primary/10 text-primary scale-[1.02] shadow-sm'
+                        : 'border-border hover:border-primary/50 bg-muted/30 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <Upload className={`h-5 w-5 mb-1 transition-transform pointer-events-none ${isDragging ? 'text-primary animate-bounce' : ''}`} />
+                    <span className="text-xs font-medium text-center px-1 pointer-events-none">
+                      {isDragging ? 'Thả ảnh vào đây' : 'Kéo thả / Chọn ảnh'}
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
