@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { StudentRemarksModal } from '@/app/(dashboard)/classes/[classCode]/_components/student-remarks-modal'
 import { Student } from '@/types'
@@ -336,10 +336,13 @@ describe('StudentRemarksModal Component', () => {
     expect(screen.getByText(/Đã nộp/i)).toBeInTheDocument()
 
     // Đóng banner
-    const closeBannerBtn = screen.getByRole('button', { name: 'Đóng' })
-    fireEvent.click(closeBannerBtn)
+    const banner = screen.getByRole('region', { name: 'Kết quả đánh giá AI' })
+    const closeBannerButton = within(banner).getByRole('button', { name: 'Đóng' })
+    fireEvent.click(closeBannerButton)
 
-    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Kết quả đánh giá AI' })
+    ).not.toBeInTheDocument()
   })
 
   it('click vào nhận xét trong danh sách để mở rộng / thu gọn chi tiết', () => {

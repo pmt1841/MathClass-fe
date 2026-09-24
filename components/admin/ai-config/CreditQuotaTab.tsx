@@ -635,10 +635,10 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
     undefined,
     debouncedSearch.trim() || undefined,
     50,
-    { enabled: open && hasDebouncedQuery },
+    { enabled: open },
     'ADMIN'
   )
-  const users = hasDebouncedQuery ? (data?.content || []) : []
+  const users = data?.content || []
 
   const isSelected = (userId: number) => values.some((u) => u.id === userId)
 
@@ -683,7 +683,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
           >
             <span className="truncate text-left flex-1 mr-2">
               {values.length === 0 ? (
-                'Chọn người dùng (email, họ tên)...'
+                'Chọn người dùng (email)...'
               ) : values.length === 1 ? (
                 <span className="font-medium text-slate-800">
                   {values[0].email}
@@ -771,11 +771,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
         )}
 
         <div className="max-h-60 overflow-y-auto p-1 text-xs">
-          {!isSearchActive ? (
-            <div className="py-8 text-center text-slate-400 text-xs">
-              Nhập email hoặc họ tên để tìm kiếm người dùng
-            </div>
-          ) : isLoading || (isSearchActive && !hasDebouncedQuery) || isFetching ? (
+          {isLoading || (isSearchActive && !hasDebouncedQuery) || isFetching ? (
             <div className="flex items-center justify-center py-6 text-slate-500 gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
               <span>Đang tìm kiếm...</span>

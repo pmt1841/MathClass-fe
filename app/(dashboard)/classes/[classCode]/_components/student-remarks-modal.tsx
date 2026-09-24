@@ -350,7 +350,10 @@ export function StudentRemarksModal({
 
                         {/* Banner thông báo kết quả quét dữ liệu */}
                         {scanInfo && (
-                          <div className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] animate-in fade-in duration-200">
+                          <section
+                            aria-label="Kết quả đánh giá AI"
+                            className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] animate-in fade-in duration-200"
+                          >
                             <div className="flex items-center gap-1.5 min-w-0">
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
                               <span className="truncate">
@@ -381,11 +384,12 @@ export function StudentRemarksModal({
                             <button
                               type="button"
                               onClick={() => setScanInfo(null)}
+                              aria-label="Đóng"
                               className="text-emerald-700 hover:text-emerald-900 text-[10px] font-medium ml-1 flex-shrink-0 hover:underline"
                             >
                               Đóng
                             </button>
-                          </div>
+                          </section>
                         )}
                       </div>
                     )}

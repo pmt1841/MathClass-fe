@@ -16,7 +16,7 @@ interface AssignmentTagInputProps {
 export function AssignmentTagInput({
   value = [],
   onChange,
-  placeholder = 'Nhập thẻ bài tập...',
+  placeholder = 'Nhập tag bài tập...',
   disabled = false,
   className,
 }: AssignmentTagInputProps) {
@@ -66,6 +66,18 @@ export function AssignmentTagInput({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const commitInput = () => {
+    const tag = inputValue.trim()
+    if (!tag || value.includes(tag)) {
+      setInputValue('')
+      setIsOpen(false)
+      return
+    }
+    onChange([...value, tag])
+    setInputValue('')
+    setIsOpen(false)
+  }
+
   const addTag = (tagName: string) => {
     const trimmed = tagName.trim()
     if (!trimmed) return
@@ -82,11 +94,11 @@ export function AssignmentTagInput({
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (e.key === 'Backspace' && !inputValue && value.length > 0) {
+      onChange(value.slice(0, -1))
+    } else if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
-      addTag(inputValue)
-    } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
-      removeTag(value.length - 1)
+      commitInput()
     }
   }
 
@@ -112,7 +124,8 @@ export function AssignmentTagInput({
                 removeTag(index)
               }}
               className="rounded-full p-0.5 hover:bg-primary/30 text-primary transition-colors cursor-pointer"
-              title="Xóa thẻ"
+              title="Xóa tag"
+              aria-label={`Xóa tag ${tag}`}
             >
               <X className="w-3 h-3" />
             </button>
@@ -135,13 +148,9 @@ export function AssignmentTagInput({
             onFocus={() => {
               if (inputValue.trim()) setIsOpen(true)
             }}
-            onBlur={() => {
-              if (inputValue.trim()) {
-                addTag(inputValue)
-              }
-            }}
+            onBlur={commitInput}
             onKeyDown={handleKeyDown}
-            placeholder={value.length === 0 ? placeholder : 'Thêm thẻ khác...'}
+            placeholder={value.length === 0 ? placeholder : 'Thêm tag khác...'}
             className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
           {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400 flex-shrink-0" />}

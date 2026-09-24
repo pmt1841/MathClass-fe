@@ -74,15 +74,12 @@ export const aiQuestionService = {
   ): Promise<AiGeneratedQuestionDTO> {
     const response = await axiosInstance.post<AiJobSubmitResponse>(
       '/ai/generate-question?async=true',
-      dto
+      dto,
+      { signal: options?.signal }
     )
     const jobId = response.data.jobId
     if (options?.onJobCreated) {
       await options.onJobCreated(jobId)
-    }
-
-    if (options?.signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
     }
 
     return aiJobService.waitForAiJob<AiGeneratedQuestionDTO>(jobId, {

@@ -5,6 +5,7 @@ import { CreditQuotaTab } from '@/components/admin/ai-config/CreditQuotaTab'
 const updateTaskConfig = vi.fn().mockResolvedValue({})
 const updateDefaultCredits = vi.fn().mockResolvedValue({})
 const adjustCreditMock = vi.fn().mockResolvedValue({})
+const batchAdjustCreditMock = vi.fn().mockResolvedValue({})
 
 vi.mock('@/hooks/useAdminCredits', () => ({
   useAdminTaskCreditConfigs: () => ({
@@ -30,6 +31,10 @@ vi.mock('@/hooks/useAdminCredits', () => ({
   useUpdateCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useDeleteCreditPackage: () => ({ mutateAsync: vi.fn() }),
   useAdjustCredit: () => ({ mutateAsync: adjustCreditMock }),
+  useBatchAdjustCredit: () => ({
+    mutateAsync: batchAdjustCreditMock,
+    isPending: false,
+  }),
   useAdminCreditTransactions: () => ({
     data: {
       content: [
@@ -183,19 +188,15 @@ describe('CreditQuotaTab', () => {
     const amountInput = screen.getByPlaceholderText('100 hoặc -50')
     fireEvent.change(amountInput, { target: { value: '50' } })
 
-    // Nhập lý do
-    const reasonInput = screen.getByPlaceholderText('Hoàn tiền lỗi hệ thống')
-    fireEvent.change(reasonInput, { target: { value: 'Thưởng học sinh chăm chỉ' } })
-
     // Bấm nút điều chỉnh
-    const submitBtn = screen.getByRole('button', { name: 'Điều chỉnh' })
+    const submitBtn = screen.getByRole('button', { name: /Điều chỉnh/i })
     fireEvent.click(submitBtn)
 
     await waitFor(() => {
-      expect(adjustCreditMock).toHaveBeenCalledWith({
-        userId: 1,
+      expect(batchAdjustCreditMock).toHaveBeenCalledWith({
+        userIds: [1],
         amount: 50,
-        reason: 'Thưởng học sinh chăm chỉ',
+        reason: 'Hoàn tiền do lỗi hệ thống',
       })
     })
   })
