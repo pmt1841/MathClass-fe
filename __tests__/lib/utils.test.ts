@@ -4,6 +4,7 @@ import {
   parseDateSafe,
   formatDate,
   formatDateTime,
+  formatVnDateTime,
   formatTime,
   formatDistanceToNowSafe,
   formatRelativeLastLogin,
@@ -62,6 +63,23 @@ describe('utils', () => {
       const date = new Date(2026, 4, 10, 14, 20, 45)
       expect(formatDateTime(date)).toBe('14:20:45 10/05/2026')
       expect(formatTime(date)).toBe('14:20:45')
+    })
+  })
+
+  describe('formatVnDateTime (GMT+7)', () => {
+    it('converts UTC ISO string without Z to GMT+7 correctly', () => {
+      // 06:42:26 UTC -> 13:42:26 Vietnam time (+7)
+      expect(formatVnDateTime('2026-09-21T06:42:26')).toBe('13:42:26 21/09/2026')
+    })
+
+    it('converts UTC ISO string with Z to GMT+7 correctly', () => {
+      expect(formatVnDateTime('2026-09-21T06:42:26Z')).toBe('13:42:26 21/09/2026')
+    })
+
+    it('returns em-dash for null or invalid date', () => {
+      expect(formatVnDateTime(null)).toBe('—')
+      expect(formatVnDateTime(undefined)).toBe('—')
+      expect(formatVnDateTime('invalid-date')).toBe('—')
     })
   })
 

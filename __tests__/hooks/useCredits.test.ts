@@ -150,24 +150,19 @@ describe('useCredits hooks', () => {
   })
 
   describe('usePurchaseCredit', () => {
-    it('mua gói thành công qua 2 bước (purchase -> completePurchase) và invalidate queries liên quan', async () => {
+    it('khởi tạo đơn mua gói credit thành công qua creditService.purchase', async () => {
       const mockOrder: CreditPurchaseOrder = {
         orderId: 1001,
-        gatewayCode: 'MOCK_PAY',
+        gatewayCode: 'SEPAY_VIETQR',
         credits: 200,
         price: 100000,
         status: 'PENDING',
-      }
-      const mockCompletedOrder: CreditPurchaseOrder = {
-        ...mockOrder,
-        status: 'SUCCESS',
+        transferSyntax: 'MAT1001',
       }
 
       vi.mocked(creditService.purchase).mockResolvedValueOnce(mockOrder)
-      vi.mocked(creditService.completePurchase).mockResolvedValueOnce(mockCompletedOrder)
 
       const queryClient = createTestQueryClient()
-      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
       const { result } = renderHook(() => usePurchaseCredit(), {
         wrapper: createWrapper(queryClient),
@@ -179,35 +174,6 @@ describe('useCredits hooks', () => {
       })
 
       expect(creditService.purchase).toHaveBeenCalledWith(2)
-      expect(creditService.completePurchase).toHaveBeenCalledWith(1001)
-      expect(mutationResult).toEqual(mockCompletedOrder)
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['credits', 'me'] })
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['credits', 'me', 'transactions'] })
-    })
-
-    it('nếu purchase không trả về orderId thì không gọi completePurchase', async () => {
-      const mockOrder = {
-        orderId: 0,
-        gatewayCode: 'MOCK_PAY',
-        credits: 0,
-        price: 0,
-        status: 'FAILED',
-      } as CreditPurchaseOrder
-
-      vi.mocked(creditService.purchase).mockResolvedValueOnce(mockOrder)
-
-      const queryClient = createTestQueryClient()
-      const { result } = renderHook(() => usePurchaseCredit(), {
-        wrapper: createWrapper(queryClient),
-      })
-
-      let mutationResult: CreditPurchaseOrder | undefined
-      await act(async () => {
-        mutationResult = await result.current.mutateAsync(1)
-      })
-
-      expect(creditService.purchase).toHaveBeenCalledWith(1)
-      expect(creditService.completePurchase).not.toHaveBeenCalled()
       expect(mutationResult).toEqual(mockOrder)
     })
   })

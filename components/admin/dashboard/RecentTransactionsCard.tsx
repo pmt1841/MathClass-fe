@@ -11,6 +11,7 @@ import {
 import { RecentTransaction } from '@/types/admin-dashboard'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { formatVnDateTime } from '@/lib/utils'
 
 interface RecentTransactionsCardProps {
   recentTransactions: RecentTransaction[]
@@ -31,18 +32,7 @@ export function RecentTransactionsCard({
   }
 
   const formatTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString)
-      return new Intl.DateTimeFormat('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }).format(date)
-    } catch {
-      return isoString
-    }
+    return formatVnDateTime(isoString)
   }
 
   const totalItems = recentTransactions.length

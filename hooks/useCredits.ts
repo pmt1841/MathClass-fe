@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { PageResponse } from '@/types'
+import { CreditOrderStatusResponse } from '@/types/payment'
 import {
   creditService,
   CreditBalance,
@@ -60,24 +61,37 @@ export function useCreditPackages() {
 }
 
 /**
- * Mua gói credit (2 bước: tạo đơn → xác nhận thanh toán).
- * Với Mock gateway, đơn hoàn thành ngay; khi tích hợp cổng thanh toán thật
- * sẽ có bước redirect trước khi confirm.
+ * Khởi tạo đơn mua gói credit (trả về order kèm thông tin VietQR để mở Modal thanh toán).
  */
 export function usePurchaseCredit() {
+  return useMutation<CreditPurchaseOrder, Error, number>({
+    mutationFn: (packageId: number) => creditService.purchase(packageId),
+  })
+}
+
+/**
+ * Kiểm tra trạng thái đơn nạp credit (Live Polling mỗi 2.5s khi modal đang mở và đơn PENDING).
+ */
+export function useCreditOrderStatus(orderId: number | null, enabled: boolean = true) {
   const queryClient = useQueryClient()
 
-  return useMutation<CreditPurchaseOrder, Error, number>({
-    mutationFn: async (packageId: number) => {
-      const order = await creditService.purchase(packageId)
-      if (order?.orderId) {
-        return creditService.completePurchase(order.orderId)
+  return useQuery<CreditOrderStatusResponse>({
+    queryKey: ['credit-order-status', orderId],
+    queryFn: () => creditService.getOrderStatus(orderId!),
+    enabled: !!orderId && enabled,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      if (
+        status === 'SUCCESS' ||
+        status === 'FAILED' ||
+        status === 'CANCELLED' ||
+        status === 'EXPIRED_PAID' ||
+        status === 'DUPLICATE_PAYMENT' ||
+        status === 'REFUNDED'
+      ) {
+        return false
       }
-      return order
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['credits', 'me'] })
-      queryClient.invalidateQueries({ queryKey: ['credits', 'me', 'transactions'] })
+      return 2500
     },
   })
 }

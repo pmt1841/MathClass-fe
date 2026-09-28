@@ -27,7 +27,10 @@ export function formatCreditTransactionDescription(
         result = result.replaceAll(taskKey, `"${taskLabel}"`)
       }
     }
-    return result
+    // Bỏ định dạng (#id) hoặc (đơn #id) theo yêu cầu giao diện người dùng
+    result = result.replace(/\s*\((?:đơn\s*)?#\d+\)/gi, '')
+    result = result.replace(/\s*đơn\s*#\d+/gi, '')
+    return result.trim()
   }
   if (task) {
     return `Tác vụ "${getCreditTaskLabel(task)}"`

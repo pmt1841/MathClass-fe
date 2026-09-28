@@ -5,6 +5,7 @@ export type BugErrorType =
   | 'UI_KATEX'
   | 'SUBMISSION_PROBLEM'
   | 'PERFORMANCE'
+  | 'PAYMENT_REFUND'
   | 'AI_ASSISTANT'
   | 'CREDIT_TRANSACTION'
   | 'OTHER'
@@ -15,6 +16,10 @@ export interface CreateBugReportPayload {
   reporterEmail?: string
   reporterName?: string
   errorType: BugErrorType
+  orderCode?: string
+  bankCode?: string
+  accountNumber?: string
+  accountHolderName?: string
   description?: string
   imageUrls?: string[]
   otp?: string
@@ -28,6 +33,10 @@ export interface BugReportResponse {
   reporterName?: string
   userId?: number
   errorType: BugErrorType
+  orderCode?: string
+  bankCode?: string
+  accountNumber?: string
+  accountHolderName?: string
   description?: string
   status: BugReportStatus
   imageUrls: string[]

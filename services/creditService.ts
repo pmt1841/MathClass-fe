@@ -1,5 +1,6 @@
 import api from '@/lib/axios'
 import { PageResponse } from '@/types'
+import { CreditOrderStatusResponse } from '@/types/payment'
 
 /**
  * API credit AI của người dùng (MAT-255).
@@ -31,13 +32,28 @@ export interface CreditPackage {
 
 export interface CreditPurchaseOrder {
   orderId: number
+  orderCode?: string
+  packageId?: number
   gatewayCode: string
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  status:
+    | 'PENDING'
+    | 'SUCCESS'
+    | 'FAILED'
+    | 'CANCELLED'
+    | 'EXPIRED_PAID'
+    | 'DUPLICATE_PAYMENT'
+    | 'REFUNDED'
   redirectUrl?: string | null
+  qrUrl?: string | null
+  transferSyntax?: string | null
+  bankCode?: string | null
+  accountNumber?: string | null
+  accountHolderName?: string | null
   credits: number
   price: number
   creditsAdded?: number
   newBalance?: number
+  createdAt?: string
 }
 
 export type CreditTransactionType =
@@ -95,6 +111,11 @@ export const creditService = {
 
   completePurchase: async (orderId: number): Promise<CreditPurchaseOrder> => {
     const res = await api.post<CreditPurchaseOrder>(`/credits/purchase/${orderId}/complete`)
+    return res.data
+  },
+
+  getOrderStatus: async (orderId: number): Promise<CreditOrderStatusResponse> => {
+    const res = await api.get<CreditOrderStatusResponse>(`/credits/purchase/orders/${orderId}/status`)
     return res.data
   },
 

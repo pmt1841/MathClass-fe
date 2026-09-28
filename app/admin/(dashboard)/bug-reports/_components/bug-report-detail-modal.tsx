@@ -23,8 +23,9 @@ import {
 } from '@/services/bugReportService'
 import { useUpdateBugReportStatus } from '@/hooks/useBugReports'
 import { toast } from 'sonner'
-import { Loader2, Mail, Calendar, User, CheckCircle2, AlertTriangle, ZoomIn } from 'lucide-react'
+import { Loader2, Mail, Calendar, User, CheckCircle2, AlertTriangle, ZoomIn, CreditCard, Copy } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { getBankInfo } from '@/lib/constants/vietnam-banks'
 
 interface BugReportDetailModalProps {
   open: boolean
@@ -38,6 +39,7 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   UI_KATEX: 'Lỗi hiển thị giao diện / KaTeX',
   SUBMISSION_PROBLEM: 'Lỗi không nộp bài / không tải đề',
   PERFORMANCE: 'Lỗi tốc độ / không phản hồi',
+  PAYMENT_REFUND: 'Sự cố hoàn tiền nạp xu (Credit)',
   AI_ASSISTANT: 'Lỗi trợ lý AI',
   CREDIT_TRANSACTION: 'Lỗi giao dịch Credit',
   OTHER: 'Lỗi khác',
@@ -93,6 +95,13 @@ export function BugReportDetailModal({
     )
   }
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success(`Đã sao chép ${label}!`)
+  }
+
+  const bankInfo = report ? getBankInfo(report.bankCode) : undefined
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -143,6 +152,93 @@ export function BugReportDetailModal({
                 </div>
               </div>
             </div>
+
+            {/* Thông tin tài khoản nhận hoàn tiền (nếu có) */}
+            {(report.errorType === 'PAYMENT_REFUND' || report.bankCode || report.accountNumber) && (
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm">
+                      <CreditCard className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
+                        Thông tin tài khoản nhận hoàn tiền
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Thông tin thụ hưởng do người dùng cung cấp
+                      </p>
+                    </div>
+                  </div>
+                  {report.orderCode && (
+                    <Badge variant="outline" className="font-mono text-xs border-emerald-300 text-emerald-800 bg-white dark:bg-slate-900 shadow-sm">
+                      Mã đơn: {report.orderCode}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {/* Ngân hàng */}
+                  <div className="rounded-lg border border-emerald-100 dark:border-emerald-900 bg-white dark:bg-slate-900 p-2.5">
+                    <span className="text-[11px] font-medium text-muted-foreground block">Ngân hàng thụ hưởng</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {bankInfo?.logo && (
+                        <img
+                          src={bankInfo.logo}
+                          alt={bankInfo.shortName}
+                          className="h-5 w-auto object-contain max-w-[60px]"
+                        />
+                      )}
+                      <span className="text-xs font-bold text-foreground">
+                        {bankInfo ? `${bankInfo.shortName} - ${bankInfo.name}` : report.bankCode || 'Chưa cung cấp'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tên chủ tài khoản */}
+                  <div className="rounded-lg border border-emerald-100 dark:border-emerald-900 bg-white dark:bg-slate-900 p-2.5">
+                    <span className="text-[11px] font-medium text-muted-foreground block">Tên chủ tài khoản</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs font-bold tracking-wide uppercase text-foreground truncate mr-1">
+                        {report.accountHolderName || 'Chưa cung cấp'}
+                      </span>
+                      {report.accountHolderName && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                          onClick={() => copyToClipboard(report.accountHolderName!, 'Tên chủ tài khoản')}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Số tài khoản */}
+                  <div className="sm:col-span-2 rounded-lg border border-emerald-100 dark:border-emerald-900 bg-white dark:bg-slate-900 p-2.5">
+                    <span className="text-[11px] font-medium text-muted-foreground block">Số tài khoản (STK)</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                        {report.accountNumber || 'Chưa cung cấp'}
+                      </span>
+                      {report.accountNumber && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
+                          onClick={() => copyToClipboard(report.accountNumber!, 'Số tài khoản')}
+                        >
+                          <Copy className="h-3.5 w-3.5" /> Sao chép STK
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Nội dung Mô tả sự cố */}
             <div className="space-y-1.5">

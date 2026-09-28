@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CreditPackagesSection } from '@/components/credits/credit-packages-section'
 
 const mutateAsync = vi.fn().mockResolvedValue({
@@ -12,6 +12,8 @@ const mutateAsync = vi.fn().mockResolvedValue({
   newBalance: 197,
 })
 
+const mockPaymentConfig = { isActive: true }
+
 vi.mock('@/hooks/useCredits', () => ({
   useCreditPackages: () => ({
     data: [
@@ -23,24 +25,52 @@ vi.mock('@/hooks/useCredits', () => ({
   usePurchaseCredit: () => ({ isPending: false, mutateAsync }),
 }))
 
+vi.mock('@/hooks/usePaymentConfig', () => ({
+  usePublicPaymentConfig: () => ({
+    data: mockPaymentConfig,
+  }),
+}))
+
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+vi.mock('@/components/credits/PaymentQrModal', () => ({
+  PaymentQrModal: () => null,
+}))
+
 describe('CreditPackagesSection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockPaymentConfig.isActive = true
+  })
+
   it('should list packages with formatted price', () => {
     render(<CreditPackagesSection />)
 
     expect(screen.getByText('Gói Cơ bản')).toBeTruthy()
     expect(screen.getByText('Gói Pro')).toBeTruthy()
-    expect(screen.getAllByText('Mua ngay').length).toBe(2)
+    expect(screen.getAllByText('Nạp ngay').length).toBe(2)
   })
 
-  it('should call purchase mutation with selected package id', async () => {
+  it('should call purchase mutation with selected package id when VietQR is active', async () => {
     render(<CreditPackagesSection />)
 
-    fireEvent.click(screen.getAllByText('Mua ngay')[0])
+    fireEvent.click(screen.getAllByText('Nạp ngay')[0])
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(1))
+  })
+
+  it('should show maintenance modal and not call mutation when VietQR is inactive', async () => {
+    mockPaymentConfig.isActive = false
+
+    render(<CreditPackagesSection />)
+
+    fireEvent.click(screen.getAllByText('Nạp ngay')[0])
+
+    await waitFor(() => {
+      expect(screen.getByText('Thông Báo Bảo Trì Kênh Thanh Toán')).toBeTruthy()
+    })
+    expect(mutateAsync).not.toHaveBeenCalled()
   })
 })

@@ -14,6 +14,7 @@ import {
   FileText,
   Cpu,
   LayoutDashboard,
+  CreditCard,
   HardDrive,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -54,6 +55,11 @@ export const adminNavItems: NavItem[] = [
     icon: Cpu,
     label: 'Cấu hình Dịch vụ AI',
     href: '/admin/ai-config',
+  },
+  {
+    icon: CreditCard,
+    label: 'Cổng VietQR & Đơn nạp',
+    href: '/admin/payments',
   },
   {
     icon: FileText,

@@ -121,7 +121,8 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   PERFORMANCE: '4. Lỗi tốc độ/phản hồi',
   AI_ASSISTANT: '5. Lỗi trợ lý AI',
   CREDIT_TRANSACTION: '6. Lỗi giao dịch Credit',
-  OTHER: '7. Khác',
+  PAYMENT_REFUND: '7. Sự cố hoàn tiền nạp xu',
+  OTHER: '8. Khác',
 }
 
 const STATUS_BADGES: Record<

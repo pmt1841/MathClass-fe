@@ -4,7 +4,23 @@ import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { AlertTriangle, Upload, X, Loader2, Image as ImageIcon, CheckCircle2, KeyRound, Mail } from 'lucide-react'
+import {
+  AlertTriangle,
+  Upload,
+  X,
+  Loader2,
+  Image as ImageIcon,
+  CheckCircle2,
+  KeyRound,
+  Mail,
+  Building2,
+  Search,
+  Check,
+  ChevronDown,
+  Edit3,
+} from 'lucide-react'
+import { VIETNAM_BANKS, searchBanks, getBankInfo, VietnamBank } from '@/lib/constants/vietnam-banks'
+import { cn } from '@/lib/utils'
 
 import {
   Dialog,
@@ -41,18 +57,56 @@ const ERROR_TYPE_OPTIONS: { value: BugErrorType; label: string }[] = [
   { value: 'PERFORMANCE', label: '4. Lỗi tốc độ / không phản hồi' },
   { value: 'AI_ASSISTANT', label: '5. Lỗi trợ lý AI' },
   { value: 'CREDIT_TRANSACTION', label: '6. Lỗi giao dịch Credit' },
-  { value: 'OTHER', label: '7. Khác' },
+  { value: 'PAYMENT_REFUND', label: '7. Nạp Credit / Yêu cầu hoàn tiền' },
+  { value: 'OTHER', label: '8. Khác' },
 ]
 
-const formSchema = z.object({
-  email: z.string().trim().email('Email không hợp lệ').min(1, 'Email là bắt buộc'),
-  errorType: z.string({
-    required_error: 'Vui lòng chọn loại lỗi bạn gặp phải',
-  }).min(1, 'Vui lòng chọn loại lỗi bạn gặp phải'),
-  description: z.string().optional(),
-  otp: z.string().optional(),
-  website: z.string().optional(),
-})
+const formSchema = z
+  .object({
+    email: z.string().trim().email('Email không hợp lệ').min(1, 'Email là bắt buộc'),
+    errorType: z.string({
+      required_error: 'Vui lòng chọn loại lỗi bạn gặp phải',
+    }).min(1, 'Vui lòng chọn loại lỗi bạn gặp phải'),
+    orderCode: z.string().optional(),
+    bankCode: z.string().optional(),
+    accountNumber: z.string().optional(),
+    accountHolderName: z.string().optional(),
+    description: z.string().optional(),
+    otp: z.string().optional(),
+    website: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.errorType === 'PAYMENT_REFUND') {
+      if (!data.orderCode || !data.orderCode.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['orderCode'],
+          message: 'Vui lòng nhập mã đơn hàng cần hoàn tiền',
+        })
+      }
+      if (!data.bankCode || !data.bankCode.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bankCode'],
+          message: 'Vui lòng chọn hoặc nhập ngân hàng nhận tiền hoàn',
+        })
+      }
+      if (!data.accountNumber || !data.accountNumber.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['accountNumber'],
+          message: 'Vui lòng nhập số tài khoản ngân hàng',
+        })
+      }
+      if (!data.accountHolderName || !data.accountHolderName.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['accountHolderName'],
+          message: 'Vui lòng nhập tên chủ tài khoản',
+        })
+      }
+    }
+  })
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -79,6 +133,11 @@ export function ReportBugModal({
   const [otpCooldown, setOtpCooldown] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
+  // Quản lý tìm kiếm và gõ tay tự do cho Ngân hàng thụ hưởng
+  const [bankSearchQuery, setBankSearchQuery] = useState('')
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false)
+  const bankSelectorRef = useRef<HTMLDivElement>(null)
+
   const imageFilesRef = useRef(imageFiles)
   imageFilesRef.current = imageFiles
 
@@ -89,11 +148,17 @@ export function ReportBugModal({
     defaultValues: {
       email: defaultEmail,
       errorType: '',
+      orderCode: '',
+      bankCode: '',
+      accountNumber: '',
+      accountHolderName: '',
       description: '',
       otp: '',
       website: '',
     },
   })
+
+  const watchErrorType = form.watch('errorType')
 
   // Đếm ngược 60s Cooldown gửi OTP cho Guest
   useEffect(() => {
@@ -115,6 +180,19 @@ export function ReportBugModal({
     return () => clearInterval(interval)
   }, [])
 
+  // Xử lý đóng dropdown ngân hàng khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bankSelectorRef.current && !bankSelectorRef.current.contains(e.target as Node)) {
+        setIsBankDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Cleanup Blob Object URLs khi unmount
   useEffect(() => {
     return () => {
@@ -132,10 +210,16 @@ export function ReportBugModal({
       form.reset({
         email: defaultEmail,
         errorType: '',
+        orderCode: '',
+        bankCode: '',
+        accountNumber: '',
+        accountHolderName: '',
         description: '',
         otp: '',
         website: '',
       })
+      setBankSearchQuery('')
+      setIsBankDropdownOpen(false)
       setImageFiles((prev) => {
         prev.forEach((item) => {
           if (item.preview) {
@@ -282,11 +366,30 @@ export function ReportBugModal({
         setUploadingImage(false)
       }
 
-      // 2. Gửi request báo cáo
+      // 2. Chuẩn hóa bankCode: nếu người dùng gõ tay trùng mã hoặc tên ngân hàng có sẵn thì map về mã chuẩn
+      let finalBankCode = values.bankCode ? values.bankCode.trim() : undefined
+      if (finalBankCode) {
+        const matchedBank =
+          getBankInfo(finalBankCode) ||
+          searchBanks(finalBankCode).find(
+            (b) =>
+              b.code.toUpperCase() === finalBankCode!.toUpperCase() ||
+              b.shortName.toUpperCase() === finalBankCode!.toUpperCase()
+          )
+        if (matchedBank) {
+          finalBankCode = matchedBank.code
+        }
+      }
+
+      // 3. Gửi request báo cáo
       const payload = {
         reporterEmail: values.email,
         reporterName: defaultName || undefined,
         errorType: values.errorType as BugErrorType,
+        orderCode: values.orderCode ? values.orderCode.trim().toUpperCase() : undefined,
+        bankCode: finalBankCode,
+        accountNumber: values.accountNumber ? values.accountNumber.trim() : undefined,
+        accountHolderName: values.accountHolderName ? values.accountHolderName.trim().toUpperCase() : undefined,
         description: values.description || undefined,
         imageUrls: uploadedUrls,
         otp: !isAuthenticated ? values.otp?.trim() : undefined,
@@ -452,6 +555,296 @@ export function ReportBugModal({
               )}
             />
 
+            {/* Field Mã đơn hàng (Chỉ hiển thị khi chọn Hoàn tiền Credit) */}
+            {watchErrorType === 'PAYMENT_REFUND' && (
+              <FormField
+                control={form.control}
+                name="orderCode"
+                render={({ field }) => (
+                  <FormItem className="rounded-lg border border-violet-200 bg-violet-50/60 p-3.5 dark:border-violet-900/50 dark:bg-violet-950/20">
+                    <FormLabel className="font-semibold text-violet-950 dark:text-violet-200 flex items-center justify-between">
+                      <span>Mã đơn nạp credit <span className="text-destructive">*</span></span>
+                      <span className="text-xs font-normal text-violet-600 dark:text-violet-400 font-mono">
+                        Ví dụ: 2609210048
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập mã đơn nạp (ví dụ: 2609210048 hoặc N9GGDN)"
+                        className="bg-white dark:bg-slate-900 font-mono uppercase tracking-wider text-base"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase().trim())}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-violet-700 dark:text-violet-300">
+                      💡 <strong>Hướng dẫn:</strong> Mã đơn là dãy số trong đơn nạp hoặc trong nội dung chuyển khoản của bạn (Ví dụ: bạn chuyển khoản với nội dung <strong>COBAN 2609210048</strong> thì mã đơn là <strong>2609210048</strong>).
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Thông tin tài khoản nhận tiền hoàn (Chỉ hiển thị khi chọn Hoàn tiền) */}
+            {watchErrorType === 'PAYMENT_REFUND' && (
+              <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3.5 dark:border-violet-900/50 dark:bg-violet-950/20 space-y-3">
+                <div className="flex items-center gap-2 pb-1 border-b border-violet-100 dark:border-violet-900/40">
+                  <Building2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-violet-950 dark:text-violet-200">
+                    Tài khoản ngân hàng nhận tiền hoàn
+                  </span>
+                </div>
+
+                {/* Chọn hoặc gõ tay ngân hàng thụ hưởng */}
+                <FormField
+                  control={form.control}
+                  name="bankCode"
+                  render={({ field }) => {
+                    const selectedBank = getBankInfo(field.value)
+                    const filteredBanks = searchBanks(bankSearchQuery)
+
+                    return (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                          <span>
+                            Ngân hàng thụ hưởng <span className="text-destructive">*</span>
+                          </span>
+                          <span className="text-[11px] font-normal text-violet-600 dark:text-violet-400">
+                            (Tìm kiếm hoặc tự gõ tay)
+                          </span>
+                        </FormLabel>
+                        <FormControl>
+                          <div ref={bankSelectorRef} className="relative">
+                            <div className="relative flex items-center">
+                              {/* Logo hoặc Icon bên trái */}
+                              <div className="absolute left-3 flex items-center pointer-events-none z-10">
+                                {selectedBank?.logo ? (
+                                  <img
+                                    src={selectedBank.logo}
+                                    alt={selectedBank.shortName}
+                                    className="h-4 w-7 object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none'
+                                    }}
+                                  />
+                                ) : (
+                                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+
+                              {/* Input vừa tìm kiếm vừa gõ tay */}
+                              <Input
+                                placeholder="Tìm kiếm (VCB, MB, Techcom...) hoặc gõ tay tên ngân hàng..."
+                                className="pl-11 pr-16 bg-white dark:bg-slate-900 h-10 text-xs"
+                                value={bankSearchQuery}
+                                onFocus={() => setIsBankDropdownOpen(true)}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  setBankSearchQuery(val)
+                                  field.onChange(val)
+                                  if (!isBankDropdownOpen) setIsBankDropdownOpen(true)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    if (filteredBanks.length > 0 && bankSearchQuery.trim()) {
+                                      const first = filteredBanks[0]
+                                      setBankSearchQuery(first.shortName)
+                                      field.onChange(first.code)
+                                    } else if (bankSearchQuery.trim()) {
+                                      field.onChange(bankSearchQuery.trim())
+                                    }
+                                    setIsBankDropdownOpen(false)
+                                  } else if (e.key === 'Escape') {
+                                    setIsBankDropdownOpen(false)
+                                  }
+                                }}
+                              />
+
+                              {/* Action buttons bên phải */}
+                              <div className="absolute right-2 flex items-center gap-1">
+                                {bankSearchQuery && (
+                                  <button
+                                    type="button"
+                                    tabIndex={-1}
+                                    className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setBankSearchQuery('')
+                                      field.onChange('')
+                                    }}
+                                    title="Xóa để chọn lại"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  tabIndex={-1}
+                                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setIsBankDropdownOpen((prev) => !prev)
+                                  }}
+                                  title="Danh sách ngân hàng"
+                                >
+                                  <ChevronDown
+                                    className={cn(
+                                      'h-4 w-4 transition-transform duration-200',
+                                      isBankDropdownOpen && 'rotate-180'
+                                    )}
+                                  />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Dropdown Floating Options */}
+                            {isBankDropdownOpen && (
+                              <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
+                                {/* Tùy chọn gõ tay tự do nếu người dùng có gõ chữ */}
+                                {bankSearchQuery.trim() && (
+                                  <div
+                                    className="flex items-center gap-2 p-2.5 bg-violet-50/80 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/60 border-b border-violet-100 dark:border-violet-900/50 cursor-pointer transition-colors"
+                                    onClick={() => {
+                                      field.onChange(bankSearchQuery.trim())
+                                      setIsBankDropdownOpen(false)
+                                    }}
+                                  >
+                                    <Edit3 className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                    <div className="flex-1 min-w-0 text-xs">
+                                      <span className="font-semibold text-violet-950 dark:text-violet-200">
+                                        Sử dụng tên gõ tay:{' '}
+                                      </span>
+                                      <span className="font-mono font-bold text-violet-700 dark:text-violet-300">
+                                        "{bankSearchQuery.trim()}"
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] bg-violet-200/80 dark:bg-violet-800 text-violet-800 dark:text-violet-200 px-1.5 py-0.5 rounded font-medium shrink-0">
+                                      Gõ tự do
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Danh sách ngân hàng được lọc */}
+                                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                                  {filteredBanks.length > 0 ? (
+                                    filteredBanks.map((bank) => {
+                                      const isSelected =
+                                        field.value?.toUpperCase() === bank.code.toUpperCase() ||
+                                        field.value?.toUpperCase() === bank.shortName.toUpperCase()
+
+                                      return (
+                                        <div
+                                          key={bank.code}
+                                          className={cn(
+                                            'flex items-center gap-2.5 p-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition-colors',
+                                            isSelected && 'bg-violet-50/60 dark:bg-violet-950/30'
+                                          )}
+                                          onClick={() => {
+                                            field.onChange(bank.code)
+                                            setBankSearchQuery(bank.shortName)
+                                            setIsBankDropdownOpen(false)
+                                          }}
+                                        >
+                                          {bank.logo ? (
+                                            <img
+                                              src={bank.logo}
+                                              alt={bank.shortName}
+                                              className="h-4 w-8 object-contain shrink-0"
+                                              onError={(e) => {
+                                                (e.target as HTMLElement).style.display = 'none'
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="h-4 w-8 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center shrink-0">
+                                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                                            </div>
+                                          )}
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="font-bold text-slate-900 dark:text-slate-100">
+                                                {bank.shortName}
+                                              </span>
+                                              <span className="text-[10px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
+                                                {bank.code}
+                                              </span>
+                                            </div>
+                                            <p className="text-slate-500 dark:text-slate-400 text-[11px] truncate">
+                                              {bank.name}
+                                            </p>
+                                          </div>
+                                          {isSelected && (
+                                            <Check className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                          )}
+                                        </div>
+                                      )
+                                    })
+                                  ) : (
+                                    <div className="p-3 text-center text-xs text-muted-foreground">
+                                      Không tìm thấy ngân hàng có sẵn khớp với "{bankSearchQuery}".
+                                      <br />
+                                      <span className="text-[11px] text-violet-600 dark:text-violet-400">
+                                        Bấm vào mục <strong>Gõ tự do</strong> ở trên để tiếp tục sử dụng tên này.
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
+                />
+
+                {/* Số tài khoản & Tên chủ tài khoản */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="accountNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                          Số tài khoản nhận <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ví dụ: 0378531075"
+                            className="bg-white dark:bg-slate-900 font-mono text-sm h-9"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="accountHolderName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                          Tên chủ tài khoản <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ví dụ: NGUYEN VAN A"
+                            className="bg-white dark:bg-slate-900 font-mono uppercase text-sm h-9"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Field Mô tả sự cố */}
             <FormField
               control={form.control}
@@ -459,12 +852,24 @@ export function ReportBugModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-semibold">
-                    Mô tả sự cố <span className="text-xs font-normal text-muted-foreground">(Không bắt buộc)</span>
+                    {watchErrorType === 'PAYMENT_REFUND' ? (
+                      <span>
+                        Lý do hoàn tiền / Ghi chú bổ sung <span className="text-xs font-normal text-muted-foreground">(Không bắt buộc)</span>
+                      </span>
+                    ) : (
+                      <span>
+                        Mô tả sự cố <span className="text-xs font-normal text-muted-foreground">(Không bắt buộc)</span>
+                      </span>
+                    )}
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Chi tiết về các bước xảy ra lỗi hoặc thông tin bổ sung giúp giải quyết nhanh hơn..."
-                      rows={3}
+                      placeholder={
+                        watchErrorType === 'PAYMENT_REFUND'
+                          ? 'Ghi chú thêm nếu cần (ví dụ: Tôi chuyển tiền quá hạn 15 phút...)'
+                          : 'Chi tiết về các bước xảy ra lỗi hoặc thông tin bổ sung giúp giải quyết nhanh hơn...'
+                      }
+                      rows={2}
                       className="resize-none"
                       {...field}
                     />

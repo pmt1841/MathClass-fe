@@ -19,7 +19,10 @@ export function parseDateSafe(dateInput: Date | string | number | null | undefin
   }
 
   if (typeof dateInput === 'string') {
-    let cleanStr = dateInput;
+    let cleanStr = dateInput.trim();
+    if (cleanStr.includes(' ') && !cleanStr.includes('T')) {
+      cleanStr = cleanStr.replace(' ', 'T');
+    }
     // Since Backend is now forced to UTC, any date string without timezone info is actually UTC.
     // Ensure it's parsed as UTC by appending 'Z' if it doesn't have timezone info.
     if (cleanStr.includes('T') && !cleanStr.endsWith('Z') && !cleanStr.match(/[+-]\d{2}(:\d{2})?$/)) {
@@ -49,6 +52,25 @@ export function formatDateTime24h(dateInput: Date | string | number | null | und
   const d = parseDateSafe(dateInput);
   if (!d) return '';
   return format(d, 'HH:mm:ss dd-MM-yyyy');
+}
+
+/**
+ * Định dạng ngày giờ chuẩn xác theo múi giờ Việt Nam (Asia/Ho_Chi_Minh, GMT+7)
+ * Đảm bảo hiển thị đúng giờ Việt Nam độc lập với múi giờ của trình duyệt/hệ điều hành.
+ */
+export function formatVnDateTime(dateInput: Date | string | number | null | undefined | any[]): string {
+  const d = parseDateSafe(dateInput);
+  if (!d) return '—';
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour12: false,
+  }).format(d);
 }
 
 export function formatTime(dateInput: Date | string | number | null | undefined | any[]): string {
