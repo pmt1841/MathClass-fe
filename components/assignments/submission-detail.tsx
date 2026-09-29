@@ -43,6 +43,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useAuth } from '@/hooks/useAuth'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 import { useTextSelection } from '@/hooks/useTextSelection'
 import { SubmissionGradeForm, GradeFormValues } from './submission-grade-form'
@@ -62,6 +63,7 @@ interface SubmissionDetailProps {
 }
 
 export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetId }: SubmissionDetailProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -308,14 +310,14 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+                      <AlertDialogTitle>{t('Xác nhận xóa')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Bạn có chắc chắn muốn xóa nhận xét này không? Hành động này không thể hoàn tác.
+                        {t('Bạn có chắc chắn muốn xóa nhận xét này không? Hành động này không thể hoàn tác.')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Hủy</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteComment(comment.id)} className="bg-red-600 hover:bg-red-700">Xóa</AlertDialogAction>
+                      <AlertDialogCancel>{t('Hủy')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteComment(comment.id)} className="bg-red-600 hover:bg-red-700">{t('Xóa')}</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -402,7 +404,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
     return (
       <Card className="border-red-200 bg-red-50">
         <CardContent className="p-6 text-red-600 text-center">
-          Lỗi khi tải chi tiết bài nộp.
+          {t('Lỗi khi tải chi tiết bài nộp.')}
         </CardContent>
       </Card>
     )
@@ -410,10 +412,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'SUBMITTED': return <Badge className="bg-blue-500">Đã nộp</Badge>
-      case 'GRADED': return <Badge className="bg-green-500">Đã chấm</Badge>
-      case 'LATE': return <Badge className="bg-red-500">Trễ</Badge>
-      case 'DRAFT': return <Badge variant="secondary">Bản nháp</Badge>
+      case 'SUBMITTED': return <Badge className="bg-blue-500">{t('Đã nộp')}</Badge>
+      case 'GRADED': return <Badge className="bg-green-500">{t('Đã chấm')}</Badge>
+      case 'LATE': return <Badge className="bg-red-500">{t('Trễ')}</Badge>
+      case 'DRAFT': return <Badge variant="secondary">{t('Bản nháp')}</Badge>
       default: return <Badge variant="outline">{status}</Badge>
     }
   }
@@ -478,7 +480,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
         <div className="flex items-center gap-6">
           <Link href={sheetId ? `/assignments/sheets/${sheetId}/submissions${classCode ? `?classCode=${classCode}` : ''}` : `/assignments/${assignmentId}/submissions${classCode ? `?classCode=${classCode}` : ''}`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Quay lại
+            {t('Quay lại')}
           </Link>
 
           <div className="h-6 w-px bg-slate-200" />
@@ -494,10 +496,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 type="button"
                 onClick={() => setShowTeacherHintModal(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all shadow-sm active:scale-95 ml-1"
-                title="Xem các lượt xin gợi ý AI của học sinh cho bài tập này"
+                title={t('Xem các lượt xin gợi ý AI của học sinh cho bài tập này')}
               >
                 <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                <span>Gợi ý AI</span>
+                <span>{t('Gợi ý AI')}</span>
                 <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200/60 text-amber-800">
                   {hintHistory?.totalUsed || 0}/3
                 </span>
@@ -513,10 +515,10 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-all shadow-sm active:scale-95 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={
                   submission.status === 'DRAFT'
-                    ? 'Học sinh chưa nộp bài — chưa thể chấm sơ bộ'
+                    ? t('Học sinh chưa nộp bài — chưa thể chấm sơ bộ')
                     : isAiGrading
-                      ? 'AI đang chấm ngầm — bấm để mở tùy chọn quản lý tiến trình'
-                      : 'AI đối chiếu hình vẽ Canvas với hình mẫu và đề xuất điểm + nhận xét'
+                      ? t('AI đang chấm ngầm — bấm để mở tùy chọn quản lý tiến trình')
+                      : t('AI đối chiếu hình vẽ Canvas với hình mẫu và đề xuất điểm + nhận xét')
                 }
               >
                 {isAiGrading ? (
@@ -524,7 +526,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 ) : (
                   <Wand2 className="w-3.5 h-3.5 text-violet-500" />
                 )}
-                <span>{isAiGrading ? 'AI đang chấm...' : 'AI chấm sơ bộ'}</span>
+                <span>{isAiGrading ? t('AI đang chấm...') : t('AI chấm sơ bộ')}</span>
               </button>
             )}
 
@@ -533,7 +535,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 ml-2">
                 <span className="text-[11px] font-bold text-slate-500 px-2 flex items-center gap-1">
                   <History className="w-3.5 h-3.5 text-slate-400" />
-                  Lần nộp:
+                  {t('Lần nộp:')}
                 </span>
                 {versions.map((ver, idx) => {
                   const isLatest = idx === versions.length - 1
@@ -548,9 +550,9 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                           ? 'bg-white text-primary shadow-xs font-bold border border-slate-200/80'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                         }`}
-                      title={ver.submittedAt ? `Nộp lúc ${formatDateTime(ver.submittedAt)}` : undefined}
+                      title={ver.submittedAt ? `${t('Nộp lúc:')} ${formatDateTime(ver.submittedAt)}` : undefined}
                     >
-                      Lần {ver.versionNumber} {isLatest ? '(Mới nhất)' : ''}
+                      {t('Lần')} {ver.versionNumber} {isLatest ? `(${t('Mới nhất')})` : ''}
                     </button>
                   )
                 })}
@@ -618,15 +620,15 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
           <Panel defaultSize={60} minSize={30} className="flex flex-col h-full bg-slate-50/30">
             <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between shrink-0">
               <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                Bài làm của học sinh
+                {t('Bài làm của học sinh')}
                 {activeVersion && (
                   <span className="text-xs font-normal text-slate-500">
-                    (Lần nộp {activeVersion.versionNumber})
+                    ({t('Lần nộp')} {activeVersion.versionNumber})
                   </span>
                 )}
               </h3>
               <div className="text-xs text-slate-500 font-medium">
-                Nộp lúc: {formatDateTime(activeVersion?.submittedAt || submission.submittedAt) || 'Chưa rõ'}
+                {t('Nộp lúc:')} {formatDateTime(activeVersion?.submittedAt || submission.submittedAt) || t('Chưa rõ')}
               </div>
             </div>
 
@@ -635,7 +637,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Đang xem lịch sử <strong>Lần nộp {activeVersion.versionNumber}</strong> (Đã chấm: <strong>{activeVersion.score !== null && activeVersion.score !== undefined ? `${activeVersion.score} điểm` : 'Chưa chấm'}</strong>).
+                    {t('Đang xem lịch sử')} <strong>{t('Lần nộp')} {activeVersion.versionNumber}</strong> ({t('Đã chấm:')} <strong>{activeVersion.score !== null && activeVersion.score !== undefined ? `${activeVersion.score} ${t('điểm')}` : t('Chưa chấm')}</strong>).
                   </span>
                 </div>
                 <button
@@ -643,7 +645,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   onClick={() => setSelectedVersionNumber(null)}
                   className="text-xs font-bold text-amber-900 hover:underline cursor-pointer ml-2"
                 >
-                  Xem lần nộp mới nhất
+                  {t('Xem lần nộp mới nhất')}
                 </button>
               </div>
             )}
@@ -662,7 +664,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                 />
                 {(isViewingOlderVersion && activeVersion ? activeVersion.content : submission.content)
                   ? renderContentWithDrawings((isViewingOlderVersion && activeVersion ? activeVersion.content : submission.content), true)
-                  : <p className="text-slate-400 italic">Bài nộp trống</p>
+                  : <p className="text-slate-400 italic">{t('Bài nộp trống')}</p>
                 }
               </div>
             </div>
@@ -675,7 +677,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
           {/* Phải: Đề bài gốc */}
           <Panel defaultSize={40} minSize={20} className="flex flex-col h-full bg-slate-50/50">
             <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 shrink-0">
-              <h3 className="font-semibold text-slate-700">Đề bài gốc</h3>
+              <h3 className="font-semibold text-slate-700">{t('Đề bài gốc')}</h3>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
@@ -684,11 +686,11 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   <h2 className="mt-0 text-xl text-slate-800">{assignment.title}</h2>
                   {assignment.content
                     ? renderContentWithDrawings(assignment.content)
-                    : <p className="text-slate-400 italic">Không có nội dung đề bài</p>
+                    : <p className="text-slate-400 italic">{t('Không có nội dung đề bài')}</p>
                   }
                 </div>
               ) : (
-                <div className="text-center text-slate-500 py-10">Đang tải đề bài...</div>
+                <div className="text-center text-slate-500 py-10">{t('Đang tải đề bài...')}</div>
               )}
             </div>
           </Panel>
@@ -704,11 +706,11 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
             <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white shrink-0">
               <div className="flex items-center gap-2.5">
                 <Sparkles className="w-5 h-5 text-amber-200" />
-                <h3 className="text-lg font-bold">Lịch sử Gợi ý AI - {submission.studentName}</h3>
+                <h3 className="text-lg font-bold">{t('Lịch sử Gợi ý AI')} - {submission.studentName}</h3>
               </div>
               <div className="flex items-center gap-3">
                 <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-white/20 text-white backdrop-blur-md">
-                  Đã dùng {hintHistory?.totalUsed || 0}/3 gợi ý
+                  {t('Đã dùng')} {hintHistory?.totalUsed || 0}/3 {t('gợi ý')}
                 </span>
                 <button
                   type="button"
@@ -725,14 +727,14 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
               {isHintLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
                   <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-                  <span className="text-sm">Đang tải lịch sử gợi ý...</span>
+                  <span className="text-sm">{t('Đang tải lịch sử gợi ý...')}</span>
                 </div>
               ) : !hintHistory?.hints || hintHistory.hints.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
                   <Lightbulb className="w-12 h-12 text-amber-300 mb-3" />
-                  <p className="font-semibold text-slate-700">Học sinh chưa sử dụng lượt gợi ý nào</p>
+                  <p className="font-semibold text-slate-700">{t('Học sinh chưa sử dụng lượt gợi ý nào')}</p>
                   <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                    Học sinh {submission.studentName} đã tự lực hoàn thành bài làm mà không cần đến sự trợ giúp của AI.
+                    {t('Học sinh')} {submission.studentName} {t('đã tự lực hoàn thành bài làm mà không cần đến sự trợ giúp của AI.')}
                   </p>
                 </div>
               ) : (
@@ -740,7 +742,7 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
                   <div key={hint.id} className="border border-amber-200/80 rounded-xl bg-gradient-to-b from-amber-50/40 to-amber-50/10 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between pb-2 border-b border-amber-200/40">
                       <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-md">
-                        Gợi ý lượt #{hint.hintNumber}
+                        {t('Gợi ý lượt')} #{hint.hintNumber}
                       </span>
                       {hint.createdAt && (
                         <span className="text-[11px] text-slate-400 flex items-center gap-1">
@@ -752,15 +754,15 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
                     {hint.studentSnapshotContent && (
                       <div className="bg-white/80 border border-slate-200/80 rounded-lg p-3 text-xs text-slate-600">
-                        <span className="font-semibold text-slate-700 block mb-1">Tiến độ bài làm lúc xin gợi ý:</span>
+                        <span className="font-semibold text-slate-700 block mb-1">{t('Tiến độ bài làm lúc xin gợi ý:')}</span>
                         <div className="max-h-24 overflow-y-auto whitespace-pre-wrap font-mono text-[11px] text-slate-500 bg-slate-50 p-2 rounded">
-                          {hint.studentSnapshotContent || '[Chưa có nội dung]'}
+                          {hint.studentSnapshotContent || `[${t('Chưa có nội dung')}]`}
                         </div>
                       </div>
                     )}
 
                     <div className="bg-amber-100/50 border border-amber-200 rounded-lg p-3.5 text-sm text-slate-800 prose prose-amber max-w-none">
-                      <span className="font-bold text-amber-900 block mb-1 text-xs">Gợi ý từ AI:</span>
+                      <span className="font-bold text-amber-900 block mb-1 text-xs">{t('Gợi ý từ AI:')}</span>
                       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]}>
                         {hint.aiHintContent}
                       </ReactMarkdown>
@@ -772,9 +774,9 @@ export function SubmissionDetail({ submissionId, assignmentId, classCode, sheetI
 
             {/* Footer */}
             <div className="flex items-center justify-between px-6 py-3 bg-slate-50 border-t border-slate-200 shrink-0 text-xs text-slate-500">
-              <span>Giúp giáo viên đánh giá mức độ tự lực của học sinh.</span>
+              <span>{t('Giúp giáo viên đánh giá mức độ tự lực của học sinh.')}</span>
               <Button variant="outline" size="sm" onClick={() => setShowTeacherHintModal(false)}>
-                Đóng
+                {t('Đóng')}
               </Button>
             </div>
           </div>

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const profileFormSchema = z.object({
   fullName: z.string().min(1, 'Họ tên không được để trống').max(100, 'Họ tên quá dài'),
@@ -43,6 +44,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
+  const { t } = useI18n()
   const updateProfileMutation = useUpdateProfile()
   const isGoogle = isGoogleUser !== undefined ? isGoogleUser : initialData.provider === 'GOOGLE'
 
@@ -82,14 +84,14 @@ export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Họ và tên</FormLabel>
+              <FormLabel>{t('Họ và tên')}</FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="Nhập họ và tên..." 
+                  placeholder={t('Nhập họ và tên...')} 
                   {...field} 
                   readOnly={isGoogle}
                   className={isGoogle ? "bg-slate-50 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0" : ""}
-                  title={isGoogle ? "Không thể thay đổi họ và tên vì đăng nhập bằng tài khoản Google" : undefined}
+                  title={isGoogle ? t('Không thể thay đổi họ và tên vì đăng nhập bằng tài khoản Google') : undefined}
                   onKeyDown={(e) => isGoogle && e.preventDefault()}
                 />
               </FormControl>
@@ -104,9 +106,9 @@ export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
             name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Số điện thoại</FormLabel>
+                <FormLabel>{t('Số điện thoại')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nhập số điện thoại..." {...field} />
+                  <Input placeholder={t('Nhập số điện thoại...')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +129,7 @@ export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
             name="dateOfBirth"
             render={({ field }) => (
               <FormItem className="flex flex-col gap-2">
-                <FormLabel>Ngày sinh</FormLabel>
+                <FormLabel>{t('Ngày sinh')}</FormLabel>
                 <FormControl>
                   <DateSelectGroup
                     value={field.value}
@@ -144,17 +146,17 @@ export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
             name="gender"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Giới tính</FormLabel>
+                <FormLabel>{t('Giới tính')}</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn giới tính" />
+                      <SelectValue placeholder={t('Chọn giới tính')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="MALE">Nam</SelectItem>
-                    <SelectItem value="FEMALE">Nữ</SelectItem>
-                    <SelectItem value="OTHER">Khác</SelectItem>
+                    <SelectItem value="MALE">{t('Nam')}</SelectItem>
+                    <SelectItem value="FEMALE">{t('Nữ')}</SelectItem>
+                    <SelectItem value="OTHER">{t('Khác')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -168,7 +170,7 @@ export function ProfileForm({ initialData, isGoogleUser }: ProfileFormProps) {
             {updateProfileMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Lưu thay đổi
+            {t('Lưu thay đổi')}
           </Button>
         </div>
       </form>

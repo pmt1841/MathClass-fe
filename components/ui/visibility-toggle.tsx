@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Switch } from '@/components/ui/switch'
 import { useUpdateVisibility } from '@/hooks/useLibrary'
 import type { AssignmentVisibility } from '@/types'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface VisibilityToggleProps {
   value: AssignmentVisibility
@@ -21,6 +22,7 @@ interface VisibilityToggleProps {
  * sự kiện click toàn card để tránh navigate nhầm.
  */
 export function VisibilityToggle({ value, assignmentId, isSheet = false, onRequireTag }: VisibilityToggleProps) {
+  const { t } = useI18n()
   const [optimistic, setOptimistic] = useState(value === 'PUBLIC')
   const { mutateAsync, isPending } = useUpdateVisibility()
 
@@ -79,7 +81,7 @@ export function VisibilityToggle({ value, assignmentId, isSheet = false, onRequi
           optimistic ? 'text-emerald-600' : 'text-muted-foreground'
         }`}
       >
-        {optimistic ? 'Công khai' : 'Riêng tư'}
+        {optimistic ? t('assignments.public') : t('assignments.private')}
       </span>
     </div>
   )

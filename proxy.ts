@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { LOCALE_COOKIE, SUPPORTED_LOCALES, DEFAULT_LOCALE, SupportedLocale } from '@/lib/constants/i18n'
 
 const protectedRoutes = ['/home', '/classes', '/assignments', '/students', '/reports', '/settings', '/profile', '/admin']
 const teacherOnlyRoutes = ['/classes/create', '/students', '/reports']
@@ -130,11 +131,71 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(`${fallbackUrl}?error=unauthorized`, request.url))
   }
 
-  return NextResponse.next()
+  const res = NextResponse.next()
+
+  // Locale negotiation: Tự động khởi tạo NEXT_LOCALE cookie nếu thiếu
+  if (!request.cookies.has(LOCALE_COOKIE.NAME)) {
+    const negotiatedLocale = getNegotiatedLocale(request)
+    const secureFlag = request.nextUrl.protocol === 'https:'
+    res.cookies.set(LOCALE_COOKIE.NAME, negotiatedLocale, {
+      path: LOCALE_COOKIE.PATH,
+      maxAge: LOCALE_COOKIE.MAX_AGE,
+      sameSite: 'lax',
+      secure: secureFlag,
+      httpOnly: false,
+    })
+  }
+
+  return res
+}
+
+export function getNegotiatedLocale(request: NextRequest): SupportedLocale {
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE.NAME)?.value
+  if (cookieLocale && (SUPPORTED_LOCALES as readonly string[]).includes(cookieLocale)) {
+    return cookieLocale as SupportedLocale
+  }
+
+  const acceptLanguage = request.headers.get('accept-language') || ''
+  if (!acceptLanguage) return DEFAULT_LOCALE
+
+  try {
+    const parts = acceptLanguage.split(',')
+    const weights: Array<{ lang: string; weight: number }> = []
+
+    for (const part of parts) {
+      const subParts = part.trim().split(';')
+      const lang = subParts[0].trim().toLowerCase()
+      let weight = 1.0
+      if (subParts.length > 1) {
+        for (let i = 1; i < subParts.length; i++) {
+          const sub = subParts[i].trim()
+          if (sub.startsWith('q=')) {
+            const parsed = parseFloat(sub.substring(2))
+            if (!isNaN(parsed)) weight = parsed
+          }
+        }
+      }
+      weights.push({ lang, weight })
+    }
+
+    weights.sort((a, b) => b.weight - a.weight)
+
+    for (const item of weights) {
+      if (item.lang === '*') return DEFAULT_LOCALE
+      const isoCode = item.lang.split('-')[0]
+      if ((SUPPORTED_LOCALES as readonly string[]).includes(isoCode)) {
+        return isoCode as SupportedLocale
+      }
+    }
+  } catch (e) {
+    // Malformed header fallback
+  }
+
+  return DEFAULT_LOCALE
 }
 
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|placeholder|api/).*)',
   ],
-}
+}

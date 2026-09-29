@@ -22,8 +22,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function ChangePasswordCard() {
+  const { t } = useI18n()
   const { toast } = useToast()
   const { logout } = useAuth()
 
@@ -52,8 +54,8 @@ export function ChangePasswordCard() {
     mutationFn: (data: ChangePasswordRequest) => profileService.changePassword(data),
     onSuccess: async () => {
       toast({
-        title: 'Thành công',
-        description: 'Đổi mật khẩu thành công. Đang đăng xuất...',
+        title: t('Thành công'),
+        description: t('Đổi mật khẩu thành công. Đang đăng xuất...'),
       })
       // Clear form
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' })
@@ -66,7 +68,7 @@ export function ChangePasswordCard() {
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.result ||
-        'Có lỗi xảy ra khi đổi mật khẩu. Vui lòng thử lại.'
+        t('Có lỗi xảy ra khi đổi mật khẩu. Vui lòng thử lại.')
       
       const lowerMsg = errorMessage.toLowerCase()
       if (
@@ -79,7 +81,7 @@ export function ChangePasswordCard() {
         setWarningModalOpen(true)
       } else {
         toast({
-          title: 'Thất bại',
+          title: t('Thất bại'),
           description: errorMessage,
           variant: 'destructive'
         })
@@ -94,7 +96,7 @@ export function ChangePasswordCard() {
       <Card className="shadow-sm border-slate-200 bg-white p-8">
         <div className="flex items-center justify-center gap-2 text-slate-500 py-6">
           <span className="w-5 h-5 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin" />
-          Đang kiểm tra trạng thái tài khoản...
+          {t('Đang kiểm tra trạng thái tài khoản...')}
         </div>
       </Card>
     )
@@ -115,33 +117,33 @@ export function ChangePasswordCard() {
     e.preventDefault()
 
     if (!formData.currentPassword) {
-      setValidationError('Vui lòng nhập mật khẩu hiện tại.')
+      setValidationError(t('Vui lòng nhập mật khẩu hiện tại.'))
       return
     }
 
     if (!formData.newPassword) {
-      setValidationError('Vui lòng nhập mật khẩu mới.')
+      setValidationError(t('Vui lòng nhập mật khẩu mới.'))
       return
     }
 
     const strength = evaluatePassword(formData.newPassword)
     if (!strength.isValid) {
-      setValidationError(PASSWORD_CRITERIA_MESSAGE)
+      setValidationError(t(PASSWORD_CRITERIA_MESSAGE))
       return
     }
 
     if (formData.newPassword.length > 24) {
-      setValidationError('Mật khẩu mới không được vượt quá 24 ký tự.')
+      setValidationError(t('Mật khẩu mới không được vượt quá 24 ký tự.'))
       return
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setValidationError('Mật khẩu xác nhận không trùng khớp với mật khẩu mới.')
+      setValidationError(t('Mật khẩu xác nhận không trùng khớp với mật khẩu mới.'))
       return
     }
 
     if (formData.currentPassword === formData.newPassword) {
-      setWarningMessage('Mật khẩu mới không được trùng với mật khẩu hiện tại. Vui lòng nhập một mật khẩu khác.')
+      setWarningMessage(t('Mật khẩu mới không được trùng với mật khẩu hiện tại. Vui lòng nhập một mật khẩu khác.'))
       setWarningModalOpen(true)
       return
     }
@@ -158,10 +160,10 @@ export function ChangePasswordCard() {
         <CardHeader className="pb-4">
           <CardTitle className="text-xl flex items-center gap-2 text-slate-800">
             <KeyRound className="w-5 h-5 text-indigo-600" />
-            Đổi mật khẩu
+            {t('Đổi mật khẩu')}
           </CardTitle>
           <CardDescription className="text-slate-500">
-            Cập nhật mật khẩu đăng nhập cá nhân để tăng cường bảo mật cho tài khoản của bạn.
+            {t('Cập nhật mật khẩu đăng nhập cá nhân để tăng cường bảo mật cho tài khoản của bạn.')}
           </CardDescription>
         </CardHeader>
 
@@ -178,14 +180,14 @@ export function ChangePasswordCard() {
               {/* Mật khẩu hiện tại */}
               <div className="space-y-2">
                 <Label htmlFor="currentPassword" className="font-medium text-slate-700">
-                  Mật khẩu hiện tại <span className="text-red-500">*</span>
+                  {t('Mật khẩu hiện tại')} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="currentPassword"
                     name="currentPassword"
                     type={showCurrent ? 'text' : 'password'}
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder={t('Nhập mật khẩu hiện tại')}
                     value={formData.currentPassword}
                     onChange={handleChange}
                     disabled={isPending}
@@ -207,7 +209,7 @@ export function ChangePasswordCard() {
                     href="/forgot-password"
                     className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"
                   >
-                    Quên mật khẩu?
+                    {t('Quên mật khẩu?')}
                   </Link>
                 </div>
               </div>
@@ -215,14 +217,14 @@ export function ChangePasswordCard() {
               {/* Mật khẩu mới */}
               <div className="space-y-2">
                 <Label htmlFor="newPassword" className="font-medium text-slate-700">
-                  Mật khẩu mới <span className="text-red-500">*</span>
+                  {t('Mật khẩu mới')} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="newPassword"
                     name="newPassword"
                     type={showNew ? 'text' : 'password'}
-                    placeholder="Tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt)"
+                    placeholder={t('Tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt)')}
                     value={formData.newPassword}
                     onChange={handleChange}
                     disabled={isPending}
@@ -244,14 +246,14 @@ export function ChangePasswordCard() {
               {/* Xác nhận mật khẩu mới */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="font-medium text-slate-700">
-                  Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+                  {t('Xác nhận mật khẩu mới')} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirm ? 'text' : 'password'}
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder={t('Nhập lại mật khẩu mới')}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     disabled={isPending}
@@ -280,12 +282,12 @@ export function ChangePasswordCard() {
               {isPending ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  Đang xử lý...
+                  {t('Đang xử lý...')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  Đổi mật khẩu
+                  {t('Đổi mật khẩu')}
                 </span>
               )}
             </Button>
@@ -302,10 +304,10 @@ export function ChangePasswordCard() {
 
           <DialogHeader className="text-center sm:text-center space-y-2">
             <DialogTitle className="text-xl font-bold text-slate-900 text-center">
-              Mật khẩu bị trùng lặp
+              {t('Mật khẩu bị trùng lặp')}
             </DialogTitle>
             <DialogDescription className="text-slate-600 text-sm text-center leading-relaxed">
-              {warningMessage || 'Mật khẩu mới không được trùng với mật khẩu hiện tại hoặc 3 mật khẩu đã từng sử dụng gần đây.'}
+              {warningMessage || t('Mật khẩu mới không được trùng với mật khẩu hiện tại hoặc 3 mật khẩu đã từng sử dụng gần đây.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -315,7 +317,7 @@ export function ChangePasswordCard() {
               onClick={() => setWarningModalOpen(false)}
               className="w-full sm:w-auto min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-sm"
             >
-              Đã hiểu
+              {t('Đã hiểu')}
             </Button>
           </DialogFooter>
         </DialogContent>

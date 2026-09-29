@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 import { handwritingService } from '@/services/handwritingService'
 import { Loader2, Eraser, Upload, Sparkles, Check, Wand2 } from 'lucide-react'
 import 'katex/dist/katex.min.css'
@@ -43,6 +44,7 @@ export function HandwritingSketchModal({
   onInsertGeometry,
 }: HandwritingSketchModalProps) {
   const { toast } = useToast()
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<'handwriting' | 'sketch'>('handwriting')
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -223,8 +225,8 @@ export function HandwritingSketchModal({
     const canvas = canvasRef.current
     if (!canvas || isCanvasBlank(canvas)) {
       toast({
-        title: 'Chưa có nội dung',
-        description: 'Vui lòng vẽ chữ viết tay hoặc tải ảnh chữ viết tay lên trước khi bấm nhận diện.',
+        title: t('Chưa có nội dung'),
+        description: t('Vui lòng vẽ chữ viết tay hoặc tải ảnh chữ viết tay lên trước khi bấm nhận diện.'),
         variant: 'destructive',
       })
       return
@@ -239,8 +241,8 @@ export function HandwritingSketchModal({
 
       if (!cleanLatex || cleanLatex.includes('NO_HANDWRITING_DETECTED')) {
         toast({
-          title: 'Không tìm thấy chữ viết',
-          description: 'Không nhận diện thấy chữ viết tay hoặc công thức toán trong ảnh. Vui lòng kiểm tra lại nét vẽ hoặc ảnh tải lên.',
+          title: t('Không tìm thấy chữ viết'),
+          description: t('Không nhận diện thấy chữ viết tay hoặc công thức toán trong ảnh. Vui lòng kiểm tra lại nét vẽ hoặc ảnh tải lên.'),
           variant: 'destructive',
         })
         setLatexResult('')
@@ -249,13 +251,13 @@ export function HandwritingSketchModal({
 
       setLatexResult(cleanLatex)
       toast({
-        title: 'Nhận diện thành công',
-        description: 'Đã chuyển chữ viết tay sang mã LaTeX.',
+        title: t('Nhận diện thành công'),
+        description: t('Đã chuyển chữ viết tay sang mã LaTeX.'),
       })
     } catch (err: any) {
       toast({
-        title: 'Lỗi nhận diện',
-        description: err.response?.data?.message || 'Không thể nhận diện chữ viết tay. Vui lòng thử lại.',
+        title: t('Lỗi nhận diện'),
+        description: err.response?.data?.message || t('Không thể nhận diện chữ viết tay. Vui lòng thử lại.'),
         variant: 'destructive',
       })
     } finally {
@@ -269,7 +271,7 @@ export function HandwritingSketchModal({
     if (!canvas || isCanvasBlank(canvas)) {
       toast({
         title: 'Chưa có nội dung',
-        description: 'Vui lòng phác thảo hình vẽ hoặc tải ảnh phác thảo lên trước khi bấm nắn chỉnh.',
+        description: t('Vui lòng phác thảo hình vẽ hoặc tải ảnh phác thảo lên trước khi bấm nắn chỉnh.'),
         variant: 'destructive',
       })
       return
@@ -283,8 +285,8 @@ export function HandwritingSketchModal({
 
       if (res.shapeType === 'NO_GEOMETRY' || jsonStr.includes('NO_GEOMETRY_DETECTED') || !jsonStr.trim()) {
         toast({
-          title: 'Không tìm thấy hình phác thảo',
-          description: 'Không nhận diện thấy nét vẽ hình học trong ảnh. Vui lòng phác thảo lại hình vẽ rõ ràng hơn.',
+          title: t('Không tìm thấy hình phác thảo'),
+          description: t('Không nhận diện thấy nét vẽ hình học trong ảnh. Vui lòng phác thảo lại hình vẽ rõ ràng hơn.'),
           variant: 'destructive',
         })
         setGeometryResult(null)
@@ -296,7 +298,7 @@ export function HandwritingSketchModal({
         if (!parsed.elements || !Array.isArray(parsed.elements) || parsed.elements.length === 0) {
           toast({
             title: 'Không tìm thấy hình phác thảo',
-            description: 'Ảnh không chứa đối tượng hình học hợp lệ. Vui lòng thử vẽ lại.',
+            description: t('Ảnh không chứa đối tượng hình học hợp lệ. Vui lòng thử vẽ lại.'),
             variant: 'destructive',
           })
           setGeometryResult(null)
@@ -308,13 +310,13 @@ export function HandwritingSketchModal({
 
       setGeometryResult(res)
       toast({
-        title: 'Nắn chỉnh thành công',
-        description: `Đã nắn chỉnh hình phác thảo (${res.shapeType}).`,
+        title: t('Nắn chỉnh thành công'),
+        description: `${t('Đã nắn chỉnh hình phác thảo')} (${res.shapeType}).`,
       })
     } catch (err: any) {
       toast({
-        title: 'Lỗi nắn chỉnh',
-        description: err.response?.data?.message || 'Không thể nắn chỉnh hình phác thảo. Vui lòng thử lại.',
+        title: t('Lỗi nắn chỉnh'),
+        description: err.response?.data?.message || t('Không thể nắn chỉnh hình phác thảo. Vui lòng thử lại.'),
         variant: 'destructive',
       })
     } finally {
@@ -354,10 +356,10 @@ export function HandwritingSketchModal({
       <DialogContent className="sm:max-w-5xl w-[92vw] max-h-[88vh] flex flex-col p-0 overflow-hidden bg-white rounded-2xl shadow-2xl border border-slate-200">
         <DialogHeader className="p-5 border-b shrink-0 bg-white">
           <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" /> Trợ lý AI: Số hóa chữ viết & Phác thảo hình học
+            <Sparkles className="w-5 h-5 text-blue-600" /> {t("Trợ lý AI: Số hóa chữ viết & Phác thảo hình học")}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Vẽ tự do hoặc tải ảnh lên để AI tự động trích xuất công thức toán hoặc nắn chỉnh hình phác thảo.
+            {t("Vẽ tự do hoặc tải ảnh lên để AI tự động trích xuất công thức toán hoặc nắn chỉnh hình phác thảo.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -365,10 +367,10 @@ export function HandwritingSketchModal({
           <div className="px-5 pt-3 shrink-0 bg-slate-50 border-b">
             <TabsList className="grid w-full grid-cols-2 bg-slate-200/60 p-1 rounded-lg">
               <TabsTrigger value="handwriting" className="font-semibold text-xs sm:text-sm">
-                ✍️ Chữ viết tay ➔ LaTeX
+                ✍️ {t("Chữ viết tay ➔ LaTeX")}
               </TabsTrigger>
               <TabsTrigger value="sketch" className="font-semibold text-xs sm:text-sm">
-                📐 Phác thảo nét ➔ Canvas chuẩn
+                📐 {t("Phác thảo nét ➔ Canvas chuẩn")}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -377,7 +379,7 @@ export function HandwritingSketchModal({
           <div className={activeTab === 'handwriting' ? 'flex-1 flex flex-col min-h-0' : 'hidden'}>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-medium">Vẽ công thức lên khung bên dưới hoặc tải ảnh lên:</span>
+                <span className="text-xs text-slate-600 font-medium">{t("Vẽ công thức lên khung bên dưới hoặc tải ảnh lên:")}</span>
                 <div className="flex items-center gap-2">
                   <input
                     ref={handwritingFileInputRef}
@@ -393,10 +395,10 @@ export function HandwritingSketchModal({
                     onClick={() => handwritingFileInputRef.current?.click()}
                     className="text-xs border-slate-300"
                   >
-                    <Upload className="w-3.5 h-3.5 mr-1" /> Tải ảnh
+                    <Upload className="w-3.5 h-3.5 mr-1" /> {t("Tải ảnh")}
                   </Button>
                   <Button variant="outline" size="sm" type="button" onClick={clearHandwritingCanvas} className="text-xs border-slate-300">
-                    <Eraser className="w-3.5 h-3.5 mr-1" /> Xóa khung
+                    <Eraser className="w-3.5 h-3.5 mr-1" /> {t("Xóa khung")}
                   </Button>
                 </div>
               </div>
@@ -424,14 +426,14 @@ export function HandwritingSketchModal({
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                  {isProcessing ? 'Đang trích xuất văn bản...' : 'Trích xuất văn bản (AI)'}
+                  {isProcessing ? t('Đang trích xuất văn bản...') : t('Trích xuất văn bản (AI)')}
                 </Button>
               </div>
 
               {/* Preview Section */}
               {latexResult && (
                 <div className="p-4 bg-slate-50 border border-blue-200 rounded-lg space-y-2">
-                  <span className="text-xs font-bold text-blue-700 block uppercase tracking-wider">Xem trước kết quả nhận diện:</span>
+                  <span className="text-xs font-bold text-blue-700 block uppercase tracking-wider">{t("Xem trước kết quả nhận diện:")}</span>
                   <div className="py-3 px-4 text-left bg-white rounded-lg border border-slate-200 min-h-[60px] prose prose-slate max-w-none text-sm leading-relaxed overflow-x-auto">
                     <ReactMarkdown
                       remarkPlugins={[remarkMath, remarkGfm]}
@@ -446,13 +448,13 @@ export function HandwritingSketchModal({
             </div>
 
             <DialogFooter className="p-4 border-t shrink-0 bg-slate-50 flex flex-row items-center justify-end gap-2">
-              <Button variant="ghost" type="button" onClick={onClose} className="text-xs">Hủy</Button>
+              <Button variant="ghost" type="button" onClick={onClose} className="text-xs">{t("Hủy")}</Button>
               <Button
                 disabled={!latexResult}
                 onClick={handleInsertLatexAction}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
               >
-                <Check className="w-4 h-4 mr-1" /> Chèn văn bản vào bài
+                <Check className="w-4 h-4 mr-1" /> {t("Chèn văn bản vào bài")}
               </Button>
             </DialogFooter>
           </div>
@@ -461,7 +463,7 @@ export function HandwritingSketchModal({
           <div className={activeTab === 'sketch' ? 'flex-1 flex flex-col min-h-0' : 'hidden'}>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-medium">Vẽ phác thảo hình học tay (tam giác, đường tròn, tứ giác...):</span>
+                <span className="text-xs text-slate-600 font-medium">{t("Vẽ phác thảo hình học tay (tam giác, đường tròn, tứ giác...):")}</span>
                 <div className="flex items-center gap-2">
                   <input
                     ref={sketchFileInputRef}
@@ -508,14 +510,14 @@ export function HandwritingSketchModal({
                   className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-9 px-4"
                 >
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  {isProcessing ? 'Đang chuẩn hóa phác thảo...' : 'Chuẩn hóa hình phác thảo (AI)'}
+                  {isProcessing ? t('Đang chuẩn hóa phác thảo...') : t('Chuẩn hóa hình phác thảo (AI)')}
                 </Button>
               </div>
 
               {geometryResult && (
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg space-y-2">
                   <span className="text-xs font-bold text-purple-700 block uppercase tracking-wider">
-                    Kết quả nhận diện: {geometryResult.shapeType}
+                    {t("Kết quả nhận diện:")} {geometryResult.shapeType}
                   </span>
                   {normalizedGeometryData && (
                     <div className="bg-white rounded-lg border border-purple-200 overflow-hidden">
@@ -533,7 +535,7 @@ export function HandwritingSketchModal({
                 onClick={handleInsertGeometryAction}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
               >
-                <Check className="w-4 h-4 mr-1" /> Chèn hình chuẩn vào bài làm
+                <Check className="w-4 h-4 mr-1" /> {t("Chèn hình chuẩn vào bài làm")}
               </Button>
             </DialogFooter>
           </div>

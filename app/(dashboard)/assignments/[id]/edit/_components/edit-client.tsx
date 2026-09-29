@@ -8,8 +8,10 @@ import { AssignmentForm, AssignmentFormValues } from '../../../create/_component
 
 import { useAuth } from '@/hooks/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function EditAssignmentPageClient() {
+  const { t } = useI18n()
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
@@ -29,7 +31,7 @@ export function EditAssignmentPageClient() {
     if (user) {
       const role = user.role || user.userRole || 'STUDENT'
       if (role !== 'TEACHER') {
-        toast.error('Bạn không có quyền truy cập trang này')
+        toast.error(t('Bạn không có quyền truy cập trang này'))
         router.replace('/assignments')
         return
       }
@@ -37,7 +39,7 @@ export function EditAssignmentPageClient() {
       router.replace('/')
       return
     }
-  }, [user, isInitializing, router])
+  }, [user, isInitializing, router, t])
 
   useEffect(() => {
     if (isInitializing || !user || !id) return
@@ -61,7 +63,7 @@ export function EditAssignmentPageClient() {
         })
       } catch (err: any) {
         console.error('Error fetching assignment:', err)
-        toast.error('Không thể tải dữ liệu bài tập hoặc bạn không có quyền truy cập')
+        toast.error(t('Không thể tải dữ liệu bài tập hoặc bạn không có quyền truy cập'))
         router.replace(backHref)
       } finally {
         setIsFetching(false)
@@ -69,19 +71,19 @@ export function EditAssignmentPageClient() {
     }
 
     fetchAssignment()
-  }, [id, isInitializing, router, backHref])
+  }, [id, isInitializing, router, backHref, user, t])
 
   const handleUpdate = async (data: AssignmentFormValues) => {
     try {
       setIsSubmitting(true)
       await assignmentService.updateAssignment(Number(id), data)
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
-      toast.success('Đã cập nhật bài tập thành công!')
+      toast.success(t('Đã cập nhật bài tập thành công!'))
       router.push(backHref)
     } catch (err: any) {
       console.error('Error updating assignment:', err)
-      const msg = err.response?.data?.message || err.response?.data || 'Có lỗi xảy ra khi cập nhật'
-      toast.error(typeof msg === 'string' ? msg : 'Không thể cập nhật bài tập')
+      const msg = err.response?.data?.message || err.response?.data || t('Có lỗi xảy ra khi cập nhật')
+      toast.error(typeof msg === 'string' ? msg : t('Không thể cập nhật bài tập'))
     } finally {
       setIsSubmitting(false)
     }
@@ -102,13 +104,13 @@ export function EditAssignmentPageClient() {
   return (
     <AssignmentForm
       assignmentId={id}
-      pageTitle="Sửa bài tập"
+      pageTitle={t('Sửa bài tập')}
       backHref={backHref}
-      backText={returnUrl ? 'Quay lại lớp học' : 'Quay lại danh sách'}
+      backText={returnUrl ? t('Quay lại lớp học') : t('Quay lại danh sách')}
       isSubmitting={isSubmitting}
       onSubmitDraft={handleUpdate}
       defaultValues={assignmentData || undefined}
-      submitDraftText="Lưu thay đổi"
+      submitDraftText={t('Lưu thay đổi')}
       onAutoSave={handleAutoSave}
     />
   )

@@ -12,6 +12,7 @@ import { useChatDock } from './ChatDockContext';
 import { Users } from 'lucide-react';
 
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface ClassroomStudentChatWidgetProps {
   classId: number;
@@ -34,6 +35,7 @@ export function ClassroomStudentChatWidget({
   initialOpen = false,
   onUnreadChange,
 }: ClassroomStudentChatWidgetProps) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ export function ClassroomStudentChatWidget({
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group active:scale-95"
-          title="Chat với Giảng viên"
+          title={t('Chat với Giảng viên')}
         >
           <div className="relative">
             <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110" />
@@ -129,10 +131,10 @@ export function ClassroomStudentChatWidget({
               />
             )}
           </div>
-          <span className="font-medium text-sm">Hỏi Giảng viên</span>
+          <span className="font-medium text-sm">{t('Hỏi Giảng viên')}</span>
           {unreadCount > 0 && (
             <span className="bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">
-              Tin nhắn mới
+              {t('Tin nhắn mới')}
             </span>
           )}
         </button>
@@ -181,17 +183,17 @@ export function ClassroomStudentChatWidget({
                   openChat({
                     id: 'group',
                     type: 'CLASS_GROUP',
-                    title: 'Chat Lớp',
+                    title: t('Chat Lớp'),
                   })
                 }
                 className="text-xs text-white/90 hover:text-white hover:bg-white/10 rounded-lg px-2 py-1 flex items-center gap-1.5"
-                title="Mở kênh Chat nhóm Lớp học"
+                title={t('Mở kênh Chat nhóm Lớp học')}
               >
                 <Users className="w-3.5 h-3.5" />
-                <span>Chat Lớp</span>
+                <span>{t('Chat Lớp')}</span>
                 {hasGroupUnread && (
                   <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
-                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} ${t('mới')}` : t('Mới')}
                   </span>
                 )}
               </Button>
@@ -210,16 +212,16 @@ export function ClassroomStudentChatWidget({
           <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8 bg-slate-50/50 dark:bg-slate-900/50">
             {isLoadingHistory && messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-slate-400 text-xs gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Đang nạp tin nhắn...
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> {t('Đang nạp tin nhắn...')}
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">
                 <MessageSquare className="w-10 h-10 stroke-1 mb-2 text-indigo-300" />
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Chưa có tin nhắn nào
+                  {t('Chưa có tin nhắn nào')}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Hãy nhập câu hỏi để trao đổi trực tiếp với giảng viên nhé. Hỗ trợ công thức toán KaTeX (ví dụ: <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">$E=mc^2$</code>)
+                  {t('Hãy nhập câu hỏi để trao đổi trực tiếp với giảng viên nhé. Hỗ trợ công thức toán KaTeX (ví dụ: $E=mc^2$)')}
                 </p>
               </div>
             ) : (
@@ -240,7 +242,7 @@ export function ClassroomStudentChatWidget({
               <Input
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Nhập tin nhắn (hỗ trợ $latex$)..."
+                placeholder={t('Nhập tin nhắn (hỗ trợ $latex$)...')}
                 className="flex-1 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-full px-4"
               />
               <Button

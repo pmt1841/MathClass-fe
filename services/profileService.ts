@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import { UserResponse, UpdateProfileRequest, ChangePasswordRequest, SetPasswordRequest } from '@/types'
+import { UserResponse, UpdateProfileRequest, ChangePasswordRequest, SetPasswordRequest, UpdateUserLanguageRequest } from '@/types'
 
 export const profileService = {
   getProfile: async () => {
@@ -37,5 +37,12 @@ export const profileService = {
   setPassword: async (data: SetPasswordRequest) => {
     const response = await api.put<{ message: string }>('/users/me/set-password', data)
     return response.data
+  },
+
+  updateLanguage: async (data: UpdateUserLanguageRequest | string) => {
+    const payload = typeof data === 'string' ? { language: data } : data
+    const response = await api.patch<UserResponse>('/users/me/language', payload)
+    return response.data
   }
 }
+

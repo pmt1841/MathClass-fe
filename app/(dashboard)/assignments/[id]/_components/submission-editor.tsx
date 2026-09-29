@@ -15,6 +15,7 @@ import TiptapEditor from '@/components/ui/tiptap'
 import { formatDateTime } from '@/lib/utils'
 import { separateAdjacentMath } from '@/lib/editor-utils'
 import { Check, Type, Eye } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface SubmissionEditorProps {
   assignmentId: number
@@ -37,6 +38,7 @@ export function SubmissionEditor({
   onAutoSave,
   teacherFeedback
 }: SubmissionEditorProps) {
+  const { t } = useI18n()
   const [content, setContent] = useState(initialContent)
   const [debouncedContent, setDebouncedContent] = useState(initialContent)
 
@@ -91,7 +93,7 @@ export function SubmissionEditor({
         <div className="bg-sky-50 border-b border-sky-200 p-4 shrink-0">
           <h4 className="text-sky-800 font-semibold mb-2 flex items-center gap-2">
             <span className="w-5 h-5 rounded-full bg-sky-200 flex items-center justify-center text-sky-800 text-xs">i</span>
-            Nhận xét từ giáo viên
+            {t('Nhận xét từ giáo viên')}
           </h4>
           <div className="prose prose-slate prose-sm max-w-none text-sky-900">
             <ReactMarkdown
@@ -107,19 +109,19 @@ export function SubmissionEditor({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50 shrink-0">
         <h3 className="font-semibold text-slate-800 flex items-center gap-2">
           <Type className="h-4 w-4 text-primary" />
-          Khu vực làm bài {readOnly && <span className="text-xs text-rose-500 font-normal bg-rose-50 px-2 py-0.5 rounded-full ml-2 border border-rose-100">Chỉ xem</span>}
+          {t('Khu vực làm bài')} {readOnly && <span className="text-xs text-rose-500 font-normal bg-rose-50 px-2 py-0.5 rounded-full ml-2 border border-rose-100">{t('Chỉ xem')}</span>}
         </h3>
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
           {isSaving ? (
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Đang lưu...
+              {t('Đang lưu...')}
             </span>
           ) : lastSaved ? (
             <span className="flex items-center gap-1.5 text-emerald-600">
               <Check className="h-3 w-3" />
-              Đã lưu ({formatDateTime(lastSaved)})
+              {t('Đã lưu')} ({formatDateTime(lastSaved)})
             </span>
           ) : null}
         </div>
@@ -132,7 +134,7 @@ export function SubmissionEditor({
               value={content}
               onChange={handleContentChange}
               readOnly={readOnly}
-              placeholder={readOnly ? "Bài nộp đã khóa." : "Nhập bài làm của bạn tại đây... Hỗ trợ soạn thảo toán học trực quan (click 'Hiện bảng công thức Toán' để chèn công thức)..."}
+              placeholder={readOnly ? t("Bài nộp đã khóa.") : t("Nhập bài làm của bạn tại đây... Hỗ trợ soạn thảo toán học trực quan (click 'Hiện bảng công thức Toán' để chèn công thức)...")}
             />
           </Panel>
 
@@ -144,7 +146,7 @@ export function SubmissionEditor({
             <div className="h-full flex flex-col">
               <div className="px-4 py-2 border-b border-border/50 bg-slate-100/50 text-xs font-semibold text-slate-500 flex items-center gap-2">
                 <Eye className="h-3.5 w-3.5" />
-                Xem trước
+                {t('Xem trước')}
               </div>
               <div className="flex-1 p-4 overflow-y-auto prose prose-slate max-w-none prose-sm">
                 {debouncedContent ? (
@@ -156,7 +158,7 @@ export function SubmissionEditor({
                     {separateAdjacentMath(debouncedContent)}
                   </ReactMarkdown>
                 ) : (
-                  <p className="text-slate-400 italic mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
+                  <p className="text-slate-400 italic mt-0">{t('Nội dung xem trước sẽ hiển thị ở đây...')}</p>
                 )}
               </div>
             </div>
@@ -166,3 +168,4 @@ export function SubmissionEditor({
     </div>
   )
 }
+

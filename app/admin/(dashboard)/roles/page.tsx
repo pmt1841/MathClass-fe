@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { ResetRolePermissionsModal } from './_components/ResetRolePermissionsModal'
 import { SaveRolePermissionsModal } from './_components/SaveRolePermissionsModal'
 import { RefreshButton } from '@/components/ui/refresh-button'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const ROLES = [
   { id: 'ADMIN', name: 'Quản trị viên' },
@@ -28,6 +29,7 @@ const ROLES = [
 ]
 
 export default function AdminRolesPage() {
+  const { t } = useI18n()
   const [selectedRole, setSelectedRole] = useState('ADMIN')
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([])
   
@@ -67,17 +69,17 @@ export default function AdminRolesPage() {
     }
   }
 
-  const currentRoleName = ROLES.find(r => r.id === selectedRole)?.name || selectedRole
+  const currentRoleName = t(ROLES.find(r => r.id === selectedRole)?.name || selectedRole)
 
   const handleSave = () => {
     updatePermissions.mutate(
       { role: selectedRole, permissionIds: selectedPermissionIds },
       {
         onSuccess: () => {
-          toast.success(`Cập nhật quyền cho nhóm ${currentRoleName} thành công!`)
+          toast.success(t('Cập nhật quyền cho nhóm {name} thành công!', { name: currentRoleName }))
         },
         onError: () => {
-          toast.error('Có lỗi xảy ra khi lưu quyền, vui lòng thử lại sau.')
+          toast.error(t('Có lỗi xảy ra khi lưu quyền, vui lòng thử lại sau.'))
         }
       }
     )
@@ -106,18 +108,18 @@ export default function AdminRolesPage() {
                 <ShieldCheck className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Quản lý Quyền hạn
+                {t('Quản lý Quyền hạn')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Cấu hình và gán danh sách quyền hạn chi tiết cho từng vai trò trong hệ thống.
+              {t('Cấu hình và gán danh sách quyền hạn chi tiết cho từng vai trò trong hệ thống.')}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <RefreshButton
               onClick={() => refetch()}
-              title="Làm mới danh sách quyền hạn"
+              title={t('Làm mới danh sách quyền hạn')}
             />
             <ResetRolePermissionsModal
               roleId={selectedRole}
@@ -142,7 +144,7 @@ export default function AdminRolesPage() {
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           {ROLES.map(role => (
             <TabsTrigger key={role.id} value={role.id}>
-              {role.name}
+              {t(role.name)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -151,9 +153,9 @@ export default function AdminRolesPage() {
           <TabsContent key={role.id} value={role.id} className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Quyền của {role.name}</CardTitle>
+                <CardTitle>{t('Quyền của {name}', { name: t(role.name) })}</CardTitle>
                 <CardDescription>
-                  Bật/tắt các quyền bên dưới để cấu hình giới hạn tính năng cho nhóm người dùng này.
+                  {t('Bật/tắt các quyền bên dưới để cấu hình giới hạn tính năng cho nhóm người dùng này.')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -193,15 +195,15 @@ export default function AdminRolesPage() {
                         <AccordionItem key={group} value={group} className="border rounded-lg border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
                           <AccordionTrigger className="hover:no-underline py-3.5 px-4 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors">
                             <div className="flex items-center gap-3">
-                              <span className="font-semibold text-base tracking-wide uppercase text-slate-800 dark:text-slate-200">{group}</span>
+                              <span className="font-semibold text-base tracking-wide uppercase text-slate-800 dark:text-slate-200">{t(group)}</span>
                               <Badge variant={activeCount > 0 ? "secondary" : "outline"} className="text-xs font-normal">
-                                {activeCount}/{totalCount} quyền đã bật
+                                {t('{active}/{total} quyền đã bật', { active: activeCount, total: totalCount })}
                               </Badge>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="p-0 pb-1 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                             <div className="flex items-center justify-between space-x-4 px-4 py-3 bg-slate-100/70 dark:bg-slate-800/50 border-b-2 border-slate-200 dark:border-slate-700 font-medium text-sm text-foreground">
-                              <span>{isAllSelected ? 'Tắt tất cả nhóm này' : 'Bật tất cả nhóm này'}</span>
+                              <span>{isAllSelected ? t('Tắt tất cả nhóm này') : t('Bật tất cả nhóm này')}</span>
                               <Switch
                                 checked={isAllSelected}
                                 onCheckedChange={(checked) => handleToggleGroup(perms, checked)}
@@ -211,7 +213,7 @@ export default function AdminRolesPage() {
                               {perms.map((permission) => (
                                 <div key={permission.id} className="flex items-center justify-between space-x-4 px-4 py-3 hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
                                   <div className="space-y-1">
-                                    <p className="text-sm font-medium leading-none text-slate-700 dark:text-slate-300">{permission.description}</p>
+                                    <p className="text-sm font-medium leading-none text-slate-700 dark:text-slate-300">{permission.description ? t(permission.description) : permission.description}</p>
                                   </div>
                                   <Switch
                                     checked={selectedPermissionIds.includes(permission.id)}
@@ -227,7 +229,7 @@ export default function AdminRolesPage() {
                   </Accordion>
                 ) : (
                   <div className="text-center text-muted-foreground py-4">
-                    Không có quyền nào được định nghĩa trong hệ thống.
+                    {t('Không có quyền nào được định nghĩa trong hệ thống.')}
                   </div>
                 )}
               </CardContent>

@@ -69,7 +69,13 @@ export interface UserResponse {
   lastActiveAt?: string | null
   isOnline?: boolean
   online?: boolean
+  language?: string
 }
+
+export interface UpdateUserLanguageRequest {
+  language: string
+}
+
 
 export interface UpdateProfileRequest {
   fullName: string

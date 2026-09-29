@@ -9,6 +9,7 @@ import {
 import JXG from 'jsxgraph'
 import 'mathlive'
 import './jsxgraph.css'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const Parallelogram = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
   <svg
@@ -350,6 +351,7 @@ export function normalizeCanvasElements(rawElements: any[]): any[] {
 }
 
 export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, initialWidth, initialHeight }: JsxGraphEditorModalProps) {
+  const { t } = useI18n()
   const boardRef = useRef<HTMLDivElement>(null)
   const boardInstanceRef = useRef<any>(null)
   const contextMenuHandlerRef = useRef<((e: Event) => void) | null>(null)
@@ -1540,24 +1542,24 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <CircleDot className="w-5 h-5 text-primary" />
             </div>
-            Vẽ hình với JSXGraph
+            {t("Vẽ hình với JSXGraph")}
           </h3>
           <div className="flex items-center gap-2">
             <button
               onClick={handleUndo}
               disabled={historyIndex === 0}
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
-              title="Hoàn tác (Ctrl+Z)"
+              title={t("Hoàn tác (Ctrl+Z)")}
             >
-              <Undo className="w-4 h-4" /> Hoàn tác
+              <Undo className="w-4 h-4" /> {t("Hoàn tác")}
             </button>
             <button
               onClick={handleRedo}
               disabled={historyIndex === history.length - 1}
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
-              title="Tiến lại"
+              title={t("Tiến lại")}
             >
-              <Redo className="w-4 h-4" /> Tiến lại
+              <Redo className="w-4 h-4" /> {t("Tiến lại")}
             </button>
             <div className="w-px h-6 bg-slate-200 mx-2"></div>
             <button
@@ -1576,109 +1578,109 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
           <div className="w-52 bg-white rounded-xl border border-border p-2 flex flex-col shadow-sm shrink-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1" style={{ maxHeight: 'calc(85vh - 160px)' }}>
               {/* Group: Cơ bản */}
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Cơ bản</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">{t("Cơ bản")}</div>
               <button
                 onClick={() => handleToolClick('select')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'select' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <MousePointer2 className="w-3.5 h-3.5" /> Chọn & Kéo
+                <MousePointer2 className="w-3.5 h-3.5" /> {t("Chọn & Kéo")}
               </button>
               <button
                 onClick={() => handleToolClick('point')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'point' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <CircleDot className="w-3.5 h-3.5" /> Thêm điểm
+                <CircleDot className="w-3.5 h-3.5" /> {t("Thêm điểm")}
               </button>
               <button
                 onClick={handleAddTextBox}
                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-slate-600 hover:bg-slate-50 hover:text-primary cursor-pointer border border-transparent hover:border-slate-200"
-                title="Thêm ô nhập chữ vào giữa hình vẽ"
+                title={t("Thêm ô nhập chữ vào giữa hình vẽ")}
               >
-                <Type className="w-3.5 h-3.5 text-primary" /> Thêm ô text
+                <Type className="w-3.5 h-3.5 text-primary" /> {t("Thêm ô text")}
               </button>
 
               <div className="my-1 border-t border-slate-100" />
 
               {/* Group: Đường & Đoạn */}
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Đường & Đoạn</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">{t("Đường & Đoạn")}</div>
               <button
                 onClick={() => handleToolClick('segment')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'segment' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Minus className="w-3.5 h-3.5" /> Đoạn thẳng
+                <Minus className="w-3.5 h-3.5" /> {t("Đoạn thẳng")}
               </button>
               <button
                 onClick={() => handleToolClick('line')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'line' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Slash className="w-3.5 h-3.5" /> Đường thẳng
+                <Slash className="w-3.5 h-3.5" /> {t("Đường thẳng")}
               </button>
 
               <div className="my-1 border-t border-slate-100" />
 
               {/* Group: Hình học */}
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hình học</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">{t("Hình học")}</div>
               <button
                 onClick={() => handleToolClick('triangle')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'triangle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Triangle className="w-3.5 h-3.5" /> Tam giác
+                <Triangle className="w-3.5 h-3.5" /> {t("Tam giác")}
               </button>
               <button
                 onClick={() => handleToolClick('square')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'square' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Square className="w-3.5 h-3.5" /> Hình vuông
+                <Square className="w-3.5 h-3.5" /> {t("Hình vuông")}
               </button>
               <button
                 onClick={() => handleToolClick('rectangle')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'rectangle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <RectangleHorizontal className="w-3.5 h-3.5" /> Hình chữ nhật
+                <RectangleHorizontal className="w-3.5 h-3.5" /> {t("Hình chữ nhật")}
               </button>
               <button
                 onClick={() => handleToolClick('rhombus')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'rhombus' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Diamond className="w-3.5 h-3.5" /> Hình thoi
+                <Diamond className="w-3.5 h-3.5" /> {t("Hình thoi")}
               </button>
               <button
                 onClick={() => handleToolClick('parallelogram')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'parallelogram' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Parallelogram className="w-3.5 h-3.5" /> Hình bình hành
+                <Parallelogram className="w-3.5 h-3.5" /> {t("Hình bình hành")}
               </button>
               <button
                 onClick={() => handleToolClick('circle')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'circle' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <Circle className="w-3.5 h-3.5" /> Hình tròn
+                <Circle className="w-3.5 h-3.5" /> {t("Hình tròn")}
               </button>
 
               <div className="my-1 border-t border-slate-100" />
 
               {/* Group: Hàm số */}
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hàm số</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">{t("Hàm số")}</div>
               <button
                 onClick={() => handleToolClick('function')}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTool === 'function' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <FunctionSquare className="w-3.5 h-3.5" /> Đồ thị hàm
+                <FunctionSquare className="w-3.5 h-3.5" /> {t("Đồ thị hàm")}
               </button>
 
               <div className="my-1 border-t border-slate-100" />
 
               {/* Group: Hiển thị */}
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">Hiển thị</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 mb-0.5">{t("Hiển thị")}</div>
               <button
                 type="button"
                 onClick={handleToggleGrid}
                 className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${showGrid ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
                   }`}
-                title={showGrid ? "Ẩn lưới ô vuông (sẽ tự động ẩn trục tọa độ)" : "Hiện lưới ô vuông"}
+                title={showGrid ? t("Ẩn lưới ô vuông (sẽ tự động ẩn trục tọa độ)") : t("Hiện lưới ô vuông")}
               >
                 <span className="flex items-center gap-2">
-                  <Grid className="w-3.5 h-3.5 text-slate-500" /> Lưới ô vuông
+                  <Grid className="w-3.5 h-3.5 text-slate-500" /> {t("Lưới ô vuông")}
                 </span>
                 <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${showGrid ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
                   }`}>
@@ -1705,7 +1707,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
                 }
               >
                 <span className="flex items-center gap-2">
-                  <Compass className={`w-3.5 h-3.5 ${!showGrid ? 'text-slate-300' : 'text-slate-500'}`} /> Trục tọa độ
+                  <Compass className={`w-3.5 h-3.5 ${!showGrid ? 'text-slate-300' : 'text-slate-500'}`} /> {t("Trục tọa độ")}
                 </span>
                 <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${!showGrid
                     ? 'border-slate-200 bg-slate-100'
@@ -1719,23 +1721,23 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             </div>
 
             <div className="mt-2 p-2 bg-blue-50 text-blue-800 rounded-lg text-[11px] font-medium border border-blue-100 leading-relaxed shrink-0">
-              {activeTool === 'point' && "Click vào bảng để tạo điểm mới."}
-              {activeTool === 'segment' && "Click 2 điểm liên tiếp để vẽ đoạn thẳng."}
-              {activeTool === 'line' && "Click 2 điểm liên tiếp để vẽ đường thẳng vô hạn."}
-              {activeTool === 'triangle' && "Click 3 điểm liên tiếp để vẽ tam giác."}
-              {activeTool === 'square' && "Click 2 điểm cạnh đáy để vẽ hình vuông chuẩn (không méo góc)."}
-              {activeTool === 'rectangle' && "Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình chữ nhật."}
-              {activeTool === 'rhombus' && "Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình thoi chuẩn."}
-              {activeTool === 'parallelogram' && "Click 3 điểm để vẽ hình bình hành chuẩn 2 cặp cạnh song song."}
-              {activeTool === 'circle' && "Click tâm đường tròn, sau đó click một điểm trên viền."}
-              {activeTool === 'function' && "Nhập công thức hàm số rồi nhấn Vẽ để thêm đồ thị."}
-              {activeTool === 'select' && "Kéo thả để di chuyển các đỉnh. Click chuột phải vào điểm để sửa tọa độ & tên."}
+              {activeTool === 'point' && t("Click vào bảng để tạo điểm mới.")}
+              {activeTool === 'segment' && t("Click 2 điểm liên tiếp để vẽ đoạn thẳng.")}
+              {activeTool === 'line' && t("Click 2 điểm liên tiếp để vẽ đường thẳng vô hạn.")}
+              {activeTool === 'triangle' && t("Click 3 điểm liên tiếp để vẽ tam giác.")}
+              {activeTool === 'square' && t("Click 2 điểm cạnh đáy để vẽ hình vuông chuẩn (không méo góc).")}
+              {activeTool === 'rectangle' && t("Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình chữ nhật.")}
+              {activeTool === 'rhombus' && t("Click 2 điểm cạnh đáy & 1 điểm đỉnh để vẽ hình thoi chuẩn.")}
+              {activeTool === 'parallelogram' && t("Click 3 điểm để vẽ hình bình hành chuẩn 2 cặp cạnh song song.")}
+              {activeTool === 'circle' && t("Click tâm đường tròn, sau đó click một điểm trên viền.")}
+              {activeTool === 'function' && t("Nhập công thức hàm số rồi nhấn Vẽ để thêm đồ thị.")}
+              {activeTool === 'select' && t("Kéo thả để di chuyển các đỉnh. Click chuột phải vào điểm để sửa tọa độ & tên.")}
             </div>
           </div>
 
           {/* Function Tool Panel */}
           <div className={`w-80 bg-white rounded-xl border border-border shadow-sm flex-col p-3 shrink-0 animate-in slide-in-from-left-4 ${activeTool === 'function' ? 'flex' : 'hidden'}`}>
-            <div className="text-sm font-semibold text-slate-700 mb-3 px-1">Nhập hàm số</div>
+            <div className="text-sm font-semibold text-slate-700 mb-3 px-1">{t("Nhập hàm số")}</div>
             <style>{`
                 math-field::part(menu-toggle) {
                   display: none !important;
@@ -1775,7 +1777,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
                   onClick={handleAddFunctionGraph}
                   className="flex-1 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 shadow-sm transition-colors"
                 >
-                  {editingFunctionId ? 'Cập nhật' : 'Vẽ đồ thị'}
+                  {editingFunctionId ? t('Cập nhật') : t('Vẽ đồ thị')}
                 </button>
                 {editingFunctionId && (
                   <button
@@ -1795,7 +1797,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
             {/* Function List */}
             {(history[historyIndex]?.elements || []).some(el => el.type === 'functiongraph') && (
               <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 overflow-y-auto">
-                <div className="text-xs font-semibold text-slate-500 mb-1 px-1">Các hàm số đã vẽ</div>
+                <div className="text-xs font-semibold text-slate-500 mb-1 px-1">{t("Các hàm số đã vẽ")}</div>
                 {(history[historyIndex]?.elements || []).filter(el => el.type === 'functiongraph').map(el => (
                   <div key={el.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 group">
                     <div className="flex-1 min-w-0 overflow-hidden pointer-events-none" style={{ fontSize: '1.1rem' }}>
@@ -1874,7 +1876,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1 block">Tên điểm</label>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">{t("Tên điểm")}</label>
                       <input
                         type="text"
                         value={editingPoint.name}
@@ -1913,7 +1915,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
                       <button
                         onClick={handleDeletePoint}
                         className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors shadow-sm"
-                        title="Xóa điểm"
+                        title={t("Xóa điểm")}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -1929,7 +1931,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
         {errorModal && (
           <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onContextMenu={e => e.preventDefault()}>
             <div className="bg-white rounded-xl shadow-2xl border border-border p-5 w-80 animate-in zoom-in-95 flex flex-col gap-3">
-              <h4 className="font-semibold text-rose-600 text-base">Lỗi cú pháp</h4>
+              <h4 className="font-semibold text-rose-600 text-base">{t("Lỗi cú pháp")}</h4>
               <p className="text-sm text-slate-600 leading-relaxed">{errorModal}</p>
               <div className="flex justify-end mt-2">
                 <button
@@ -1948,7 +1950,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
           {/* Dimension Controls */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <label className="text-xs font-semibold text-slate-500">Rộng:</label>
+              <label className="text-xs font-semibold text-slate-500">{t("Rộng:")}</label>
               <input
                 type="text"
                 value={width}
@@ -1958,7 +1960,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-xs font-semibold text-slate-500">Cao:</label>
+              <label className="text-xs font-semibold text-slate-500">{t("Cao:")}</label>
               <input
                 type="text"
                 value={height}
@@ -1980,7 +1982,7 @@ export function JsxGraphEditorModal({ open, onClose, onConfirm, initialData, ini
               onClick={handleConfirm}
               className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/95 rounded-xl transition-colors shadow-sm cursor-pointer"
             >
-              <Check className="w-4 h-4" /> Lưu hình vẽ
+              <Check className="w-4 h-4" /> {t("Lưu hình vẽ")}
             </button>
           </div>
         </div>

@@ -32,6 +32,7 @@ import { AdminUser } from '@/types'
 import { StatusSwitch } from './status-switch'
 import { LockUserModal } from './LockUserModal'
 import { UnlockUserModal } from './UnlockUserModal'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const ROLE_LABELS: Record<AdminUser['role'], string> = {
   ADMIN: 'Quản trị viên',
@@ -41,6 +42,7 @@ const ROLE_LABELS: Record<AdminUser['role'], string> = {
 
 // ── Role Badge ─────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: AdminUser['role'] }) {
+  const { t } = useI18n()
   const styles: Record<AdminUser['role'], string> = {
     ADMIN: 'bg-red-600 text-white hover:bg-red-700',
     TEACHER: 'bg-blue-600 text-white hover:bg-blue-700',
@@ -48,13 +50,14 @@ function RoleBadge({ role }: { role: AdminUser['role'] }) {
   }
   return (
     <Badge className={cn('rounded-full font-medium', styles[role])}>
-      {ROLE_LABELS[role] || role}
+      {t(ROLE_LABELS[role] || role)}
     </Badge>
   )
 }
 
 // ── Status Badge ────────────────────────────────────────────────────────────
 function StatusBadge({ isActive }: { isActive: boolean }) {
+  const { t } = useI18n()
   return (
     <Badge
       className={cn(
@@ -64,13 +67,14 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
           : 'bg-red-600 text-white hover:bg-red-700'
       )}
     >
-      {isActive ? 'Hoạt động' : 'Bị khóa'}
+      {isActive ? t('Hoạt động') : t('Bị khóa')}
     </Badge>
   )
 }
 
 // ── Main Client Component ───────────────────────────────────────────────────
 export function UsersClient() {
+  const { t } = useI18n()
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
 
@@ -153,11 +157,11 @@ export function UsersClient() {
       { userId, isActive: false, reason },
       {
         onSuccess: () => {
-          toast.success('Đã khóa tài khoản thành công')
+          toast.success(t('Đã khóa tài khoản thành công'))
           setUserToLock(null)
         },
         onError: (err: any) => {
-          toast.error(err.response?.data?.message || 'Không thể khóa tài khoản')
+          toast.error(err.response?.data?.message || t('Không thể khóa tài khoản'))
         },
         onSettled: () => {
           setPendingUserId(null)
@@ -174,11 +178,11 @@ export function UsersClient() {
       { userId, isActive: true, reason },
       {
         onSuccess: () => {
-          toast.success('Đã mở khóa tài khoản thành công')
+          toast.success(t('Đã mở khóa tài khoản thành công'))
           setUserToUnlock(null)
         },
         onError: (err: any) => {
-          toast.error(err.response?.data?.message || 'Không thể mở khóa tài khoản')
+          toast.error(err.response?.data?.message || t('Không thể mở khóa tài khoản'))
         },
         onSettled: () => {
           setPendingUserId(null)
@@ -220,20 +224,20 @@ export function UsersClient() {
                 <Users className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Quản lý Người dùng
+                {t('Quản lý Người dùng')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {data ? (
                 <>
-                  Hiển thị{' '}
+                  {t('Hiển thị')}{' '}
                   <span className="font-semibold text-foreground">{data.numberOfElements}</span>
                   {' '}/ {' '}
                   <span className="font-semibold text-foreground">{data.totalElements}</span>
-                  {' '}người dùng.
+                  {' '}{t('người dùng.')}
                 </>
               ) : (
-                'Quản lý tài khoản người dùng trong hệ thống MathClass.'
+                t('Quản lý tài khoản người dùng trong hệ thống MathClass.')
               )}
             </p>
           </div>
@@ -258,7 +262,7 @@ export function UsersClient() {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="user-search-input"
-                  placeholder="Tìm kiếm theo email hoặc tên..."
+                  placeholder={t('Tìm kiếm theo email hoặc tên...')}
                   value={search}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10 h-10 w-full bg-white rounded-xl border-border"
@@ -268,32 +272,32 @@ export function UsersClient() {
               {/* Role Filter */}
               <Select value={role} onValueChange={handleRoleChange}>
                 <SelectTrigger id="user-role-filter" className="h-10 w-[150px] bg-white rounded-xl border-border text-xs font-semibold">
-                  <SelectValue placeholder="Tất cả vai trò" />
+                  <SelectValue placeholder={t('Tất cả vai trò')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                  <SelectItem value="ADMIN">Quản trị viên</SelectItem>
-                  <SelectItem value="TEACHER">Giáo viên</SelectItem>
-                  <SelectItem value="STUDENT">Học sinh</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả vai trò')}</SelectItem>
+                  <SelectItem value="ADMIN">{t('Quản trị viên')}</SelectItem>
+                  <SelectItem value="TEACHER">{t('Giáo viên')}</SelectItem>
+                  <SelectItem value="STUDENT">{t('Học sinh')}</SelectItem>
                 </SelectContent>
               </Select>
 
               {/* Status Filter */}
               <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger id="user-status-filter" className="h-10 w-[160px] bg-white rounded-xl border-border text-xs font-semibold">
-                  <SelectValue placeholder="Tất cả trạng thái" />
+                  <SelectValue placeholder={t('Tất cả trạng thái')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="ACTIVE">Hoạt động</SelectItem>
-                  <SelectItem value="LOCKED">Bị khóa</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả trạng thái')}</SelectItem>
+                  <SelectItem value="ACTIVE">{t('Hoạt động')}</SelectItem>
+                  <SelectItem value="LOCKED">{t('Bị khóa')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Right Page Size Selector */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium shrink-0 self-end sm:self-auto">
-              <span>Hiển thị:</span>
+              <span>{t('Hiển thị:')}</span>
               <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
                 <SelectTrigger id="user-page-size-select" className="h-10 w-[75px] text-xs font-bold bg-white rounded-xl border-border">
                   <SelectValue />
@@ -305,7 +309,7 @@ export function UsersClient() {
                   <SelectItem value="20">20</SelectItem>
                 </SelectContent>
               </Select>
-              <span>/ trang</span>
+              <span>/ {t('trang')}</span>
             </div>
           </div>
 
@@ -314,13 +318,13 @@ export function UsersClient() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/80">
-                  <TableHead className="w-16">STT</TableHead>
-                  <TableHead>Họ tên</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="w-32">Vai trò</TableHead>
-                  <TableHead className="w-32">Trạng thái</TableHead>
-                  <TableHead className="w-44">Hoạt động gần nhất</TableHead>
-                  <TableHead className="w-36">Hành động</TableHead>
+                  <TableHead className="w-16">{t('STT')}</TableHead>
+                  <TableHead>{t('Họ tên')}</TableHead>
+                  <TableHead>{t('Email')}</TableHead>
+                  <TableHead className="w-32">{t('Vai trò')}</TableHead>
+                  <TableHead className="w-32">{t('Trạng thái')}</TableHead>
+                  <TableHead className="w-44">{t('Hoạt động gần nhất')}</TableHead>
+                  <TableHead className="w-36">{t('Hành động')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,7 +357,7 @@ export function UsersClient() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                               </span>
-                              Đang hoạt động
+                              {t('Đang hoạt động')}
                             </span>
                           ) : (
                             <span
@@ -363,7 +367,7 @@ export function UsersClient() {
                               )}
                               title={user.lastActiveAt ? formatDateTime(user.lastActiveAt) : undefined}
                             >
-                              {formatRelativeLastLogin(user.lastActiveAt)}
+                              {formatRelativeLastLogin(user.lastActiveAt, t)}
                             </span>
                           )}
                         </TableCell>
@@ -384,7 +388,7 @@ export function UsersClient() {
                     <TableCell colSpan={7} className="h-36 text-center">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Users className="h-8 w-8 opacity-40" />
-                        <p className="text-sm">Không tìm thấy người dùng phù hợp</p>
+                        <p className="text-sm">{t('Không tìm thấy người dùng phù hợp')}</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -405,10 +409,10 @@ export function UsersClient() {
                 className="rounded-xl bg-white"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Trang trước
+                {t('Trang trước')}
               </Button>
               <div className="text-sm text-muted-foreground">
-                Trang <span className="font-medium text-foreground">{page + 1}</span> / {data.totalPages}
+                {t('Trang')} <span className="font-medium text-foreground">{page + 1}</span> / {data.totalPages}
               </div>
               <Button
                 variant="outline"
@@ -418,7 +422,7 @@ export function UsersClient() {
                 disabled={page >= data.totalPages - 1}
                 className="rounded-xl bg-white"
               >
-                Trang sau
+                {t('Trang sau')}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

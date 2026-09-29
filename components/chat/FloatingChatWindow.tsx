@@ -8,10 +8,12 @@ import { chatService } from '@/services/chatService';
 import { ChatMessageItem } from './ChatMessageItem';
 import { Send, Minus, X, MessageSquare, Users, GraduationCap, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 const PAGE_SIZE = 5; // Hiển thị 5 tin nhắn mỗi lần query để tối ưu hiệu năng
 
 export function FloatingChatWindow({ window }: { window: ChatWindow }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const { classId, classCode, currentUserId, closeChat, minimizeChat, toggleChat, isOnline, stompClient } =
     useChatDock();
@@ -50,10 +52,14 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
   const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({
-          top: scrollContainerRef.current.scrollHeight,
-          behavior: smooth ? 'smooth' : 'auto',
-        });
+        if (typeof scrollContainerRef.current.scrollTo === 'function') {
+          scrollContainerRef.current.scrollTo({
+            top: scrollContainerRef.current.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto',
+          });
+        } else {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
       }
     }, 60);
   }, []);
@@ -247,7 +253,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
         <span className="max-w-[110px] truncate">{window.title}</span>
         {hasUnread && (
           <span className="bg-white text-rose-600 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs">
-            {window.unreadCount} mới
+            {window.unreadCount} {t('mới')}
           </span>
         )}
       </button>
@@ -287,7 +293,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
           <div className="overflow-hidden">
             <h4 className="text-xs font-bold truncate text-white">{window.title}</h4>
             <p className="text-[10px] text-indigo-100 flex items-center gap-1">
-              {isGroup ? 'Kênh chung Lớp học' : isTeacher ? 'Giảng viên phụ trách' : online ? '🟢 Trực tuyến' : '⚪ Ngoại tuyến'}
+              {isGroup ? t('Kênh chung Lớp học') : isTeacher ? t('Giảng viên phụ trách') : online ? `🟢 ${t('Trực tuyến')}` : `⚪ ${t('Ngoại tuyến')}`}
             </p>
           </div>
         </div>
@@ -296,14 +302,14 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
           <button
             onClick={() => minimizeChat(window.id)}
             className="p-1 hover:bg-white/20 rounded-md transition-colors text-white"
-            title="Thu nhỏ"
+            title={t('Thu nhỏ')}
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => closeChat(window.id)}
             className="p-1 hover:bg-white/20 rounded-md transition-colors text-white"
-            title="Đóng"
+            title={t('Đóng')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -318,22 +324,22 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
       >
         {isLoadingMore && (
           <div className="flex items-center justify-center py-1.5 text-[11px] text-indigo-600 font-medium gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg">
-            <Loader2 className="w-3 h-3 animate-spin" /> Đang tải thêm 5 tin nhắn cũ hơn...
+            <Loader2 className="w-3 h-3 animate-spin" /> {t('Đang tải thêm 5 tin nhắn cũ hơn...')}
           </div>
         )}
 
         {isLoading ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-xs gap-2">
-            <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Đang tải 5 tin nhắn gần nhất...
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> {t('Đang tải 5 tin nhắn gần nhất...')}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-1 text-center p-4">
             <MessageSquare className="w-6 h-6 stroke-1 text-indigo-300 mb-1" />
             <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-              Chưa có tin nhắn nào
+              {t('Chưa có tin nhắn nào')}
             </p>
             <p className="text-[10px] text-gray-400">
-              Bắt đầu trao đổi! Hỗ trợ công thức Toán KaTeX ($E=mc^2$)
+              {t('Bắt đầu trao đổi! Hỗ trợ công thức Toán KaTeX ($E=mc^2$)')}
             </p>
           </div>
         ) : (
@@ -354,7 +360,7 @@ export function FloatingChatWindow({ window }: { window: ChatWindow }) {
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Nhập tin nhắn (hỗ trợ KaTeX $E=mc^2$)..."
+          placeholder={t('Nhập tin nhắn (hỗ trợ KaTeX $E=mc^2$)...')}
           className="flex-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 dark:text-gray-100 outline-none placeholder:text-gray-400"
         />
         <button

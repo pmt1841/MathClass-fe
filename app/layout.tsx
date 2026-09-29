@@ -16,26 +16,33 @@ export const metadata: Metadata = {
 import { Toaster } from '@/components/ui/sonner'
 
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { I18nProvider } from '@/lib/i18n/i18n-context'
+import { cookies } from 'next/headers'
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = await cookies()
+  const initialLocale = cookieStore.get('NEXT_LOCALE')?.value || 'vi'
+
   return (
-    <html lang="vi" className="bg-background">
+    <html lang={initialLocale} className="bg-background">
       <body className="font-sans antialiased">
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
           <QueryProvider>
             <StoreProvider>
-              {children}
-              <Toaster position="top-right" richColors closeButton duration={3000} />
-              {process.env.NODE_ENV === 'production' && <Analytics />}
+              <I18nProvider initialLocale={initialLocale}>
+                {children}
+                <Toaster position="top-right" richColors closeButton duration={3000} />
+                {process.env.NODE_ENV === 'production' && <Analytics />}
+              </I18nProvider>
             </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>
       </body>
-
     </html>
   )
 }
+

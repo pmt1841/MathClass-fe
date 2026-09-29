@@ -81,6 +81,7 @@ import {
   useBatchAdjustCredit,
   useAdminCreditTransactions,
 } from '@/hooks/useAdminCredits'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const ROLE_LABELS: Record<string, string> = {
   STUDENT: 'Học sinh',
@@ -106,6 +107,7 @@ export function CreditQuotaTab() {
 
 // ── 1. Chi phí credit theo task ──────────────────────────────────────────────
 function CostPerTaskSection() {
+  const { t } = useI18n()
   const { data: configs, isLoading } = useAdminTaskCreditConfigs()
   const updateMutation = useUpdateTaskCreditConfig()
   const [drafts, setDrafts] = useState<
@@ -141,9 +143,9 @@ function CostPerTaskSection() {
         delete next[task]
         return next
       })
-      toast.success(`Đã lưu chi phí cho "${getCreditTaskLabel(task)}"`)
+      toast.success(t('Đã lưu chi phí cho "{task}"', { task: getCreditTaskLabel(task, t) }))
     } catch (e) {
-      toast.error(handleApiError(e, 'Không thể lưu cấu hình chi phí.'))
+      toast.error(handleApiError(e, t('Không thể lưu cấu hình chi phí.')))
     } finally {
       setSaving(null)
     }
@@ -154,10 +156,10 @@ function CostPerTaskSection() {
       <CardHeader>
         <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <Coins className="h-5 w-5 text-amber-500 shrink-0" />
-          Chi phí Credit theo Tác vụ AI
+          {t('Chi phí Credit theo Tác vụ AI')}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Credit trừ theo tổng token (bao gồm prompt người dùng nhập + token đầu ra do AI sinh): 1 credit = N token (cột Token/credit), tối thiểu bằng phí cột đầu.
+          {t('Credit trừ theo tổng token (bao gồm prompt người dùng nhập + token đầu ra do AI sinh): 1 credit = N token (cột Token/credit), tối thiểu bằng phí cột đầu.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -171,11 +173,11 @@ function CostPerTaskSection() {
             <Table className="min-w-[580px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tác vụ AI</TableHead>
-                  <TableHead className="w-28">Phí tối thiểu</TableHead>
-                  <TableHead className="w-28">Token/credit</TableHead>
-                  <TableHead className="w-24">Áp dụng</TableHead>
-                  <TableHead className="w-28 text-right">Thao tác</TableHead>
+                  <TableHead>{t('Tác vụ AI')}</TableHead>
+                  <TableHead className="w-28">{t('Phí tối thiểu')}</TableHead>
+                  <TableHead className="w-28">{t('Token/credit')}</TableHead>
+                  <TableHead className="w-24">{t('Áp dụng')}</TableHead>
+                  <TableHead className="w-28 text-right">{t('Thao tác')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,7 +189,7 @@ function CostPerTaskSection() {
                     draft.enabled !== config.enabled
                   return (
                     <TableRow key={config.task}>
-                      <TableCell className="font-medium">{getCreditTaskLabel(config.task)}</TableCell>
+                      <TableCell className="font-medium">{getCreditTaskLabel(config.task, t)}</TableCell>
                       <TableCell>
                         <Input
                           type="number"
@@ -245,7 +247,7 @@ function CostPerTaskSection() {
                           ) : (
                             <Save className="mr-1.5 h-3.5 w-3.5" />
                           )}
-                          Lưu
+                          {t('Lưu')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -262,6 +264,7 @@ function CostPerTaskSection() {
 
 // ── 2. Credit mặc định theo role ─────────────────────────────────────────────
 function DefaultCreditsSection() {
+  const { t } = useI18n()
   const { data: defaults, isLoading } = useAdminDefaultCredits()
   const updateMutation = useUpdateDefaultCredits()
   const [drafts, setDrafts] = useState<Record<string, number>>({})
@@ -276,9 +279,9 @@ function DefaultCreditsSection() {
         delete next[role]
         return next
       })
-      toast.success(`Đã lưu credit mặc định cho ${ROLE_LABELS[role] ?? role}`)
+      toast.success(t('Đã lưu credit mặc định cho {role}', { role: t(ROLE_LABELS[role] ?? role) }))
     } catch (e) {
-      toast.error(handleApiError(e, 'Không thể lưu credit mặc định.'))
+      toast.error(handleApiError(e, t('Không thể lưu credit mặc định.')))
     } finally {
       setSaving(null)
     }
@@ -289,10 +292,10 @@ function DefaultCreditsSection() {
       <CardHeader>
         <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <UserCog className="h-5 w-5 text-blue-500 shrink-0" />
-          Credit mặc định khi tạo tài khoản
+          {t('Credit mặc định khi tạo tài khoản')}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Số credit tự động cấp cho người dùng mới theo vai trò (tài khoản cũ được backfill khi khởi động).
+          {t('Số credit tự động cấp cho người dùng mới theo vai trò (tài khoản cũ được backfill khi khởi động).')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -308,7 +311,7 @@ function DefaultCreditsSection() {
               const dirty = value !== def.defaultCredits
               return (
                 <div key={def.role} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                  <p className="text-sm font-semibold text-slate-800">{ROLE_LABELS[def.role] ?? def.role}</p>
+                  <p className="text-sm font-semibold text-slate-800">{t(ROLE_LABELS[def.role] ?? def.role)}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Input
                       type="number"
@@ -334,7 +337,7 @@ function DefaultCreditsSection() {
                       ) : (
                         <Save className="mr-1.5 h-3.5 w-3.5" />
                       )}
-                      Lưu
+                      {t('Lưu')}
                     </Button>
                   </div>
                 </div>
@@ -349,6 +352,7 @@ function DefaultCreditsSection() {
 
 // ── 3. Quản lý gói credit ────────────────────────────────────────────────────
 function PackagesSection() {
+  const { t } = useI18n()
   const { data: packages, isLoading } = useAdminPackages()
   const createMutation = useCreateCreditPackage()
   const updateMutation = useUpdateCreditPackage()
@@ -389,26 +393,26 @@ function PackagesSection() {
     try {
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data: form })
-        toast.success('Đã cập nhật gói credit')
+        toast.success(t('Đã cập nhật gói credit'))
       } else {
         await createMutation.mutateAsync(form)
-        toast.success('Đã tạo gói credit mới')
+        toast.success(t('Đã tạo gói credit mới'))
       }
       setDialogOpen(false)
     } catch (e) {
-      toast.error(handleApiError(e, 'Không thể lưu gói credit.'))
+      toast.error(handleApiError(e, t('Không thể lưu gói credit.')))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (pkg: CreditPackage) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Xóa gói "${pkg.name}"?`)) return
+    if (typeof window !== 'undefined' && !window.confirm(t('Xóa gói "{name}"?', { name: pkg.name }))) return
     try {
       await deleteMutation.mutateAsync(pkg.id)
-      toast.success('Đã xóa gói credit')
+      toast.success(t('Đã xóa gói credit'))
     } catch (e) {
-      toast.error(handleApiError(e, 'Không thể xóa gói credit.'))
+      toast.error(handleApiError(e, t('Không thể xóa gói credit.')))
     }
   }
 
@@ -418,14 +422,14 @@ function PackagesSection() {
         <div>
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <Coins className="h-5 w-5 text-emerald-500 shrink-0" />
-            Gói nạp Credit
+            {t('Gói nạp Credit')}
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Người dùng chọn gói để nạp credit khi hết hạn mức.
+            {t('Người dùng chọn gói để nạp credit khi hết hạn mức.')}
           </CardDescription>
         </div>
         <Button size="sm" className="w-full sm:w-auto" onClick={openCreate}>
-          <Plus className="mr-1.5 h-4 w-4" /> Thêm gói
+          <Plus className="mr-1.5 h-4 w-4" /> {t('Thêm gói')}
         </Button>
       </CardHeader>
       <CardContent>
@@ -439,17 +443,17 @@ function PackagesSection() {
             <Table className="min-w-[520px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tên gói</TableHead>
-                  <TableHead className="w-24">Số credit</TableHead>
-                  <TableHead className="w-28">Giá</TableHead>
-                  <TableHead className="w-24">Trạng thái</TableHead>
-                  <TableHead className="w-28 text-right">Thao tác</TableHead>
+                  <TableHead>{t('Tên gói')}</TableHead>
+                  <TableHead className="w-24">{t('Số credit')}</TableHead>
+                  <TableHead className="w-28">{t('Giá')}</TableHead>
+                  <TableHead className="w-24">{t('Trạng thái')}</TableHead>
+                  <TableHead className="w-28 text-right">{t('Thao tác')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(packages || []).map((pkg) => (
                   <TableRow key={pkg.id}>
-                    <TableCell className="font-medium">{pkg.name}</TableCell>
+                    <TableCell className="font-medium">{t(pkg.name)}</TableCell>
                     <TableCell>{pkg.credits}</TableCell>
                     <TableCell>{formatVnd(pkg.price)}</TableCell>
                     <TableCell>
@@ -460,7 +464,7 @@ function PackagesSection() {
                             : 'bg-slate-100 text-slate-500'
                         }
                       >
-                        {pkg.enabled ? 'Đang bán' : 'Đã tắt'}
+                        {pkg.enabled ? t('Đang bán') : t('Đã tắt')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -484,23 +488,23 @@ function PackagesSection() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[95vw] sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Sửa gói credit' : 'Thêm gói credit'}</DialogTitle>
+            <DialogTitle>{editing ? t('Sửa gói credit') : t('Thêm gói credit')}</DialogTitle>
             <DialogDescription>
-              Thiết lập tên, số credit, giá bán và trạng thái của gói.
+              {t('Thiết lập tên, số credit, giá bán và trạng thái của gói.')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Tên gói</Label>
+              <Label className="text-xs">{t('Tên gói')}</Label>
               <Input
                 value={form.name}
-                placeholder="Ví dụ: Gói Cơ bản"
+                placeholder={t('Ví dụ: Gói Cơ bản')}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Số credit</Label>
+                <Label className="text-xs">{t('Số credit')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -511,7 +515,7 @@ function PackagesSection() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Giá (VND)</Label>
+                <Label className="text-xs">{t('Giá (VND)')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -523,7 +527,7 @@ function PackagesSection() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Đang bán</Label>
+              <Label className="text-xs">{t('Đang bán')}</Label>
               <Switch
                 checked={form.enabled}
                 onCheckedChange={(val) => setForm((prev) => ({ ...prev, enabled: val }))}
@@ -532,14 +536,14 @@ function PackagesSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Hủy
+              {t('Hủy')}
             </Button>
             <Button
               disabled={saving || !form.name.trim() || form.credits <= 0 || form.price <= 0}
               onClick={handleSave}
             >
               {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-              Lưu
+              {t('Lưu')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -576,6 +580,7 @@ const TRANSACTION_TYPE_CONFIG: Record<
 }
 
 function TransactionTypeBadge({ type }: { type: string }) {
+  const { t } = useI18n()
   const config = TRANSACTION_TYPE_CONFIG[type]
   return (
     <Badge
@@ -585,12 +590,13 @@ function TransactionTypeBadge({ type }: { type: string }) {
         config?.className ?? 'bg-slate-50 text-slate-700 border-slate-200'
       )}
     >
-      {config?.label ?? type}
+      {t(config?.label ?? type)}
     </Badge>
   )
 }
 
 function UserRoleBadge({ role }: { role?: string | null }) {
+  const { t } = useI18n()
   if (!role) return <span className="text-slate-400 text-xs">—</span>
   const styles: Record<string, string> = {
     ADMIN: 'bg-red-50 text-red-700 border-red-200',
@@ -610,7 +616,7 @@ function UserRoleBadge({ role }: { role?: string | null }) {
         styles[role] ?? 'bg-slate-50 text-slate-700 border-slate-200'
       )}
     >
-      {labels[role] ?? role}
+      {t(labels[role] ?? role)}
     </Badge>
   )
 }
@@ -622,6 +628,7 @@ interface UserMultiSelectProps {
 }
 
 function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
@@ -683,7 +690,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
           >
             <span className="truncate text-left flex-1 mr-2">
               {values.length === 0 ? (
-                'Chọn người dùng (email)...'
+                t('Chọn người dùng (email)...')
               ) : values.length === 1 ? (
                 <span className="font-medium text-slate-800">
                   {values[0].email}
@@ -691,7 +698,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
                 </span>
               ) : (
                 <span className="font-medium text-indigo-700">
-                  Đã chọn {values.length} người dùng ({values[0].email}, ...)
+                  {t('Đã chọn {count} người dùng ({email}, ...)', { count: values.length, email: values[0].email })}
                 </span>
               )}
             </span>
@@ -706,7 +713,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
                 handleClearAll()
               }}
               className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Bỏ chọn tất cả"
+              title={t('Bỏ chọn tất cả')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -722,7 +729,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
           )}
           <input
             className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-800"
-            placeholder="Tìm theo email hoặc họ tên"
+            placeholder={t('Tìm theo email hoặc họ tên')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -742,7 +749,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
         {(values.length > 0 || (isSearchActive && users.length > 0)) && (
           <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 text-[11px] border-b border-slate-100 text-slate-500">
             <span>
-              Đã chọn: <strong className="text-indigo-600">{values.length}</strong>
+              {t('Đã chọn:')} <strong className="text-indigo-600">{values.length}</strong>
             </span>
             <div className="flex items-center gap-2">
               {isSearchActive && users.length > 0 && (
@@ -751,7 +758,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
                   onClick={handleSelectAllInResult}
                   className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
                 >
-                  Chọn tất cả kết quả ({users.length})
+                  {t('Chọn tất cả kết quả ({count})', { count: users.length })}
                 </button>
               )}
               {values.length > 0 && (
@@ -762,7 +769,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
                     onClick={handleClearAll}
                     className="text-rose-600 hover:text-rose-800 font-medium hover:underline"
                   >
-                    Bỏ chọn tất cả
+                    {t('Bỏ chọn tất cả')}
                   </button>
                 </>
               )}
@@ -774,11 +781,11 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
           {isLoading || (isSearchActive && !hasDebouncedQuery) || isFetching ? (
             <div className="flex items-center justify-center py-6 text-slate-500 gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-              <span>Đang tìm kiếm...</span>
+              <span>{t('Đang tìm kiếm...')}</span>
             </div>
           ) : users.length === 0 ? (
             <div className="py-6 text-center text-slate-400 text-xs">
-              Không tìm thấy người dùng nào phù hợp
+              {t('Không tìm thấy người dùng nào phù hợp')}
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -810,7 +817,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-slate-900">{user.email}</div>
                         <div className="text-[11px] text-slate-500 truncate">
-                          {user.fullName || 'Chưa cập nhật tên'}
+                          {user.fullName || t('Chưa cập nhật tên')}
                         </div>
                       </div>
                     </div>
@@ -829,6 +836,7 @@ function UserMultiSelect({ values, onChange, disabled }: UserMultiSelectProps) {
 }
 
 function AdjustAndLedgerSection() {
+  const { t } = useI18n()
   const batchAdjustMutation = useBatchAdjustCredit()
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [selectedUsers, setSelectedUsers] = useState<AdminUser[]>([])
@@ -867,21 +875,21 @@ function AdjustAndLedgerSection() {
 
   const handleAdjust = async () => {
     if (selectedUsers.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một người dùng.')
+      toast.error(t('Vui lòng chọn ít nhất một người dùng.'))
       return
     }
     const parsedAmount = parseInt(amount, 10)
     if (Number.isNaN(parsedAmount) || parsedAmount === 0) {
-      toast.error('Số credit điều chỉnh phải khác 0.')
+      toast.error(t('Số credit điều chỉnh phải khác 0.'))
       return
     }
 
     let finalReason = ''
     if (reasonPreset === 'SYSTEM_REFUND') {
-      finalReason = 'Hoàn tiền do lỗi hệ thống'
+      finalReason = t('Hoàn tiền do lỗi hệ thống')
     } else {
       if (!customReason.trim()) {
-        toast.error('Vui lòng nhập lý do cụ thể.')
+        toast.error(t('Vui lòng nhập lý do cụ thể.'))
         return
       }
       finalReason = customReason.trim()
@@ -897,14 +905,20 @@ function AdjustAndLedgerSection() {
 
       if (res.failureCount === 0) {
         toast.success(
-          `Đã điều chỉnh ${parsedAmount >= 0 ? '+' : ''}${parsedAmount} credit cho ${res.successCount} người dùng.`
+          t('Đã điều chỉnh {amount} credit cho {count} người dùng.', {
+            amount: `${parsedAmount >= 0 ? '+' : ''}${parsedAmount}`,
+            count: res.successCount,
+          })
         )
       } else if (res.successCount > 0) {
         toast.warning(
-          `Thành công ${res.successCount} người dùng, thất bại ${res.failureCount} người dùng.`
+          t('Thành công {success} người dùng, thất bại {fail} người dùng.', {
+            success: res.successCount,
+            fail: res.failureCount,
+          })
         )
       } else {
-        toast.error(res.message || 'Điều chỉnh thất bại cho tất cả người dùng.')
+        toast.error(res.message || t('Điều chỉnh thất bại cho tất cả người dùng.'))
       }
 
       setSelectedUsers([])
@@ -913,7 +927,7 @@ function AdjustAndLedgerSection() {
       setReasonPreset('SYSTEM_REFUND')
       refetchTransactions()
     } catch (e) {
-      toast.error(handleApiError(e, 'Không thể điều chỉnh credit.'))
+      toast.error(handleApiError(e, t('Không thể điều chỉnh credit.')))
     } finally {
       setAdjusting(false)
     }
@@ -924,10 +938,10 @@ function AdjustAndLedgerSection() {
       <CardHeader>
         <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <ReceiptText className="h-5 w-5 text-slate-500 shrink-0" />
-          Điều chỉnh Credit & Sổ cái giao dịch
+          {t('Điều chỉnh Credit & Sổ cái giao dịch')}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          Admin cộng/trừ credit thủ công cho một hoặc nhiều người dùng cùng lúc (ví dụ hoàn tiền lỗi hệ thống) và tra cứu sổ cái.
+          {t('Admin cộng/trừ credit thủ công cho một hoặc nhiều người dùng cùng lúc (ví dụ hoàn tiền lỗi hệ thống) và tra cứu sổ cái.')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -935,7 +949,7 @@ function AdjustAndLedgerSection() {
         <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Người dùng (chọn nhiều)</Label>
+              <Label className="text-xs">{t('Người dùng (chọn nhiều)')}</Label>
               <UserMultiSelect
                 values={selectedUsers}
                 onChange={setSelectedUsers}
@@ -943,28 +957,28 @@ function AdjustAndLedgerSection() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Số credit (+/-)</Label>
+              <Label className="text-xs">{t('Số credit (+/-)')}</Label>
               <Input
                 type="number"
-                placeholder="100 hoặc -50"
+                placeholder={t('100 hoặc -50')}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 disabled={adjusting}
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Lý do điều chỉnh</Label>
+              <Label className="text-xs">{t('Lý do điều chỉnh')}</Label>
               <Select
                 value={reasonPreset}
                 onValueChange={(val: 'SYSTEM_REFUND' | 'OTHER') => setReasonPreset(val)}
                 disabled={adjusting}
               >
                 <SelectTrigger className="h-9 text-xs bg-white">
-                  <SelectValue placeholder="Chọn lý do" />
+                  <SelectValue placeholder={t('Chọn lý do')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SYSTEM_REFUND">Hoàn tiền do lỗi hệ thống</SelectItem>
-                  <SelectItem value="OTHER">Lý do khác</SelectItem>
+                  <SelectItem value="SYSTEM_REFUND">{t('Hoàn tiền do lỗi hệ thống')}</SelectItem>
+                  <SelectItem value="OTHER">{t('Lý do khác')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -975,7 +989,7 @@ function AdjustAndLedgerSection() {
                 onClick={handleAdjust}
               >
                 {adjusting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-                Điều chỉnh {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ''}
+                {t('Điều chỉnh')} {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ''}
               </Button>
             </div>
           </div>
@@ -984,10 +998,10 @@ function AdjustAndLedgerSection() {
           {reasonPreset === 'OTHER' && (
             <div className="pt-1 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
               <Label className="text-xs text-slate-700">
-                Lý do cụ thể <span className="text-red-500">*</span>
+                {t('Lý do cụ thể')} <span className="text-red-500">*</span>
               </Label>
               <Input
-                placeholder="Nhập chi tiết lý do điều chỉnh credit (ví dụ: Thu bù credit, thưởng sự kiện...)"
+                placeholder={t('Nhập chi tiết lý do điều chỉnh credit (ví dụ: Thu bù credit, thưởng sự kiện...)')}
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 disabled={adjusting}
@@ -1002,7 +1016,7 @@ function AdjustAndLedgerSection() {
             <div className="pt-1 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-slate-600">
-                  Người dùng đã chọn ({selectedUsers.length}):
+                  {t('Người dùng đã chọn ({count}):', { count: selectedUsers.length })}
                 </span>
                 <button
                   type="button"
@@ -1010,7 +1024,7 @@ function AdjustAndLedgerSection() {
                   disabled={adjusting}
                   className="text-[11px] text-rose-600 hover:text-rose-800 hover:underline"
                 >
-                  Xóa tất cả
+                  {t('Xóa tất cả')}
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200 shadow-inner">
@@ -1029,7 +1043,7 @@ function AdjustAndLedgerSection() {
                       onClick={() => setSelectedUsers((prev) => prev.filter((item) => item.id !== u.id))}
                       disabled={adjusting}
                       className="rounded-full p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
-                      title={`Bỏ chọn ${u.email}`}
+                      title={t('Bỏ chọn {email}', { email: u.email })}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -1042,26 +1056,26 @@ function AdjustAndLedgerSection() {
 
         {/* Bộ lọc + sổ cái */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-800">Sổ cái giao dịch</p>
+          <p className="text-sm font-semibold text-slate-800">{t('Sổ cái giao dịch')}</p>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="w-full sm:w-44">
               <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Lọc theo loại" />
+                  <SelectValue placeholder={t('Lọc theo loại')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả loại</SelectItem>
-                  <SelectItem value="GRANT_DEFAULT">Cấp mặc định</SelectItem>
-                  <SelectItem value="PURCHASE">Nạp credit</SelectItem>
-                  <SelectItem value="ADMIN_ADJUST">Điều chỉnh</SelectItem>
-                  <SelectItem value="CONSUME">Tiêu thụ</SelectItem>
-                  <SelectItem value="REFUND">Hoàn lại</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả loại')}</SelectItem>
+                  <SelectItem value="GRANT_DEFAULT">{t('Cấp mặc định')}</SelectItem>
+                  <SelectItem value="PURCHASE">{t('Nạp credit')}</SelectItem>
+                  <SelectItem value="ADMIN_ADJUST">{t('Điều chỉnh')}</SelectItem>
+                  <SelectItem value="CONSUME">{t('Tiêu thụ')}</SelectItem>
+                  <SelectItem value="REFUND">{t('Hoàn lại')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <RefreshButton
               onClick={() => refetchTransactions()}
-              title="Làm mới sổ cái giao dịch"
+              title={t('Làm mới sổ cái giao dịch')}
             />
           </div>
         </div>
@@ -1073,7 +1087,7 @@ function AdjustAndLedgerSection() {
             <Skeleton className="h-9 w-full" />
           </div>
         ) : totalElements === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">Chưa có giao dịch nào.</p>
+          <p className="py-8 text-center text-sm text-slate-400">{t('Chưa có giao dịch nào.')}</p>
         ) : (
           <div className="space-y-4">
             <div
@@ -1085,13 +1099,13 @@ function AdjustAndLedgerSection() {
               <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-14 text-center">STT</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="w-28">Vai trò</TableHead>
-                    <TableHead className="w-36">Thời gian</TableHead>
-                    <TableHead className="w-32">Loại</TableHead>
-                    <TableHead>Nội dung</TableHead>
-                    <TableHead className="w-28 text-right">Số credit</TableHead>
+                    <TableHead className="w-14 text-center">{t('STT')}</TableHead>
+                    <TableHead>{t('Email')}</TableHead>
+                    <TableHead className="w-28">{t('Vai trò')}</TableHead>
+                    <TableHead className="w-36">{t('Thời gian')}</TableHead>
+                    <TableHead className="w-32">{t('Loại')}</TableHead>
+                    <TableHead>{t('Nội dung')}</TableHead>
+                    <TableHead className="w-28 text-right">{t('Số credit')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1118,9 +1132,9 @@ function AdjustAndLedgerSection() {
                         </TableCell>
                         <TableCell
                           className="text-xs text-slate-600 max-w-[240px] truncate"
-                          title={formatCreditTransactionDescription(txn.description, txn.task)}
+                          title={formatCreditTransactionDescription(txn.description, txn.task, t)}
                         >
-                          {formatCreditTransactionDescription(txn.description, txn.task)}
+                          {formatCreditTransactionDescription(txn.description, txn.task, t)}
                         </TableCell>
                         <TableCell
                           className={`text-right font-bold text-xs whitespace-nowrap ${(txn.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
@@ -1140,10 +1154,10 @@ function AdjustAndLedgerSection() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-3 text-xs text-slate-500">
                 <span>
-                  Hiển thị Trang <span className="font-semibold text-slate-700">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-semibold text-slate-700">{totalElements}</span> giao dịch)
+                  {t('Hiển thị Trang')} <span className="font-semibold text-slate-700">{page + 1}</span> / {Math.max(1, totalPages)} ({t('Tổng số')} <span className="font-semibold text-slate-700">{totalElements}</span> {t('giao dịch')})
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span>Số dòng/trang:</span>
+                  <span>{t('Số dòng/trang:')}</span>
                   <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
                     <SelectTrigger className="h-7 w-[65px] text-xs">
                       <SelectValue />
@@ -1167,7 +1181,7 @@ function AdjustAndLedgerSection() {
                   disabled={page <= 0}
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                  <span>Trước</span>
+                  <span>{t('Trước')}</span>
                 </Button>
 
                 <div className="flex items-center gap-1">
@@ -1207,7 +1221,7 @@ function AdjustAndLedgerSection() {
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1 || totalPages <= 1}
                 >
-                  <span>Sau</span>
+                  <span>{t('Sau')}</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>

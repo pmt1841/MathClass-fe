@@ -44,6 +44,7 @@ import {
   systemPromptService,
 } from '@/services/systemPromptService'
 import { useToast } from '@/components/ui/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 import { normalizeAiGeometryJson } from '@/lib/jsxgraph-utils'
 
 import ReactMarkdown from 'react-markdown'
@@ -75,6 +76,7 @@ export function PromptPreviewRenderDialog({
   draftContent,
   customTaskCode,
 }: PromptPreviewRenderDialogProps) {
+  const { t } = useI18n()
   const { toast } = useToast()
   const [variableValues, setVariableValues] = useState<Record<string, string>>({})
   const [isExecuting, setIsExecuting] = useState(false)
@@ -452,23 +454,23 @@ export function PromptPreviewRenderDialog({
 
       if (response.success) {
         toast({
-          title: 'Thực thi AI thành công!',
-          description: `Phản hồi trong ${response.executionTimeMs}ms từ ${response.modelName || 'Model'}`,
+          title: t('Thực thi AI thành công!'),
+          description: t('Phản hồi trong {ms}ms từ {model}', { ms: response.executionTimeMs, model: response.modelName || 'Model' }),
         })
       } else {
-        const rawErr = (response.errorMessage || 'Không thể kết nối đến nhà cung cấp AI').trim()
+        const rawErr = (response.errorMessage || t('Không thể kết nối đến nhà cung cấp AI')).trim()
         const shortErr = rawErr.length > 90 ? rawErr.substring(0, 90) + '...' : rawErr
         toast({
-          title: 'AI phản hồi lỗi',
+          title: t('AI phản hồi lỗi'),
           description: shortErr,
           variant: 'destructive',
         })
       }
     } catch (err: any) {
-      const rawErr = (err.response?.data?.message || err.message || 'Không thể chạy thử nghiệm prompt với AI').trim()
+      const rawErr = (err.response?.data?.message || err.message || t('Không thể chạy thử nghiệm prompt với AI')).trim()
       const shortErr = rawErr.length > 90 ? rawErr.substring(0, 90) + '...' : rawErr
       toast({
-        title: 'Lỗi thực thi kiểm thử',
+        title: t('Lỗi thực thi kiểm thử'),
         description: shortErr,
         variant: 'destructive',
       })
@@ -509,12 +511,12 @@ export function PromptPreviewRenderDialog({
                 <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <Sparkles className="h-4 w-4" />
                 </div>
-                <span>Thử nghiệm Prompt: {prompt.name}</span>
+                <span>{t('Thử nghiệm Prompt: {name}', { name: t(prompt.name) })}</span>
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
                 {isVisionPrompt
-                  ? 'Vẽ nét tay hoặc tải ảnh mẫu để kiểm thử khả năng nhận diện hình ảnh/chữ viết của mô hình Vision AI.'
-                  : 'Mô phỏng dữ liệu đầu vào và kiểm thử câu trả lời thực tế từ mô hình AI trước khi áp dụng.'}
+                  ? t('Vẽ nét tay hoặc tải ảnh mẫu để kiểm thử khả năng nhận diện hình ảnh/chữ viết của mô hình Vision AI.')
+                  : t('Mô phỏng dữ liệu đầu vào và kiểm thử câu trả lời thực tế từ mô hình AI trước khi áp dụng.')}
               </DialogDescription>
             </div>
 
@@ -524,7 +526,7 @@ export function PromptPreviewRenderDialog({
                   variant="secondary"
                   className="bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 self-start sm:self-center text-xs"
                 >
-                  Đang thử nghiệm bản nháp
+                  {t('Đang thử nghiệm bản nháp')}
                 </Badge>
               )}
             </div>
@@ -542,7 +544,7 @@ export function PromptPreviewRenderDialog({
                   <div className="flex items-center gap-2">
                     <PenTool className="h-4 w-4 text-purple-600" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                      Bảng vẽ & Ảnh mẫu đầu vào
+                      {t('Bảng vẽ & Ảnh mẫu đầu vào')}
                     </span>
                   </div>
 
@@ -555,7 +557,7 @@ export function PromptPreviewRenderDialog({
                       className="h-7 px-2.5 text-[11px] flex items-center gap-1"
                     >
                       <Upload className="h-3 w-3" />
-                      Tải ảnh
+                      {t('Tải ảnh')}
                     </Button>
                     <input
                       ref={fileInputRef}
@@ -573,7 +575,7 @@ export function PromptPreviewRenderDialog({
                       className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
                     >
                       <Eraser className="h-3 w-3 mr-1" />
-                      Xóa bảng
+                      {t('Xóa bảng')}
                     </Button>
                   </div>
                 </div>
@@ -599,7 +601,7 @@ export function PromptPreviewRenderDialog({
                 <div className="space-y-1.5">
                   <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
                     <Shapes className="h-3 w-3 text-indigo-500" />
-                    <span>Vẽ nhanh mẫu thử nghiệm:</span>
+                    <span>{t('Vẽ nhanh mẫu thử nghiệm:')}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {isSketchGeometryPrompt ? (
@@ -611,7 +613,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('triangle')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Tam giác vuông ABC
+                          {t('Tam giác vuông ABC')}
                         </Button>
                         <Button
                           type="button"
@@ -620,7 +622,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('rectangle')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Hình chữ nhật ABCD
+                          {t('Hình chữ nhật ABCD')}
                         </Button>
                         <Button
                           type="button"
@@ -629,7 +631,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('circle')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Đường tròn tâm O
+                          {t('Đường tròn tâm O')}
                         </Button>
                         <Button
                           type="button"
@@ -638,7 +640,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('parabola')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Đồ thị Parabol
+                          {t('Đồ thị Parabol')}
                         </Button>
                       </>
                     ) : (
@@ -650,7 +652,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('fraction')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Công thức nghiệm bậc 2
+                          {t('Công thức nghiệm bậc 2')}
                         </Button>
                         <Button
                           type="button"
@@ -659,7 +661,7 @@ export function PromptPreviewRenderDialog({
                           onClick={() => drawSample('equation')}
                           className="h-6 px-2 text-[11px] bg-slate-100 hover:bg-slate-200"
                         >
-                          Phương trình bậc hai
+                          {t('Phương trình bậc hai')}
                         </Button>
                       </>
                     )}
@@ -675,7 +677,7 @@ export function PromptPreviewRenderDialog({
                   <div className="flex items-center gap-2">
                     <Code2 className="h-4 w-4 text-indigo-500" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                      Biến đầu vào ({allowedVariables.length})
+                      {t('Biến đầu vào ({count})', { count: allowedVariables.length })}
                     </span>
                   </div>
                   <Button
@@ -686,7 +688,7 @@ export function PromptPreviewRenderDialog({
                     className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
                   >
                     <RotateCcw className="mr-1 h-3 w-3" />
-                    Xóa trắng
+                    {t('Xóa trắng')}
                   </Button>
                 </div>
 
@@ -706,7 +708,7 @@ export function PromptPreviewRenderDialog({
                           onChange={(e) =>
                             setVariableValues({ ...variableValues, [v]: e.target.value })
                           }
-                          placeholder={`Nhập nội dung cho {{${v}}}...`}
+                          placeholder={t('Nhập nội dung cho {{var}}...', { var: v })}
                           rows={2}
                           className="text-xs font-mono resize-none bg-muted/20"
                         />
@@ -717,7 +719,7 @@ export function PromptPreviewRenderDialog({
                           onChange={(e) =>
                             setVariableValues({ ...variableValues, [v]: e.target.value })
                           }
-                          placeholder={`Nhập ${v}...`}
+                          placeholder={t('Nhập {var}...', { var: v })}
                           className="h-8 text-xs font-mono bg-muted/20"
                         />
                       )}
@@ -736,7 +738,7 @@ export function PromptPreviewRenderDialog({
                   className="flex items-center gap-1.5 text-xs font-semibold text-foreground hover:text-indigo-600 transition-colors"
                 >
                   <Eye className="h-3.5 w-3.5 text-indigo-500" />
-                  <span>Xem trước câu lệnh hoàn chỉnh ({liveRenderedPrompt.length} ký tự)</span>
+                  <span>{t('Xem trước câu lệnh hoàn chỉnh ({count} ký tự)', { count: liveRenderedPrompt.length })}</span>
                 </button>
                 <Button
                   variant="ghost"
@@ -746,11 +748,11 @@ export function PromptPreviewRenderDialog({
                 >
                   {isCopiedPrompt ? (
                     <>
-                      <Check className="mr-1 h-3 w-3 text-emerald-500" /> Đã chép
+                      <Check className="mr-1 h-3 w-3 text-emerald-500" /> {t('Đã chép')}
                     </>
                   ) : (
                     <>
-                      <Copy className="mr-1 h-3 w-3" /> Chép prompt
+                      <Copy className="mr-1 h-3 w-3" /> {t('Chép prompt')}
                     </>
                   )}
                 </Button>
@@ -758,7 +760,7 @@ export function PromptPreviewRenderDialog({
 
               {showPromptPreview && (
                 <div className="p-3 bg-muted/50 rounded-lg text-xs font-mono leading-relaxed whitespace-pre-wrap max-h-[160px] overflow-y-auto border text-muted-foreground">
-                  {liveRenderedPrompt || 'Chưa có nội dung prompt.'}
+                  {liveRenderedPrompt || t('Chưa có nội dung prompt.')}
                 </div>
               )}
             </div>
@@ -772,12 +774,12 @@ export function PromptPreviewRenderDialog({
               {isExecuting ? (
                 <>
                   <Spinner className="h-4 w-4 text-white" />
-                  <span>Đang gửi và chờ phản hồi từ AI...</span>
+                  <span>{t('Đang gửi và chờ phản hồi từ AI...')}</span>
                 </>
               ) : (
                 <>
                   <Zap className="h-4 w-4 text-amber-300 fill-amber-300" />
-                  <span>{isVisionPrompt ? 'Chạy thử nghiệm Vision AI' : 'Chạy thử nghiệm AI'}</span>
+                  <span>{isVisionPrompt ? t('Chạy thử nghiệm Vision AI') : t('Chạy thử nghiệm AI')}</span>
                 </>
               )}
             </Button>
@@ -795,17 +797,17 @@ export function PromptPreviewRenderDialog({
                       className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 flex items-center gap-1 text-xs"
                     >
                       <CheckCircle2 className="h-3 w-3" />
-                      Phản hồi thành công
+                      {t('Phản hồi thành công')}
                     </Badge>
                   ) : (
                     <Badge variant="destructive" className="flex items-center gap-1 text-xs">
                       <AlertCircle className="h-3 w-3" />
-                      Lỗi phản hồi
+                      {t('Lỗi phản hồi')}
                     </Badge>
                   )
                 ) : (
                   <Badge variant="outline" className="text-muted-foreground text-xs">
-                    Sẵn sàng thử nghiệm
+                    {t('Sẵn sàng thử nghiệm')}
                   </Badge>
                 )}
 
@@ -841,16 +843,16 @@ export function PromptPreviewRenderDialog({
                     {parsedJsxGraph && (
                       <TabsTrigger value="preview" className="text-xs h-7 px-3 flex items-center gap-1.5">
                         <Shapes className="h-3.5 w-3.5 text-purple-600" />
-                        Bảng vẽ JSXGraph
+                        {t('Bảng vẽ JSXGraph')}
                       </TabsTrigger>
                     )}
                     <TabsTrigger value="katex" className="text-xs h-7 px-3 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5" />
-                      Định dạng (KaTeX / UI)
+                      {t('Định dạng (KaTeX / UI)')}
                     </TabsTrigger>
                     <TabsTrigger value="raw" className="text-xs h-7 px-3 flex items-center gap-1.5">
                       <Terminal className="h-3.5 w-3.5" />
-                      Văn bản gốc (Raw / JSON)
+                      {t('Văn bản gốc (Raw / JSON)')}
                     </TabsTrigger>
                   </TabsList>
 
@@ -863,11 +865,11 @@ export function PromptPreviewRenderDialog({
                     >
                       {isCopiedOutput ? (
                         <>
-                          <Check className="mr-1 h-3 w-3 text-emerald-600" /> Đã chép
+                          <Check className="mr-1 h-3 w-3 text-emerald-600" /> {t('Đã chép')}
                         </>
                       ) : (
                         <>
-                          <Copy className="mr-1 h-3 w-3" /> Sao chép
+                          <Copy className="mr-1 h-3 w-3" /> {t('Sao chép')}
                         </>
                       )}
                     </Button>
@@ -889,7 +891,7 @@ export function PromptPreviewRenderDialog({
                       />
                     </div>
                     <p className="text-[11px] text-muted-foreground italic text-center">
-                      Hình vẽ JSXGraph Canvas được chuẩn hóa và render trực tiếp từ JSON mà AI sinh ra.
+                      {t('Hình vẽ JSXGraph Canvas được chuẩn hóa và render trực tiếp từ JSON mà AI sinh ra.')}
                     </p>
                   </TabsContent>
                 )}
@@ -902,32 +904,32 @@ export function PromptPreviewRenderDialog({
                   {isExecuting ? (
                     <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
                       <Spinner className="h-7 w-7 text-indigo-600" />
-                      <p className="text-xs">Đang nhận dữ liệu và xử lý phản hồi từ AI...</p>
+                      <p className="text-xs">{t('Đang nhận dữ liệu và xử lý phản hồi từ AI...')}</p>
                     </div>
                   ) : isNoGeometryDetected ? (
                     <div className="p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 space-y-2">
                       <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
                         <AlertCircle className="h-4 w-4 text-amber-600" />
-                        <span>Không phát hiện hình vẽ phác thảo (NO_GEOMETRY_DETECTED)</span>
+                        <span>{t('Không phát hiện hình vẽ phác thảo (NO_GEOMETRY_DETECTED)')}</span>
                       </div>
                       <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                        Mô hình Vision AI phản hồi rằng ảnh đầu vào chưa có hình học rõ ràng (hoặc bảng vẽ đang để trống).
+                        {t('Mô hình Vision AI phản hồi rằng ảnh đầu vào chưa có hình học rõ ràng (hoặc bảng vẽ đang để trống).')}
                       </p>
                       <div className="pt-1 text-xs">
-                        👉 <strong>Cách thử nghiệm:</strong> Hãy dùng chuột vẽ một hình học (tam giác, đường tròn, parabol) lên bảng vẽ bên trái, hoặc bấm vào các nút vẽ sẵn như <strong>"Tam giác vuông ABC"</strong> / <strong>"Đường tròn tâm O"</strong> rồi bấm lại nút <strong>"Chạy thử nghiệm Vision AI"</strong>.
+                        👉 <strong>{t('Cách thử nghiệm:')}</strong> {t('Hãy dùng chuột vẽ một hình học (tam giác, đường tròn, parabol) lên bảng vẽ bên trái, hoặc bấm vào các nút vẽ sẵn như')} <strong>"{t('Tam giác vuông ABC')}"</strong> / <strong>"{t('Đường tròn tâm O')}"</strong> {t('rồi bấm lại nút')} <strong>"{t('Chạy thử nghiệm Vision AI')}"</strong>.
                       </div>
                     </div>
                   ) : isNoHandwritingDetected ? (
                     <div className="p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 space-y-2">
                       <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
                         <AlertCircle className="h-4 w-4 text-amber-600" />
-                        <span>Không phát hiện chữ viết tay (NO_HANDWRITING_DETECTED)</span>
+                        <span>{t('Không phát hiện chữ viết tay (NO_HANDWRITING_DETECTED)')}</span>
                       </div>
                       <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                        Mô hình Vision AI phản hồi rằng ảnh đầu vào chưa có chữ viết hoặc công thức toán.
+                        {t('Mô hình Vision AI phản hồi rằng ảnh đầu vào chưa có chữ viết hoặc công thức toán.')}
                       </p>
                       <div className="pt-1 text-xs">
-                        👉 <strong>Cách thử nghiệm:</strong> Hãy viết một công thức toán lên bảng vẽ hoặc bấm nút <strong>"Công thức nghiệm bậc 2"</strong> rồi bấm lại nút <strong>"Chạy thử nghiệm Vision AI"</strong>.
+                        👉 <strong>{t('Cách thử nghiệm:')}</strong> {t('Hãy viết một công thức toán lên bảng vẽ hoặc bấm nút')} <strong>"{t('Công thức nghiệm bậc 2')}"</strong> {t('rồi bấm lại nút')} <strong>"{t('Chạy thử nghiệm Vision AI')}"</strong>.
                       </div>
                     </div>
                   ) : executionResult?.aiResponse ? (
@@ -946,7 +948,7 @@ export function PromptPreviewRenderDialog({
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                               <Code2 className="h-3.5 w-3.5 text-indigo-500" />
-                              Mã nguồn LaTeX trích xuất:
+                              {t('Mã nguồn LaTeX trích xuất:')}
                             </span>
                             <Button
                               type="button"
@@ -957,11 +959,11 @@ export function PromptPreviewRenderDialog({
                             >
                               {isCopiedOutput ? (
                                 <>
-                                  <Check className="mr-1 h-3 w-3 text-emerald-600" /> Đã chép
+                                  <Check className="mr-1 h-3 w-3 text-emerald-600" /> {t('Đã chép')}
                                 </>
                               ) : (
                                 <>
-                                  <Copy className="mr-1 h-3 w-3" /> Chép mã LaTeX
+                                  <Copy className="mr-1 h-3 w-3" /> {t('Chép mã LaTeX')}
                                 </>
                               )}
                             </Button>
@@ -974,18 +976,18 @@ export function PromptPreviewRenderDialog({
                     </div>
                   ) : executionResult?.errorMessage ? (
                     <div className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg border border-red-200 text-xs">
-                      <strong>Lỗi phản hồi:</strong> {executionResult.errorMessage}
+                      <strong>{t('Lỗi phản hồi:')}</strong> {executionResult.errorMessage}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-52 text-muted-foreground text-center space-y-2">
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                         <Bot className="h-5 w-5" />
                       </div>
-                      <p className="text-xs font-medium">Chưa có kết quả phản hồi</p>
+                      <p className="text-xs font-medium">{t('Chưa có kết quả phản hồi')}</p>
                       <p className="text-[11px] text-muted-foreground max-w-xs">
                         {isVisionPrompt
-                          ? 'Vẽ nét chữ / hình học hoặc chọn mẫu vẽ sẵn rồi bấm "Chạy thử nghiệm Vision AI".'
-                          : 'Điền các biến đầu vào và bấm "Chạy thử nghiệm AI" để xem phản hồi thực tế.'}
+                          ? t('Vẽ nét chữ / hình học hoặc chọn mẫu vẽ sẵn rồi bấm "Chạy thử nghiệm Vision AI".')
+                          : t('Điền các biến đầu vào và bấm "Chạy thử nghiệm AI" để xem phản hồi thực tế.')}
                       </p>
                     </div>
                   )}
@@ -997,7 +999,7 @@ export function PromptPreviewRenderDialog({
                   className="flex-1 p-3.5 overflow-y-auto max-h-[380px] bg-slate-950 text-slate-100 font-mono text-xs"
                 >
                   <pre className="whitespace-pre-wrap leading-relaxed text-slate-200">
-                    {parsedJson || executionResult?.aiResponse || 'Chưa có kết quả.'}
+                    {parsedJson || executionResult?.aiResponse || t('Chưa có kết quả.')}
                   </pre>
                 </TabsContent>
               </Tabs>
@@ -1008,7 +1010,7 @@ export function PromptPreviewRenderDialog({
         {/* Modal Footer */}
         <DialogFooter className="pt-3 border-t">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-xs">
-            Đóng
+            {t('Đóng')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -35,6 +35,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { ChevronLeft, ChevronRight, ScrollText, Calendar as CalendarIcon, ChevronDown, ChevronUp, Terminal, User as UserIcon, Activity } from 'lucide-react'
 import { formatDateTime24h } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface DateFilterInputProps {
   label: string
@@ -43,6 +44,7 @@ interface DateFilterInputProps {
 }
 
 function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
 
   // Parse dd-MM-yyyy string to Date
@@ -99,7 +101,7 @@ function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
             <button
               type="button"
               className="absolute right-2 text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
-              title="Chọn ngày từ lịch"
+              title={t('Chọn ngày từ lịch')}
             >
               <CalendarIcon className="h-4 w-4" />
             </button>
@@ -119,6 +121,7 @@ function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
 }
 
 export default function AdminLogsPage() {
+  const { t } = useI18n()
   const [page, setPage] = useState(0)
   const [level, setLevel] = useState<string>('ALL')
   const [resourceType, setResourceType] = useState<string>('ALL')
@@ -159,41 +162,42 @@ export default function AdminLogsPage() {
     pageSize
   )
 
-const LEVEL_LABELS: Record<string, string> = {
-  INFO: 'Thông tin',
-  WARNING: 'Cảnh báo',
-  ERROR: 'Lỗi',
-}
+  const LEVEL_LABELS: Record<string, string> = {
+    INFO: 'Thông tin',
+    WARNING: 'Cảnh báo',
+    ERROR: 'Lỗi',
+  }
 
-const RESOURCE_TYPE_LABELS: Record<string, string> = {
-  AI_CONFIG: 'Cấu hình AI',
-  USER: 'Người dùng',
-  ROLE: 'Phân quyền',
-  COMMUNITY_REPO: 'Kho tài nguyên',
-  SYSTEM: 'Hệ thống',
-  STORAGE: 'Lưu trữ Đám mây',
-  CREDIT: 'Giao dịch Credit',
-  BUG_REPORT: 'Báo cáo sự cố',
-}
+  const RESOURCE_TYPE_LABELS: Record<string, string> = {
+    AI_CONFIG: 'Cấu hình AI',
+    USER: 'Người dùng',
+    ROLE: 'Phân quyền',
+    COMMUNITY_REPO: 'Kho tài nguyên',
+    SYSTEM: 'Hệ thống',
+    STORAGE: 'Lưu trữ Đám mây',
+    CREDIT: 'Giao dịch Credit',
+    BUG_REPORT: 'Báo cáo sự cố',
+  }
 
-const ACTION_LABELS: Record<string, string> = {
-  CREATE_AI_PROVIDER: 'Thêm mới Nhà cung cấp AI',
-  UPDATE_AI_PROVIDER: 'Cập nhật thông tin Nhà cung cấp AI',
-  DELETE_AI_PROVIDER: 'Xóa Nhà cung cấp AI',
-  ADD_AI_API_KEY: 'Thêm mới API Key AI',
-  DELETE_AI_API_KEY: 'Xóa API Key AI',
-  PATCH_AI_API_KEY_STATUS: 'Thay đổi trạng thái API Key AI',
-  UPDATE_AI_API_KEY: 'Cập nhật thông tin API Key AI',
-  UPDATE_AI_TASK_CONFIG: 'Cập nhật cấu hình tác vụ AI',
-  UPDATE_PROMPT: 'Cập nhật System Prompt',
-  RESET_PROMPT: 'Khôi phục System Prompt về mặc định',
-  ROLLBACK_PROMPT: 'Hoàn tác System Prompt về phiên bản trước',
-}
+  const ACTION_LABELS: Record<string, string> = {
+    CREATE_AI_PROVIDER: 'Thêm mới Nhà cung cấp AI',
+    UPDATE_AI_PROVIDER: 'Cập nhật thông tin Nhà cung cấp AI',
+    DELETE_AI_PROVIDER: 'Xóa Nhà cung cấp AI',
+    ADD_AI_API_KEY: 'Thêm mới API Key AI',
+    DELETE_AI_API_KEY: 'Xóa API Key AI',
+    PATCH_AI_API_KEY_STATUS: 'Thay đổi trạng thái API Key AI',
+    UPDATE_AI_API_KEY: 'Cập nhật thông tin API Key AI',
+    UPDATE_AI_TASK_CONFIG: 'Cập nhật cấu hình tác vụ AI',
+    UPDATE_PROMPT: 'Cập nhật System Prompt',
+    RESET_PROMPT: 'Khôi phục System Prompt về mặc định',
+    ROLLBACK_PROMPT: 'Hoàn tác System Prompt về phiên bản trước',
+  }
 
-const formatActionDescription = (action?: string) => {
-  if (!action) return '---'
-  return ACTION_LABELS[action] || action
-}
+  const formatActionDescription = (action?: string) => {
+    if (!action) return '---'
+    const label = ACTION_LABELS[action] || action
+    return t(label)
+  }
 
   const renderStatusBadge = (status?: string) => {
     if (!status) return <span className="text-muted-foreground">---</span>
@@ -203,16 +207,17 @@ const formatActionDescription = (action?: string) => {
         variant={isSuccess ? 'outline' : 'destructive'}
         className={isSuccess ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : ''}
       >
-        {isSuccess ? 'Thành công' : 'Thất bại'}
+        {isSuccess ? t('Thành công') : t('Thất bại')}
       </Badge>
     )
   }
 
   const renderResourceTypeBadge = (resType?: string) => {
     if (!resType) return <span className="text-muted-foreground">---</span>
+    const label = RESOURCE_TYPE_LABELS[resType] || resType
     return (
       <Badge variant="secondary" className="font-medium text-xs">
-        {RESOURCE_TYPE_LABELS[resType] || resType}
+        {t(label)}
       </Badge>
     )
   }
@@ -228,18 +233,18 @@ const formatActionDescription = (action?: string) => {
                 <ScrollText className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Nhật ký Hệ thống
+                {t('Nhật ký Hệ thống')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Theo dõi vết thao tác quản trị dữ liệu và nhật ký sự cố hệ thống.
+              {t('Theo dõi vết thao tác quản trị dữ liệu và nhật ký sự cố hệ thống.')}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <RefreshButton
               onClick={() => refetch()}
-              title="Cập nhật danh sách nhật ký mới nhất"
+              title={t('Cập nhật danh sách nhật ký mới nhất')}
             />
           </div>
         </div>
@@ -259,13 +264,13 @@ const formatActionDescription = (action?: string) => {
                 }}
               >
                 <SelectTrigger className="w-[150px] h-10 bg-white rounded-xl text-xs font-semibold">
-                  <SelectValue placeholder="Cấp độ" />
+                  <SelectValue placeholder={t('Cấp độ')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả cấp độ</SelectItem>
-                  <SelectItem value="INFO">Thông tin (INFO)</SelectItem>
-                  <SelectItem value="WARNING">Cảnh báo (WARNING)</SelectItem>
-                  <SelectItem value="ERROR">Lỗi (ERROR)</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả cấp độ')}</SelectItem>
+                  <SelectItem value="INFO">{t('Thông tin (INFO)')}</SelectItem>
+                  <SelectItem value="WARNING">{t('Cảnh báo (WARNING)')}</SelectItem>
+                  <SelectItem value="ERROR">{t('Lỗi (ERROR)')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -277,23 +282,23 @@ const formatActionDescription = (action?: string) => {
                 }}
               >
                 <SelectTrigger className="w-[180px] h-10 bg-white rounded-xl text-xs font-semibold">
-                  <SelectValue placeholder="Danh mục" />
+                  <SelectValue placeholder={t('Danh mục')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả danh mục</SelectItem>
-                  <SelectItem value="AI_CONFIG">Cấu hình AI</SelectItem>
-                  <SelectItem value="STORAGE">Lưu trữ Đám mây</SelectItem>
-                  <SelectItem value="CREDIT">Giao dịch Credit</SelectItem>
-                  <SelectItem value="BUG_REPORT">Báo cáo sự cố</SelectItem>
-                  <SelectItem value="USER">Người dùng</SelectItem>
-                  <SelectItem value="ROLE">Phân quyền</SelectItem>
-                  <SelectItem value="COMMUNITY_REPO">Kho tài nguyên</SelectItem>
-                  <SelectItem value="SYSTEM">Hệ thống</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả danh mục')}</SelectItem>
+                  <SelectItem value="AI_CONFIG">{t('Cấu hình AI')}</SelectItem>
+                  <SelectItem value="STORAGE">{t('Lưu trữ Đám mây')}</SelectItem>
+                  <SelectItem value="CREDIT">{t('Giao dịch Credit')}</SelectItem>
+                  <SelectItem value="BUG_REPORT">{t('Báo cáo sự cố')}</SelectItem>
+                  <SelectItem value="USER">{t('Người dùng')}</SelectItem>
+                  <SelectItem value="ROLE">{t('Phân quyền')}</SelectItem>
+                  <SelectItem value="COMMUNITY_REPO">{t('Kho tài nguyên')}</SelectItem>
+                  <SelectItem value="SYSTEM">{t('Hệ thống')}</SelectItem>
                 </SelectContent>
               </Select>
 
               <DateFilterInput
-                label="Từ"
+                label={t('Từ')}
                 value={startDate}
                 onChange={(val) => {
                   setStartDate(val)
@@ -302,7 +307,7 @@ const formatActionDescription = (action?: string) => {
               />
 
               <DateFilterInput
-                label="Đến"
+                label={t('Đến')}
                 value={endDate}
                 onChange={(val) => {
                   setEndDate(val)
@@ -322,13 +327,13 @@ const formatActionDescription = (action?: string) => {
                 }}
                 className="h-10 rounded-xl text-xs border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-xs font-medium"
               >
-                Xóa bộ lọc
+                {t('Xóa bộ lọc')}
               </Button>
             </div>
 
             {/* Page Size Selector */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium shrink-0 self-end sm:self-auto">
-              <span>Hiển thị:</span>
+              <span>{t('Hiển thị:')}</span>
               <Select
                 value={String(pageSize)}
                 onValueChange={(val) => {
@@ -346,7 +351,7 @@ const formatActionDescription = (action?: string) => {
                   <SelectItem value="20">20</SelectItem>
                 </SelectContent>
               </Select>
-              <span>/ trang</span>
+              <span>/ {t('trang')}</span>
             </div>
           </div>
 
@@ -354,15 +359,15 @@ const formatActionDescription = (action?: string) => {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/80">
-              <TableHead className="w-[80px]">STT</TableHead>
-              <TableHead className="w-[170px]">Thời gian</TableHead>
-              <TableHead className="w-[100px]">Cấp độ</TableHead>
-              <TableHead className="w-[140px]">Danh mục</TableHead>
-              <TableHead className="w-[200px]">Người thực hiện (Email)</TableHead>
-              <TableHead>Mô tả hành động</TableHead>
+              <TableHead className="w-[80px]">{t('STT')}</TableHead>
+              <TableHead className="w-[170px]">{t('Thời gian')}</TableHead>
+              <TableHead className="w-[100px]">{t('Cấp độ')}</TableHead>
+              <TableHead className="w-[140px]">{t('Danh mục')}</TableHead>
+              <TableHead className="w-[200px]">{t('Người thực hiện (Email)')}</TableHead>
+              <TableHead>{t('Mô tả hành động')}</TableHead>
 
-              <TableHead className="w-[140px]">Địa chỉ IP</TableHead>
-              <TableHead className="w-[110px] text-right">Trạng thái</TableHead>
+              <TableHead className="w-[140px]">{t('Địa chỉ IP')}</TableHead>
+              <TableHead className="w-[110px] text-right">{t('Trạng thái')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -400,13 +405,13 @@ const formatActionDescription = (action?: string) => {
                             : ''
                         }
                       >
-                        {(log.level && LEVEL_LABELS[log.level]) || log.level}
+                        {(log.level && t(LEVEL_LABELS[log.level] || log.level)) || log.level}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium text-xs text-slate-700">
-                      {(log.resourceType && RESOURCE_TYPE_LABELS[log.resourceType]) || log.resourceType || '---'}
+                      {(log.resourceType && t(RESOURCE_TYPE_LABELS[log.resourceType] || log.resourceType)) || log.resourceType || '---'}
                     </TableCell>
-                    <TableCell className="text-xs">{log.actor || 'Hệ thống'}</TableCell>
+                    <TableCell className="text-xs">{log.actor || t('Hệ thống')}</TableCell>
                     <TableCell className="text-xs font-medium text-slate-900">
                       {formatActionDescription(log.action)}
                     </TableCell>
@@ -420,7 +425,7 @@ const formatActionDescription = (action?: string) => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                  Không tìm thấy dữ liệu nhật ký nào.
+                  {t('Không tìm thấy dữ liệu nhật ký nào.')}
                 </TableCell>
               </TableRow>
             )}
@@ -431,7 +436,7 @@ const formatActionDescription = (action?: string) => {
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <div className="text-xs text-muted-foreground">
-            Hiển thị {data.content.length} / {data.totalElements} bản ghi log
+            {t('Hiển thị {count} / {total} bản ghi log', { count: data.content.length, total: data.totalElements })}
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -441,10 +446,10 @@ const formatActionDescription = (action?: string) => {
               disabled={page === 0}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Trang trước
+              {t('Trang trước')}
             </Button>
             <div className="text-xs font-medium text-slate-600 px-2">
-              Trang {page + 1} / {data.totalPages}
+              {t('Trang')} {page + 1} / {data.totalPages}
             </div>
             <Button
               variant="outline"
@@ -452,7 +457,7 @@ const formatActionDescription = (action?: string) => {
               onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
               disabled={page >= data.totalPages - 1}
             >
-              Trang sau
+              {t('Trang sau')}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -473,10 +478,10 @@ const formatActionDescription = (action?: string) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
               <Activity className="h-5 w-5 text-primary" />
-              Chi tiết Nhật ký Hệ thống #{selectedLog?.id}
+              {t('Chi tiết Nhật ký Hệ thống #{id}', { id: selectedLog?.id })}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Thông tin chi tiết về ngữ cảnh thực thi thao tác và môi trường hệ thống.
+              {t('Thông tin chi tiết về ngữ cảnh thực thi thao tác và môi trường hệ thống.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -486,17 +491,17 @@ const formatActionDescription = (action?: string) => {
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-muted-foreground block mb-1 font-medium">Thời gian thực thi:</span>
+                    <span className="text-muted-foreground block mb-1 font-medium">{t('Thời gian thực thi:')}</span>
                     <span className="font-semibold text-slate-800 font-mono">
                       {formatDateTime24h(selectedLog.timestamp) || '---'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block mb-1 font-medium">Trạng thái:</span>
+                    <span className="text-muted-foreground block mb-1 font-medium">{t('Trạng thái:')}</span>
                     {renderStatusBadge(selectedLog.status)}
                   </div>
                   <div>
-                    <span className="text-muted-foreground block mb-1 font-medium">Cấp độ:</span>
+                    <span className="text-muted-foreground block mb-1 font-medium">{t('Cấp độ:')}</span>
                     <Badge
                       variant={
                         selectedLog.level === 'ERROR'
@@ -513,11 +518,11 @@ const formatActionDescription = (action?: string) => {
                           : ''
                       }
                     >
-                      {(selectedLog.level && LEVEL_LABELS[selectedLog.level]) || selectedLog.level}
+                      {(selectedLog.level && t(LEVEL_LABELS[selectedLog.level] || selectedLog.level)) || selectedLog.level}
                     </Badge>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block mb-1 font-medium">Danh mục phân hệ:</span>
+                    <span className="text-muted-foreground block mb-1 font-medium">{t('Danh mục phân hệ:')}</span>
                     {renderResourceTypeBadge(selectedLog.resourceType)}
                   </div>
                 </div>
@@ -525,16 +530,16 @@ const formatActionDescription = (action?: string) => {
                 <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground font-medium flex items-center gap-1.5">
                     <UserIcon className="h-3.5 w-3.5 text-slate-500" />
-                    Người thực hiện:
+                    {t('Người thực hiện:')}
                   </span>
                   <span className="font-semibold text-slate-800">
-                    {selectedLog.actor || 'Hệ thống'}
+                    {selectedLog.actor || t('Hệ thống')}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-muted-foreground block mb-1 text-xs font-medium">
-                    Mô tả hành động:
+                    {t('Mô tả hành động:')}
                   </span>
                   <div className="rounded-lg bg-white p-3 border border-slate-200 text-slate-800 text-xs leading-relaxed break-words shadow-2xs font-sans">
                     {formatActionDescription(selectedLog.action)}
@@ -551,7 +556,7 @@ const formatActionDescription = (action?: string) => {
                   >
                     <span className="flex items-center gap-2">
                       <Terminal className="h-4 w-4 text-slate-500" />
-                      Thông tin kỹ thuật (Dành cho Kỹ thuật viên & Kiểm toán)
+                      {t('Thông tin kỹ thuật (Dành cho Kỹ thuật viên & Kiểm toán)')}
                     </span>
                     {isTechOpen ? (
                       <ChevronUp className="h-4 w-4 text-slate-500" />
@@ -562,21 +567,21 @@ const formatActionDescription = (action?: string) => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="p-3.5 space-y-2.5 border-t border-slate-200 bg-slate-50/40 text-xs">
                   <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                    <span className="text-muted-foreground">Mã tài nguyên (Resource ID):</span>
+                    <span className="text-muted-foreground">{t('Mã tài nguyên (Resource ID):')}</span>
                     <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800">
                       {selectedLog.resourceId || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                    <span className="text-muted-foreground">Địa chỉ IP:</span>
+                    <span className="text-muted-foreground">{t('Địa chỉ IP:')}</span>
                     <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800">
-                      {selectedLog.ipAddress || 'Không xác định'}
+                      {selectedLog.ipAddress || t('Không xác định')}
                     </span>
                   </div>
                   {selectedLog.userAgent && (
                     <div className="pt-1">
                       <span className="text-muted-foreground block mb-1">
-                        Thiết bị & Trình duyệt (User-Agent):
+                        {t('Thiết bị & Trình duyệt (User-Agent):')}
                       </span>
                       <div className="rounded bg-slate-100 p-2 text-slate-600 font-mono text-[11px] break-all leading-snug">
                         {selectedLog.userAgent}

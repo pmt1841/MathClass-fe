@@ -34,6 +34,7 @@ import { authStorage } from '@/lib/auth-storage'
 import { logoutSession } from '@/lib/logout'
 import { useAuthChannel } from '@/hooks/useAuthChannel'
 import { AccountConflictModal } from './account-conflict-modal'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const formSchema = z.object({
   email: z.string().min(1, 'Email là bắt buộc').trim().toLowerCase().email('Email không hợp lệ'),
@@ -44,6 +45,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function LoginForm() {
+  const { t } = useI18n()
   const { login, completeLoginSession, isLoading, loginError, setLoginError } = useLogin()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -133,7 +135,7 @@ export default function LoginForm() {
     router.replace(newUrl)
   }
 
-  const roleText = role === ROLES.TEACHER ? ' Giáo viên' : role === ROLES.STUDENT ? ' Học sinh' : role === ROLES.ADMIN ? ' Quản trị viên' : ''
+  const roleName = role === ROLES.TEACHER ? t('Giáo viên') : role === ROLES.STUDENT ? t('Học sinh') : role === ROLES.ADMIN ? t('Quản trị viên') : ''
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -227,10 +229,10 @@ export default function LoginForm() {
         {/* Header */}
         <div className="space-y-2 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-            Đăng nhập{roleText}
+            {roleName ? `${t('Đăng nhập')} ${roleName}` : t('Đăng nhập')}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Nhập thông tin để truy cập tài khoản của bạn
+            {t('Nhập thông tin để truy cập tài khoản của bạn')}
           </p>
         </div>
 
@@ -247,7 +249,7 @@ export default function LoginForm() {
                       href="/admin/login"
                       className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
                     >
-                      Cổng Quản trị hệ thống &rarr;
+                      {t('Cổng Quản trị hệ thống')} &rarr;
                     </Link>
                   </p>
                 ) : loginError.includes('/login') ? (
@@ -257,7 +259,7 @@ export default function LoginForm() {
                       href="/login"
                       className="underline underline-offset-4 font-bold hover:text-destructive/80 transition-colors inline-flex items-center gap-0.5"
                     >
-                      Cổng Giáo viên & Học sinh &rarr;
+                      {t('Cổng Giáo viên & Học sinh')} &rarr;
                     </Link>
                   </p>
                 ) : (
@@ -277,7 +279,7 @@ export default function LoginForm() {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
                       <Input
-                        placeholder="Nhập email"
+                        placeholder={t('Nhập email')}
                         className="pl-10 py-5"
                         {...field}
                       />
@@ -294,10 +296,10 @@ export default function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mật khẩu</FormLabel>
+                  <FormLabel>{t('Mật khẩu')}</FormLabel>
                   <FormControl>
                     <PasswordInput
-                      placeholder="Nhập mật khẩu"
+                      placeholder={t('Nhập mật khẩu')}
                       className="pl-3 py-5"
                       maxLength={256}
                       {...field}
@@ -322,7 +324,7 @@ export default function LoginForm() {
                       />
                     </FormControl>
                     <FormLabel className="font-medium text-muted-foreground group-hover:text-foreground transition-colors cursor-pointer">
-                      Giữ đăng nhập
+                      {t('Giữ đăng nhập')}
                     </FormLabel>
                   </FormItem>
                 )}
@@ -331,7 +333,7 @@ export default function LoginForm() {
                 href="/forgot-password"
                 className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
-                Quên mật khẩu?
+                {t('Quên mật khẩu?')}
               </Link>
             </div>
 
@@ -350,10 +352,10 @@ export default function LoginForm() {
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                  Đang đăng nhập...
+                  {t('Đang đăng nhập...')}
                 </div>
               ) : (
-                'Đăng nhập'
+                t('Đăng nhập')
               )}
             </button>
           </form>
@@ -362,13 +364,13 @@ export default function LoginForm() {
         {/* Sign Up Link */}
         <div className="text-center">
           <p className="text-muted-foreground">
-            Chưa có tài khoản?{' '}
+            {t('Chưa có tài khoản?')}{' '}
             <Link
               href="/signup"
               onClick={() => sessionStorage.setItem(AUTH_KEYS.SELECTED_ROLE, role)}
               className="font-semibold text-primary hover:text-primary/80 transition-colors"
             >
-              Đăng ký ngay
+              {t('Đăng ký ngay')}
             </Link>
           </p>
         </div>
@@ -380,14 +382,14 @@ export default function LoginForm() {
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="px-2 bg-background text-muted-foreground">
-              hoặc tiếp tục với
+              {t('hoặc tiếp tục với')}
             </span>
           </div>
         </div>
 
         {/* Social Login */}
         <div className="w-full">
-          <SocialLoginButton provider="google" label="Đăng nhập bằng Google" expectedRole={role} rememberMe={rememberMe} />
+          <SocialLoginButton provider="google" label={t('Đăng nhập bằng Google')} expectedRole={role} rememberMe={rememberMe} />
         </div>
 
         {/* Nút Báo cáo sự cố hệ thống cho Guest */}
@@ -398,7 +400,7 @@ export default function LoginForm() {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive hover:text-destructive/80 hover:underline transition-colors"
           >
             <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-            Gặp sự cố? Báo cáo lỗi hệ thống
+            {t('Gặp sự cố? Báo cáo lỗi hệ thống')}
           </button>
         </div>
       </div>

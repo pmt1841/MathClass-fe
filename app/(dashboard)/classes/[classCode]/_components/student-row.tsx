@@ -3,6 +3,7 @@ import { Mail, Trash2, Loader2, MessageSquareQuote } from 'lucide-react'
 import { Student } from '@/types'
 import { formatDate } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function StudentRow({
   student,
@@ -17,6 +18,7 @@ export function StudentRow({
   onRemove: () => void
   onOpenRemarks?: () => void
 }) {
+  const { t } = useI18n()
   const colors = [
     'from-indigo-400 to-purple-500',
     'from-blue-400 to-indigo-500',
@@ -54,7 +56,7 @@ export function StudentRow({
           <button
             onClick={onOpenRemarks}
             className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200"
-            title="Lịch sử nhận xét (Điểm mạnh & Điểm yếu)"
+            title={t('Lịch sử nhận xét (Điểm mạnh & Điểm yếu)')}
           >
             <MessageSquareQuote className="h-4 w-4" />
           </button>
@@ -65,7 +67,7 @@ export function StudentRow({
             onClick={onRemove}
             disabled={isRemoving}
             className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 disabled:opacity-50"
-            title="Xóa học sinh khỏi lớp"
+            title={t('Xóa học sinh khỏi lớp')}
           >
             {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
           </button>

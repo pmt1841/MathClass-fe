@@ -29,6 +29,7 @@ export interface LoginResponse {
   userRole?: string
   avatarUrl?: string
   permissions?: string[]
+  language?: string
   is2faRequired?: boolean
   isSetupRequired?: boolean
   preAuthToken?: string

@@ -11,7 +11,7 @@ import {
 import { RecentTransaction } from '@/types/admin-dashboard'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { formatVnDateTime } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface RecentTransactionsCardProps {
   recentTransactions: RecentTransaction[]
@@ -20,11 +20,12 @@ interface RecentTransactionsCardProps {
 export function RecentTransactionsCard({
   recentTransactions,
 }: RecentTransactionsCardProps) {
+  const { t, locale } = useI18n()
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(10)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -32,7 +33,18 @@ export function RecentTransactionsCard({
   }
 
   const formatTime = (isoString: string) => {
-    return formatVnDateTime(isoString)
+    try {
+      const date = new Date(isoString)
+      return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(date)
+    } catch {
+      return isoString
+    }
   }
 
   const totalItems = recentTransactions.length
@@ -62,23 +74,23 @@ export function RecentTransactionsCard({
           </div>
           <div>
             <h3 className="font-semibold text-foreground text-sm">
-              Lịch Sử Nạp Tiền
+              {t('Lịch Sử Nạp Tiền')}
             </h3>
             <p className="text-xs text-muted-foreground">
-              50 giao dịch nạp credit thành công gần nhất trong kỳ báo cáo
+              {t('50 giao dịch nạp credit thành công gần nhất trong kỳ báo cáo')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Số dòng/trang:</span>
+          <span className="text-xs text-muted-foreground">{t('Số dòng/trang:')}</span>
           <select
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value))
               setCurrentPage(1)
             }}
-            aria-label="Chọn số dòng hiển thị mỗi trang"
+            aria-label={t('Chọn số dòng hiển thị mỗi trang')}
             className="h-8 rounded-lg border bg-background px-2 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value={5}>5</option>
@@ -94,18 +106,18 @@ export function RecentTransactionsCard({
         {totalItems === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-xs text-muted-foreground">
             <CreditCard className="h-10 w-10 text-muted-foreground/30 mb-2" />
-            Chưa phát sinh giao dịch nạp tiền nào trong hệ thống
+            {t('Chưa phát sinh giao dịch nạp tiền nào trong hệ thống')}
           </div>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b text-muted-foreground/80 font-medium">
-                <th className="pb-3 font-semibold">Người Nạp</th>
-                <th className="pb-3 font-semibold">Vai Trò</th>
-                <th className="pb-3 font-semibold">Gói Nạp</th>
-                <th className="pb-3 font-semibold">Credit</th>
-                <th className="pb-3 font-semibold">Số Tiền</th>
-                <th className="pb-3 font-semibold text-right">Thời Gian</th>
+                <th className="pb-3 font-semibold">{t('Người Nạp')}</th>
+                <th className="pb-3 font-semibold">{t('Vai Trò')}</th>
+                <th className="pb-3 font-semibold">{t('Gói Nạp')}</th>
+                <th className="pb-3 font-semibold">{t('Credit')}</th>
+                <th className="pb-3 font-semibold">{t('Số Tiền')}</th>
+                <th className="pb-3 font-semibold text-right">{t('Thời Gian')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -135,18 +147,18 @@ export function RecentTransactionsCard({
                   <td className="py-3 pr-4">
                     {tx.role === 'TEACHER' ? (
                       <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
-                        <GraduationCap className="h-3 w-3" /> Giáo viên
+                        <GraduationCap className="h-3 w-3" /> {t('Giáo viên')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
-                        <User className="h-3 w-3" /> Học sinh
+                        <User className="h-3 w-3" /> {t('Học sinh')}
                       </span>
                     )}
                   </td>
 
                   {/* Gói nạp */}
                   <td className="py-3 pr-4 font-medium text-foreground">
-                    {tx.packageName}
+                    {t(tx.packageName)}
                   </td>
 
                   {/* Credits */}
@@ -176,7 +188,11 @@ export function RecentTransactionsCard({
       {totalItems > 0 && (
         <div className="mt-4 pt-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div>
-            Hiển thị Trang <span className="font-semibold text-foreground">{validPage}</span> / {totalPages} (Tổng số <span className="font-semibold text-foreground">{totalItems}</span> giao dịch)
+            {t('Hiển thị Trang {page} / {total} (Tổng số {count} giao dịch)', {
+              page: validPage,
+              total: totalPages,
+              count: totalItems
+            })}
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -187,7 +203,7 @@ export function RecentTransactionsCard({
               disabled={validPage <= 1}
               className="h-8 px-2.5 rounded-lg text-xs"
             >
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Trước
+              <ChevronLeft className="h-3.5 w-3.5 mr-1" /> {t('Trước')}
             </Button>
 
             {/* Render các nút số trang */}
@@ -219,7 +235,7 @@ export function RecentTransactionsCard({
               disabled={validPage >= totalPages}
               className="h-8 px-2.5 rounded-lg text-xs"
             >
-              Sau <ChevronRight className="h-3.5 w-3.5 ml-1" />
+              {t('Sau')} <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
         </div>

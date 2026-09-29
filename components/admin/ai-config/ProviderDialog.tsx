@@ -28,6 +28,7 @@ import {
   ProviderUpdateRequest,
 } from '@/services/aiConfigService'
 import { useToast } from '@/components/ui/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface ProviderDialogProps {
   open: boolean
@@ -44,6 +45,7 @@ export function ProviderDialog({
   onSubmitCreate,
   onSubmitUpdate,
 }: ProviderDialogProps) {
+  const { t } = useI18n()
   const { toast } = useToast()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
@@ -93,8 +95,8 @@ export function ProviderDialog({
 
     if (!protocol) {
       toast({
-        title: 'Chưa chọn giao thức',
-        description: 'Vui lòng chọn giao thức API (Protocol) cho Provider.',
+        title: t('Chưa chọn giao thức'),
+        description: t('Vui lòng chọn giao thức API (Protocol) cho Provider.'),
         variant: 'destructive',
       })
       return
@@ -143,39 +145,39 @@ export function ProviderDialog({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">
-              {isEdit ? `Chỉnh sửa Provider: ${provider?.name}` : 'Thêm Nhà cung cấp AI (Provider)'}
+              {isEdit ? t('Chỉnh sửa Provider: {name}', { name: provider?.name }) : t('Thêm Nhà cung cấp AI (Provider)')}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {isEdit
-                ? 'Cập nhật thông tin cấu hình nhà cung cấp dịch vụ AI.'
-                : 'Thêm nhà cung cấp dịch vụ AI mới vào hệ thống (Mã provider viết hoa, duy nhất).'}
+                ? t('Cập nhật thông tin cấu hình nhà cung cấp dịch vụ AI.')
+                : t('Thêm nhà cung cấp dịch vụ AI mới vào hệ thống (Mã provider viết hoa, duy nhất).')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4 text-xs">
             {!isEdit && (
               <div className="grid gap-2">
-                <Label htmlFor="code">Mã Provider (Code)</Label>
+                <Label htmlFor="code">{t('Mã Provider (Code)')}</Label>
                 <Input
                   id="code"
                   className="h-9 text-xs"
-                  placeholder="VD: GEMINI, OPENAI, DEEPSEEK, MISTRAL, OLLAMA"
+                  placeholder={t('VD: GEMINI, OPENAI, DEEPSEEK, MISTRAL, OLLAMA')}
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   required
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Chỉ chứa chữ cái viết hoa, số và dấu gạch dưới. Không thể sửa sau khi tạo.
+                  {t('Chỉ chứa chữ cái viết hoa, số và dấu gạch dưới. Không thể sửa sau khi tạo.')}
                 </p>
               </div>
             )}
 
             <div className="grid gap-2">
-              <Label htmlFor="name">Tên hiển thị</Label>
+              <Label htmlFor="name">{t('Tên hiển thị')}</Label>
               <Input
                 id="name"
                 className="h-9 text-xs"
-                placeholder="VD: Google Gemini, DeepSeek AI, OpenAI..."
+                placeholder={t('VD: Google Gemini, DeepSeek AI, OpenAI...')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -183,7 +185,7 @@ export function ProviderDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="baseUrl">Base URL Endpoint (HTTPS)</Label>
+              <Label htmlFor="baseUrl">{t('Base URL Endpoint (HTTPS)')}</Label>
               <Input
                 id="baseUrl"
                 className="h-9 text-xs font-mono"
@@ -196,27 +198,27 @@ export function ProviderDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="protocol">
-                Giao thức API (Protocol) <span className="text-red-500">*</span>
+                {t('Giao thức API (Protocol)')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={protocol}
                 onValueChange={(val: ProviderProtocol) => setProtocol(val)}
               >
                 <SelectTrigger id="protocol" className="h-9 text-xs">
-                  <SelectValue placeholder="-- Chọn giao thức API --" />
+                  <SelectValue placeholder={t('-- Chọn giao thức API --')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="OPENAI_COMPATIBLE" className="text-xs">
-                    OPENAI_COMPATIBLE (Chuẩn OpenAI / DeepSeek / Groq / Ollama / Mistral...)
+                    {t('OPENAI_COMPATIBLE (Chuẩn OpenAI / DeepSeek / Groq / Ollama / Mistral...)')}
                   </SelectItem>
                   <SelectItem value="GOOGLE_GEMINI_COMPATIBLE" className="text-xs">
-                    GOOGLE_GEMINI_COMPATIBLE (Chuẩn Google Gemini REST API)
+                    {t('GOOGLE_GEMINI_COMPATIBLE (Chuẩn Google Gemini REST API)')}
                   </SelectItem>
                   <SelectItem value="ANTHROPIC_COMPATIBLE" className="text-xs">
-                    ANTHROPIC_COMPATIBLE (Chuẩn Anthropic Claude API)
+                    {t('ANTHROPIC_COMPATIBLE (Chuẩn Anthropic Claude API)')}
                   </SelectItem>
                   <SelectItem value="CUSTOM_REST" className="text-xs">
-                    CUSTOM_REST (Tùy chỉnh linh hoạt 100% cho AI mới)
+                    {t('CUSTOM_REST (Tùy chỉnh linh hoạt 100% cho AI mới)')}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -225,11 +227,11 @@ export function ProviderDialog({
             {protocol === 'CUSTOM_REST' && (
               <div className="p-3 border rounded-md bg-slate-50 space-y-3">
                 <p className="font-semibold text-xs text-slate-700">
-                  ⚙️ Thông số Tùy chỉnh Giao thức Custom REST:
+                  {t('⚙️ Thông số Tùy chỉnh Giao thức Custom REST:')}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-1">
-                    <Label htmlFor="authHeaderName" className="text-[11px]">Tên Header Xác thực</Label>
+                    <Label htmlFor="authHeaderName" className="text-[11px]">{t('Tên Header Xác thực')}</Label>
                     <Input
                       id="authHeaderName"
                       className="h-8 text-xs font-mono"
@@ -239,7 +241,7 @@ export function ProviderDialog({
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label htmlFor="authHeaderPrefix" className="text-[11px]">Tiền tố Header</Label>
+                    <Label htmlFor="authHeaderPrefix" className="text-[11px]">{t('Tiền tố Header')}</Label>
                     <Input
                       id="authHeaderPrefix"
                       className="h-8 text-xs font-mono"
@@ -249,17 +251,17 @@ export function ProviderDialog({
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label htmlFor="authQueryParam" className="text-[11px]">Query Param Xác thực</Label>
+                    <Label htmlFor="authQueryParam" className="text-[11px]">{t('Query Param Xác thực')}</Label>
                     <Input
                       id="authQueryParam"
                       className="h-8 text-xs font-mono"
-                      placeholder="key hoặc api_key"
+                      placeholder={t('key hoặc api_key')}
                       value={authQueryParam}
                       onChange={(e) => setAuthQueryParam(e.target.value)}
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label htmlFor="healthCheckPath" className="text-[11px]">Đường dẫn Test Endpoint</Label>
+                    <Label htmlFor="healthCheckPath" className="text-[11px]">{t('Đường dẫn Test Endpoint')}</Label>
                     <Input
                       id="healthCheckPath"
                       className="h-8 text-xs font-mono"
@@ -274,11 +276,11 @@ export function ProviderDialog({
 
             {!isEdit && (
               <div className="grid gap-2">
-                <Label htmlFor="apiKey">API Key ban đầu (Plaintext - Tùy chọn)</Label>
+                <Label htmlFor="apiKey">{t('API Key ban đầu (Plaintext - Tùy chọn)')}</Label>
                 <PasswordInput
                   id="apiKey"
                   className="h-9 text-xs"
-                  placeholder="Nhập API Key ban đầu nếu muốn tạo ngay..."
+                  placeholder={t('Nhập API Key ban đầu nếu muốn tạo ngay...')}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                 />
@@ -286,20 +288,20 @@ export function ProviderDialog({
             )}
 
             <div className="grid gap-2">
-              <Label htmlFor="strategy">Chiến lược chọn Key (Key Strategy)</Label>
+              <Label htmlFor="strategy">{t('Chiến lược chọn Key (Key Strategy)')}</Label>
               <Select
                 value={strategy}
                 onValueChange={(val: 'PRIORITY' | 'ROUND_ROBIN') => setStrategy(val)}
               >
                 <SelectTrigger id="strategy" className="h-9 text-xs">
-                  <SelectValue placeholder="Chọn chiến lược" />
+                  <SelectValue placeholder={t('Chọn chiến lược')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PRIORITY" className="text-xs">
-                    PRIORITY (Ưu tiên theo độ ưu tiên cao nhất)
+                    {t('PRIORITY (Ưu tiên theo độ ưu tiên cao nhất)')}
                   </SelectItem>
                   <SelectItem value="ROUND_ROBIN" className="text-xs">
-                    ROUND_ROBIN (Luân phiên chia đều tải)
+                    {t('ROUND_ROBIN (Luân phiên chia đều tải)')}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -307,20 +309,20 @@ export function ProviderDialog({
 
             {isEdit && (
               <div className="grid gap-2">
-                <Label htmlFor="status">Trạng thái hoạt động</Label>
+                <Label htmlFor="status">{t('Trạng thái hoạt động')}</Label>
                 <Select
                   value={status}
                   onValueChange={(val: 'ACTIVE' | 'INACTIVE') => setStatus(val)}
                 >
                   <SelectTrigger id="status" className="h-9 text-xs">
-                    <SelectValue placeholder="Chọn trạng thái" />
+                    <SelectValue placeholder={t('Chọn trạng thái')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE" className="text-xs">
-                      ACTIVE (Hoạt động)
+                      {t('ACTIVE (Hoạt động)')}
                     </SelectItem>
                     <SelectItem value="INACTIVE" className="text-xs">
-                      INACTIVE (Vô hiệu hóa)
+                      {t('INACTIVE (Vô hiệu hóa)')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -330,11 +332,11 @@ export function ProviderDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Hủy
+              {t('Hủy')}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting && <Spinner className="mr-2 h-4 w-4" />}
-              {isEdit ? 'Cập nhật' : 'Thêm Provider'}
+              {isEdit ? t('Cập nhật') : t('Thêm Provider')}
             </Button>
           </DialogFooter>
         </form>

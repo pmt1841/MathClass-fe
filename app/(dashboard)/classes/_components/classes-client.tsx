@@ -24,8 +24,10 @@ import { useUnreadChatClasses } from '@/hooks/useUnreadChatClasses'
 import { ClassCard } from './class-card'
 import { formatDateTime } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function ClassesClient() {
+  const { t } = useI18n()
   const { user } = useAuth()
   const userRole = user?.role || 'STUDENT'
   const { isUnreadClass } = useUnreadChatClasses()
@@ -57,12 +59,12 @@ export function ClassesClient() {
   const handleCopyCode = (code: string, id: number) => {
     navigator.clipboard.writeText(code)
     setCopiedId(id)
-    toast.success(`Đã sao chép mã lớp: ${code}`)
+    toast.success(t('classes.copiedCode', { code }))
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleRefresh = () => {
-    refetch().then(() => toast.success('Đã cập nhật danh sách lớp học'))
+    refetch().then(() => toast.success(t('classes.refreshed')))
   }
 
   const filteredClasses = classes
@@ -86,12 +88,12 @@ export function ClassesClient() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <BookMarked className="h-5.5 w-5.5 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Lớp học của tôi</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('classes.myClasses')}</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {userRole === 'TEACHER'
-                ? 'Xem và quản lý toàn bộ danh sách lớp học bạn đang giảng dạy.'
-                : 'Xem và truy cập toàn bộ danh sách lớp học bạn đang tham gia.'}
+                ? t('classes.teacherSubheading')
+                : t('classes.studentSubheading')}
             </p>
           </div>
 
@@ -107,7 +109,7 @@ export function ClassesClient() {
                   className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 cursor-pointer"
                 >
                   <Plus className="h-4.5 w-4.5" />
-                  Tạo lớp học mới
+                  {t('classes.createNewClass')}
                 </button>
               </PermissionGuard>
             )}
@@ -118,7 +120,7 @@ export function ClassesClient() {
                   className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98 cursor-pointer"
                 >
                   <Plus className="h-4.5 w-4.5" />
-                  Xin vào lớp
+                  {t('classes.joinClass')}
                 </button>
               </PermissionGuard>
             )}
@@ -133,7 +135,7 @@ export function ClassesClient() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tên lớp, mã lớp..."
+                placeholder={t('classes.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -146,9 +148,9 @@ export function ClassesClient() {
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="w-full h-11 px-3 py-2 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 cursor-pointer"
               >
-                <option value="name-asc">Tên lớp: A - Z</option>
-                <option value="name-desc">Tên lớp: Z - A</option>
-                <option value="code-asc">Mã lớp tăng dần</option>
+                <option value="name-asc">{t('classes.sortNameAsc')}</option>
+                <option value="name-desc">{t('classes.sortNameDesc')}</option>
+                <option value="code-asc">{t('classes.sortCodeAsc')}</option>
               </select>
             </div>
           </div>
@@ -157,7 +159,7 @@ export function ClassesClient() {
             <Card className="border-orange-200 shadow-sm dark:border-orange-900/50">
               <CardHeader className="bg-orange-50/50 dark:bg-orange-950/20 border-b border-orange-100 dark:border-orange-900/30 py-3">
                 <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400 text-base">
-                  <Clock className="h-5 w-5" /> Yêu cầu xin vào lớp đang chờ duyệt
+                  <Clock className="h-5 w-5" /> {t('classes.pendingRequestsTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -165,11 +167,11 @@ export function ClassesClient() {
                   {pendingRequests.map(req => (
                     <div key={req.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
                       <div className="space-y-1">
-                        <p className="font-semibold text-base text-foreground">Lớp: {req.className} ({req.classCode})</p>
-                        <p className="text-sm text-muted-foreground">Đã gửi lúc: {formatDateTime(req.requestedAt)}</p>
+                        <p className="font-semibold text-base text-foreground">{t('classes.pendingRequestsClass', { className: req.className, classCode: req.classCode })}</p>
+                        <p className="text-sm text-muted-foreground">{t('classes.requestedAt', { time: formatDateTime(req.requestedAt) })}</p>
                       </div>
                       <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
-                        Đang chờ giáo viên duyệt
+                        {t('classes.waitingTeacherApproval')}
                       </Badge>
                     </div>
                   ))}
@@ -199,11 +201,11 @@ export function ClassesClient() {
                 <BookOpen className="h-7 w-7" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-bold text-foreground">Không thể tải lớp học</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">Vui lòng kiểm tra kết nối mạng.</p>
+                <h3 className="text-lg font-bold text-foreground">{t('classes.failedToLoad')}</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">{t('classes.checkNetwork')}</p>
               </div>
               <button onClick={() => refetch()} className="h-10 px-5 rounded-xl border border-border hover:bg-slate-50 text-sm font-semibold transition-colors">
-                Thử lại
+                {t('classes.tryAgain')}
               </button>
             </div>
           ) : filteredClasses.length === 0 ? (
@@ -214,14 +216,14 @@ export function ClassesClient() {
               </div>
               <div className="space-y-2 max-w-md">
                 <h3 className="text-lg font-bold text-foreground">
-                  {searchQuery ? 'Không tìm thấy lớp học phù hợp' : 'Chưa có lớp học nào'}
+                  {searchQuery ? t('classes.notFound') : t('classes.noClassesYet')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {searchQuery
-                    ? 'Thử thay đổi từ khóa tìm kiếm của bạn hoặc kiểm tra chính xác mã lớp.'
+                    ? t('classes.notFoundDesc')
                     : userRole === 'TEACHER'
-                      ? 'Bắt đầu hành trình giảng dạy của bạn bằng việc tạo một lớp học đầu tiên.'
-                      : 'Bắt đầu hành trình học tập của bạn bằng việc tham gia vào một lớp học.'}
+                      ? t('classes.noClassesTeacherDesc')
+                      : t('classes.noClassesStudentDesc')}
                 </p>
               </div>
               {!searchQuery && userRole === 'TEACHER' && (
@@ -231,7 +233,7 @@ export function ClassesClient() {
                     className="flex items-center gap-2 h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20"
                   >
                     <Plus className="h-4.5 w-4.5" />
-                    Tạo lớp đầu tiên
+                    {t('classes.createFirstClass')}
                   </button>
                 </PermissionGuard>
               )}

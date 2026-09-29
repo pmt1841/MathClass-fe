@@ -5,6 +5,7 @@ import type { VariantProps } from 'class-variance-authority'
 import { RefreshCw } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export interface RefreshButtonProps
   extends Omit<React.ComponentProps<'button'>, 'children'>,
@@ -14,11 +15,11 @@ export interface RefreshButtonProps
    */
   isLoading?: boolean
   /**
-   * Nhãn văn bản hiển thị (mặc định: 'Làm mới').
+   * Nhãn văn bản hiển thị. Mặc định dùng i18n t('common.refresh').
    */
   label?: string
   /**
-   * Nhãn văn bản khi đang tải (mặc định: 'Đang tải...').
+   * Nhãn văn bản khi đang tải. Mặc định dùng i18n t('common.loading').
    */
   loadingLabel?: string
   /**
@@ -26,11 +27,11 @@ export interface RefreshButtonProps
    */
   iconOnly?: boolean
   /**
-   * Có hiển thị nhãn chữ trên thiết bị di động hay không (mặc định: false - trên mobile chỉ hiện icon để tiết kiệm diện tích).
+   * Có hiển thị nhãn chữ trên thiết bị di động hay không (mặc định: false).
    */
   showLabelOnMobile?: boolean
   /**
-   * Kích thước của icon (class Tailwind, mặc định: 'h-4 w-4').
+   * ClassName tùy chỉnh cho icon.
    */
   iconClassName?: string
 }
@@ -39,7 +40,7 @@ export const RefreshButton = React.forwardRef<HTMLButtonElement, RefreshButtonPr
   (
     {
       isLoading = false,
-      label = 'Làm mới',
+      label,
       loadingLabel,
       iconOnly = false,
       showLabelOnMobile = false,
@@ -48,38 +49,42 @@ export const RefreshButton = React.forwardRef<HTMLButtonElement, RefreshButtonPr
       className,
       size,
       variant = 'outline',
-      title = 'Làm mới dữ liệu',
+      title,
       iconClassName,
       ...props
     },
     ref
   ) => {
+    const { t } = useI18n()
+
+    const actualLabel = label ?? t('common.refresh')
+    const actualTitle = title ?? t('common.refresh')
+
     const [isInternalLoading, setIsInternalLoading] = React.useState(false)
     const activeLoading = isLoading || isInternalLoading
 
     const computedSize = size ?? (iconOnly ? 'icon' : 'sm')
-    const displayLabel = activeLoading && loadingLabel ? loadingLabel : label
+    const displayLabel = activeLoading
+      ? (loadingLabel ?? t('common.loading'))
+      : actualLabel
 
     const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!onClick || activeLoading) return
 
       try {
         const result = onClick(e) as unknown
-        // Nếu onClick là hàm async hoặc trả về Promise (như refetch())
         if (result && typeof (result as Promise<unknown>).then === 'function') {
           setIsInternalLoading(true)
           const startTime = Date.now()
           await (result as Promise<unknown>)
           
-          // Giữ icon xoay tối thiểu 450ms để người dùng cảm nhận được visual feedback
           const elapsed = Date.now() - startTime
           if (elapsed < 450) {
             await new Promise((resolve) => setTimeout(resolve, 450 - elapsed))
           }
         }
       } catch (err) {
-        // Cho phép lỗi nổi lên nếu cần, nhưng vẫn tắt trạng thái xoay
-        console.error('Lỗi khi làm mới dữ liệu:', err)
+        console.error('Error refreshing data:', err)
       } finally {
         setIsInternalLoading(false)
       }
@@ -92,8 +97,8 @@ export const RefreshButton = React.forwardRef<HTMLButtonElement, RefreshButtonPr
         size={computedSize}
         onClick={handleClick}
         disabled={disabled || activeLoading}
-        title={title}
-        aria-label={title}
+        title={actualTitle}
+        aria-label={actualTitle}
         className={cn(
           'rounded-xl bg-white dark:bg-slate-800 text-muted-foreground hover:text-foreground transition-all shadow-xs border-border',
           !iconOnly && 'gap-1.5 sm:gap-2 text-xs font-semibold px-3 h-9 sm:h-10',
@@ -120,3 +125,4 @@ export const RefreshButton = React.forwardRef<HTMLButtonElement, RefreshButtonPr
 )
 
 RefreshButton.displayName = 'RefreshButton'
+

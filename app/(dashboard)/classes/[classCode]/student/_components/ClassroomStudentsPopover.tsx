@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useChatDock } from '@/components/chat/ChatDockContext'
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface ClassroomStudentsPopoverProps {
   classCode: string
@@ -29,6 +30,7 @@ export function ClassroomStudentsPopover({
   maxStudents = 0,
   hasUnread = false,
 }: ClassroomStudentsPopoverProps) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuth()
   const { openChat } = useChatDock()
@@ -108,7 +110,7 @@ export function ClassroomStudentsPopover({
         <button
           type="button"
           className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all cursor-pointer group active:scale-[0.98]"
-          title="Click để xem danh sách học sinh"
+          title={t('Click để xem danh sách học sinh')}
         >
           <div className="relative flex items-center justify-center">
             <Users className="h-3.5 w-3.5 group-hover:text-indigo-600 transition-colors" />
@@ -120,7 +122,7 @@ export function ClassroomStudentsPopover({
             )}
           </div>
           <span>
-            {studentCount}/{maxStudents} học sinh
+            {t('{current}/{max} học sinh', { current: studentCount, max: maxStudents })}
           </span>
           <ChevronDown
             className={`h-3 w-3 text-slate-400 group-hover:text-indigo-600 transition-transform duration-200 ${
@@ -144,16 +146,16 @@ export function ClassroomStudentsPopover({
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-900">
-                  Danh sách học sinh
+                  {t('Danh sách học sinh')}
                 </h4>
                 <p className="text-[11px] text-slate-500">
-                  {studentCount || students.length} thành viên trong lớp
+                  {t('{count} thành viên trong lớp', { count: studentCount || students.length })}
                 </p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              {onlineCount} Online
+              {t('{count} Online', { count: onlineCount })}
             </span>
           </div>
 
@@ -168,7 +170,7 @@ export function ClassroomStudentsPopover({
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/60'
               }`}
             >
-              Tất cả ({students.length})
+              {t('Tất cả ({count})', { count: students.length })}
             </button>
             <button
               type="button"
@@ -179,7 +181,7 @@ export function ClassroomStudentsPopover({
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/60'
               }`}
             >
-              Chỉ Online ({onlineCount})
+              {t('Chỉ Online ({count})', { count: onlineCount })}
             </button>
           </div>
         </div>
@@ -191,7 +193,7 @@ export function ClassroomStudentsPopover({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Tìm học sinh..."
+                placeholder={t('Tìm học sinh...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 placeholder:text-slate-400 transition-all"
@@ -205,7 +207,7 @@ export function ClassroomStudentsPopover({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 text-slate-400">
               <Loader2 className="h-6 w-6 animate-spin text-indigo-500 mb-2" />
-              <p className="text-xs font-medium">Đang tải danh sách học sinh...</p>
+              <p className="text-xs font-medium">{t('Đang tải danh sách học sinh...')}</p>
             </div>
           ) : error ? (
             <div className="text-center py-8 px-4">

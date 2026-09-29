@@ -7,24 +7,34 @@ export const CREDIT_TASK_LABELS: Record<string, string> = {
   STUDENT_REMARK: 'AI Đánh giá & Nhận xét học sinh',
 }
 
-export function getCreditTaskLabel(task: string): string {
+export function getCreditTaskLabel(
+  task: string,
+  t?: (key: string, variables?: Record<string, string | number>) => string
+): string {
+  if (t) {
+    const key = `creditTasks.${task}`
+    const translated = t(key)
+    if (translated && translated !== key) return translated
+  }
   return CREDIT_TASK_LABELS[task] || task
 }
 
 /**
- * Format nội dung mô tả giao dịch credit sang tiếng Việt:
+ * Format nội dung mô tả giao dịch credit:
  * Tự động chuyển đổi các mã task code (QUESTION_GEN, STUDENT_HINT, CANVAS_LATEX, ...)
- * thành tên tiếng Việt thân thiện, dễ hiểu.
+ * thành tên hiển thị đa ngôn ngữ.
  */
 export function formatCreditTransactionDescription(
   description?: string | null,
-  task?: string | null
+  task?: string | null,
+  t?: (key: string, variables?: Record<string, string | number>) => string
 ): string {
   if (description) {
     let result = description
-    for (const [taskKey, taskLabel] of Object.entries(CREDIT_TASK_LABELS)) {
+    for (const [taskKey] of Object.entries(CREDIT_TASK_LABELS)) {
       if (result.includes(taskKey)) {
-        result = result.replaceAll(taskKey, `"${taskLabel}"`)
+        const label = getCreditTaskLabel(taskKey, t)
+        result = result.replaceAll(taskKey, `"${label}"`)
       }
     }
     // Bỏ định dạng (#id) hoặc (đơn #id) theo yêu cầu giao diện người dùng
@@ -33,7 +43,9 @@ export function formatCreditTransactionDescription(
     return result.trim()
   }
   if (task) {
-    return `Tác vụ "${getCreditTaskLabel(task)}"`
+    const taskName = getCreditTaskLabel(task, t)
+    return t ? t('Tác vụ "{task}"', { task: taskName }) : `Tác vụ "${taskName}"`
   }
   return '—'
 }
+

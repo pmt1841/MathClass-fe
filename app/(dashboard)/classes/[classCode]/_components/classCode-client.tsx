@@ -43,8 +43,10 @@ import { joinRequestService } from '@/services/joinRequestService'
 import { chatService } from '@/services/chatService'
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
 import { RefreshButton } from '@/components/ui/refresh-button'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function ClassDetailPageClient() {
+  const { t } = useI18n()
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,13 +97,13 @@ export function ClassDetailPageClient() {
   const handleDeleteClassroom = () => {
     deleteMutation.mutate(classCode, {
       onSuccess: () => {
-        toast.success('Đã xóa lớp học thành công')
+        toast.success(t('Đã xóa lớp học thành công'))
         setIsDeleteDialogOpen(false)
         setIsEditModalOpen(false)
         router.push('/classes')
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Không thể xóa lớp học')
+        toast.error(err?.response?.data?.message || t('Không thể xóa lớp học'))
       }
     })
   }
@@ -109,7 +111,7 @@ export function ClassDetailPageClient() {
   const handleCopyCode = () => {
     navigator.clipboard.writeText(classCode)
     setCodeCopied(true)
-    toast.success(`Đã sao chép mã lớp: ${classCode}`)
+    toast.success(t('Đã sao chép mã lớp: {code}', { code: classCode }))
     setTimeout(() => setCodeCopied(false), 2000)
   }
 
@@ -165,7 +167,7 @@ export function ClassDetailPageClient() {
               <button
                 onClick={() => router.push('/classes')}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all shadow-sm"
-                title="Quay lại"
+                title={t('Quay lại')}
               >
                 <ArrowLeft className="h-4.5 w-4.5" />
               </button>
@@ -188,7 +190,7 @@ export function ClassDetailPageClient() {
                         <button
                           onClick={() => setIsEditModalOpen(true)}
                           className="p-1 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                          title="Chỉnh sửa thông tin"
+                          title={t('Chỉnh sửa thông tin')}
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </button>
@@ -214,7 +216,7 @@ export function ClassDetailPageClient() {
               <RefreshButton
                 onClick={() => refetchClassroom()}
                 iconOnly
-                title="Làm mới thông tin lớp học"
+                title={t('Làm mới thông tin lớp học')}
               />
               <button
                 onClick={handleCopyCode}
@@ -239,14 +241,14 @@ export function ClassDetailPageClient() {
                 active={activeTab === 'students'}
                 onClick={() => setActiveTab('students')}
                 icon={<Users className="h-4 w-4" />}
-                label="Học sinh"
+                label={t('Học sinh')}
               />
               <TabButton
                 id="tab-assignments"
                 active={activeTab === 'assignments'}
                 onClick={() => setActiveTab('assignments')}
                 icon={<ClipboardList className="h-4 w-4" />}
-                label="Bài tập"
+                label={t('Bài tập')}
               />
 
               <TabButton
@@ -264,7 +266,7 @@ export function ClassDetailPageClient() {
                     )}
                   </div>
                 }
-                label="Trò chuyện"
+                label={t('Trò chuyện')}
               />
               <TabButton
                 id="tab-requests"
@@ -283,7 +285,7 @@ export function ClassDetailPageClient() {
                 }
                 label={
                   <span className="flex items-center gap-1.5">
-                    Chờ duyệt
+                    {t('Chờ duyệt')}
                     {pendingCount > 0 && (
                       <span className="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[10px] font-bold text-white bg-red-500 rounded-full">
                         {pendingCount}
@@ -319,14 +321,14 @@ export function ClassDetailPageClient() {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Cập nhật thông tin lớp học</DialogTitle>
+            <DialogTitle>{t('Cập nhật thông tin lớp học')}</DialogTitle>
             <DialogDescription>
-              Thay đổi tên lớp, sĩ số tối đa và mô tả của lớp học này.
+              {t('Thay đổi tên lớp, sĩ số tối đa và mô tả của lớp học này.')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={editClassroomForm.handleSubmit} noValidate className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold">Tên lớp</label>
+              <label className="text-sm font-semibold">{t('Tên lớp')}</label>
               <input
                 id="className"
                 name="className"
@@ -334,7 +336,7 @@ export function ClassDetailPageClient() {
                 onChange={editClassroomForm.handleChange}
                 onBlur={editClassroomForm.handleBlur}
                 className={`w-full h-10 px-3 rounded-lg border ${editClassroomForm.touched.className && editClassroomForm.errors.className ? 'border-destructive' : 'border-border'} bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
-                placeholder="Nhập tên lớp..."
+                placeholder={t('Nhập tên lớp...')}
               />
               {editClassroomForm.touched.className && editClassroomForm.errors.className && (
                 <p className="text-xs text-destructive">{editClassroomForm.errors.className as string}</p>
@@ -342,9 +344,9 @@ export function ClassDetailPageClient() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold">
-                Sĩ số tối đa{' '}
+                {t('Sĩ số tối đa')}{' '}
                 <span className="text-xs font-normal text-muted-foreground">
-                  (Hiện tại: {classroom?.studentCount || 0})
+                  {t('(Hiện tại: {count})', { count: classroom?.studentCount || 0 })}
                 </span>
               </label>
               <input
@@ -362,7 +364,7 @@ export function ClassDetailPageClient() {
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold">Mô tả lớp học</label>
+              <label className="text-sm font-semibold">{t('Mô tả lớp học')}</label>
               <textarea
                 id="description"
                 name="description"
@@ -370,7 +372,7 @@ export function ClassDetailPageClient() {
                 onChange={editClassroomForm.handleChange}
                 onBlur={editClassroomForm.handleBlur}
                 className="w-full h-24 p-3 rounded-lg border border-border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
-                placeholder="Nhập mô tả lớp học..."
+                placeholder={t('Nhập mô tả lớp học...')}
               />
             </div>
             <DialogFooter className="mt-6 sm:justify-between">
@@ -381,7 +383,7 @@ export function ClassDetailPageClient() {
                   className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Xóa lớp học
+                  {t('Xóa lớp học')}
                 </button>
               </PermissionGuard>
               <div className="flex gap-2">
@@ -390,7 +392,7 @@ export function ClassDetailPageClient() {
                   onClick={() => setIsEditModalOpen(false)}
                   className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
                 >
-                  Hủy
+                  {t('Hủy')}
                 </button>
                 <button
                   type="submit"
@@ -398,7 +400,7 @@ export function ClassDetailPageClient() {
                   className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {editClassroomForm.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Lưu thay đổi
+                  {t('Lưu thay đổi')}
                 </button>
               </div>
             </DialogFooter>
@@ -410,11 +412,12 @@ export function ClassDetailPageClient() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <Trash2 className="h-5 w-5" /> Xóa lớp học
+              <Trash2 className="h-5 w-5" /> {t('Xóa lớp học')}
             </DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn xóa lớp học <strong>{classroom?.className}</strong> không?
-              Lưu ý: Chỉ có thể xóa lớp khi chưa có học sinh nào. Hành động này không thể hoàn tác.
+              {t('Bạn có chắc chắn muốn xóa lớp học {className} không? Lưu ý: Chỉ có thể xóa lớp khi chưa có học sinh nào. Hành động này không thể hoàn tác.', {
+                className: classroom?.className || ''
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6">
@@ -424,7 +427,7 @@ export function ClassDetailPageClient() {
               disabled={deleteMutation.isPending}
               className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors"
             >
-              Hủy
+              {t('Hủy')}
             </button>
             <button
               onClick={handleDeleteClassroom}
@@ -432,7 +435,7 @@ export function ClassDetailPageClient() {
               className="px-4 py-2 rounded-lg bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Xác nhận xóa
+              {t('Xác nhận xóa')}
             </button>
           </DialogFooter>
         </DialogContent>

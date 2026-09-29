@@ -11,8 +11,10 @@ import { PublishAssignmentModal } from '@/components/assignments/publish-assignm
 import { useClassAssignments } from '@/hooks/useClassDetail'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useQueryClient } from '@tanstack/react-query'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function AssignmentsTab({ classCode }: { classCode: string }) {
+  const { t } = useI18n()
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -58,9 +60,14 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
               <BookOpen className="h-4.5 w-4.5 text-slate-600" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground">Danh sách bài tập</h2>
+              <h2 className="text-sm font-bold text-foreground">{t('Danh sách bài tập')}</h2>
               <p className="text-xs text-muted-foreground">
-                {loading ? 'Đang tải...' : `${totalElements} ${activeTab === 'individual' ? 'bài tập' : 'phiếu bài tập'}`}
+                {loading
+                  ? t('common.loading')
+                  : t('{count} {type}', {
+                      count: totalElements,
+                      type: activeTab === 'individual' ? t('bài tập') : t('phiếu bài tập')
+                    })}
               </p>
             </div>
           </div>
@@ -74,7 +81,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              Bài tập lẻ
+              {t('Bài tập lẻ')}
             </button>
             <button
               onClick={() => { setActiveTab('sheet'); setPage(0) }}
@@ -84,7 +91,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              Phiếu bài tập
+              {t('Phiếu bài tập')}
             </button>
           </div>
 
@@ -94,17 +101,17 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
               onChange={(e) => { setSize(Number(e.target.value)); setPage(0) }}
               className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
             >
-              <option value={5}>5 / trang</option>
-              <option value={10}>10 / trang</option>
-              <option value={15}>15 / trang</option>
-              <option value={20}>20 / trang</option>
+              <option value={5}>{t('{size} / trang', { size: 5 })}</option>
+              <option value={10}>{t('{size} / trang', { size: 10 })}</option>
+              <option value={15}>{t('{size} / trang', { size: 15 })}</option>
+              <option value={20}>{t('{size} / trang', { size: 20 })}</option>
             </select>
 
             <div className="relative w-48 hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm bài tập..."
+                placeholder={t('Tìm bài tập...')}
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-slate-50/80 text-xs outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
@@ -140,10 +147,18 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                {debouncedKeyword ? 'Không tìm thấy kết quả phù hợp' : (activeTab === 'individual' ? 'Chưa có bài tập nào' : 'Chưa có phiếu bài tập nào')}
+                {debouncedKeyword
+                  ? t('Không tìm thấy kết quả phù hợp')
+                  : activeTab === 'individual'
+                  ? t('Chưa có bài tập nào')
+                  : t('Chưa có phiếu bài tập nào')}
               </p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                {debouncedKeyword ? 'Thử thay đổi bộ lọc tìm kiếm.' : (activeTab === 'individual' ? 'Tạo bài tập mới và giao cho lớp này.' : 'Tạo phiếu bài tập mới và giao cho lớp này.')}
+                {debouncedKeyword
+                  ? t('Thử thay đổi bộ lọc tìm kiếm.')
+                  : activeTab === 'individual'
+                  ? t('Tạo bài tập mới và giao cho lớp này.')
+                  : t('Tạo phiếu bài tập mới và giao cho lớp này.')}
               </p>
             </div>
           </div>
@@ -177,14 +192,14 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
                                 router.push(`/assignments/sheets/${assignment.id}/submissions?classCode=${classCode}`)
                               }}
                               className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
-                              title="Xem bài nộp của phiếu"
+                              title={t('Xem bài nộp của phiếu')}
                             >
                               <ListChecks className="h-3.5 w-3.5" />
-                              Bài nộp
+                              {t('Bài nộp')}
                             </button>
                           )}
                           <div className="flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors border border-primary/20">
-                            Mở phiếu
+                            {t('Mở phiếu')}
                             <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                           </div>
                         </div>
@@ -211,10 +226,14 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
         )}
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {!loading && totalElements > 0 && (
           <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-slate-50">
             <p className="text-xs text-muted-foreground hidden sm:block">
-              Đang hiển thị {page * size + 1} - {Math.min((page + 1) * size, totalElements)} trên tổng số {totalElements}
+              {t('Đang hiển thị {from} - {to} trên tổng số {total}', {
+                from: page * size + 1,
+                to: Math.min((page + 1) * size, totalElements),
+                total: totalElements
+              })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -265,6 +284,7 @@ export function AssignmentsTab({ classCode }: { classCode: string }) {
 }
 
 function SheetItemRow({ item, index, classCode }: { item: any; index: number; classCode: string }) {
+  const { t } = useI18n()
   const router = useRouter()
   const [allowResubmit, setAllowResubmit] = useState<boolean>(item.allowResubmit ?? false)
   const [isToggling, setIsToggling] = useState(false)
@@ -303,7 +323,7 @@ function SheetItemRow({ item, index, classCode }: { item: any; index: number; cl
 
       <span className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 flex-shrink-0">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        Đã giao
+        {t('Đã giao')}
       </span>
 
       <div className="flex items-center gap-2 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity duration-150">
@@ -317,11 +337,11 @@ function SheetItemRow({ item, index, classCode }: { item: any; index: number; cl
                 ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
                 : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
             }`}
-            title={allowResubmit ? 'Bấm để tắt cho phép học sinh nộp lại' : 'Bấm để bật cho phép học sinh nộp lại'}
+            title={allowResubmit ? t('Bấm để tắt cho phép học sinh nộp lại') : t('Bấm để bật cho phép học sinh nộp lại')}
           >
             <RotateCcw className={`h-3.5 w-3.5 ${allowResubmit ? 'text-blue-600' : 'text-slate-400'}`} />
             <span className="hidden md:inline">
-              {allowResubmit ? 'Cho nộp lại: Bật' : 'Cho nộp lại: Tắt'}
+              {allowResubmit ? t('Cho nộp lại: Bật') : t('Cho nộp lại: Tắt')}
             </span>
           </button>
         </PermissionGuard>
@@ -335,10 +355,10 @@ function SheetItemRow({ item, index, classCode }: { item: any; index: number; cl
               router.push(url)
             }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
-            title="Chỉnh sửa bài tập"
+            title={t('Chỉnh sửa bài tập')}
           >
             <Pencil className="h-3.5 w-3.5" />
-            Sửa
+            {t('Sửa')}
           </button>
         </PermissionGuard>
       </div>

@@ -3,8 +3,10 @@
 import React from 'react'
 import { HardDrive } from 'lucide-react'
 import { StorageCleanupCard } from './_components/StorageCleanupCard'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export default function AdminStoragePage() {
+  const { t } = useI18n()
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       {/* ── Synchronized Admin Header ── */}
@@ -16,11 +18,11 @@ export default function AdminStoragePage() {
                 <HardDrive className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Quản lý Lưu trữ
+                {t('Quản lý Lưu trữ')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Quản lý dung lượng hình ảnh, cấu hình lịch tự động quét dọn.
+              {t('Quản lý dung lượng hình ảnh, cấu hình lịch tự động quét dọn.')}
             </p>
           </div>
         </div>

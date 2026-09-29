@@ -11,15 +11,17 @@ import { RefreshButton } from '@/components/ui/refresh-button'
 import { dashboardService } from '@/services/dashboardService'
 import { isPast } from 'date-fns'
 import { parseDateSafe, formatDistanceToNowSafe } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function StudentDashboardClient() {
-  const [greeting, setGreeting] = useState('Chào bạn')
+  const { t } = useI18n()
+  const [greetingKey, setGreetingKey] = useState('Chào bạn')
 
   useEffect(() => {
     const hour = new Date().getHours()
-    if (hour < 12) setGreeting('Chào buổi sáng')
-    else if (hour < 18) setGreeting('Chào buổi chiều')
-    else setGreeting('Chào buổi tối')
+    if (hour < 12) setGreetingKey('Chào buổi sáng')
+    else if (hour < 18) setGreetingKey('Chào buổi chiều')
+    else setGreetingKey('Chào buổi tối')
   }, [])
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
@@ -75,16 +77,18 @@ export function StudentDashboardClient() {
       <div className="border-b border-border bg-white py-6 shadow-sm">
         <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{greeting}! 👋</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t(greetingKey)}! 👋</h1>
             <p className="text-sm text-slate-500 mt-1 font-medium">
-              Hôm nay bạn có <span className="font-bold text-orange-600">{sortedPendingTasks.length} bài tập</span> cần hoàn thành. Cố lên nhé!
+              {t('Hôm nay bạn có {count} bài tập cần hoàn thành. Cố lên nhé!', {
+                count: sortedPendingTasks.length
+              })}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <RefreshButton
               onClick={handleRefresh}
-              title="Làm mới bảng điều khiển"
+              title={t('Làm mới bảng điều khiển')}
             />
           </div>
         </div>
@@ -103,7 +107,7 @@ export function StudentDashboardClient() {
                   <BookOpen className="h-4.5 w-4.5 text-blue-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Số lớp tham gia
+                  {t('Số lớp tham gia')}
                 </span>
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
@@ -121,7 +125,7 @@ export function StudentDashboardClient() {
                   <CheckCircle className="h-4.5 w-4.5 text-emerald-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Bài đã chấm xong
+                  {t('Bài đã chấm xong')}
                 </span>
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
@@ -139,7 +143,7 @@ export function StudentDashboardClient() {
                   <Clock className="h-4.5 w-4.5 text-white" />
                 </div>
                 <span className="text-xs font-bold text-orange-100 uppercase tracking-wider truncate">
-                  Bài tập cần làm
+                  {t('Bài tập cần làm')}
                 </span>
               </div>
               <span className="text-2xl font-black text-white tracking-tight shrink-0">
@@ -155,7 +159,7 @@ export function StudentDashboardClient() {
           {/* Cột trái (65%): Bài tập cần làm */}
           <div className="lg:col-span-8 space-y-4">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 min-h-10">
-              <Clock className="w-5 h-5 text-orange-500" /> Bài tập cần làm
+              <Clock className="w-5 h-5 text-orange-500" /> {t('Bài tập cần làm')}
               <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-bold px-2 py-0.5 rounded-full ml-1 text-xs">
                 {sortedPendingTasks.length}
               </Badge>
@@ -172,7 +176,7 @@ export function StudentDashboardClient() {
                   <Card key={task.id} className={`border-0 shadow-md transition-all hover:shadow-lg group overflow-hidden ${isTopPriority ? 'shadow-orange-500/20 bg-gradient-to-r from-orange-50 to-white ring-1 ring-orange-200' : 'shadow-slate-200/50 bg-white'}`}>
                     {isTopPriority && (
                       <div className="bg-orange-500 text-white text-xs font-bold uppercase tracking-wider text-center py-1.5 shadow-sm">
-                        Hạn chót đang đến rất gần!
+                        {t('Hạn chót đang đến rất gần!')}
                       </div>
                     )}
                     <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -188,13 +192,13 @@ export function StudentDashboardClient() {
                             <BookOpen className="w-4 h-4 text-slate-400" /> {task.type}
                           </span>
                           <span className={`flex items-center gap-1.5 ${isUrgent ? 'text-orange-600 font-semibold bg-orange-100 px-2 py-1 rounded-md shadow-sm' : ''}`}>
-                            <Clock className={`w-4 h-4 ${isUrgent ? 'text-orange-500' : 'text-slate-400'}`} /> {deadlineDate ? `Còn ${formatDistanceToNowSafe(deadlineDate)}` : 'Không có hạn'}
+                            <Clock className={`w-4 h-4 ${isUrgent ? 'text-orange-500' : 'text-slate-400'}`} /> {deadlineDate ? t('Còn {time}', { time: formatDistanceToNowSafe(deadlineDate) }) : t('Không có hạn')}
                           </span>
                         </div>
                       </div>
                       <Link href={`/assignments/${task.id}?classCode=${task.classCode}`} className="shrink-0 w-full sm:w-auto">
                         <Button className={`w-full sm:w-auto shadow-sm font-medium px-6 py-5 rounded-xl ${isTopPriority ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white opacity-90 hover:opacity-100'}`}>
-                          <PlayCircle className="w-5 h-5 mr-2" /> Làm bài ngay
+                          <PlayCircle className="w-5 h-5 mr-2" /> {t('Làm bài ngay')}
                         </Button>
                       </Link>
                     </CardContent>
@@ -207,8 +211,8 @@ export function StudentDashboardClient() {
                   <div className="p-4 bg-emerald-50 rounded-full mb-4">
                     <Trophy className="w-10 h-10 text-emerald-500" />
                   </div>
-                  <p className="font-semibold text-slate-800 text-xl">Tuyệt vời!</p>
-                  <p className="text-slate-500 mt-1">Bạn đã hoàn thành mọi bài tập được giao.</p>
+                  <p className="font-semibold text-slate-800 text-xl">{t('Tuyệt vời!')}</p>
+                  <p className="text-slate-500 mt-1">{t('Bạn đã hoàn thành mọi bài tập được giao.')}</p>
                 </div>
               )}
             </div>
@@ -218,7 +222,7 @@ export function StudentDashboardClient() {
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center justify-between min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Star className="w-5 h-5 text-emerald-500 fill-emerald-500/20" /> Vừa có điểm
+                <Star className="w-5 h-5 text-emerald-500 fill-emerald-500/20" /> {t('Vừa có điểm')}
               </h2>
             </div>
             <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1.5">
@@ -249,10 +253,12 @@ export function StudentDashboardClient() {
                     </div>
 
                     <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between opacity-80 group-hover:opacity-100 transition-opacity">
-                      <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Đã hoàn thành</span>
+                      <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> {t('Đã hoàn thành')}
+                      </span>
                       <Link href={`/assignments/${task.id}?classCode=${task.classCode}`}>
                         <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2.5">
-                          Chi tiết <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                          {t('Chi tiết')} <ArrowRight className="w-3.5 h-3.5 ml-1" />
                         </Button>
                       </Link>
                     </div>
@@ -262,7 +268,7 @@ export function StudentDashboardClient() {
 
               {gradedTasks.length === 0 && (
                 <div className="text-center py-10 text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">
-                  <p className="text-sm font-medium">Chưa có bài tập nào được chấm điểm.</p>
+                  <p className="text-sm font-medium">{t('Chưa có bài tập nào được chấm điểm.')}</p>
                 </div>
               )}
             </div>

@@ -17,8 +17,10 @@ import { SystemPromptDialog } from '@/components/admin/ai-config/SystemPromptDia
 import { SystemPromptHistoryDialog } from '@/components/admin/ai-config/SystemPromptHistoryDialog'
 import { PromptPreviewRenderDialog } from '@/components/admin/ai-config/PromptPreviewRenderDialog'
 import { useToast } from '@/components/ui/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function SystemPromptTab() {
+  const { t } = useI18n()
   const { toast } = useToast()
 
   const [prompts, setPrompts] = useState<SystemPrompt[]>([])
@@ -48,8 +50,8 @@ export function SystemPromptTab() {
       setPrompts(data)
     } catch (err: any) {
       toast({
-        title: 'Lỗi tải dữ liệu',
-        description: err.response?.data?.message || 'Không thể tải danh sách System Prompts',
+        title: t('Lỗi tải dữ liệu'),
+        description: err.response?.data?.message || t('Không thể tải danh sách System Prompts'),
         variant: 'destructive',
       })
     } finally {
@@ -71,10 +73,10 @@ export function SystemPromptTab() {
             <div>
               <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 <MessageSquareCode className="h-5 w-5 text-indigo-500 shrink-0" />
-                Quản lý câu lệnh mẫu (System Prompts)
+                {t('Quản lý câu lệnh mẫu (System Prompts)')}
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm mt-1">
-                Tùy chỉnh các câu lệnh điều khiển AI cho từng tác vụ hệ thống, khôi phục mặc định và theo dõi lịch sử phiên bản.
+                {t('Tùy chỉnh các câu lệnh điều khiển AI cho từng tác vụ hệ thống, khôi phục mặc định và theo dõi lịch sử phiên bản.')}
               </CardDescription>
             </div>
           </div>
@@ -84,7 +86,7 @@ export function SystemPromptTab() {
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm theo mã code, tên prompt..."
+              placeholder={t('Tìm kiếm theo mã code, tên prompt...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 text-xs h-9 w-full"
@@ -102,9 +104,9 @@ export function SystemPromptTab() {
         <Card className="p-6 sm:p-8 text-center border-dashed">
           <CardContent className="pt-6">
             <MessageSquareCode className="h-12 w-12 text-muted-foreground mx-auto mb-3 stroke-1" />
-            <p className="font-semibold text-sm sm:text-base">Chưa có System Prompt nào</p>
+            <p className="font-semibold text-sm sm:text-base">{t('Chưa có System Prompt nào')}</p>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Thử thay đổi bộ lọc tìm kiếm.
+              {t('Thử thay đổi bộ lọc tìm kiếm.')}
             </p>
           </CardContent>
         </Card>
@@ -116,11 +118,11 @@ export function SystemPromptTab() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <h3 className="font-bold text-sm sm:text-base text-foreground">{item.name}</h3>
+                      <h3 className="font-bold text-sm sm:text-base text-foreground">{t(item.name)}</h3>
                     </div>
 
                     {item.description && (
-                      <p className="text-xs text-muted-foreground italic">{item.description}</p>
+                      <p className="text-xs text-muted-foreground italic">{t(item.description)}</p>
                     )}
                   </div>
 
@@ -135,7 +137,7 @@ export function SystemPromptTab() {
                       }}
                       className="text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 h-8 flex-1 sm:flex-initial font-medium border-indigo-200"
                     >
-                      <Zap className="mr-1.5 h-3.5 w-3.5 text-amber-500 fill-amber-500" /> Thử nghiệm AI
+                      <Zap className="mr-1.5 h-3.5 w-3.5 text-amber-500 fill-amber-500" /> {t('Thử nghiệm AI')}
                     </Button>
 
                     <Button
@@ -147,7 +149,7 @@ export function SystemPromptTab() {
                       }}
                       className="text-xs h-8 flex-1 sm:flex-initial"
                     >
-                      <Edit className="mr-1.5 h-3.5 w-3.5" /> Chỉnh sửa
+                      <Edit className="mr-1.5 h-3.5 w-3.5" /> {t('Chỉnh sửa')}
                     </Button>
                     <Button
                       variant="outline"
@@ -158,7 +160,7 @@ export function SystemPromptTab() {
                       }}
                       className="text-xs h-8 flex-1 sm:flex-initial"
                     >
-                      <History className="mr-1.5 h-3.5 w-3.5" /> Lịch sử
+                      <History className="mr-1.5 h-3.5 w-3.5" /> {t('Lịch sử')}
                     </Button>
                   </div>
                 </div>

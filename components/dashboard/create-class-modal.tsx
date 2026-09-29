@@ -6,6 +6,7 @@ import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { useCreateClass } from '@/hooks/useCreateClass'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface CreateClassModalProps {
   open: boolean
@@ -14,6 +15,7 @@ interface CreateClassModalProps {
 }
 
 export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalProps) {
+  const { t } = useI18n()
   const [error, setError] = useState('')
   const createClassMutation = useCreateClass()
 
@@ -81,8 +83,8 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Tạo lớp học mới</h2>
-              <p className="text-xs text-muted-foreground">Điền thông tin để tạo lớp học</p>
+              <h2 className="text-lg font-bold text-foreground">{t('Tạo lớp học mới')}</h2>
+              <p className="text-xs text-muted-foreground">{t('Điền thông tin để tạo lớp học')}</p>
             </div>
           </div>
           <button
@@ -104,7 +106,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
           {/* Class name */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
-              Tên lớp học <span className="text-destructive">*</span>
+              {t('Tên lớp học')} <span className="text-destructive">*</span>
             </label>
             <div className="relative">
               <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -112,7 +114,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
                 id="class-name"
                 name="name"
                 type="text"
-                placeholder="VD: Toán 10A - Đại số cơ bản"
+                placeholder={t('VD: Toán 10A - Đại số cơ bản')}
                 value={formik.values.name}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -123,14 +125,14 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
               />
             </div>
             {formik.touched.name && formik.errors.name && (
-              <p className="text-xs text-destructive">{formik.errors.name}</p>
+              <p className="text-xs text-destructive">{t(formik.errors.name)}</p>
             )}
           </div>
 
           {/* Max students */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
-              Số học sinh tối đa
+              {t('Số học sinh tối đa')}
             </label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -150,21 +152,21 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
               />
             </div>
             {formik.touched.maxStudents && formik.errors.maxStudents && (
-              <p className="text-xs text-destructive">{formik.errors.maxStudents}</p>
+              <p className="text-xs text-destructive">{t(formik.errors.maxStudents)}</p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
-              Mô tả lớp học
+              {t('Mô tả lớp học')}
             </label>
             <div className="relative">
               <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <textarea
                 id="class-description"
                 name="description"
-                placeholder="Mô tả ngắn về nội dung, mục tiêu của lớp học..."
+                placeholder={t('Mô tả ngắn về nội dung, mục tiêu của lớp học...')}
                 value={formik.values.description}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -181,7 +183,7 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
               onClick={handleClose}
               className="flex-1 rounded-lg border-2 border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
             >
-              Hủy
+              {t('Hủy')}
             </button>
             <button
               id="submit-create-class"
@@ -192,10 +194,10 @@ export function CreateClassModal({ open, onClose, onSuccess }: CreateClassModalP
               {createClassMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang tạo...
+                  {t('Đang tạo...')}
                 </>
               ) : (
-                'Tạo lớp học'
+                t('Tạo lớp học')
               )}
             </button>
           </div>

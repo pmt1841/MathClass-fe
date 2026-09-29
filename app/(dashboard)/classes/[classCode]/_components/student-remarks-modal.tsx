@@ -47,6 +47,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { aiFeatureService, AI_FEATURE_TASKS } from '@/services/aiFeatureService'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface StudentRemarksModalProps {
   open: boolean
@@ -61,6 +62,7 @@ export function StudentRemarksModal({
   student,
   classCode,
 }: StudentRemarksModalProps) {
+  const { t } = useI18n()
   const [strengths, setStrengths] = useState('')
   const [weaknesses, setWeaknesses] = useState('')
   const [generalAssessment, setGeneralAssessment] = useState('')
@@ -127,14 +129,14 @@ export function StudentRemarksModal({
             active: res.activeIncompleteAssignments,
             avgScore: res.averageScore,
           })
-          toast.success('AI đã quét dữ liệu và điền gợi ý đánh giá thành công!')
+          toast.success(t('AI đã quét dữ liệu và điền gợi ý đánh giá thành công!'))
         },
         onError: (err: any) => {
           const msg =
             err?.response?.data?.message ||
             err?.response?.data ||
-            'Không thể sinh đánh giá từ AI. Vui lòng kiểm tra số dư credit hoặc thử lại.'
-          toast.error(typeof msg === 'string' ? msg : 'AI Đánh giá thất bại')
+            t('Không thể sinh đánh giá từ AI. Vui lòng kiểm tra số dư credit hoặc thử lại.')
+          toast.error(typeof msg === 'string' ? msg : t('AI Đánh giá thất bại'))
         },
       }
     )
@@ -162,7 +164,7 @@ export function StudentRemarksModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!strengths.trim() && !weaknesses.trim() && !generalAssessment.trim()) {
-      toast.error('Vui lòng nhập ít nhất điểm mạnh, điểm yếu hoặc đánh giá chung')
+      toast.error(t('Vui lòng nhập ít nhất điểm mạnh, điểm yếu hoặc đánh giá chung'))
       return
     }
 
@@ -175,7 +177,7 @@ export function StudentRemarksModal({
       },
       {
         onSuccess: () => {
-          toast.success('Đã lưu nhận xét học sinh thành công')
+          toast.success(t('Đã lưu nhận xét học sinh thành công'))
           setStrengths('')
           setWeaknesses('')
           setGeneralAssessment('')
@@ -185,8 +187,8 @@ export function StudentRemarksModal({
           const msg =
             err?.response?.data?.message ||
             err?.response?.data ||
-            'Không thể lưu nhận xét. Vui lòng thử lại.'
-          toast.error(typeof msg === 'string' ? msg : 'Lưu nhận xét thất bại')
+            t('Không thể lưu nhận xét. Vui lòng thử lại.')
+          toast.error(typeof msg === 'string' ? msg : t('Lưu nhận xét thất bại'))
           setIsSubmitting(false)
         },
       }
@@ -202,15 +204,15 @@ export function StudentRemarksModal({
 
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Đã xóa nhận xét thành công')
+        toast.success(t('Đã xóa nhận xét thành công'))
         setDeletingId(null)
       },
       onError: (err: any) => {
         const msg =
           err?.response?.data?.message ||
           err?.response?.data ||
-          'Không thể xóa nhận xét'
-        toast.error(typeof msg === 'string' ? msg : 'Xóa nhận xét thất bại')
+          t('Không thể xóa nhận xét')
+        toast.error(typeof msg === 'string' ? msg : t('Xóa nhận xét thất bại'))
         setDeletingId(null)
       },
     })
@@ -238,13 +240,13 @@ export function StudentRemarksModal({
                 </div>
                 <div>
                   <DialogTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <span>Hồ sơ theo dõi học sinh</span>
+                    <span>{t('Hồ sơ theo dõi học sinh')}</span>
                     <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-indigo-100/80 text-indigo-700">
                       {student?.fullName}
                     </span>
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                    {student?.email} • Ghi nhận và theo dõi tiến độ học tập (Điểm mạnh & Điểm yếu)
+                    {student?.email} • {t('Ghi nhận và theo dõi tiến độ học tập (Điểm mạnh & Điểm yếu)')}
                   </DialogDescription>
                 </div>
               </div>
@@ -263,10 +265,10 @@ export function StudentRemarksModal({
                       <Sparkles className="h-6 w-6" />
                     </div>
                     <p className="text-xs font-semibold text-slate-700">
-                      Chế độ xem lịch sử nhận xét
+                      {t('Chế độ xem lịch sử nhận xét')}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Chỉ giáo viên phụ trách lớp mới có quyền ghi nhận xét và đánh giá tiến độ cho học sinh.
+                      {t('Chỉ giáo viên phụ trách lớp mới có quyền ghi nhận xét và đánh giá tiến độ cho học sinh.')}
                     </p>
                   </div>
                 }
@@ -276,10 +278,10 @@ export function StudentRemarksModal({
                     <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
                       <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                        <span>Viết nhận xét mới</span>
+                        <span>{t('Viết nhận xét mới')}</span>
                       </h3>
                       <span className="text-[10px] text-muted-foreground font-medium">
-                        Lưu mốc thời gian thực
+                        {t('Lưu mốc thời gian thực')}
                       </span>
                     </div>
 
@@ -293,7 +295,7 @@ export function StudentRemarksModal({
                             </div>
                             <div>
                               <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <span>AI Đánh giá tiến độ</span>
+                                <span>{t('AI Đánh giá tiến độ')}</span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700">
                                   ~5 credit
                                 </span>
@@ -310,12 +312,12 @@ export function StudentRemarksModal({
                             {aiEvaluateMutation.isPending ? (
                               <>
                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                <span>Đang quét...</span>
+                                <span>{t('Đang quét...')}</span>
                               </>
                             ) : (
                               <>
                                 <Bot className="h-3.5 w-3.5" />
-                                <span>Quét & Đánh giá</span>
+                                <span>{t('Quét & Đánh giá')}</span>
                               </>
                             )}
                           </button>
@@ -325,12 +327,12 @@ export function StudentRemarksModal({
                         <div className="flex items-center gap-1.5 pt-0.5">
                           <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1 mr-1">
                             <Calendar className="h-3 w-3" />
-                            <span>Mốc thời gian:</span>
+                            <span>{t('Mốc thời gian:')}</span>
                           </span>
                           {[
-                            { days: 3, label: '3 ngày' },
-                            { days: 7, label: '7 ngày' },
-                            { days: 30, label: '1 tháng' },
+                            { days: 3, label: t('3 ngày') },
+                            { days: 7, label: t('7 ngày') },
+                            { days: 30, label: t('1 tháng') },
                           ].map((item) => (
                             <button
                               key={item.days}
@@ -351,21 +353,21 @@ export function StudentRemarksModal({
                         {/* Banner thông báo kết quả quét dữ liệu */}
                         {scanInfo && (
                           <section
-                            aria-label="Kết quả đánh giá AI"
+                            aria-label={t('Kết quả đánh giá AI')}
                             className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] animate-in fade-in duration-200"
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
                               <span className="truncate">
-                                Quét từ <strong>{formatDate(scanInfo.startDate)}</strong> đến{' '}
-                                <strong>{formatDate(scanInfo.endDate)}</strong> • Đã nộp{' '}
-                                <strong>{scanInfo.completed}/{scanInfo.total}</strong> bài
+                                {t('Quét từ')} <strong>{formatDate(scanInfo.startDate)}</strong> {t('đến')}{' '}
+                                <strong>{formatDate(scanInfo.endDate)}</strong> • {t('Đã nộp')}{' '}
+                                <strong>{scanInfo.completed}/{scanInfo.total}</strong> {t('bài')}
                                 {scanInfo.active != null && scanInfo.active > 0 && (
                                   <span className="text-slate-600 font-normal">
                                     {' '}
-                                    ({scanInfo.active} bài còn hạn
+                                    ({scanInfo.active} {t('bài còn hạn')}
                                     {scanInfo.overdue != null && scanInfo.overdue > 0
-                                      ? `, ${scanInfo.overdue} quá hạn`
+                                      ? `, ${scanInfo.overdue} ${t('quá hạn')}`
                                       : ''}
                                     )
                                   </span>
@@ -375,19 +377,19 @@ export function StudentRemarksModal({
                                   scanInfo.overdue > 0 && (
                                     <span className="text-amber-700 font-medium">
                                       {' '}
-                                      ({scanInfo.overdue} bài quá hạn)
+                                      ({scanInfo.overdue} {t('bài quá hạn')})
                                     </span>
                                   )}
-                                {scanInfo.avgScore != null && ` • ĐTB: ${scanInfo.avgScore}`}
+                                {scanInfo.avgScore != null && ` • ${t('ĐTB')}: ${scanInfo.avgScore}`}
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => setScanInfo(null)}
-                              aria-label="Đóng"
+                              aria-label={t('Đóng')}
                               className="text-emerald-700 hover:text-emerald-900 text-[10px] font-medium ml-1 flex-shrink-0 hover:underline"
                             >
-                              Đóng
+                              {t('Đóng')}
                             </button>
                           </section>
                         )}
@@ -399,12 +401,12 @@ export function StudentRemarksModal({
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
                           <ThumbsUp className="h-3.5 w-3.5" />
-                          <span>Điểm mạnh & Ưu điểm</span>
+                          <span>{t('Điểm mạnh & Ưu điểm')}</span>
                         </label>
                         <textarea
                           value={strengths}
                           onChange={(e) => setStrengths(e.target.value)}
-                          placeholder="VD: Tư duy logic tốt, phản xạ nhanh với các bài toán hình học..."
+                          placeholder={t('VD: Tư duy logic tốt, phản xạ nhanh với các bài toán hình học...')}
                           rows={3}
                           className="w-full text-xs rounded-xl border border-emerald-200/80 bg-emerald-50/30 p-2.5 text-slate-800 outline-none transition-all placeholder:text-muted-foreground/60 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/15 resize-none"
                         />
@@ -414,12 +416,12 @@ export function StudentRemarksModal({
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
                           <AlertCircle className="h-3.5 w-3.5" />
-                          <span>Điểm yếu & Cần cải thiện</span>
+                          <span>{t('Điểm yếu & Cần cải thiện')}</span>
                         </label>
                         <textarea
                           value={weaknesses}
                           onChange={(e) => setWeaknesses(e.target.value)}
-                          placeholder="VD: Hay nhầm lẫn dấu khi giải phương trình, trình bày còn vội vàng..."
+                          placeholder={t('VD: Hay nhầm lẫn dấu khi giải phương trình, trình bày còn vội vàng...')}
                           rows={3}
                           className="w-full text-xs rounded-xl border border-amber-200/80 bg-amber-50/30 p-2.5 text-slate-800 outline-none transition-all placeholder:text-muted-foreground/60 focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/15 resize-none"
                         />
@@ -429,12 +431,12 @@ export function StudentRemarksModal({
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                           <MessageSquareQuote className="h-3.5 w-3.5 text-indigo-600" />
-                          <span>Đánh giá chung & Lời khuyên</span>
+                          <span>{t('Đánh giá chung & Lời khuyên')}</span>
                         </label>
                         <textarea
                           value={generalAssessment}
                           onChange={(e) => setGeneralAssessment(e.target.value)}
-                          placeholder="VD: Cần luyện tập thêm 10 bài tập rút gọn biểu thức mỗi tuần..."
+                          placeholder={t('VD: Cần luyện tập thêm 10 bài tập rút gọn biểu thức mỗi tuần...')}
                           rows={3}
                           className="w-full text-xs rounded-xl border border-slate-200 bg-white p-2.5 text-slate-800 outline-none transition-all placeholder:text-muted-foreground/60 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 resize-none"
                         />
@@ -455,12 +457,12 @@ export function StudentRemarksModal({
                       {isSubmitting ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          <span>Đang lưu nhận xét...</span>
+                          <span>{t('Đang lưu nhận xét...')}</span>
                         </>
                       ) : (
                         <>
                           <Send className="h-3.5 w-3.5" />
-                          <span>Lưu nhận xét học sinh</span>
+                          <span>{t('Lưu nhận xét học sinh')}</span>
                         </>
                       )}
                     </button>
@@ -474,7 +476,7 @@ export function StudentRemarksModal({
               <div className="flex items-center justify-between pb-1 border-b border-slate-100 flex-shrink-0">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <History className="h-3.5 w-3.5 text-slate-600" />
-                  <span>Lịch sử nhận xét ({remarks.length})</span>
+                  <span>{t('Lịch sử nhận xét')} ({remarks.length})</span>
                 </h3>
               </div>
 
@@ -496,10 +498,10 @@ export function StudentRemarksModal({
                     <MessageSquareQuote className="h-6 w-6" />
                   </div>
                   <p className="text-xs font-semibold text-slate-700">
-                    Chưa có nhận xét nào
+                    {t('Chưa có nhận xét nào')}
                   </p>
                   <p className="text-[11px] text-muted-foreground max-w-xs">
-                    Hãy nhập nhận xét về điểm mạnh, điểm yếu ở khung bên trái để bắt đầu theo dõi quá trình học tập.
+                    {t('Hãy nhập nhận xét về điểm mạnh, điểm yếu ở khung bên trái để bắt đầu theo dõi quá trình học tập.')}
                   </p>
                 </div>
               ) : (
@@ -526,7 +528,7 @@ export function StudentRemarksModal({
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-xs font-semibold text-slate-800 truncate">
-                                    {remark.teacherName || 'Giáo viên'}
+                                    {remark.teacherName || t('Giáo viên')}
                                   </span>
                                   <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
@@ -539,19 +541,19 @@ export function StudentRemarksModal({
                                   {remark.strengths && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                      Điểm mạnh
+                                      {t('Điểm mạnh')}
                                     </span>
                                   )}
                                   {remark.weaknesses && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                      Cần cải thiện
+                                      {t('Cần cải thiện')}
                                     </span>
                                   )}
                                   {remark.generalAssessment && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                                      Đánh giá chung
+                                      {t('Đánh giá chung')}
                                     </span>
                                   )}
                                 </div>
@@ -568,7 +570,7 @@ export function StudentRemarksModal({
                                   }}
                                   disabled={deletingId === remark.id}
                                   className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
-                                  title="Xóa nhận xét này"
+                                  title={t('Xóa nhận xét này')}
                                 >
                                   {deletingId === remark.id ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -596,7 +598,7 @@ export function StudentRemarksModal({
                                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-1">
                                   <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-bold">
                                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
-                                    <span>Điểm mạnh & Ưu điểm:</span>
+                                    <span>{t('Điểm mạnh & Ưu điểm:')}</span>
                                   </div>
                                   <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed pl-5">
                                     {remark.strengths}
@@ -609,7 +611,7 @@ export function StudentRemarksModal({
                                 <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-1">
                                   <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-bold">
                                     <AlertCircle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
-                                    <span>Điểm yếu & Cần cải thiện:</span>
+                                    <span>{t('Điểm yếu & Cần cải thiện:')}</span>
                                   </div>
                                   <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed pl-5">
                                     {remark.weaknesses}
@@ -622,7 +624,7 @@ export function StudentRemarksModal({
                                 <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 space-y-1">
                                   <div className="flex items-center gap-1.5 text-slate-700 text-[11px] font-bold">
                                     <MessageSquareQuote className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
-                                    <span>Đánh giá chung & Lời khuyên:</span>
+                                    <span>{t('Đánh giá chung & Lời khuyên:')}</span>
                                   </div>
                                   <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed pl-5">
                                     {remark.generalAssessment}
@@ -651,22 +653,22 @@ export function StudentRemarksModal({
             </div>
             <div>
               <AlertDialogTitle className="text-base font-bold text-slate-800">
-                Xác nhận xóa nhận xét
+                {t('Xác nhận xóa nhận xét')}
               </AlertDialogTitle>
               <AlertDialogDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Bạn có chắc chắn muốn xóa bản ghi nhận xét này không? Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục lại.
+                {t('Bạn có chắc chắn muốn xóa bản ghi nhận xét này không? Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục lại.')}
               </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4 gap-2 sm:gap-3">
             <AlertDialogCancel className="rounded-xl text-xs font-semibold px-4 py-2 border-slate-200 hover:bg-slate-50">
-              Hủy bỏ
+              {t('Hủy bỏ')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="rounded-xl text-xs font-semibold px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20"
             >
-              Xóa nhận xét
+              {t('Xóa nhận xét')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

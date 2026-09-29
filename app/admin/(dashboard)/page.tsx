@@ -22,8 +22,10 @@ import { AnnualTrendCards } from '@/components/admin/dashboard/AnnualTrendCards'
 import { AdminDashboardSkeleton } from '@/components/admin/dashboard/AdminDashboardSkeleton'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export default function AdminDashboardPage() {
+  const { t } = useI18n()
   const { user, isInitializing } = useAuth()
   const hasAdminDashboardPermission = !!user?.permissions?.includes('dashboard:admin_view')
 
@@ -62,24 +64,20 @@ export default function AdminDashboardPage() {
           <ShieldAlert className="h-8 w-8" />
         </div>
         <h2 className="text-xl font-bold text-foreground">
-          Không có quyền truy cập
+          {t('Không có quyền truy cập')}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
-          Tài khoản quản trị viên của bạn chưa được cấp quyền{' '}
-          <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono text-xs">
-            dashboard:admin_view
-          </code>{' '}
-          để xem Trung tâm tổng quan. Vui lòng liên hệ quản trị viên cấp cao để kích hoạt.
+          {t('Tài khoản quản trị viên của bạn chưa được cấp quyền dashboard:admin_view để xem Trung tâm tổng quan. Vui lòng liên hệ quản trị viên cấp cao để kích hoạt.')}
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Button variant="default" asChild className="rounded-xl text-xs font-semibold">
             <Link href="/admin/users">
-              Quản lý người dùng
+              {t('Quản lý Người dùng')}
             </Link>
           </Button>
           <Button variant="outline" asChild className="rounded-xl text-xs font-semibold">
             <Link href="/admin/roles">
-              Quản lý Quyền hạn
+              {t('Quản lý Quyền hạn')}
             </Link>
           </Button>
         </div>
@@ -103,7 +101,7 @@ export default function AdminDashboardPage() {
           <AlertCircle className="h-7 w-7" />
         </div>
         <h2 className="text-xl font-bold text-foreground">
-          Không thể tải dữ liệu thống kê
+          {t('Không thể tải dữ liệu thống kê')}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground max-w-md">
           {errorMessage}
@@ -112,7 +110,7 @@ export default function AdminDashboardPage() {
           onClick={() => refetch()}
           className="mt-4 rounded-xl inline-flex items-center gap-2"
         >
-          <RefreshCw className="h-4 w-4" /> Thử lại ngay
+          <RefreshCw className="h-4 w-4" /> {t('Thử lại ngay')}
         </Button>
       </div>
     )
@@ -132,11 +130,14 @@ export default function AdminDashboardPage() {
                 <LayoutDashboard className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Trung Tâm Tổng Quan MathClass
+                {t('Trung Tâm Tổng Quan MathClass')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Báo cáo số liệu kỳ <span className="font-semibold text-foreground">Tháng {selectedMonth}/{selectedYear}</span>.
+              {t('Báo cáo số liệu kỳ Tháng {month}/{year}.', {
+                month: selectedMonth,
+                year: selectedYear
+              })}
             </p>
           </div>
 

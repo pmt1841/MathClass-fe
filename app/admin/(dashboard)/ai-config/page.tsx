@@ -15,42 +15,44 @@ import { TaskRoutingTab } from '@/components/admin/ai-config/TaskRoutingTab'
 import { TestConnectionTab } from '@/components/admin/ai-config/TestConnectionTab'
 import { SystemPromptTab } from '@/components/admin/ai-config/SystemPromptTab'
 import { CreditQuotaTab } from '@/components/admin/ai-config/CreditQuotaTab'
-
-const AI_CONFIG_TABS = [
-  {
-    id: 'providers',
-    label: 'Nhà cung cấp & API Keys',
-    tabletLabel: 'Nhà cung cấp & Keys',
-    icon: Cpu,
-  },
-  {
-    id: 'tasks',
-    label: 'Định tuyến Tác vụ',
-    tabletLabel: 'Định tuyến Tác vụ',
-    icon: Route,
-  },
-  {
-    id: 'system-prompts',
-    label: 'System Prompts',
-    tabletLabel: 'System Prompts',
-    icon: MessageSquareCode,
-  },
-  {
-    id: 'test-connection',
-    label: 'Kiểm tra Kết nối',
-    tabletLabel: 'Kiểm tra Kết nối',
-    icon: FlaskConical,
-  },
-  {
-    id: 'credit',
-    label: 'Hạn mức Credit',
-    tabletLabel: 'Hạn mức Credit',
-    icon: Coins,
-  },
-] as const
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export default function AdminAiConfigPage() {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState('providers')
+
+  const aiConfigTabs = [
+    {
+      id: 'providers',
+      label: t('Nhà cung cấp & API Keys'),
+      tabletLabel: t('Nhà cung cấp & Keys'),
+      icon: Cpu,
+    },
+    {
+      id: 'tasks',
+      label: t('Định tuyến Tác vụ'),
+      tabletLabel: t('Định tuyến Tác vụ'),
+      icon: Route,
+    },
+    {
+      id: 'system-prompts',
+      label: 'System Prompts',
+      tabletLabel: 'System Prompts',
+      icon: MessageSquareCode,
+    },
+    {
+      id: 'test-connection',
+      label: t('Kiểm tra Kết nối'),
+      tabletLabel: t('Kiểm tra Kết nối'),
+      icon: FlaskConical,
+    },
+    {
+      id: 'credit',
+      label: t('Hạn mức Credit'),
+      tabletLabel: t('Hạn mức Credit'),
+      icon: Coins,
+    },
+  ]
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
@@ -63,11 +65,11 @@ export default function AdminAiConfigPage() {
                 <Cpu className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                Cấu hình Dịch vụ AI
+                {t('Cấu hình Dịch vụ AI')}
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts, thử nghiệm kết nối và hạn mức Credit.
+              {t('Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts, thử nghiệm kết nối và hạn mức Credit.')}
             </p>
           </div>
         </div>
@@ -84,7 +86,7 @@ export default function AdminAiConfigPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AI_CONFIG_TABS.map((tab) => {
+                  {aiConfigTabs.map((tab) => {
                     const Icon = tab.icon
                     return (
                       <SelectItem key={tab.id} value={tab.id} className="py-2.5 text-xs font-medium">
@@ -102,7 +104,7 @@ export default function AdminAiConfigPage() {
             {/* ── Tablet / Desktop Tabs (>= sm) ── */}
             <div className="hidden sm:block w-full overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
               <TabsList className="inline-flex w-max min-w-full items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-slate-200/70 dark:bg-slate-800/60 border border-slate-300/60 dark:border-slate-700/60 rounded-xl shadow-xs">
-                {AI_CONFIG_TABS.map((tab) => {
+                {aiConfigTabs.map((tab) => {
                   const Icon = tab.icon
                   return (
                     <TabsTrigger

@@ -29,6 +29,7 @@ import { StorageCleanupResponse } from '@/types/storage'
 import { storageAdminService } from '@/services/storageAdminService'
 import { useToast } from '@/hooks/use-toast'
 import { formatDateTime } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface StorageCleanupModalProps {
   open: boolean
@@ -43,6 +44,7 @@ export function StorageCleanupModal({
   onOpenChange,
   onSuccess,
 }: StorageCleanupModalProps) {
+  const { t } = useI18n()
   const { toast } = useToast()
   const [step, setStep] = useState<ModalStep>('CONFIRM')
   const [gracePeriodHours, setGracePeriodHours] = useState<number>(24)
@@ -67,18 +69,18 @@ export function StorageCleanupModal({
       }
 
       toast({
-        title: dryRun ? 'Quét thử nghiệm hoàn tất' : 'Dọn dẹp thành công',
+        title: dryRun ? t('Quét thử nghiệm hoàn tất') : t('Dọn dẹp thành công'),
         description: dryRun
-          ? `Phát hiện ${cleanupResult.orphanFilesDetected} file rác (chế độ chạy thử).`
-          : `Đã dọn dẹp thành công ${cleanupResult.filesDeletedSuccessfully} file ảnh rác.`,
+          ? t('Phát hiện {count} file rác (chế độ chạy thử).', { count: cleanupResult.orphanFilesDetected })
+          : t('Đã dọn dẹp thành công {count} file ảnh rác.', { count: cleanupResult.filesDeletedSuccessfully }),
       })
     } catch (error: any) {
       setStep('CONFIRM')
       toast({
-        title: 'Lỗi dọn dẹp bộ nhớ',
+        title: t('Lỗi dọn dẹp bộ nhớ'),
         description:
           error?.response?.data?.message ||
-          'Không thể kết nối đến máy chủ hoặc dịch vụ lưu trữ.',
+          t('Không thể kết nối đến máy chủ hoặc dịch vụ lưu trữ.'),
         variant: 'destructive',
       })
     } finally {
@@ -110,10 +112,10 @@ export function StorageCleanupModal({
                 </div>
                 <div>
                   <DialogTitle className="text-xl font-bold text-slate-900">
-                    Dọn dẹp Ảnh Rác trên Bộ nhớ Cloud
+                    {t('Dọn dẹp Ảnh Rác trên Bộ nhớ Cloud')}
                   </DialogTitle>
                   <DialogDescription className="text-slate-500 text-sm mt-0.5">
-                    Quét và thu hồi dung lượng từ những ảnh không còn liên kết
+                    {t('Quét và thu hồi dung lượng từ những ảnh không còn liên kết')}
                   </DialogDescription>
                 </div>
               </div>
@@ -125,11 +127,10 @@ export function StorageCleanupModal({
                 <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-emerald-800">
-                    Bảo vệ Dữ liệu Tuyệt đối
+                    {t('Bảo vệ Dữ liệu Tuyệt đối')}
                   </p>
                   <p className="text-emerald-700/90 text-xs mt-1 leading-relaxed">
-                    Hệ thống sẽ đối soát với toàn bộ dữ liệu bài giảng, đề thi, bài tập và người dùng. Chỉ
-                    xóa những ảnh <strong>hoàn toàn không được sử dụng ở bất kỳ đâu</strong> và đã qua thời gian bảo vệ.
+                    {t('Hệ thống sẽ đối soát với toàn bộ dữ liệu bài giảng, đề thi, bài tập và người dùng. Chỉ xóa những ảnh không được sử dụng ở bất kỳ đâu và đã qua thời gian bảo vệ.')}
                   </p>
                 </div>
               </div>
@@ -141,7 +142,7 @@ export function StorageCleanupModal({
                   className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
                 >
                   <Clock className="w-4 h-4 text-slate-400" />
-                  Thời gian bảo vệ ảnh đang soạn:
+                  {t('Thời gian bảo vệ ảnh đang soạn:')}
                 </Label>
                 <div className="flex items-center gap-3">
                   <Input
@@ -156,7 +157,7 @@ export function StorageCleanupModal({
                     className="w-28 border-slate-200 focus-visible:ring-blue-500"
                   />
                   <span className="text-sm text-slate-500">
-                    giờ (Giữ an toàn các ảnh mới tải lên dưới {gracePeriodHours} giờ)
+                    {t('giờ (Giữ an toàn các ảnh mới tải lên dưới {hours} giờ)', { hours: gracePeriodHours })}
                   </span>
                 </div>
               </div>
@@ -169,10 +170,10 @@ export function StorageCleanupModal({
                     className="text-sm font-semibold text-slate-800 cursor-pointer flex items-center gap-1.5"
                   >
                     <Eye className="w-4 h-4 text-slate-500" />
-                    Chế độ quét thử nghiệm
+                    {t('Chế độ quét thử nghiệm')}
                   </Label>
                   <p className="text-xs text-slate-500">
-                    Chỉ đếm và báo cáo số file rác phát hiện, không thực hiện xóa thật
+                    {t('Chỉ đếm và báo cáo số file rác phát hiện, không thực hiện xóa thật')}
                   </p>
                 </div>
                 <Switch
@@ -190,7 +191,7 @@ export function StorageCleanupModal({
                 onClick={handleClose}
                 className="border-slate-200 text-slate-600 hover:bg-slate-100"
               >
-                Hủy
+                {t('Hủy')}
               </Button>
               <Button
                 onClick={handleStartCleanup}
@@ -203,12 +204,12 @@ export function StorageCleanupModal({
                 {dryRun ? (
                   <>
                     <Eye className="w-4 h-4 mr-1.5" />
-                    Bắt đầu Quét thử
+                    {t('Bắt đầu Quét thử')}
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4 mr-1.5" />
-                    Bắt đầu Dọn dẹp
+                    {t('Bắt đầu Dọn dẹp')}
                   </>
                 )}
               </Button>
@@ -226,10 +227,10 @@ export function StorageCleanupModal({
             </div>
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-slate-900">
-                Đang quét và dọn dẹp bộ nhớ ảnh Cloud...
+                {t('Đang quét và dọn dẹp bộ nhớ ảnh Cloud...')}
               </h3>
               <p className="text-sm text-slate-500 max-w-sm">
-                Hệ thống đang kiểm tra danh sách file trên đám mây và đối soát an toàn với cơ sở dữ liệu.
+                {t('Hệ thống đang kiểm tra danh sách file trên đám mây và đối soát an toàn với cơ sở dữ liệu.')}
               </p>
             </div>
           </div>
@@ -250,13 +251,13 @@ export function StorageCleanupModal({
                 <div>
                   <DialogTitle className="text-xl font-bold text-slate-900">
                     {result.dryRun
-                      ? 'Kết quả Quét Thử Nghiệm'
-                      : 'Dọn dẹp Bộ nhớ Hoàn tất'}
+                      ? t('Kết quả Quét Thử Nghiệm')
+                      : t('Dọn dẹp Bộ nhớ Hoàn tất')}
                   </DialogTitle>
                   <DialogDescription className="text-slate-500 text-sm mt-0.5">
                     {result.dryRun
-                      ? `Quét thử nghiệm hoàn tất (lúc ${formatDateTime(result.completedAt)}) - Chưa có ảnh nào bị xóa`
-                      : `Hoàn tất lúc ${formatDateTime(result.completedAt)} - Đã giải phóng thành công các ảnh rác`}
+                      ? t('Quét thử nghiệm hoàn tất (lúc {time}) - Chưa có ảnh nào bị xóa', { time: formatDateTime(result.completedAt) })
+                      : t('Hoàn tất lúc {time} - Đã giải phóng thành công các ảnh rác', { time: formatDateTime(result.completedAt) })}
                   </DialogDescription>
                 </div>
               </div>
@@ -267,31 +268,31 @@ export function StorageCleanupModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                   <span className="text-xs text-slate-500 font-medium">
-                    Tổng file đã quét
+                    {t('Tổng file đã quét')}
                   </span>
                   <p className="text-2xl font-bold text-slate-900">
                     {result.totalFilesScanned.toLocaleString()}
                   </p>
                   <span className="text-[11px] text-slate-400">
-                    trong kho ảnh đại diện và bài tập
+                    {t('trong kho ảnh đại diện và bài tập')}
                   </span>
                 </div>
 
                 <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-100 space-y-1">
                   <span className="text-xs text-amber-700 font-medium">
-                    Ảnh rác phát hiện
+                    {t('Ảnh rác phát hiện')}
                   </span>
                   <p className="text-2xl font-bold text-amber-600">
                     {result.orphanFilesDetected.toLocaleString()}
                   </p>
                   <span className="text-[11px] text-amber-600/80">
-                    đã lưu trên {gracePeriodHours} giờ
+                    {t('đã lưu trên {hours} giờ', { hours: gracePeriodHours })}
                   </span>
                 </div>
 
                 <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100 space-y-1">
                   <span className="text-xs text-emerald-700 font-medium">
-                    {result.dryRun ? 'Sẽ được xóa (Dự kiến)' : 'Đã xóa thành công'}
+                    {result.dryRun ? t('Sẽ được xóa (Dự kiến)') : t('Đã xóa thành công')}
                   </span>
                   <p className="text-2xl font-bold text-emerald-600">
                     {result.dryRun
@@ -299,20 +300,20 @@ export function StorageCleanupModal({
                       : result.filesDeletedSuccessfully.toLocaleString()}
                   </p>
                   <span className="text-[11px] text-emerald-600/80">
-                    ảnh trên kho lưu trữ đám mây
+                    {t('ảnh trên kho lưu trữ đám mây')}
                   </span>
                 </div>
 
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                   <span className="text-xs text-slate-500 font-medium">
-                    Thời gian xử lý
+                    {t('Thời gian xử lý')}
                   </span>
                   <p className="text-2xl font-bold text-slate-900 flex items-center gap-1.5">
                     {(result.executionTimeMs / 1000).toFixed(2)}
-                    <span className="text-sm font-normal text-slate-500">giây</span>
+                    <span className="text-sm font-normal text-slate-500">{t('giây')}</span>
                   </p>
                   <span className="text-[11px] text-slate-400">
-                    tốc độ phản hồi tối ưu
+                    {t('tốc độ phản hồi tối ưu')}
                   </span>
                 </div>
               </div>
@@ -321,7 +322,7 @@ export function StorageCleanupModal({
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-800 text-xs flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>
-                    Tuyệt vời! Không phát hiện bất kỳ ảnh rác nào. Hệ thống lưu trữ Cloud đang ở trạng thái tối ưu.
+                    {t('Tuyệt vời! Không phát hiện bất kỳ ảnh rác nào. Hệ thống lưu trữ Cloud đang ở trạng thái tối ưu.')}
                   </span>
                 </div>
               )}
@@ -332,7 +333,7 @@ export function StorageCleanupModal({
                 onClick={handleClose}
                 className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm font-medium px-6"
               >
-                Đóng
+                {t('Đóng')}
               </Button>
             </DialogFooter>
           </>

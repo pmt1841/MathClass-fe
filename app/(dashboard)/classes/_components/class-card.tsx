@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Users, GraduationCap, ExternalLink, Check, Copy } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export interface Classroom {
   id: number
@@ -21,6 +22,8 @@ interface ClassCardProps {
 }
 
 export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasUnreadChat }: ClassCardProps) {
+  const { t } = useI18n()
+
   return (
     <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
       <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${gradient}`} />
@@ -37,7 +40,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
                 </span>
-                Tin nhắn mới
+                {t('classes.newMessage')}
               </span>
             )}
           </div>
@@ -46,7 +49,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
         <div className="flex items-center justify-between gap-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all">
           <div className="space-y-0.5">
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider leading-none">
-              Mã lớp học
+              {t('classes.classCode')}
             </span>
             <p className="font-mono text-sm font-bold text-slate-800 leading-tight">
               {item.classCode}
@@ -59,7 +62,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
                 : 'bg-white border-slate-200 text-muted-foreground hover:text-slate-800 hover:border-slate-300 active:scale-95'
             }`}
-            title="Sao chép mã lớp"
+            title={t('classes.copyClassCode')}
           >
             {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </button>
@@ -70,7 +73,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Users className="h-4 w-4" />
-            <span className="text-xs font-medium">Sĩ số:</span>
+            <span className="text-xs font-medium">{t('classes.studentCount')}</span>
             <span className="text-xs font-bold text-foreground">
               {item.studentCount ?? 0}
               <span className="text-muted-foreground font-normal">/{item.maxStudents ?? '—'}</span>
@@ -84,7 +87,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
                   : 'bg-emerald-50 text-emerald-600'
               }`}
             >
-              {(item.studentCount ?? 0) >= (item.maxStudents ?? Infinity) ? 'Đầy lớp' : 'Còn chỗ'}
+              {(item.studentCount ?? 0) >= (item.maxStudents ?? Infinity) ? t('classes.fullClass') : t('classes.hasSpace')}
             </span>
           </div>
         </div>
@@ -99,7 +102,7 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
             href={userRole === 'STUDENT' ? `/classes/${item.classCode}/student` : `/classes/${item.classCode}`}
             className="flex items-center gap-1 rounded-xl bg-slate-100/80 hover:bg-primary hover:text-primary-foreground px-3.5 py-2 text-xs font-bold text-foreground transition-all duration-200 group/btn"
           >
-            Vào lớp
+            {t('classes.enterClass')}
             <ExternalLink className="h-3 w-3 opacity-60 group-hover/btn:opacity-100 transition-opacity" />
           </Link>
         </div>
@@ -107,3 +110,4 @@ export function ClassCard({ item, gradient, userRole, isCopied, onCopyCode, hasU
     </div>
   )
 }
+

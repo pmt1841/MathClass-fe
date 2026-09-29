@@ -10,6 +10,7 @@ import { setAuth } from '@/lib/redux/features/authSlice'
 import { useQueryClient } from '@tanstack/react-query'
 import { authStorage } from '@/lib/auth-storage'
 import { logoutSession } from '@/lib/logout'
+import { setLocaleCookie } from '@/lib/constants/i18n'
 
 export interface TwoFactorState {
   is2faRequired: boolean
@@ -60,6 +61,11 @@ export function useLogin() {
         document.cookie = `mathclass_remember=true; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`
       } else {
         document.cookie = `mathclass_remember=; path=/; max-age=0; SameSite=Lax`
+      }
+
+      // Đồng bộ ngôn ngữ ưa thích của người dùng từ CSDL vào cookie NEXT_LOCALE
+      if (data.language) {
+        setLocaleCookie(data.language)
       }
     }
 

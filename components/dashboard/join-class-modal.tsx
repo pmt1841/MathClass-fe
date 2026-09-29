@@ -5,6 +5,7 @@ import { X, Key, Loader2 } from 'lucide-react'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { joinRequestService, JoinRequestResponse } from '@/services/joinRequestService'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface JoinClassModalProps {
   open: boolean
@@ -13,6 +14,7 @@ interface JoinClassModalProps {
 }
 
 export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps) {
+  const { t } = useI18n()
   const [error, setError] = useState('')
 
   const formik = useFormik({
@@ -70,8 +72,8 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
               <Key className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Xin vào lớp</h2>
-              <p className="text-xs text-muted-foreground">Nhập mã lớp để tham gia</p>
+              <h2 className="text-lg font-bold text-foreground">{t('Xin vào lớp')}</h2>
+              <p className="text-xs text-muted-foreground">{t('Nhập mã lớp để tham gia')}</p>
             </div>
           </div>
           <button
@@ -93,7 +95,7 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
           {/* Class code */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
-              Mã lớp học <span className="text-destructive">*</span>
+              {t('Mã lớp học')} <span className="text-destructive">*</span>
             </label>
             <div className="relative">
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -101,7 +103,7 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
                 id="class-code"
                 name="classCode"
                 type="text"
-                placeholder="VD: 8A4D9B2C"
+                placeholder={t('VD: 8A4D9B2C')}
                 value={formik.values.classCode}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -124,7 +126,7 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
               onClick={handleClose}
               className="flex-1 rounded-lg border-2 border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
             >
-              Hủy
+              {t('Hủy')}
             </button>
             <button
               id="submit-join-class"
@@ -135,10 +137,10 @@ export function JoinClassModal({ open, onClose, onSuccess }: JoinClassModalProps
               {formik.isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang gửi...
+                  {t('Đang gửi...')}
                 </>
               ) : (
-                'Tham gia'
+                t('Tham gia')
               )}
             </button>
           </div>

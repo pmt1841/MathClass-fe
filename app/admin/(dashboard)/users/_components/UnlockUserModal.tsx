@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Unlock } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export const UNLOCK_REASON_PRESETS = [
   'NONE',
@@ -41,6 +42,7 @@ export function UnlockUserModal({
   userEmail,
   isPending = false,
 }: UnlockUserModalProps) {
+  const { t } = useI18n()
   const [selectedPreset, setSelectedPreset] = useState<string>(UNLOCK_REASON_PRESETS[0])
   const [customReason, setCustomReason] = useState<string>('')
   const [error, setError] = useState<string>('')
@@ -72,7 +74,7 @@ export function UnlockUserModal({
     }
 
     if (finalReason && finalReason.length > 500) {
-      setError('Lý do không được vượt quá 500 ký tự.')
+      setError(t('Lý do không được vượt quá 500 ký tự.'))
       return
     }
 
@@ -86,16 +88,16 @@ export function UnlockUserModal({
         <DialogHeader>
           <div className="flex items-center gap-2 text-emerald-600">
             <CheckCircle2 className="h-5 w-5" />
-            <DialogTitle>Xác nhận Mở Khóa Tài Khoản</DialogTitle>
+            <DialogTitle>{t('Xác nhận Mở Khóa Tài Khoản')}</DialogTitle>
           </div>
           <DialogDescription className="pt-2 text-slate-600">
-            Bạn đang mở khóa lại tài khoản của <strong>{userFullName}</strong> ({userEmail}). Người dùng sẽ có thể truy cập lại hệ thống và nhận email thông báo.
+            {t('Bạn đang mở khóa lại tài khoản của')} <strong>{userFullName}</strong> ({userEmail}). {t('Người dùng sẽ có thể truy cập lại hệ thống và nhận email thông báo.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-3">
           <Label className="text-sm font-medium text-slate-800">
-            Lý do / Ghi chú mở khóa <span className="text-xs text-slate-400 font-normal">(Tùy chọn)</span>
+            {t('Lý do / Ghi chú mở khóa')} <span className="text-xs text-slate-400 font-normal">({t('Tùy chọn')})</span>
           </Label>
 
           <RadioGroup value={selectedPreset} onValueChange={handlePresetChange} className="space-y-2">
@@ -104,20 +106,19 @@ export function UnlockUserModal({
                 <RadioGroupItem value={preset} id={`unlock-reason-${index}`} />
                 <Label htmlFor={`unlock-reason-${index}`} className="text-sm font-normal text-slate-700 cursor-pointer">
                   {preset === 'NONE'
-                    ? 'Không đính kèm lý do (Gửi email thông báo khôi phục cơ bản)'
+                    ? t('Không đính kèm lý do (Gửi email thông báo khôi phục cơ bản)')
                     : preset === 'OTHER'
-                    ? 'Khác (Tự nhập lý do / Ghi chú)'
-                    : preset}
+                    ? t('Khác (Tự nhập lý do / Ghi chú)')
+                    : t(preset)}
                 </Label>
               </div>
             ))}
           </RadioGroup>
 
-
           {selectedPreset === 'OTHER' && (
             <div className="space-y-1 pt-1">
               <Textarea
-                placeholder="Nhập ghi chú hoặc lý do mở tài khoản..."
+                placeholder={t('Nhập ghi chú hoặc lý do mở tài khoản...')}
                 value={customReason}
                 onChange={(e) => {
                   setCustomReason(e.target.value)
@@ -126,7 +127,7 @@ export function UnlockUserModal({
                 className="min-h-[90px] text-sm"
                 maxLength={500}
               />
-              <p className="text-xs text-slate-400 text-right">{customReason.length}/500 ký tự</p>
+              <p className="text-xs text-slate-400 text-right">{customReason.length}/500 {t('ký tự')}</p>
             </div>
           )}
 
@@ -135,11 +136,11 @@ export function UnlockUserModal({
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Hủy bỏ
+            {t('Hủy bỏ')}
           </Button>
           <Button onClick={handleConfirm} disabled={isPending} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
             <Unlock className="h-4 w-4" />
-            {isPending ? 'Đang xử lý...' : 'Xác nhận Mở khóa'}
+            {isPending ? t('Đang xử lý...') : t('Xác nhận Mở khóa')}
           </Button>
         </DialogFooter>
       </DialogContent>

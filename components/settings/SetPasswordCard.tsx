@@ -20,8 +20,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function SetPasswordCard() {
+  const { t } = useI18n()
   const { toast } = useToast()
   const { logout, user } = useAuth()
   const queryClient = useQueryClient()
@@ -56,8 +58,8 @@ export function SetPasswordCard() {
     mutationFn: () => profileService.sendSetPasswordOtp(),
     onSuccess: (data) => {
       toast({
-        title: 'Mã OTP đã được gửi',
-        description: data.message || 'Vui lòng kiểm tra hộp thư Gmail của bạn (kể cả thư mục Spam).',
+        title: t('Mã OTP đã được gửi'),
+        description: data.message || t('Vui lòng kiểm tra hộp thư Gmail của bạn (kể cả thư mục Spam).'),
       })
       setCooldown(60)
     },
@@ -65,9 +67,9 @@ export function SetPasswordCard() {
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.result ||
-        'Không thể gửi mã OTP. Vui lòng thử lại sau.'
+        t('Không thể gửi mã OTP. Vui lòng thử lại sau.')
       toast({
-        title: 'Lỗi gửi OTP',
+        title: t('Lỗi gửi OTP'),
         description: errorMessage,
         variant: 'destructive'
       })
@@ -79,8 +81,8 @@ export function SetPasswordCard() {
     mutationFn: (data: SetPasswordRequest) => profileService.setPassword(data),
     onSuccess: async () => {
       toast({
-        title: 'Thiết lập thành công',
-        description: 'Đã tạo mật khẩu đăng nhập thành công. Đang đăng xuất...',
+        title: t('Thiết lập thành công'),
+        description: t('Đã tạo mật khẩu đăng nhập thành công. Đang đăng xuất...'),
       })
       queryClient.invalidateQueries({ queryKey: ['profile'] })
       setFormData({ otpCode: '', newPassword: '', confirmPassword: '' })
@@ -92,7 +94,7 @@ export function SetPasswordCard() {
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.result ||
-        'Có lỗi xảy ra khi thiết lập mật khẩu. Vui lòng thử lại.'
+        t('Có lỗi xảy ra khi thiết lập mật khẩu. Vui lòng thử lại.')
 
       const lowerMsg = errorMessage.toLowerCase()
       if (
@@ -105,7 +107,7 @@ export function SetPasswordCard() {
         setWarningModalOpen(true)
       } else {
         toast({
-          title: 'Thất bại',
+          title: t('Thất bại'),
           description: errorMessage,
           variant: 'destructive'
         })
@@ -123,28 +125,28 @@ export function SetPasswordCard() {
     e.preventDefault()
 
     if (!formData.otpCode || formData.otpCode.trim().length !== 6) {
-      setValidationError('Vui lòng nhập mã xác thực OTP 6 chữ số.')
+      setValidationError(t('Vui lòng nhập mã xác thực OTP 6 chữ số.'))
       return
     }
 
     if (!formData.newPassword) {
-      setValidationError('Vui lòng nhập mật khẩu mới.')
+      setValidationError(t('Vui lòng nhập mật khẩu mới.'))
       return
     }
 
     const strength = evaluatePassword(formData.newPassword)
     if (!strength.isValid) {
-      setValidationError(PASSWORD_CRITERIA_MESSAGE)
+      setValidationError(t(PASSWORD_CRITERIA_MESSAGE))
       return
     }
 
     if (formData.newPassword.length > 24) {
-      setValidationError('Mật khẩu mới không được vượt quá 24 ký tự.')
+      setValidationError(t('Mật khẩu mới không được vượt quá 24 ký tự.'))
       return
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setValidationError('Mật khẩu xác nhận không trùng khớp với mật khẩu mới.')
+      setValidationError(t('Mật khẩu xác nhận không trùng khớp với mật khẩu mới.'))
       return
     }
 
@@ -160,10 +162,10 @@ export function SetPasswordCard() {
         <CardHeader className="pb-4">
           <CardTitle className="text-xl flex items-center gap-2 text-slate-800">
             <KeyRound className="w-5 h-5 text-indigo-600" />
-            Thiết lập mật khẩu đăng nhập
+            {t('Thiết lập mật khẩu đăng nhập')}
           </CardTitle>
           <CardDescription className="text-slate-500">
-            Tài khoản của bạn được liên kết qua Google. Thiết lập mật khẩu riêng để có thể đăng nhập trực tiếp bằng Email & Mật khẩu.
+            {t('Tài khoản của bạn được liên kết qua Google. Thiết lập mật khẩu riêng để có thể đăng nhập trực tiếp bằng Email & Mật khẩu.')}
           </CardDescription>
         </CardHeader>
 
@@ -176,8 +178,8 @@ export function SetPasswordCard() {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div className="space-y-0.5 text-sm">
-                  <p className="font-semibold text-slate-900">Xác thực Email ({user?.email})</p>
-                  <p className="text-slate-500 text-xs">Bấm nút để nhận mã OTP 6 số bảo mật trước khi đặt mật khẩu.</p>
+                  <p className="font-semibold text-slate-900">{t('Xác thực Email ({email})', { email: user?.email })}</p>
+                  <p className="text-slate-500 text-xs">{t('Bấm nút để nhận mã OTP 6 số bảo mật trước khi đặt mật khẩu.')}</p>
                 </div>
               </div>
               <Button
@@ -191,14 +193,14 @@ export function SetPasswordCard() {
                 {sendOtpMutation.isPending ? (
                   <span className="flex items-center gap-1.5">
                     <span className="w-3.5 h-3.5 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
-                    Đang gửi...
+                    {t('Đang gửi...')}
                   </span>
                 ) : cooldown > 0 ? (
-                  `Gửi lại sau (${cooldown}s)`
+                  t('Gửi lại sau ({cooldown}s)', { cooldown })
                 ) : (
                   <span className="flex items-center gap-1.5">
                     <Send className="w-3.5 h-3.5" />
-                    Gửi mã OTP
+                    {t('Gửi mã OTP')}
                   </span>
                 )}
               </Button>
@@ -214,14 +216,14 @@ export function SetPasswordCard() {
             {/* Mã OTP */}
             <div className="space-y-2">
               <Label htmlFor="otpCode" className="font-medium text-slate-700">
-                Mã xác thực OTP (6 số) <span className="text-red-500">*</span>
+                {t('Mã xác thực OTP (6 số)')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="otpCode"
                 name="otpCode"
                 type="text"
                 maxLength={6}
-                placeholder="Nhập 6 số OTP gửi về Gmail"
+                placeholder={t('Nhập 6 số OTP gửi về Gmail')}
                 value={formData.otpCode}
                 onChange={handleChange}
                 disabled={isPending}
@@ -232,14 +234,14 @@ export function SetPasswordCard() {
             {/* Mật khẩu mới */}
             <div className="space-y-2">
               <Label htmlFor="newPassword" className="font-medium text-slate-700">
-                Mật khẩu mới <span className="text-red-500">*</span>
+                {t('Mật khẩu mới')} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   id="newPassword"
                   name="newPassword"
                   type={showNew ? 'text' : 'password'}
-                  placeholder="Tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt)"
+                  placeholder={t('Tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt)')}
                   value={formData.newPassword}
                   onChange={handleChange}
                   disabled={isPending}
@@ -260,14 +262,14 @@ export function SetPasswordCard() {
             {/* Xác nhận mật khẩu mới */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="font-medium text-slate-700">
-                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+                {t('Xác nhận mật khẩu mới')} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Nhập lại mật khẩu mới"
+                  placeholder={t('Nhập lại mật khẩu mới')}
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   disabled={isPending}
@@ -294,12 +296,12 @@ export function SetPasswordCard() {
               {setPasswordMutation.isPending ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  Đang thiết lập...
+                  {t('Đang thiết lập...')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  Xác nhận & Lưu mật khẩu
+                  {t('Xác nhận & Lưu mật khẩu')}
                 </span>
               )}
             </Button>
@@ -316,10 +318,10 @@ export function SetPasswordCard() {
 
           <DialogHeader className="text-center sm:text-center space-y-2">
             <DialogTitle className="text-xl font-bold text-slate-900 text-center">
-              Mật khẩu bị trùng lặp
+              {t('Mật khẩu bị trùng lặp')}
             </DialogTitle>
             <DialogDescription className="text-slate-600 text-sm text-center leading-relaxed">
-              {warningMessage || 'Mật khẩu mới không được trùng với 3 mật khẩu đã từng sử dụng gần đây.'}
+              {warningMessage || t('Mật khẩu mới không được trùng với 3 mật khẩu đã từng sử dụng gần đây.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -329,7 +331,7 @@ export function SetPasswordCard() {
               onClick={() => setWarningModalOpen(false)}
               className="w-full sm:w-auto min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-sm"
             >
-              Đã hiểu
+              {t('Đã hiểu')}
             </Button>
           </DialogFooter>
         </DialogContent>

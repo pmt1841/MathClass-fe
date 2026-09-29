@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/table'
 import { AlertTriangle, Eye, Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface DateFilterInputProps {
   label: string
@@ -39,6 +40,7 @@ interface DateFilterInputProps {
 }
 
 function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
 
   // Parse dd-MM-yyyy string to Date
@@ -95,7 +97,7 @@ function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
             <button
               type="button"
               className="absolute right-2 text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
-              title="Chọn ngày từ lịch"
+              title={t('Chọn ngày từ lịch')}
             >
               <CalendarIcon className="h-4 w-4" />
             </button>
@@ -113,34 +115,34 @@ function DateFilterInput({ label, value, onChange }: DateFilterInputProps) {
     </div>
   )
 }
-
-const ERROR_TYPE_LABELS: Record<string, string> = {
-  LOGIN_ACCOUNT: '1. Lỗi đăng nhập/tài khoản',
-  UI_KATEX: '2. Lỗi giao diện/KaTeX',
-  SUBMISSION_PROBLEM: '3. Lỗi nộp bài/tải đề',
-  PERFORMANCE: '4. Lỗi tốc độ/phản hồi',
-  AI_ASSISTANT: '5. Lỗi trợ lý AI',
-  CREDIT_TRANSACTION: '6. Lỗi giao dịch Credit',
-  PAYMENT_REFUND: '7. Sự cố hoàn tiền nạp xu',
-  OTHER: '8. Khác',
-}
-
-const STATUS_BADGES: Record<
-  BugReportStatus,
-  { label: string; className: string }
-> = {
-  PENDING: { label: 'Chờ xử lý', className: 'bg-amber-50 text-amber-700 border-amber-300 font-semibold' },
-  IN_PROGRESS: { label: 'Đang xử lý', className: 'bg-blue-50 text-blue-700 border-blue-300 font-semibold' },
-  RESOLVED: { label: 'Đã giải quyết', className: 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold' },
-}
-
 export function BugReportsListClient() {
+  const { t } = useI18n()
   const [errorTypeFilter, setErrorTypeFilter] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
+
+  const errorTypeLabels: Record<string, string> = {
+    LOGIN_ACCOUNT: t('1. Lỗi đăng nhập/tài khoản'),
+    UI_KATEX: t('2. Lỗi giao diện/KaTeX'),
+    SUBMISSION_PROBLEM: t('3. Lỗi nộp bài/tải đề'),
+    PERFORMANCE: t('4. Lỗi tốc độ/phản hồi'),
+    AI_ASSISTANT: t('5. Lỗi trợ lý AI'),
+    CREDIT_TRANSACTION: t('6. Lỗi giao dịch Credit'),
+    PAYMENT_REFUND: t('7. Sự cố hoàn tiền nạp xu'),
+    OTHER: t('8. Khác'),
+  }
+
+  const statusBadges: Record<
+    BugReportStatus,
+    { label: string; className: string }
+  > = {
+    PENDING: { label: t('Chờ xử lý'), className: 'bg-amber-50 text-amber-700 border-amber-300 font-semibold' },
+    IN_PROGRESS: { label: t('Đang xử lý'), className: 'bg-blue-50 text-blue-700 border-blue-300 font-semibold' },
+    RESOLVED: { label: t('Đã giải quyết'), className: 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold' },
+  }
 
   const [selectedReport, setSelectedReport] = useState<BugReportResponse | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -201,11 +203,11 @@ export function BugReportsListClient() {
                 <AlertTriangle className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Quản lý Báo cáo lỗi
+                {t('Quản lý Báo cáo lỗi')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Danh sách các sự cố do người dùng phản hồi. Theo dõi và cập nhật trạng thái xử lý kịp thời.
+              {t('Danh sách các sự cố do người dùng phản hồi. Theo dõi và cập nhật trạng thái xử lý kịp thời.')}
             </p>
           </div>
 
@@ -232,17 +234,17 @@ export function BugReportsListClient() {
                 }}
               >
                 <SelectTrigger id="bug-report-error-type-filter" className="h-10 w-[210px] bg-white rounded-xl border border-border text-xs font-semibold">
-                  <SelectValue placeholder="Loại sự cố" />
+                  <SelectValue placeholder={t('Loại sự cố')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả loại sự cố</SelectItem>
-                  <SelectItem value="LOGIN_ACCOUNT">1. Lỗi đăng nhập/tài khoản</SelectItem>
-                  <SelectItem value="UI_KATEX">2. Lỗi giao diện/KaTeX</SelectItem>
-                  <SelectItem value="SUBMISSION_PROBLEM">3. Lỗi nộp bài/tải đề</SelectItem>
-                  <SelectItem value="PERFORMANCE">4. Lỗi tốc độ/phản hồi</SelectItem>
-                  <SelectItem value="AI_ASSISTANT">5. Lỗi trợ lý AI</SelectItem>
-                  <SelectItem value="CREDIT_TRANSACTION">6. Lỗi giao dịch Credit</SelectItem>
-                  <SelectItem value="OTHER">7. Khác</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả loại sự cố')}</SelectItem>
+                  <SelectItem value="LOGIN_ACCOUNT">{t('1. Lỗi đăng nhập/tài khoản')}</SelectItem>
+                  <SelectItem value="UI_KATEX">{t('2. Lỗi giao diện/KaTeX')}</SelectItem>
+                  <SelectItem value="SUBMISSION_PROBLEM">{t('3. Lỗi nộp bài/tải đề')}</SelectItem>
+                  <SelectItem value="PERFORMANCE">{t('4. Lỗi tốc độ/phản hồi')}</SelectItem>
+                  <SelectItem value="AI_ASSISTANT">{t('5. Lỗi trợ lý AI')}</SelectItem>
+                  <SelectItem value="CREDIT_TRANSACTION">{t('6. Lỗi giao dịch Credit')}</SelectItem>
+                  <SelectItem value="OTHER">{t('7. Khác')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -255,19 +257,19 @@ export function BugReportsListClient() {
                 }}
               >
                 <SelectTrigger id="bug-report-status-filter" className="h-10 w-[180px] bg-white rounded-xl border border-border text-xs font-semibold">
-                  <SelectValue placeholder="Trạng thái" />
+                  <SelectValue placeholder={t('Trạng thái')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="PENDING">Chờ xử lý (PENDING)</SelectItem>
-                  <SelectItem value="IN_PROGRESS">Đang xử lý (IN_PROGRESS)</SelectItem>
-                  <SelectItem value="RESOLVED">Đã giải quyết (RESOLVED)</SelectItem>
+                  <SelectItem value="ALL">{t('Tất cả trạng thái')}</SelectItem>
+                  <SelectItem value="PENDING">{t('Chờ xử lý')}</SelectItem>
+                  <SelectItem value="IN_PROGRESS">{t('Đang xử lý')}</SelectItem>
+                  <SelectItem value="RESOLVED">{t('Đã giải quyết')}</SelectItem>
                 </SelectContent>
               </Select>
 
               {/* 3. Lọc theo Thời gian (dd-mm-yyyy) */}
               <DateFilterInput
-                label="Từ"
+                label={t('Từ')}
                 value={startDate}
                 onChange={(val) => {
                   setStartDate(val)
@@ -276,7 +278,7 @@ export function BugReportsListClient() {
               />
 
               <DateFilterInput
-                label="Đến"
+                label={t('Đến')}
                 value={endDate}
                 onChange={(val) => {
                   setEndDate(val)
@@ -297,7 +299,7 @@ export function BugReportsListClient() {
                 }}
                 className="h-10 rounded-xl text-xs border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-xs font-medium"
               >
-                Xóa bộ lọc
+                {t('Xóa bộ lọc')}
               </Button>
             </div>
           </div>
@@ -307,12 +309,12 @@ export function BugReportsListClient() {
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow>
-                  <TableHead className="w-[70px] font-bold text-foreground text-center">STT</TableHead>
-                  <TableHead className="font-bold text-foreground">Người gửi</TableHead>
-                  <TableHead className="font-bold text-foreground">Loại lỗi sự cố</TableHead>
-                  <TableHead className="font-bold text-foreground">Thời gian gửi</TableHead>
-                  <TableHead className="font-bold text-foreground text-center">Trạng thái</TableHead>
-                  <TableHead className="w-[110px] font-bold text-foreground text-center">Thao tác</TableHead>
+                  <TableHead className="w-[70px] font-bold text-foreground text-center">{t('STT')}</TableHead>
+                  <TableHead className="font-bold text-foreground">{t('Người gửi')}</TableHead>
+                  <TableHead className="font-bold text-foreground">{t('Loại lỗi sự cố')}</TableHead>
+                  <TableHead className="font-bold text-foreground">{t('Thời gian gửi')}</TableHead>
+                  <TableHead className="font-bold text-foreground text-center">{t('Trạng thái')}</TableHead>
+                  <TableHead className="w-[110px] font-bold text-foreground text-center">{t('Thao tác')}</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -322,14 +324,14 @@ export function BugReportsListClient() {
                     <TableCell colSpan={6} className="h-36 text-center">
                       <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-sm font-medium">Đang tải dữ liệu báo cáo...</span>
+                        <span className="text-sm font-medium">{t('Đang tải dữ liệu...')}</span>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : reports.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-36 text-center text-muted-foreground">
-                      Chưa có báo cáo sự cố nào phù hợp.
+                      {t('Chưa có báo cáo sự cố nào.')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -350,7 +352,7 @@ export function BugReportsListClient() {
 
                         <TableCell>
                           <span className="text-xs font-semibold text-foreground bg-muted px-2.5 py-1 rounded-md border border-border">
-                            {ERROR_TYPE_LABELS[item.errorType] || item.errorType}
+                            {errorTypeLabels[item.errorType] || item.errorType}
                           </span>
                         </TableCell>
 
@@ -359,8 +361,8 @@ export function BugReportsListClient() {
                         </TableCell>
 
                         <TableCell className="text-center">
-                          <Badge className={STATUS_BADGES[item.status]?.className || ''}>
-                            {STATUS_BADGES[item.status]?.label || item.status}
+                          <Badge className={statusBadges[item.status]?.className || ''}>
+                            {statusBadges[item.status]?.label || item.status}
                           </Badge>
                         </TableCell>
 
@@ -371,7 +373,7 @@ export function BugReportsListClient() {
                             onClick={() => handleOpenDetail(item)}
                             className="gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
                           >
-                            <Eye className="h-4 w-4" /> Chi tiết
+                            <Eye className="h-4 w-4" /> {t('Chi tiết')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -386,11 +388,11 @@ export function BugReportsListClient() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border bg-slate-50/60">
                 <div className="flex items-center gap-4">
                   <div className="text-xs text-muted-foreground font-medium">
-                    Hiển thị Trang <span className="font-bold text-foreground">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-bold text-foreground">{totalElements}</span> báo cáo)
+                    {t('Hiển thị')} <span className="font-bold text-foreground">{page + 1}</span> / {Math.max(1, totalPages)} ({t('Tổng số')} <span className="font-bold text-foreground">{totalElements}</span> {t('báo cáo')})
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Số dòng/trang:</span>
+                    <span>{t('Số dòng/trang:')}</span>
                     <Select
                       value={String(pageSize)}
                       onValueChange={(val) => {
@@ -418,7 +420,7 @@ export function BugReportsListClient() {
                     disabled={page === 0}
                     className="gap-1 text-xs bg-white rounded-xl"
                   >
-                    <ChevronLeft className="h-4 w-4" /> Trang trước
+                    <ChevronLeft className="h-4 w-4" /> {t('Trang trước')}
                   </Button>
                   <Button
                     variant="outline"
@@ -427,7 +429,7 @@ export function BugReportsListClient() {
                     disabled={page >= totalPages - 1 || totalPages <= 1}
                     className="gap-1 text-xs bg-white rounded-xl"
                   >
-                    Trang sau <ChevronRight className="h-4 w-4" />
+                    {t('Trang sau')} <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -449,3 +451,4 @@ export function BugReportsListClient() {
     </div>
   )
 }
+

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { assignmentService } from '@/services/assignmentService'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface EditSheetModalProps {
   open: boolean
@@ -31,6 +32,7 @@ export function EditSheetModal({
   onClose,
   onSuccess,
 }: EditSheetModalProps) {
+  const { t } = useI18n()
   const [title, setTitle] = useState(initialTitle)
   const [description, setDescription] = useState(initialDescription)
   const [scoresMap, setScoresMap] = useState<{ [id: number]: string }>({})
@@ -79,17 +81,17 @@ export function EditSheetModal({
     e.preventDefault()
     if (!sheetId) return
     if (!title.trim()) {
-      toast.error('Tiêu đề phiếu bài tập không được để trống')
+      toast.error(t('Tiêu đề phiếu bài tập không được để trống'))
       return
     }
 
     if (hasNegativeScore) {
-      toast.error('Điểm tối đa từng câu không được là số âm')
+      toast.error(t('Điểm tối đa từng câu không được là số âm'))
       return
     }
 
     if (currentTotalScore > 10.0001) {
-      toast.error(`Tổng điểm các câu (${currentTotalScore.toFixed(1)} điểm) không được vượt quá 10 điểm`)
+      toast.error(`${t("Tổng điểm các câu")} (${currentTotalScore.toFixed(1)} ${t("điểm")}) ${t("không được vượt quá 10 điểm")}`)
       return
     }
 
@@ -105,11 +107,11 @@ export function EditSheetModal({
         description: description.trim(),
         itemScores,
       })
-      toast.success('Cập nhật phiếu bài tập thành công')
+      toast.success(t('Cập nhật phiếu bài tập thành công'))
       onSuccess()
       onClose()
     } catch (error: any) {
-      toast.error(handleApiError(error, 'Cập nhật phiếu bài tập thất bại'))
+      toast.error(handleApiError(error, t('Cập nhật phiếu bài tập thất bại')))
     } finally {
       setIsSubmitting(false)
     }
@@ -127,9 +129,9 @@ export function EditSheetModal({
               <Edit className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-slate-800">Chỉnh sửa phiếu bài tập</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-slate-800">{t("Chỉnh sửa phiếu bài tập")}</DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Cập nhật tiêu đề đề mục, mô tả và điểm tối đa của phiếu bài tập
+                {t("Cập nhật tiêu đề đề mục, mô tả và điểm tối đa của phiếu bài tập")}
               </DialogDescription>
             </div>
           </div>
@@ -138,13 +140,13 @@ export function EditSheetModal({
         <form onSubmit={handleSubmit} className="space-y-4 my-2">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Tiêu đề phiếu bài tập <span className="text-red-500">*</span>
+              {t("Tiêu đề phiếu bài tập")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nhập tiêu đề phiếu bài tập..."
+              placeholder={t("Nhập tiêu đề phiếu bài tập...")}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               required
             />
@@ -152,12 +154,12 @@ export function EditSheetModal({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Mô tả phiếu bài tập
+              {t("Mô tả phiếu bài tập")}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Nhập mô tả ngắn cho phiếu bài tập..."
+              placeholder={t("Nhập mô tả ngắn cho phiếu bài tập...")}
               rows={2}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
             />
@@ -167,11 +169,11 @@ export function EditSheetModal({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-slate-700">
-                  Điểm tối đa từng câu
+                  {t("Điểm tối đa từng câu")}
                 </label>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold ${hasNegativeScore || currentTotalScore > 10 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    Tổng điểm: {currentTotalScore.toFixed(1)} / 10
+                    {t("Tổng điểm:")} {currentTotalScore.toFixed(1)} / 10
                   </span>
                   <button
                     type="button"
@@ -202,7 +204,7 @@ export function EditSheetModal({
                         }}
                         className="w-16 h-7 px-2 text-center rounded border border-slate-200 text-xs font-semibold focus:outline-none focus:border-primary"
                       />
-                      <span className="text-slate-400 font-medium">điểm</span>
+                      <span className="text-slate-400 font-medium">{t("điểm")}</span>
                     </div>
                   </div>
                 ))}
@@ -227,10 +229,10 @@ export function EditSheetModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang lưu...
+                  {t("Đang lưu...")}
                 </>
               ) : (
-                'Lưu thay đổi'
+                t('Lưu thay đổi')
               )}
             </button>
           </DialogFooter>

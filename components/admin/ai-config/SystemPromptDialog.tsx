@@ -28,6 +28,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { AlertCircle, MessageSquareCode, Zap } from 'lucide-react'
 import { SystemPrompt, systemPromptService } from '@/services/systemPromptService'
 import { PromptPreviewRenderDialog } from '@/components/admin/ai-config/PromptPreviewRenderDialog'
+import { useI18n } from '@/lib/i18n/i18n-context'
 import { useToast } from '@/components/ui/use-toast'
 
 const systemPromptSchema = z.object({
@@ -52,6 +53,7 @@ export function SystemPromptDialog({
   onOpenChange,
   onSuccess,
 }: SystemPromptDialogProps) {
+  const { t } = useI18n()
   const { toast } = useToast()
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -142,8 +144,8 @@ export function SystemPromptDialog({
   const onSubmit = async (values: SystemPromptFormValues) => {
     if (invalidVars.length > 0) {
       toast({
-        title: 'Biến không hợp lệ!',
-        description: `Vui lòng bỏ hoặc khai báo thêm các biến: ${invalidVars.map((v) => `{{${v}}}`).join(', ')}`,
+        title: t('Biến không hợp lệ!'),
+        description: `${t('Vui lòng bỏ hoặc khai báo thêm các biến:')} ${invalidVars.map((v) => `{{${v}}}`).join(', ')}`,
         variant: 'destructive',
       })
       return
@@ -160,15 +162,15 @@ export function SystemPromptDialog({
         changeReason: values.changeReason?.trim(),
       })
       toast({
-        title: 'Cập nhật thành công!',
-        description: 'Cấu hình System Prompt đã được lưu.',
+        title: t('Cập nhật thành công!'),
+        description: t('Cấu hình System Prompt đã được lưu.'),
       })
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
       toast({
-        title: 'Lỗi lưu Prompt',
-        description: err.response?.data?.message || 'Không thể lưu System Prompt',
+        title: t('Lỗi lưu Prompt'),
+        description: err.response?.data?.message || t('Không thể lưu System Prompt'),
         variant: 'destructive',
       })
     } finally {
@@ -185,10 +187,10 @@ export function SystemPromptDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <MessageSquareCode className="h-5 w-5 text-indigo-500 shrink-0" />
-            Chỉnh sửa System Prompt
+            {t('Chỉnh sửa System Prompt')}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Chỉnh sửa câu lệnh điều khiển AI. Mọi thay đổi sẽ được lưu vào lịch sử phiên bản.
+            {t('Chỉnh sửa câu lệnh điều khiển AI. Mọi thay đổi sẽ được lưu vào lịch sử phiên bản.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -200,10 +202,10 @@ export function SystemPromptDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Tên hiển thị <span className="text-red-500">*</span>
+                    {t('Tên hiển thị')} <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Prompt Gợi ý giải toán từng bước" {...field} />
+                    <Input placeholder={t('Prompt Gợi ý giải toán từng bước')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -218,10 +220,10 @@ export function SystemPromptDialog({
                 <FormItem className="space-y-2">
                   <div className="flex items-center justify-between">
                     <FormLabel className="font-semibold">
-                      Nội dung Prompt hiện tại (Current Content) <span className="text-red-500">*</span>
+                      {t('Nội dung Prompt hiện tại (Current Content)')} <span className="text-red-500">*</span>
                     </FormLabel>
                     <span className="text-[11px] text-muted-foreground">
-                      Nhấp vào Chip bên dưới để chèn biến vào vị trí con trỏ
+                      {t('Nhấp vào Chip bên dưới để chèn biến vào vị trí con trỏ')}
                     </span>
                   </div>
 
@@ -229,7 +231,7 @@ export function SystemPromptDialog({
                   {prompt?.allowedVariables && prompt.allowedVariables.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100 dark:bg-slate-900 rounded-md border text-xs">
                       <span className="font-semibold text-[11px] text-muted-foreground mr-1">
-                        Chèn biến:
+                        {t('Chèn biến:')}
                       </span>
                       {prompt.allowedVariables.map((v) => (
                         <Badge
@@ -253,7 +255,7 @@ export function SystemPromptDialog({
                         textareaRef.current = e
                       }}
                       rows={7}
-                      placeholder="Bạn là giáo viên Toán cho học sinh {{grade_level}}..."
+                      placeholder={t('Bạn là giáo viên Toán cho học sinh {{grade_level}}...')}
                       className="font-mono text-xs leading-relaxed"
                     />
                   </FormControl>
@@ -264,8 +266,8 @@ export function SystemPromptDialog({
                     <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-md border border-red-200 text-xs">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span>
-                        Phát hiện biến không hợp lệ: <strong>{invalidVars.map((v) => `{{${v}}}`).join(', ')}</strong>.
-                        Vui lòng xóa hoặc khai báo thêm vào danh sách biến.
+                        {t('Phát hiện biến không hợp lệ:')} <strong>{invalidVars.map((v) => `{{${v}}}`).join(', ')}</strong>.
+                        {' '}{t('Vui lòng xóa hoặc khai báo thêm vào danh sách biến.')}
                       </span>
                     </div>
                   )}
@@ -278,10 +280,10 @@ export function SystemPromptDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mô tả mục đích sử dụng</FormLabel>
+                  <FormLabel>{t('Mô tả mục đích sử dụng')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Ví dụ: Chỉ đưa ra gợi ý hướng giải, tuyệt đối không giải hộ đáp án chi tiết."
+                      placeholder={t('Ví dụ: Chỉ đưa ra gợi ý hướng giải, tuyệt đối không giải hộ đáp án chi tiết.')}
                       {...field}
                     />
                   </FormControl>
@@ -296,11 +298,11 @@ export function SystemPromptDialog({
               render={({ field }) => (
                 <FormItem className="pt-2 border-t">
                   <FormLabel className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    Ghi chú lý do thay đổi (lưu vào History Log)
+                    {t('Ghi chú lý do thay đổi (lưu vào History Log)')}
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Ví dụ: Tối ưu hóa yêu cầu render LaTeX chuẩn KaTeX"
+                      placeholder={t('Ví dụ: Tối ưu hóa yêu cầu render LaTeX chuẩn KaTeX')}
                       className="text-xs"
                       {...field}
                     />
@@ -319,15 +321,15 @@ export function SystemPromptDialog({
                 className="w-full sm:w-auto border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 flex items-center gap-1.5 text-xs"
               >
                 <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                Chạy thử với AI (Playground)
+                {t('Chạy thử với AI (Playground)')}
               </Button>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Hủy
+                  {t('Hủy')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting || invalidVars.length > 0} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                   {isSubmitting ? <Spinner className="mr-2 h-4 w-4" /> : null}
-                  Cập nhật Prompt
+                  {t('Cập nhật Prompt')}
                 </Button>
               </div>
             </DialogFooter>

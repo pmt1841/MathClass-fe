@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { joinRequestService } from '@/services/joinRequestService'
 import { ClassroomDetail } from '@/types'
 import { PermissionGuard } from '@/components/ui/with-permission'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function PendingRequestsTab({
   classCode,
@@ -15,6 +16,7 @@ export function PendingRequestsTab({
   classCode: string
   classroom: ClassroomDetail | null
 }) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -98,9 +100,9 @@ export function PendingRequestsTab({
             <UserPlus className="h-4.5 w-4.5 text-orange-600" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground">Học sinh chờ duyệt</h2>
+            <h2 className="text-sm font-bold text-foreground">{t('Học sinh chờ duyệt')}</h2>
             <p className="text-xs text-muted-foreground">
-              {isLoading ? 'Đang tải...' : `${pendingRequests.length} yêu cầu`}
+              {isLoading ? t('common.loading') : t('{count} yêu cầu', { count: pendingRequests.length })}
             </p>
           </div>
         </div>
@@ -109,7 +111,7 @@ export function PendingRequestsTab({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Tìm kiếm tên, email..."
+            placeholder={t('Tìm kiếm tên, email...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-white text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
@@ -122,9 +124,9 @@ export function PendingRequestsTab({
           <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
             <Check className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground mb-1">Tất cả đã được xử lý</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-1">{t('Tất cả đã được xử lý')}</h3>
           <p className="text-xs text-muted-foreground max-w-sm">
-            Hiện tại không có học sinh nào đang chờ duyệt vào lớp.
+            {t('Hiện tại không có học sinh nào đang chờ duyệt vào lớp.')}
           </p>
         </div>
       ) : (
@@ -132,7 +134,7 @@ export function PendingRequestsTab({
           {selectedIds.length > 0 && (
             <div className="bg-primary/5 border-b border-primary/10 px-5 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
               <span className="text-sm font-medium text-primary">
-                Đã chọn {selectedIds.length} yêu cầu
+                {t('Đã chọn {count} yêu cầu', { count: selectedIds.length })}
               </span>
               <div className="flex gap-2">
                 <PermissionGuard permission="classroom:manage_requests">
@@ -142,14 +144,14 @@ export function PendingRequestsTab({
                       disabled={processRequestMutation.isPending || isFull}
                       className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
                     >
-                      <Check className="h-3.5 w-3.5" /> Duyệt tất cả
+                      <Check className="h-3.5 w-3.5" /> {t('Duyệt tất cả')}
                     </button>
                     <button
                       onClick={() => handleBulkAction('REJECTED')}
                       disabled={processRequestMutation.isPending}
                       className="flex items-center gap-1.5 h-8 px-4 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-colors disabled:opacity-50 text-xs font-semibold shadow-sm"
                     >
-                      <X className="h-3.5 w-3.5" /> Từ chối tất cả
+                      <X className="h-3.5 w-3.5" /> {t('Từ chối tất cả')}
                     </button>
                   </div>
                 </PermissionGuard>
@@ -168,7 +170,7 @@ export function PendingRequestsTab({
                     className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary mr-4 cursor-pointer"
                   />
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Thông tin học sinh
+                    {t('Thông tin học sinh')}
                   </span>
                 </div>
                 {filteredRequests.map((req) => (
@@ -197,20 +199,20 @@ export function PendingRequestsTab({
                             disabled={processRequestMutation.isPending || isFull}
                             className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50 text-xs font-semibold"
                           >
-                            <Check className="h-3.5 w-3.5" /> Duyệt
+                            <Check className="h-3.5 w-3.5" /> {t('Duyệt')}
                           </button>
                           <button
                             onClick={() => {
                               toast.promise(processRequestMutation.mutateAsync({ id: req.id, status: 'REJECTED' }), {
-                                loading: 'Đang từ chối...',
-                                success: 'Đã từ chối yêu cầu tham gia',
-                                error: 'Từ chối thất bại'
+                                loading: t('Đang từ chối...'),
+                                success: t('Đã từ chối yêu cầu tham gia'),
+                                error: t('Từ chối thất bại')
                               })
                             }}
                             disabled={processRequestMutation.isPending}
                             className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50 text-xs font-semibold"
                           >
-                            <X className="h-3.5 w-3.5" /> Từ chối
+                            <X className="h-3.5 w-3.5" /> {t('Từ chối')}
                           </button>
                         </div>
                       </PermissionGuard>

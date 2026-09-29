@@ -10,6 +10,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import 'katex/dist/katex.min.css'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 import { sanitizeSchema } from '@/lib/markdown'
 import { markdownComponents } from '@/components/ui/markdown-components'
@@ -34,6 +35,7 @@ export function AiQuestionGeneratorModal({
   onClose,
   onInsertQuestion
 }: AiQuestionGeneratorModalProps) {
+  const { t } = useI18n()
   const [prompt, setPrompt] = useState('')
   const [grade, setGrade] = useState<number>(9)
   const [difficulty, setDifficulty] = useState<string>('THONG_HIEU')
@@ -72,7 +74,7 @@ export function AiQuestionGeneratorModal({
 
   const handleClose = () => {
     if (isLoading) {
-      toast.info('AI đang tiếp tục soạn đề bài toán ở chế độ nền. Bạn có thể mở lại bất cứ lúc nào.')
+      toast.info(t('AI đang tiếp tục soạn đề bài toán ở chế độ nền. Bạn có thể mở lại bất cứ lúc nào.'))
     }
     onClose()
   }
@@ -99,14 +101,14 @@ export function AiQuestionGeneratorModal({
         }
 
         if (res.refunded) {
-          toast.success(res.message || 'Đã dừng tác vụ và hoàn lại credit.')
+          toast.success(res.message || t('Đã dừng tác vụ và hoàn lại credit.'))
         } else if (res.cancelled) {
-          toast.info(res.message || 'Đã dừng tác vụ đang xử lý (không hoàn credit).')
+          toast.info(res.message || t('Đã dừng tác vụ đang xử lý (không hoàn credit).'))
         } else {
           toast.info(res.message)
         }
       } else {
-        toast.info('Đã dừng tác vụ sinh đề AI')
+        toast.info(t('Đã dừng tác vụ sinh đề AI'))
       }
 
       if (abortControllerRef.current) {
@@ -120,7 +122,7 @@ export function AiQuestionGeneratorModal({
       activeJobIdRef.current = null
       setActiveJobId(null)
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi hủy tác vụ'
+      const msg = err?.response?.data?.message || err?.message || t('Lỗi khi hủy tác vụ')
       toast.error(msg)
     } finally {
       queryClient.invalidateQueries({ queryKey: ['credits'] })
@@ -189,12 +191,12 @@ export function AiQuestionGeneratorModal({
     setJobStatus(null)
     setJobStatusMessage('')
     setActiveTab('content')
-    toast.info('Đã xóa dữ liệu và làm mới')
+    toast.info(t('Đã xóa dữ liệu và làm mới'))
   }
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast.error('Vui lòng nhập nội dung yêu cầu bài toán')
+      toast.error(t('Vui lòng nhập nội dung yêu cầu bài toán'))
       return
     }
 
@@ -311,9 +313,9 @@ export function AiQuestionGeneratorModal({
     if (!generatedQuestion) return
     onInsertQuestion(generatedQuestion, mode)
     if (mode === 'replace') {
-      toast.success('Đã thay thế nội dung bài tập!')
+      toast.success(t('Đã thay thế nội dung bài tập!'))
     } else {
-      toast.success('Đã bổ sung bài toán vào trình soạn thảo!')
+      toast.success(t('Đã bổ sung bài toán vào trình soạn thảo!'))
     }
     handleClose()
   }
@@ -336,13 +338,13 @@ export function AiQuestionGeneratorModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                Trợ lý Sinh Đề Toán AI
+                {t("Trợ lý Sinh Đề Toán AI")}
                 <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-800">
                   AI Assistant
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Nhập yêu cầu bằng câu lệnh tự nhiên để AI tự động soạn đề bài toán kèm công thức KaTeX
+                {t("Nhập yêu cầu bằng câu lệnh tự nhiên để AI tự động soạn đề bài toán kèm công thức KaTeX")}
               </p>
             </div>
           </div>
@@ -363,13 +365,13 @@ export function AiQuestionGeneratorModal({
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                  Yêu cầu / Ý tưởng đề bài toán
+                  {t("Yêu cầu / Ý tưởng đề bài toán")}
                 </label>
               </div>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ví dụ: Cho tam giác ABC nhọn nội tiếp đường tròn (O; R). Gọi H là chân đường cao hạ từ A xuống BC. Chứng minh rằng..."
+                placeholder={t("Ví dụ: Cho tam giác ABC nhọn nội tiếp đường tròn (O; R). Gọi H là chân đường cao hạ từ A xuống BC. Chứng minh rằng...")}
                 rows={3}
                 className="w-full text-sm p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 resize-none"
               />
@@ -388,7 +390,7 @@ export function AiQuestionGeneratorModal({
                   className="w-full text-xs font-medium p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500"
                 >
                   {[6, 7, 8, 9, 10, 11, 12].map((g) => (
-                    <option key={g} value={g}>Lớp {g}</option>
+                    <option key={g} value={g}>{t("Lớp")} {g}</option>
                   ))}
                 </select>
               </div>
@@ -403,10 +405,10 @@ export function AiQuestionGeneratorModal({
                   onChange={(e) => setDifficulty(e.target.value)}
                   className="w-full text-xs font-medium p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500"
                 >
-                  <option value="NHAN_BIET">Nhận biết</option>
-                  <option value="THONG_HIEU">Thông hiểu</option>
-                  <option value="VAN_DUNG">Vận dụng</option>
-                  <option value="VAN_DUNG_CAO">Vận dụng cao</option>
+                  <option value="NHAN_BIET">{t("Nhận biết")}</option>
+                  <option value="THONG_HIEU">{t("Thông hiểu")}</option>
+                  <option value="VAN_DUNG">{t("Vận dụng")}</option>
+                  <option value="VAN_DUNG_CAO">{t("Vận dụng cao")}</option>
                 </select>
               </div>
 
@@ -419,7 +421,7 @@ export function AiQuestionGeneratorModal({
                   type="text"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Ví dụ: Hình học 9 - Đường tròn"
+                  placeholder={t("Ví dụ: Hình học 9 - Đường tròn")}
                   className="w-full text-xs p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500"
                 />
               </div>
@@ -435,7 +437,7 @@ export function AiQuestionGeneratorModal({
                     onChange={(e) => setIncludeCanvasDiagram(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 rounded-md cursor-pointer"
                   />
-                  Kèm hình vẽ minh họa / đồ thị
+                  {t("Kèm hình vẽ minh họa / đồ thị")}
                 </label>
 
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
@@ -445,7 +447,7 @@ export function AiQuestionGeneratorModal({
                     onChange={(e) => setIncludeExplanation(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 rounded-md cursor-pointer"
                   />
-                  Kèm lời giải chi tiết
+                  {t("Kèm lời giải chi tiết")}
                 </label>
               </div>
 
@@ -619,7 +621,7 @@ export function AiQuestionGeneratorModal({
               onClick={handleClose}
               className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
             >
-              {generatedQuestion ? 'Đóng' : 'Hủy bỏ'}
+              {generatedQuestion ? t('Đóng') : t('Hủy bỏ')}
             </button>
           )}
 
@@ -629,20 +631,20 @@ export function AiQuestionGeneratorModal({
                 type="button"
                 onClick={() => handleApply('replace')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50 text-xs font-bold rounded-xl active:scale-98 transition-all cursor-pointer"
-                title="Xóa nội dung cũ trong trình soạn thảo và thay bằng bài toán mới này"
+                title={t("Xóa nội dung cũ trong trình soạn thảo và thay bằng bài toán mới này")}
               >
                 <Replace className="w-4 h-4" />
-                Thay thế bài tập hiện tại
+                {t("Thay thế bài tập hiện tại")}
               </button>
 
               <button
                 type="button"
                 onClick={() => handleApply('append')}
                 className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-emerald-600/20 active:scale-98 transition-all cursor-pointer"
-                title="Chèn thêm bài toán này nối tiếp dưới nội dung hiện tại"
+                title={t("Chèn thêm bài toán này nối tiếp dưới nội dung hiện tại")}
               >
                 <PlusCircle className="w-4 h-4" />
-                Bổ sung vào bài tập
+                {t("Bổ sung vào bài tập")}
               </button>
             </div>
           )}

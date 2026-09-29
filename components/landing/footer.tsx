@@ -1,8 +1,11 @@
 'use client'
 
 import { Calculator } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function Footer() {
+  const { t } = useI18n()
+
   return (
     <footer className="border-t border-border bg-muted/30">
       <div className="mx-auto max-w-6xl px-6 py-16">
@@ -16,7 +19,7 @@ export function Footer() {
               <span className="text-xl font-bold text-foreground">Math Class</span>
             </div>
             <p className="text-muted-foreground">
-              Trao quyền cho học sinh thông qua học toán thông minh
+              {t('Trao quyền cho học sinh thông qua học toán thông minh')}
             </p>
             <div className="flex gap-4 pt-2">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Twitter</a>
@@ -27,34 +30,34 @@ export function Footer() {
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Sản phẩm</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('Sản phẩm')}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Tính năng</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Giá cả</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Bảo mật</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Lộ trình phát triển</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Tính năng')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Giá cả')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Bảo mật')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Lộ trình phát triển')}</a></li>
             </ul>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Công ty</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('Công ty')}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Giới thiệu</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Tuyển dụng</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Liên hệ</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Giới thiệu')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Blog')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Tuyển dụng')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Liên hệ')}</a></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Pháp lý</h4>
+            <h4 className="font-semibold text-foreground mb-4">{t('Pháp lý')}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Chính sách bảo mật</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Điều khoản sử dụng</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Cookie</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Tuân thủ</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Chính sách bảo mật')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Điều khoản sử dụng')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Cookie')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('Tuân thủ')}</a></li>
             </ul>
           </div>
         </div>
@@ -62,12 +65,12 @@ export function Footer() {
         {/* Bottom */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row md:items-center md:justify-between">
           <p className="text-muted-foreground text-sm">
-            © 2026 Math Class. Tất cả quyền được bảo lưu.
+            {t('© 2026 Math Class. Tất cả quyền được bảo lưu.')}
           </p>
           <div className="flex gap-6 mt-4 md:mt-0 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-primary transition-colors">Trạng thái</a>
-            <a href="#" className="hover:text-primary transition-colors">Cập nhật</a>
-            <a href="#" className="hover:text-primary transition-colors">Hỗ trợ</a>
+            <a href="#" className="hover:text-primary transition-colors">{t('Trạng thái')}</a>
+            <a href="#" className="hover:text-primary transition-colors">{t('Cập nhật')}</a>
+            <a href="#" className="hover:text-primary transition-colors">{t('Hỗ trợ')}</a>
           </div>
         </div>
       </div>

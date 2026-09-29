@@ -1,16 +1,18 @@
 import React from 'react'
 import { Coins, Package, TrendingUp } from 'lucide-react'
 import { PackageSales } from '@/types/admin-dashboard'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface CreditPackageSalesCardProps {
   packageSales: PackageSales[]
 }
 
 export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardProps) {
+  const { t, locale } = useI18n()
   const maxSales = Math.max(...packageSales.map((p) => p.salesCount), 1)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -27,10 +29,10 @@ export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardP
           </div>
           <div>
             <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
-              Thống Kê Lượt Mua Gói Credit
+              {t('Thống Kê Lượt Mua Gói Credit')}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Độ phổ biến của các gói nạp trong hệ thống
+              {t('Độ phổ biến của các gói nạp trong hệ thống')}
             </p>
           </div>
         </div>
@@ -41,7 +43,7 @@ export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardP
         {packageSales.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground">
             <Package className="h-8 w-8 text-muted-foreground/40 mb-2" />
-            Chưa có gói credit nào được cấu hình
+            {t('Chưa có gói credit nào được cấu hình')}
           </div>
         ) : (
           packageSales.map((pkg, idx) => {
@@ -54,7 +56,7 @@ export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardP
                       #{idx + 1}
                     </span>
                     <span className="font-semibold text-foreground truncate">
-                      {pkg.packageName}
+                      {t(pkg.packageName)}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       ({pkg.credits.toLocaleString()} credits)
@@ -63,7 +65,7 @@ export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardP
 
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="font-bold text-foreground">
-                      {pkg.salesCount} lượt
+                      {pkg.salesCount} {t('lượt')}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       • {formatCurrency(pkg.price)}
@@ -85,9 +87,9 @@ export function CreditPackageSalesCard({ packageSales }: CreditPackageSalesCardP
       </div>
 
       <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
-        <span>Tự động cập nhật theo đơn mua thành công</span>
+        <span>{t('Tự động cập nhật theo đơn mua thành công')}</span>
         <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-          <TrendingUp className="h-3.5 w-3.5" /> Doanh số thực tế
+          <TrendingUp className="h-3.5 w-3.5" /> {t('Doanh số thực tế')}
         </span>
       </div>
     </div>

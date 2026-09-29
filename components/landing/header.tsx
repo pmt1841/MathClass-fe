@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button'
 import { ROLES } from '@/lib/constants/auth'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { setSelectedRole } from '@/lib/redux/features/authSlice'
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function Header() {
+  const { t } = useI18n()
   const pathname = usePathname()
   const router = useRouter()
   const dispatch = useAppDispatch()
@@ -20,7 +23,7 @@ export function Header() {
 
   // Vai trò đối ứng (ngược với vai trò hiện tại)
   const targetRole = selectedRole === ROLES.TEACHER ? ROLES.STUDENT : ROLES.TEACHER
-  const targetRoleName = targetRole === ROLES.TEACHER ? 'Giáo viên' : 'Học sinh'
+  const targetRoleName = targetRole === ROLES.TEACHER ? t('Giáo viên') : t('Học sinh')
 
   /**
    * Tính text và hành động cho nút duy nhất trên header:
@@ -34,7 +37,7 @@ export function Header() {
   const getButtonConfig = () => {
     if (isLandingPage) {
       return {
-        label: 'Dùng thử miễn phí',
+        label: t('Dùng thử miễn phí'),
         action: () => {
           dispatch(setSelectedRole(ROLES.TEACHER))
           router.push('/signup')
@@ -43,19 +46,19 @@ export function Header() {
     }
     if (isSignupPage) {
       return {
-        label: `Đăng ký ${targetRoleName}`,
+        label: t('Đăng ký {role}', { role: targetRoleName }),
         action: () => dispatch(setSelectedRole(targetRole)),
       }
     }
     if (isLoginPage) {
       return {
-        label: `Đăng nhập ${targetRoleName}`,
+        label: t('Đăng nhập {role}', { role: targetRoleName }),
         action: () => dispatch(setSelectedRole(targetRole)),
       }
     }
     // Fallback các trang khác
     return {
-      label: 'Dùng thử miễn phí',
+      label: t('Dùng thử miễn phí'),
       action: () => {
         dispatch(setSelectedRole(ROLES.TEACHER))
         router.push('/signup')
@@ -77,13 +80,17 @@ export function Header() {
             <span className="text-2xl font-bold text-primary-foreground">Math Class</span>
           </Link>
 
-          {/* Nút hành động duy nhất */}
-          <Button
-            onClick={action}
-            className="bg-white text-primary hover:bg-white/90 font-semibold shadow-sm cursor-pointer"
-          >
-            {label}
-          </Button>
+          {/* Right actions: Language Switcher & Action button */}
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+
+            <Button
+              onClick={action}
+              className="bg-white text-primary hover:bg-white/90 font-semibold shadow-sm cursor-pointer"
+            >
+              {label}
+            </Button>
+          </div>
         </div>
       </div>
     </header>

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { authStorage } from './auth-storage';
+import { LOCALE_COOKIE, DEFAULT_LOCALE, getLocaleCookie } from './constants/i18n';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 // Kiểm tra xem URL đã có tiền tố version (/v1, /v2,...) chưa. Nếu chưa có sẽ tự động chèn /v1
@@ -26,15 +27,21 @@ api.interceptors.request.use(
         if (token) {
           config.headers.Cookie = `mathclass_jwt=${token}`;
         }
+        const locale = cookieStore.get(LOCALE_COOKIE.NAME)?.value || DEFAULT_LOCALE;
+        config.headers['Accept-Language'] = locale;
       } catch (e) {
         // Dự phòng nếu không import được next/headers
         console.error("Không thể lấy cookie ở Server side", e);
       }
+    } else {
+      // 1. Nếu chạy ở Client Side
+      config.headers['Accept-Language'] = getLocaleCookie();
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
+
 
 let isRefreshing = false;
 let failedQueue: Array<{

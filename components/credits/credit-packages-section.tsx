@@ -18,12 +18,20 @@ import { CreditPurchaseOrder } from '@/services/creditService'
 import { PaymentQrModal } from '@/components/credits/PaymentQrModal'
 import { PaymentMaintenanceModal } from '@/components/credits/PaymentMaintenanceModal'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
-export function formatVnd(price: number): string {
+export function formatPrice(price: number, locale: string = 'vi'): string {
+  if (locale === 'en') {
+    return `${new Intl.NumberFormat('en-US').format(price)} VND`
+  }
   return `${new Intl.NumberFormat('vi-VN').format(price)}đ`
 }
 
+export const formatVnd = (price: number) => formatPrice(price, 'vi')
+
+
 export function CreditPackagesSection() {
+  const { t, locale } = useI18n()
   const { data: packages, isLoading } = useCreditPackages()
   const { data: paymentConfig } = usePublicPaymentConfig()
   const purchaseMutation = usePurchaseCredit()
@@ -46,7 +54,7 @@ export function CreditPackagesSection() {
       const order = await purchaseMutation.mutateAsync(pkg.id)
       if (order.status === 'SUCCESS') {
         const added = order.creditsAdded ?? pkg.credits
-        toast.success(`Đã nạp ${added} credit vào tài khoản. Số dư mới: ${order.newBalance ?? ''}`)
+        toast.success(t('credits.rechargeSuccess', { credits: added, balance: order.newBalance ?? '' }))
       } else {
         setSelectedOrder(order)
         setIsModalOpen(true)
@@ -57,7 +65,7 @@ export function CreditPackagesSection() {
       if (msg.includes('bảo trì') || msg.includes('maintenance')) {
         setIsMaintenanceOpen(true)
       } else {
-        toast.error(handleApiError(e, 'Không thể khởi tạo đơn mua credit lúc này. Vui lòng thử lại sau.'))
+        toast.error(handleApiError(e, t('Không thể khởi tạo đơn mua credit lúc này. Vui lòng thử lại sau.')))
       }
     } finally {
       setBuyingId(null)
@@ -70,10 +78,10 @@ export function CreditPackagesSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-violet-500" />
-            Nạp thêm credit
+            {t('credits.buyMore')}
           </CardTitle>
           <CardDescription>
-            Chọn gói để nạp. Quét mã VietQR chuyển tiền tự động, credit sẽ được cộng ngay lập tức.
+            {t('Chọn gói để nạp. Quét mã VietQR chuyển tiền tự động, credit sẽ được cộng ngay lập tức.')}
           </CardDescription>
         </CardHeader>
 
@@ -82,7 +90,7 @@ export function CreditPackagesSection() {
             <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
               <Wrench className="h-4 w-4 shrink-0 text-amber-600 animate-pulse" />
               <span>
-                Cổng VietQR đang trong quá trình bảo trì định kỳ. Quý khách vẫn có thể nhấn vào gói để xem chi tiết hướng dẫn.
+                {t('Cổng VietQR đang trong quá trình bảo trì định kỳ. Quý khách vẫn có thể nhấn vào gói để xem chi tiết hướng dẫn.')}
               </span>
             </div>
           )}
@@ -106,7 +114,7 @@ export function CreditPackagesSection() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">{pkg.name}</p>
-                      <p className="text-xs text-slate-500">{formatVnd(pkg.price)}</p>
+                      <p className="text-xs text-slate-500">{formatPrice(pkg.price, locale)}</p>
                     </div>
                   </div>
 
@@ -123,10 +131,10 @@ export function CreditPackagesSection() {
                     {buyingId === pkg.id ? (
                       <>
                         <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                        Đang tạo đơn...
+                        {t('Đang tạo đơn...')}
                       </>
                     ) : (
-                      'Nạp ngay'
+                      t('Nạp ngay')
                     )}
                   </Button>
                 </div>

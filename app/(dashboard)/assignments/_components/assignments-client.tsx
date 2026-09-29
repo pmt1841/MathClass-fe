@@ -44,8 +44,10 @@ import {
 import { AssignmentCard } from './assignment-card'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { assignmentService, AssignmentTag } from '@/services/assignmentService'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function AssignmentsPageClient() {
+  const { t } = useI18n()
   const router = useRouter()
   const { user } = useAuth()
   const userRole = user?.role || 'STUDENT'
@@ -226,20 +228,20 @@ export function AssignmentsPageClient() {
                 <BookMarked className="h-5.5 w-5.5 text-primary" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                {userRole === 'TEACHER' ? 'Kho bài tập' : 'Bài tập được giao'}
+                {userRole === 'TEACHER' ? t('assignments.assignmentBank') : t('assignments.assignedAssignments')}
               </h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {userRole === 'TEACHER'
-                ? 'Quản lý, chỉnh sửa và giao bài tập cho học sinh của bạn.'
-                : 'Xem các bài tập được giáo viên giao cho lớp của bạn.'}
+                ? t('assignments.teacherSubheading')
+                : t('assignments.studentSubheading')}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <RefreshButton
               onClick={() => refetch()}
-              title="Làm mới danh sách bài tập"
+              title={t('assignments.refreshList')}
             />
             {userRole === 'TEACHER' && (
               <PermissionGuard permission="assignment:create">
@@ -250,7 +252,7 @@ export function AssignmentsPageClient() {
                     className="flex items-center gap-2 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-sm font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-indigo-500/15 hover:shadow-indigo-500/25 active:scale-98 cursor-pointer"
                   >
                     <Sparkles className="h-4.5 w-4.5" />
-                    Tạo hàng loạt bằng AI
+                    {t('assignments.createWithAi')}
                   </button>
                 )}
                 <Link
@@ -258,7 +260,7 @@ export function AssignmentsPageClient() {
                   className="flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10 hover:shadow-primary/20 active:scale-98"
                 >
                   <Plus className="h-4.5 w-4.5" />
-                  Tạo bài tập mới
+                  {t('assignments.createNew')}
                 </Link>
               </PermissionGuard>
             )}
@@ -276,7 +278,7 @@ export function AssignmentsPageClient() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm kiếm bài tập..."
+                placeholder={t('assignments.searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -288,7 +290,7 @@ export function AssignmentsPageClient() {
               <PopoverTrigger asChild>
                 <button className="relative flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all shrink-0">
                   <Filter className="h-4 w-4" />
-                  Bộ lọc
+                  {t('assignments.filter')}
                   {(Boolean(assignmentType !== 'ALL') || Boolean(selectedClassCode) || selectedTagNames.length > 0) && (
                     <span className="rounded-full bg-primary px-1.5 text-xs text-white">
                       {(assignmentType !== 'ALL' ? 1 : 0) + (selectedClassCode ? 1 : 0) + selectedTagNames.length}
@@ -298,43 +300,43 @@ export function AssignmentsPageClient() {
               </PopoverTrigger>
               <PopoverContent align="start" className="w-80 space-y-4 p-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <p className="text-sm font-bold text-foreground">Bộ lọc bài tập</p>
+                  <p className="text-sm font-bold text-foreground">{t('assignments.filterTitle')}</p>
                   {(assignmentType !== 'ALL' || selectedClassCode || selectedTagNames.length > 0) && (
                     <button
                       onClick={handleClearFilters}
                       className="text-xs font-semibold text-primary hover:underline"
                     >
-                      Xóa bộ lọc
+                      {t('assignments.clearFilter')}
                     </button>
                   )}
                 </div>
 
                 {userRole === 'STUDENT' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Loại bài tập</label>
+                    <label className="text-xs font-semibold text-slate-600">{t('assignments.assignmentType')}</label>
                     <select
                       value={assignmentType}
                       onChange={(e) => setAssignmentType(e.target.value as 'ALL' | 'SINGLE' | 'SHEET')}
                       className="w-full h-10 pl-3 pr-8 rounded-lg border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate"
                       style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
                     >
-                      <option value="ALL">Tất cả loại bài</option>
-                      <option value="SINGLE">Bài tập lẻ</option>
-                      <option value="SHEET">Phiếu bài tập</option>
+                      <option value="ALL">{t('assignments.allTypes')}</option>
+                      <option value="SINGLE">{t('assignments.singleAssignment')}</option>
+                      <option value="SHEET">{t('assignments.worksheet')}</option>
                     </select>
                   </div>
                 )}
 
                 {userRole === 'STUDENT' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600">Lớp học</label>
+                    <label className="text-xs font-semibold text-slate-600">{t('classes.myClasses')}</label>
                     <select
                       value={selectedClassCode}
                       onChange={(e) => setSelectedClassCode(e.target.value)}
                       className="w-full h-10 pl-3 pr-8 rounded-lg border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer truncate"
                       style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
                     >
-                      <option value="">Tất cả lớp học</option>
+                      <option value="">{t('assignments.allClasses')}</option>
                       {myClasses.map((c) => (
                         <option key={c.classCode} value={c.classCode}>{c.className}</option>
                       ))}
@@ -343,11 +345,11 @@ export function AssignmentsPageClient() {
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Thẻ bài tập</label>
+                  <label className="text-xs font-semibold text-slate-600">{t('assignments.tagLabel')}</label>
                   <AssignmentTagInput
                     value={selectedTagNames}
                     onChange={(tags) => setSelectedTagNames(tags)}
-                    placeholder="Nhập thẻ để lọc..."
+                    placeholder={t('assignments.tagPlaceholder')}
                   />
                 </div>
               </PopoverContent>
@@ -358,28 +360,28 @@ export function AssignmentsPageClient() {
               {userRole === 'TEACHER' ? (
                 <>
                   <button onClick={() => setActiveTab('DRAFT')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'DRAFT' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Edit className="h-4 w-4" /> Bản nháp
+                    <Edit className="h-4 w-4" /> {t('assignments.tabDraft')}
                   </button>
                   <button onClick={() => setActiveTab('SINGLE')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SINGLE' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <BookOpen className="h-4 w-4" /> Bài tập lẻ
+                    <BookOpen className="h-4 w-4" /> {t('assignments.tabSingle')}
                   </button>
                   <button onClick={() => setActiveTab('SHEET')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SHEET' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Layers className="h-4 w-4" /> Phiếu bài tập
+                    <Layers className="h-4 w-4" /> {t('assignments.tabSheet')}
                   </button>
                 </>
               ) : (
                 <>
                   <button onClick={() => setActiveTab('PENDING')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'PENDING' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <Clock className="h-4 w-4" /> Chưa nộp
+                    <Clock className="h-4 w-4" /> {t('assignments.tabPending')}
                   </button>
                   <button onClick={() => setActiveTab('SUBMITTED')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'SUBMITTED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <CheckCircle className="h-4 w-4" /> Đã nộp
+                    <CheckCircle className="h-4 w-4" /> {t('assignments.tabSubmitted')}
                   </button>
                   <button onClick={() => setActiveTab('GRADED')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'GRADED' ? 'bg-white text-blue-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <BookOpen className="h-4 w-4" /> Đã chấm điểm
+                    <BookOpen className="h-4 w-4" /> {t('assignments.tabGraded')}
                   </button>
                   <button onClick={() => setActiveTab('OVERDUE')} className={`whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'OVERDUE' ? 'bg-white text-rose-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    <AlertCircle className="h-4 w-4" /> Quá hạn
+                    <AlertCircle className="h-4 w-4" /> {t('assignments.tabOverdue')}
                   </button>
                 </>
               )}
@@ -395,7 +397,7 @@ export function AssignmentsPageClient() {
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm animate-in zoom-in-95 duration-200 shrink-0"
               >
                 <Layers className="h-4 w-4" />
-                Giao {selectedAssignments.length} bài thành phiếu
+                {t('assignments.assignAsSheet', { count: selectedAssignments.length })}
               </button>
             )}
           </div>
@@ -421,21 +423,21 @@ export function AssignmentsPageClient() {
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/5 text-primary">
                 <BookOpen className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-foreground">Không tìm thấy bài tập nào</h3>
+              <h3 className="text-lg font-bold text-foreground">{t('assignments.notFoundTitle')}</h3>
               <p className="text-sm text-muted-foreground">
                 {userRole === 'TEACHER'
                   ? activeTab === 'DRAFT'
-                    ? 'Bạn chưa tạo bản nháp nào. Hãy bắt đầu bằng cách tạo bài tập mới.'
+                    ? t('assignments.draftEmpty')
                     : activeTab === 'SINGLE'
-                      ? 'Kho bài tập lẻ của bạn đang trống.'
-                      : 'Bạn chưa tạo phiếu bài tập nào.'
+                      ? t('assignments.singleEmpty')
+                      : t('assignments.sheetEmpty')
                   : activeTab === 'PENDING'
-                    ? 'Bạn không có bài tập nào cần làm lúc này.'
+                    ? t('assignments.pendingEmpty')
                     : activeTab === 'SUBMITTED'
-                      ? 'Bạn chưa nộp bài tập nào.'
+                      ? t('assignments.submittedEmpty')
                       : activeTab === 'GRADED'
-                        ? 'Bạn chưa có bài tập nào được chấm điểm.'
-                        : 'Bạn không có bài tập nào quá hạn.'}
+                        ? t('assignments.gradedEmpty')
+                        : t('assignments.overdueEmpty')}
               </p>
             </div>
           ) : userRole === 'STUDENT' && assignmentType === 'ALL' ? (
@@ -443,12 +445,12 @@ export function AssignmentsPageClient() {
               {displaySingleItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-foreground">Bài tập lẻ</h3>
+                    <h3 className="text-xl font-bold text-foreground">{t('assignments.tabSingle')}</h3>
                     <button
                       onClick={() => setAssignmentType('SINGLE')}
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      Tất cả bài tập lẻ
+                      {t('assignments.allSingle')}
                     </button>
                   </div>
                   <Carousel className="w-full relative px-2">
@@ -477,12 +479,12 @@ export function AssignmentsPageClient() {
               {displaySheetItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-foreground">Phiếu bài tập</h3>
+                    <h3 className="text-xl font-bold text-foreground">{t('assignments.tabSheet')}</h3>
                     <button
                       onClick={() => setAssignmentType('SHEET')}
                       className="text-sm font-medium text-primary hover:underline"
                     >
-                      Tất cả phiếu bài tập
+                      {t('assignments.allSheet')}
                     </button>
                   </div>
                   <Carousel className="w-full relative px-2">
@@ -532,7 +534,7 @@ export function AssignmentsPageClient() {
           {!loading && displayAssignments.length > 0 && (totalPages > 1 || (assignmentsData?.totalElements || 0) > 6) && (
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-6">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Hiển thị:</span>
+                <span>{t('assignments.display')}</span>
                 <Select
                   value={String(pageSize)}
                   onValueChange={(val) => {
@@ -550,11 +552,11 @@ export function AssignmentsPageClient() {
                     <SelectItem value="48">48</SelectItem>
                   </SelectContent>
                 </Select>
-                <span>bài / trang</span>
+                <span>{t('assignments.perPage')}</span>
                 {(assignmentsData?.totalElements || 0) > 0 && (
                   <>
                     <span className="hidden sm:inline text-muted-foreground/40">|</span>
-                    <span className="hidden sm:inline">Tổng cộng: {assignmentsData?.totalElements} bài</span>
+                    <span className="hidden sm:inline">{t('assignments.total', { total: assignmentsData?.totalElements })}</span>
                   </>
                 )}
               </div>

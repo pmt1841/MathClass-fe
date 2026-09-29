@@ -38,6 +38,7 @@ import { StorageCleanupModal } from '@/components/admin/StorageCleanupModal'
 import { RefreshButton } from '@/components/ui/refresh-button'
 import { formatDateTime } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const CRON_PRESETS = [
   {
@@ -59,6 +60,7 @@ const CRON_PRESETS = [
 ]
 
 export function StorageCleanupCard() {
+  const { t } = useI18n()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
@@ -97,16 +99,16 @@ export function StorageCleanupCard() {
     onSuccess: (updatedStatus) => {
       queryClient.setQueryData(['storageCleanupStatus'], updatedStatus)
       toast({
-        title: 'Cập nhật thành công',
-        description: 'Đã lưu cấu hình và cập nhật lịch dọn dẹp theo thời gian thực.',
+        title: t('Cập nhật thành công'),
+        description: t('Đã lưu cấu hình và cập nhật lịch dọn dẹp theo thời gian thực.'),
       })
       setShowConfig(false)
     },
     onError: (error: any) => {
       toast({
-        title: 'Lỗi cập nhật cấu hình',
+        title: t('Lỗi cập nhật cấu hình'),
         description:
-          error?.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu hình.',
+          error?.response?.data?.message || t('Có lỗi xảy ra khi lưu cấu hình.'),
         variant: 'destructive',
       })
     },
@@ -116,8 +118,8 @@ export function StorageCleanupCard() {
     const finalCron = selectedPreset === 'custom' ? customCron.trim() : selectedPreset
     if (!finalCron) {
       toast({
-        title: 'Định dạng lịch chạy không hợp lệ',
-        description: 'Vui lòng kiểm tra lại cấu hình hẹn giờ hệ thống.',
+        title: t('Định dạng lịch chạy không hợp lệ'),
+        description: t('Vui lòng kiểm tra lại cấu hình hẹn giờ hệ thống.'),
         variant: 'destructive',
       })
       return
@@ -142,14 +144,14 @@ export function StorageCleanupCard() {
   }
 
   const formatLastRunTime = (isoString: string | null | undefined) => {
-    if (!isoString) return 'Chưa chạy lần nào'
-    return formatDateTime(isoString) || 'Chưa chạy lần nào'
+    if (!isoString) return t('Chưa chạy lần nào')
+    return formatDateTime(isoString) || t('Chưa chạy lần nào')
   }
 
   const getCronDescription = (cron: string | undefined) => {
-    if (!cron) return 'Chưa thiết lập'
+    if (!cron) return t('Chưa thiết lập')
     const preset = CRON_PRESETS.find((p) => p.value === cron)
-    return preset ? preset.label.replace(' (Khuyên dùng)', '') : 'Lịch chạy tùy chỉnh'
+    return preset ? t(preset.label) : t('Lịch chạy tùy chỉnh')
   }
 
   return (
@@ -160,17 +162,17 @@ export function StorageCleanupCard() {
             <div className="space-y-1">
               <CardTitle className="text-xl flex items-center gap-2 text-slate-800">
                 <HardDrive className="w-5 h-5 text-primary" />
-                Quản lý Bộ nhớ Hình ảnh Đám mây
+                {t('Quản lý Bộ nhớ Hình ảnh Đám mây')}
               </CardTitle>
               <CardDescription className="text-slate-500 text-sm">
-                Tự động dọn dẹp định kỳ và thu hồi dung lượng từ ảnh không còn sử dụng.
+                {t('Tự động dọn dẹp định kỳ và thu hồi dung lượng từ ảnh không còn sử dụng.')}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <RefreshButton
                 onClick={() => refetch()}
                 iconOnly
-                title="Làm mới trạng thái bộ nhớ"
+                title={t('Làm mới trạng thái bộ nhớ')}
               />
               <Badge
                 variant="outline"
@@ -184,7 +186,7 @@ export function StorageCleanupCard() {
                   className={`w-2 h-2 rounded-full ${status?.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
                     }`}
                 />
-                {status?.enabled ? 'Tự động: Đang bật' : 'Tự động: Đã tắt'}
+                {status?.enabled ? t('Tự động: Đang bật') : t('Tự động: Đã tắt')}
               </Badge>
               <Button
                 variant="outline"
@@ -196,7 +198,7 @@ export function StorageCleanupCard() {
                   }`}
               >
                 <Settings className="w-3.5 h-3.5" />
-                {showConfig ? 'Đóng cài đặt' : 'Cài đặt lịch'}
+                {showConfig ? t('Đóng cài đặt') : t('Cài đặt lịch')}
               </Button>
             </div>
           </div>
@@ -206,7 +208,7 @@ export function StorageCleanupCard() {
           {isLoading ? (
             <div className="py-6 flex items-center justify-center text-slate-400 gap-2 text-sm">
               <RefreshCw className="w-4 h-4 animate-spin" />
-              Đang tải thông tin lưu trữ...
+              {t('Đang tải thông tin lưu trữ...')}
             </div>
           ) : (
             <>
@@ -216,10 +218,10 @@ export function StorageCleanupCard() {
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
                     <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
                       <Settings className="w-4 h-4 text-primary" />
-                      Cấu hình Tự động Dọn dẹp & Lịch chạy
+                      {t('Cấu hình Tự động Dọn dẹp & Lịch chạy')}
                     </span>
                     <span className="text-xs text-slate-500">
-                      Áp dụng tức thì sau khi lưu
+                      {t('Áp dụng tức thì sau khi lưu')}
                     </span>
                   </div>
 
@@ -231,10 +233,10 @@ export function StorageCleanupCard() {
                           htmlFor="cleanup-enabled-switch"
                           className="text-sm font-semibold text-slate-800 cursor-pointer"
                         >
-                          Bật dọn dẹp định kỳ
+                          {t('Bật dọn dẹp định kỳ')}
                         </Label>
                         <p className="text-xs text-slate-500">
-                          Kích hoạt tác vụ chạy ngầm tự động
+                          {t('Kích hoạt tác vụ chạy ngầm tự động')}
                         </p>
                       </div>
                       <Switch
@@ -259,7 +261,7 @@ export function StorageCleanupCard() {
                           className={`w-3.5 h-3.5 ${enabled ? 'text-amber-500' : 'text-slate-400'
                             }`}
                         />
-                        Thời gian bảo vệ ảnh mới tải (Giờ)
+                        {t('Thời gian bảo vệ ảnh mới tải (Giờ)')}
                       </Label>
                       <div className="flex items-center gap-2">
                         <Input
@@ -277,7 +279,7 @@ export function StorageCleanupCard() {
                           className="h-9 w-24 border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                         />
                         <span className="text-xs text-slate-500">
-                          (Bảo vệ ảnh đang soạn thảo dưới {gracePeriodHours} giờ)
+                          {t('(Bảo vệ ảnh đang soạn thảo dưới {hours} giờ)', { hours: gracePeriodHours })}
                         </span>
                       </div>
                     </div>
@@ -296,7 +298,7 @@ export function StorageCleanupCard() {
                         className={`w-3.5 h-3.5 ${enabled ? 'text-primary' : 'text-slate-400'
                           }`}
                       />
-                      Tần suất dọn dẹp tự động
+                      {t('Tần suất dọn dẹp tự động')}
                     </Label>
                     <Select
                       value={selectedPreset}
@@ -304,12 +306,12 @@ export function StorageCleanupCard() {
                       disabled={!enabled}
                     >
                       <SelectTrigger className="w-full bg-white border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-400">
-                        <SelectValue placeholder="Chọn tần suất dọn dẹp" />
+                        <SelectValue placeholder={t('Chọn tần suất dọn dẹp')} />
                       </SelectTrigger>
                       <SelectContent>
                         {CRON_PRESETS.map((preset) => (
                           <SelectItem key={preset.value} value={preset.value}>
-                            {preset.label}
+                            {t(preset.label)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -321,7 +323,7 @@ export function StorageCleanupCard() {
                           htmlFor="custom-cron-input"
                           className="text-xs font-medium text-slate-600"
                         >
-                          Nhập định dạng lịch nâng cao (dành cho kỹ thuật viên):
+                          {t('Nhập định dạng lịch nâng cao (dành cho kỹ thuật viên):')}
                         </Label>
                         <Input
                           id="custom-cron-input"
@@ -343,7 +345,7 @@ export function StorageCleanupCard() {
                       disabled={configMutation.isPending}
                       className="border-slate-200 text-slate-600"
                     >
-                      Hủy
+                      {t('Hủy')}
                     </Button>
                     <Button
                       size="sm"
@@ -354,12 +356,12 @@ export function StorageCleanupCard() {
                       {configMutation.isPending ? (
                         <>
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          Đang lưu...
+                          {t('Đang lưu...')}
                         </>
                       ) : (
                         <>
                           <Save className="w-3.5 h-3.5" />
-                          Lưu cấu hình
+                          {t('Lưu cấu hình')}
                         </>
                       )}
                     </Button>
@@ -373,15 +375,15 @@ export function StorageCleanupCard() {
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <Calendar className="w-4 h-4 text-primary" />
-                    Lịch quét tự động
+                    {t('Lịch quét tự động')}
                   </div>
                   <p className="text-sm font-bold text-slate-800">
                     {status?.enabled
                       ? getCronDescription(status?.cronExpression)
-                      : 'Đang tạm dừng'}
+                      : t('Đang tạm dừng')}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {status?.enabled ? 'Tác vụ chạy ngầm định kỳ' : 'Chưa bật dọn dẹp tự động'}
+                    {status?.enabled ? t('Tác vụ chạy ngầm định kỳ') : t('Chưa bật dọn dẹp tự động')}
                   </p>
                 </div>
 
@@ -389,13 +391,13 @@ export function StorageCleanupCard() {
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <Clock className="w-4 h-4 text-amber-500" />
-                    Bảo vệ ảnh đang soạn
+                    {t('Bảo vệ ảnh đang soạn')}
                   </div>
                   <p className="text-sm font-bold text-slate-800">
-                    {status?.gracePeriodHours || 24} Giờ
+                    {status?.gracePeriodHours || 24} {t('Giờ')}
                   </p>
                   <p className="text-xs text-slate-400">
-                    Giữ an toàn ảnh vừa tải lên trong ngày
+                    {t('Giữ an toàn ảnh vừa tải lên trong ngày')}
                   </p>
                 </div>
 
@@ -403,18 +405,18 @@ export function StorageCleanupCard() {
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <History className="w-4 h-4 text-emerald-500" />
-                    Lần chạy gần nhất
+                    {t('Lần chạy gần nhất')}
                   </div>
                   <p className="text-sm font-bold text-slate-800">
                     {formatLastRunTime(status?.lastRunAt)}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     {status?.lastRunResult ? (
                       <span className="text-emerald-600 font-medium">
-                        Đã dọn {status.lastRunResult.filesDeletedSuccessfully} file rác
+                        {t('Đã dọn {count} file rác', { count: status.lastRunResult.filesDeletedSuccessfully })}
                       </span>
                     ) : (
-                      'Sẵn sàng dọn dẹp'
+                      t('Sẵn sàng dọn dẹp')
                     )}
                   </p>
                 </div>
@@ -426,21 +428,21 @@ export function StorageCleanupCard() {
           <div className="p-3 bg-primary/5 rounded-xl border border-primary/15 flex items-center gap-2 text-xs text-slate-800">
             <Layers className="w-4 h-4 text-primary shrink-0" />
             <span>
-              Phạm vi quét dọn: <span className="font-semibold text-primary">Ảnh đại diện người dùng</span> và <span className="font-semibold text-primary">Ảnh đề thi & bài tập</span>
+              {t('Phạm vi quét dọn:')} <span className="font-semibold text-primary">{t('Ảnh đại diện người dùng')}</span> {t('và')} <span className="font-semibold text-primary">{t('Ảnh đề thi & bài tập')}</span>
             </span>
           </div>
         </CardContent>
 
         <CardFooter className="bg-slate-50/80 px-6 py-4 border-t border-slate-100 flex items-center justify-between rounded-b-xl">
           <p className="text-xs text-slate-500 max-w-md">
-            Quản trị viên có thể kích hoạt dọn dẹp ngay bất cứ lúc nào hoặc quét thử nghiệm trước khi dọn dẹp.
+            {t('Quản trị viên có thể kích hoạt dọn dẹp ngay bất cứ lúc nào hoặc quét thử nghiệm trước khi dọn dẹp.')}
           </p>
           <Button
             onClick={() => setModalOpen(true)}
             className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-medium gap-2 text-sm"
           >
             <Trash2 className="w-4 h-4" />
-            Dọn dẹp ảnh rác ngay
+            {t('Dọn dẹp ảnh rác ngay')}
           </Button>
         </CardFooter>
       </Card>

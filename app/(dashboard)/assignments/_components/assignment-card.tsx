@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { VisibilityToggle } from '@/components/ui/visibility-toggle'
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AssignmentCardProps {
   assignment: AssignmentSheet
@@ -48,6 +49,7 @@ export function AssignmentCard({
   onClone,
   onPreview,
 }: AssignmentCardProps) {
+  const { t } = useI18n()
   const isTeacher = userRole === 'TEACHER'
   const isSheet = assignment.type === 'SHEET'
   const isLibraryMode = mode === 'library'
@@ -76,7 +78,7 @@ export function AssignmentCard({
       })
       await queryClient.invalidateQueries({ queryKey: ['assignments'] })
       setTagEditorOpen(false)
-      toast.success('Đã cập nhật thẻ bài tập')
+      toast.success(t('assignments.tagUpdated'))
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật thẻ bài tập')
     } finally {
@@ -92,8 +94,8 @@ export function AssignmentCard({
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-80 space-y-3 shadow-lg">
-        <p className="font-bold text-sm">Gắn thẻ bài tập</p>
-        <AssignmentTagInput value={tagNames} onChange={setTagNames} />
+        <p className="font-bold text-sm">{t('assignments.tagAssignment')}</p>
+        <AssignmentTagInput value={tagNames} onChange={setTagNames} placeholder={t('assignments.tagPlaceholder')} />
         <div className="flex justify-end">
           <button
             type="button"
@@ -102,7 +104,7 @@ export function AssignmentCard({
             className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
           >
             {isSavingTags && <Loader2 className="h-4 w-4 animate-spin" />}
-            Lưu thẻ
+            {t('assignments.saveTag')}
           </button>
         </div>
       </PopoverContent>
@@ -233,7 +235,7 @@ export function AssignmentCard({
                       }`}
                   >
                     <Send className="h-4 w-4" />
-                    {isSheet ? 'Giao lại' : 'Giao bài'}
+                    {isSheet ? t('assignments.reassign') : t('assignments.assign')}
                   </button>
                 </PermissionGuard>
               </div>
@@ -250,9 +252,9 @@ export function AssignmentCard({
                     const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
                     const status = assignment.submissionStatus
 
-                    if (status === 'GRADED') return 'Xem điểm'
-                    if (status === 'SUBMITTED' || status === 'LATE') return isOverdue ? 'Xem bài nộp' : 'Sửa bài nộp'
-                    return isOverdue ? 'Xem đề bài' : 'Vào làm bài'
+                    if (status === 'GRADED') return t('Xem điểm')
+                    if (status === 'SUBMITTED' || status === 'LATE') return isOverdue ? t('Xem bài nộp') : t('Sửa bài nộp')
+                    return isOverdue ? t('Xem đề bài') : t('Làm bài')
                   })()}
                 </Link>
               </div>
@@ -260,7 +262,7 @@ export function AssignmentCard({
 
             {isSheet && (
               <div className="flex items-center gap-1 text-xs font-semibold text-slate-500 bg-slate-100 group-hover:bg-slate-200/80 px-3 py-2 rounded-xl transition-all cursor-pointer">
-                <span>{expanded ? 'Thu gọn' : 'Chi tiết'}</span>
+                <span>{expanded ? t('Thu gọn') : t('Chi tiết')}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
               </div>
             )}
@@ -289,7 +291,7 @@ export function AssignmentCard({
                     href={`/assignments/${item.id}?classCode=${assignment.classCode}`}
                     className="px-3 py-1.5 rounded-lg bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors flex-shrink-0"
                   >
-                    {item.submissionStatus === 'GRADED' ? 'Xem điểm' : item.submissionStatus ? 'Sửa bài nộp' : 'Làm bài'}
+                    {item.submissionStatus === 'GRADED' ? t('Xem điểm') : item.submissionStatus ? t('Sửa bài nộp') : t('Làm bài')}
                   </Link>
                 )}
 
@@ -438,7 +440,7 @@ export function AssignmentCard({
                   href={`/assignments/${item.id}?classCode=${assignment.classCode}`}
                   className="text-xs font-semibold text-primary hover:underline cursor-pointer flex-shrink-0"
                 >
-                  {item.submissionStatus === 'GRADED' ? 'Xem điểm' : item.submissionStatus ? 'Sửa bài nộp' : 'Làm bài'}
+                  {item.submissionStatus === 'GRADED' ? t('Xem điểm') : item.submissionStatus ? t('Sửa bài nộp') : t('Làm bài')}
                 </Link>
               )}
               {isTeacher && (
@@ -524,7 +526,7 @@ export function AssignmentCard({
                 }`}
             >
               <Send className="h-4 w-4" />
-              {isSheet ? 'Giao lại' : 'Giao bài'}
+              {isSheet ? t('assignments.reassign') : t('assignments.assign')}
             </button>
           </PermissionGuard>
         </div>
@@ -556,7 +558,7 @@ export function AssignmentCard({
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <GitFork className="h-4 w-4" />
-              Sao chép về kho
+              {t('Sao chép về kho')}
             </button>
           </PermissionGuard>
         </div>
@@ -573,9 +575,9 @@ export function AssignmentCard({
               const isOverdue = assignment.deadline && (parseDateSafe(assignment.deadline)?.getTime() ?? 0) < Date.now()
               const status = assignment.submissionStatus
 
-              if (status === 'GRADED') return 'Xem điểm'
-              if (status === 'SUBMITTED' || status === 'LATE') return isOverdue ? 'Xem bài nộp' : 'Sửa bài nộp'
-              return isOverdue ? 'Xem đề bài' : 'Vào làm bài'
+              if (status === 'GRADED') return t('Xem điểm')
+              if (status === 'SUBMITTED' || status === 'LATE') return isOverdue ? t('Xem bài nộp') : t('Sửa bài nộp')
+              return isOverdue ? t('Xem đề bài') : t('Làm bài')
             })()}
           </Link>
         </div>

@@ -1,6 +1,9 @@
+'use client'
+
 import React from 'react'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export interface PasswordRequirement {
   id: string
@@ -92,6 +95,7 @@ export function PasswordStrengthMeter({
   showCriteriaList = true,
   className,
 }: PasswordStrengthMeterProps) {
+  const { t } = useI18n()
   if (!password) return null
 
   const { score, level, color, bgScoreColor, requirements } = evaluatePassword(password)
@@ -110,7 +114,7 @@ export function PasswordStrengthMeter({
           />
         ))}
         <span className={cn('text-xs font-semibold capitalize ml-1 min-w-[70px] text-right', color)}>
-          {level}
+          {t(level)}
         </span>
       </div>
 
@@ -130,7 +134,7 @@ export function PasswordStrengthMeter({
               ) : (
                 <X className="w-3.5 h-3.5 text-slate-300 shrink-0" />
               )}
-              <span>{req.label}</span>
+              <span>{t(req.label)}</span>
             </div>
           ))}
         </div>

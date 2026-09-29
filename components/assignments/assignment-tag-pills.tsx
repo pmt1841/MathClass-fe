@@ -2,6 +2,7 @@
 
 import type { AssignmentTag } from '@/services/assignmentService'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const colors: Record<string, string> = {
   GRADE: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -10,10 +11,12 @@ const colors: Record<string, string> = {
 }
 
 export function AssignmentTagPills({ tags }: { tags?: AssignmentTag[] }) {
+  const { t } = useI18n()
+
   if (!tags?.length) {
     return (
       <span className="rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-        Chưa phân loại
+        {t('assignments.uncategorized')}
       </span>
     )
   }

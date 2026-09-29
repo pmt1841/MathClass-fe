@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ScrollText, ArrowUpRight } from 'lucide-react'
 import { RecentSystemLog } from '@/types/admin-dashboard'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface RecentSystemLogsCardProps {
   logs?: RecentSystemLog[]
@@ -35,16 +36,18 @@ const ACTION_LABELS: Record<string, string> = {
   ROLLBACK_PROMPT: 'Hoàn tác System Prompt về phiên bản trước',
 }
 
-const formatActionDescription = (action?: string) => {
+const formatActionDescription = (action: string | undefined, t: (key: string) => string) => {
   if (!action) return '---'
-  return ACTION_LABELS[action] || action
+  const label = ACTION_LABELS[action] || action
+  return t(label)
 }
 
 export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
+  const { t, locale } = useI18n()
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString)
-      return new Intl.DateTimeFormat('vi-VN', {
+      return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
         day: '2-digit',
@@ -77,17 +80,17 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
           </div>
           <div>
             <h3 className="font-semibold text-foreground text-sm">
-              Nhật Ký Hệ Thống
+              {t('Nhật Ký Hệ Thống')}
             </h3>
             <p className="text-xs text-muted-foreground">
-              5 hoạt động hệ thống gần nhất
+              {t('5 hoạt động hệ thống gần nhất')}
             </p>
           </div>
         </div>
 
         <Button variant="outline" size="sm" asChild className="h-8 gap-1 text-xs font-medium">
           <Link href="/admin/logs">
-            <span>Xem chi tiết</span>
+            <span>{t('Xem chi tiết')}</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
@@ -98,18 +101,18 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
         <table className="w-full text-xs text-left">
           <thead className="text-muted-foreground border-b uppercase tracking-wider font-medium text-[11px]">
             <tr>
-              <th className="py-2.5 px-3">Mức độ</th>
-              <th className="py-2.5 px-3">Người thực hiện</th>
-              <th className="py-2.5 px-3">Danh mục</th>
-              <th className="py-2.5 px-3">Mô tả hành động</th>
-              <th className="py-2.5 px-3 text-right">Thời gian</th>
+              <th className="py-2.5 px-3">{t('Mức độ')}</th>
+              <th className="py-2.5 px-3">{t('Người thực hiện')}</th>
+              <th className="py-2.5 px-3">{t('Danh mục')}</th>
+              <th className="py-2.5 px-3">{t('Mô tả hành động')}</th>
+              <th className="py-2.5 px-3 text-right">{t('Thời gian')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
             {logs.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                  Chưa có nhật ký ghi nhận
+                  {t('Chưa có nhật ký ghi nhận')}
                 </td>
               </tr>
             ) : (
@@ -132,11 +135,11 @@ export function RecentSystemLogsCard({ logs = [] }: RecentSystemLogsCardProps) {
                   </td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground border">
-                      {(log.resourceType && RESOURCE_TYPE_LABELS[log.resourceType]) || log.resourceType || 'Hệ thống'}
+                      {t((log.resourceType && RESOURCE_TYPE_LABELS[log.resourceType]) || log.resourceType || 'Hệ thống')}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-foreground/80 max-w-[200px] truncate" title={formatActionDescription(log.action)}>
-                    {formatActionDescription(log.action)}
+                  <td className="py-2.5 px-3 text-foreground/80 max-w-[200px] truncate" title={formatActionDescription(log.action, t)}>
+                    {formatActionDescription(log.action, t)}
                   </td>
                   <td className="py-2.5 px-3 text-right text-muted-foreground whitespace-nowrap font-mono text-[11px]">
                     {formatTime(log.createdAt)}

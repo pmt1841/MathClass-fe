@@ -14,17 +14,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { NotificationPopover } from './NotificationPopover'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { useAuth } from '@/hooks/useAuth'
 import { CreditBalanceBadge } from '@/components/credits/credit-balance-badge'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function DashboardHeader() {
+  const { t } = useI18n()
   const { user, logout } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const role = user?.role || (user as any)?.userRole
-  const displayName = user?.fullName || user?.email || 'Người dùng'
-  const roleLabel = role === 'ADMIN' ? 'Quản trị viên' : role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'
+  const displayName = user?.fullName || user?.email || t('Người dùng')
+  const roleLabel = role === 'ADMIN' ? t('Quản trị viên') : role === 'TEACHER' ? t('Giáo viên') : t('Học sinh')
   const roleColor = role === 'ADMIN' ? 'bg-red-500 text-white' : role === 'TEACHER' ? 'bg-white text-blue-600 font-semibold shadow-xs' : 'bg-white text-slate-800 font-medium'
   const homeHref = role === 'ADMIN' ? '/admin' : '/home'
   const profileHref = role === 'ADMIN' ? '/admin/profile' : '/profile'
@@ -44,7 +47,10 @@ export function DashboardHeader() {
           <div className="flex items-center gap-3">
             {role !== 'ADMIN' && <CreditBalanceBadge />}
 
+            <LanguageSwitcher />
+
             <NotificationPopover />
+
 
             <div className="relative">
               <button
@@ -83,7 +89,7 @@ export function DashboardHeader() {
                         onClick={() => setDropdownOpen(false)}
                       >
                         <User className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
-                        Hồ sơ cá nhân
+                        {t('Hồ sơ cá nhân')}
                       </Link>
                       <Link
                         href={settingsHref}
@@ -91,7 +97,7 @@ export function DashboardHeader() {
                         onClick={() => setDropdownOpen(false)}
                       >
                         <Settings className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
-                        Cài đặt
+                        {t('Cài đặt')}
                       </Link>
                       <button
                         id="logout-btn"
@@ -102,7 +108,7 @@ export function DashboardHeader() {
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/5 transition-colors cursor-pointer"
                       >
                         <LogOut className="h-4 w-4" />
-                        Đăng xuất
+                        {t('Đăng xuất')}
                       </button>
                     </div>
                   </div>
@@ -116,17 +122,17 @@ export function DashboardHeader() {
       <AlertDialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+            <AlertDialogTitle>{t('Xác nhận đăng xuất')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?
+              {t('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white text-black border border-input hover:bg-neutral-800 hover:text-white transition-colors">
-              Hủy
+              {t('Hủy')}
             </AlertDialogCancel>
             <AlertDialogAction onClick={logout} className="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors">
-              Đăng xuất
+              {t('Đăng xuất')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import { X, Tag as TagIcon, Loader2 } from 'lucide-react'
 import { assignmentService, AssignmentTag } from '@/services/assignmentService'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AssignmentTagInputProps {
   value: string[]
@@ -16,10 +17,12 @@ interface AssignmentTagInputProps {
 export function AssignmentTagInput({
   value = [],
   onChange,
-  placeholder = 'Nhập tag bài tập...',
+  placeholder,
   disabled = false,
   className,
 }: AssignmentTagInputProps) {
+  const { t } = useI18n()
+  const resolvedPlaceholder = placeholder || t('Nhập tag bài tập...')
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState<AssignmentTag[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -124,8 +127,8 @@ export function AssignmentTagInput({
                 removeTag(index)
               }}
               className="rounded-full p-0.5 hover:bg-primary/30 text-primary transition-colors cursor-pointer"
-              title="Xóa tag"
-              aria-label={`Xóa tag ${tag}`}
+              title={t('Xóa tag')}
+              aria-label={`${t('Xóa tag')} ${tag}`}
             >
               <X className="w-3 h-3" />
             </button>
@@ -150,7 +153,7 @@ export function AssignmentTagInput({
             }}
             onBlur={commitInput}
             onKeyDown={handleKeyDown}
-            placeholder={value.length === 0 ? placeholder : 'Thêm tag khác...'}
+            placeholder={value.length === 0 ? resolvedPlaceholder : t('Thêm tag khác...')}
             className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
           {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400 flex-shrink-0" />}
@@ -161,7 +164,7 @@ export function AssignmentTagInput({
       {isOpen && inputValue.trim().length > 0 && availableSuggestions.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg p-1.5 space-y-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
           <p className="px-2.5 py-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Gợi ý thẻ đã có
+            {t('Gợi ý thẻ đã có')}
           </p>
           {availableSuggestions.map((item) => (
             <button
@@ -175,7 +178,7 @@ export function AssignmentTagInput({
                 <TagIcon className="w-3 h-3 text-slate-400 group-hover:text-primary transition-colors" />
                 {item.name}
               </span>
-              <span className="text-[10px] text-slate-400 font-normal">Nhấn chọn</span>
+              <span className="text-[10px] text-slate-400 font-normal">{t('Nhấn chọn')}</span>
             </button>
           ))}
         </div>

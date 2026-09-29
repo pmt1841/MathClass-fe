@@ -30,19 +30,21 @@ import {
 import { useMyCreditTransactions, CreditTransactionItem } from '@/hooks/useCredits'
 import { formatCreditTransactionDescription } from '@/lib/constants/credit'
 import { formatDateTime, cn } from '@/lib/utils'
-
-const TRANSACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  GRANT_DEFAULT: { label: 'Cấp mặc định', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  PURCHASE: { label: 'Nạp credit', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  ADMIN_ADJUST: { label: 'Điều chỉnh', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-  CONSUME: { label: 'Sử dụng', color: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-  REFUND: { label: 'Hoàn lại', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-}
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function CreditTransactionsTable() {
+  const { t } = useI18n()
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(15)
+
+  const transactionTypeLabels: Record<string, { labelKey: string; color: string }> = {
+    GRANT_DEFAULT: { labelKey: 'credits.grantDefault', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+    PURCHASE: { labelKey: 'credits.purchase', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    ADMIN_ADJUST: { labelKey: 'credits.adminAdjust', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+    CONSUME: { labelKey: 'credits.consume', color: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
+    REFUND: { labelKey: 'credits.refund', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+  }
 
   const { data, isLoading, isFetching } = useMyCreditTransactions({
     type: typeFilter === 'ALL' ? undefined : typeFilter,
@@ -71,9 +73,9 @@ export function CreditTransactionsTable() {
         <div>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-slate-500" />
-            Lịch sử giao dịch
+            {t('credits.transactionsTitle')}
           </CardTitle>
-          <CardDescription>Toàn bộ biến động credit của tài khoản.</CardDescription>
+          <CardDescription>{t('credits.transactionsSubheading')}</CardDescription>
         </div>
 
         {/* Nút select đổi qua lại giữa các loại giao dịch */}
@@ -81,15 +83,15 @@ export function CreditTransactionsTable() {
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={typeFilter} onValueChange={handleFilterChange}>
             <SelectTrigger className="w-[190px] h-9 text-xs">
-              <SelectValue placeholder="Loại giao dịch" />
+              <SelectValue placeholder={t('credits.filterPlaceholder')} />
             </SelectTrigger>
             <SelectContent onCloseAutoFocus={(e) => e.preventDefault()}>
-              <SelectItem value="ALL">Tất cả giao dịch</SelectItem>
-              <SelectItem value="CONSUME">Sử dụng credit</SelectItem>
-              <SelectItem value="PURCHASE">Mua / Nạp credit</SelectItem>
-              <SelectItem value="REFUND">Hoàn credit</SelectItem>
-              <SelectItem value="GRANT_DEFAULT">Cấp mặc định</SelectItem>
-              <SelectItem value="ADMIN_ADJUST">Điều chỉnh từ Admin</SelectItem>
+              <SelectItem value="ALL">{t('credits.allTransactions')}</SelectItem>
+              <SelectItem value="CONSUME">{t('credits.consume')}</SelectItem>
+              <SelectItem value="PURCHASE">{t('credits.purchase')}</SelectItem>
+              <SelectItem value="REFUND">{t('credits.refund')}</SelectItem>
+              <SelectItem value="GRANT_DEFAULT">{t('credits.grantDefault')}</SelectItem>
+              <SelectItem value="ADMIN_ADJUST">{t('credits.adminAdjust')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -105,18 +107,18 @@ export function CreditTransactionsTable() {
         ) : transactions.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">
             {typeFilter !== 'ALL'
-              ? 'Không có giao dịch nào phù hợp với bộ lọc này.'
-              : 'Chưa có giao dịch nào.'}
+              ? t('credits.noTransactionsFilter')
+              : t('credits.noTransactionsYet')}
           </p>
         ) : (
           <div className={cn('overflow-x-auto transition-opacity duration-200', isFetching && 'opacity-60')}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Nội dung</TableHead>
-                  <TableHead className="text-right">Số credit</TableHead>
+                  <TableHead>{t('credits.time')}</TableHead>
+                  <TableHead>{t('credits.type')}</TableHead>
+                  <TableHead>{t('credits.description')}</TableHead>
+                  <TableHead className="text-right">{t('credits.amount')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -129,14 +131,14 @@ export function CreditTransactionsTable() {
                       <Badge
                         className={cn(
                           'font-medium',
-                          TRANSACTION_TYPE_LABELS[txn.type]?.color ?? 'bg-slate-100 text-slate-600'
+                          transactionTypeLabels[txn.type]?.color ?? 'bg-slate-100 text-slate-600'
                         )}
                       >
-                        {TRANSACTION_TYPE_LABELS[txn.type]?.label ?? txn.type}
+                        {transactionTypeLabels[txn.type]?.labelKey ? t(transactionTypeLabels[txn.type].labelKey) : txn.type}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-slate-600">
-                      {formatCreditTransactionDescription(txn.description, txn.task)}
+                      {formatCreditTransactionDescription(txn.description, txn.task, t)}
                     </TableCell>
                     <TableCell
                       className={cn(
@@ -159,10 +161,10 @@ export function CreditTransactionsTable() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span>
-                Hiển thị Trang <span className="font-semibold text-foreground">{page + 1}</span> / {Math.max(1, totalPages)} (Tổng số <span className="font-semibold text-foreground">{totalElements}</span> giao dịch)
+                {t('credits.paginationInfo', { page: page + 1, total: Math.max(1, totalPages), count: totalElements })}
               </span>
               <div className="flex items-center gap-1.5">
-                <span>Số dòng/trang:</span>
+                <span>{t('credits.rowsPerPage')}</span>
                 <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
                   <SelectTrigger className="h-7 w-[68px] text-xs">
                     <SelectValue />
@@ -187,7 +189,7 @@ export function CreditTransactionsTable() {
                   disabled={page <= 0 || isFetching}
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                  <span>Trước</span>
+                  <span>{t('credits.prev')}</span>
                 </Button>
 
                 <div className="flex items-center gap-1">
@@ -246,7 +248,7 @@ export function CreditTransactionsTable() {
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1 || isFetching}
                 >
-                  <span>Sau</span>
+                  <span>{t('credits.next')}</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>

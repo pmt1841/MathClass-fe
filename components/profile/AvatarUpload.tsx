@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Camera } from 'lucide-react'
 import { AvatarUploadModal } from './AvatarUploadModal'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string
@@ -14,6 +15,7 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ currentAvatarUrl, fullName, isGoogleUser = false, onUploadSuccess }: AvatarUploadProps) {
+  const { t } = useI18n()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const isGoogle = isGoogleUser
 
@@ -36,7 +38,7 @@ export function AvatarUpload({ currentAvatarUrl, fullName, isGoogleUser = false,
     <div className="flex flex-col items-center gap-4">
       <div 
         className="relative group" 
-        title={isGoogle ? "Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google" : "Bấm để thay đổi ảnh đại diện"}
+        title={isGoogle ? t('Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google') : t('Bấm để thay đổi ảnh đại diện')}
       >
         <Avatar className="h-24 w-24 border-2 border-slate-200 shadow-xs">
           <AvatarImage src={currentAvatarUrl} alt={fullName} className="object-cover" />
@@ -59,13 +61,13 @@ export function AvatarUpload({ currentAvatarUrl, fullName, isGoogleUser = false,
           size="sm" 
           disabled={isGoogle}
           onClick={handleOpenModal}
-          title={isGoogle ? "Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google" : undefined}
+          title={isGoogle ? t('Không thể thay đổi ảnh đại diện vì đăng nhập bằng tài khoản Google') : undefined}
           className={`text-xs font-semibold rounded-xl ${isGoogle ? "cursor-not-allowed opacity-50 bg-slate-50" : "hover:bg-primary/5 hover:border-primary/40 hover:text-primary transition-all"}`}
         >
-          Thay đổi ảnh
+          {t('Thay đổi ảnh')}
         </Button>
         <p className={`text-[11px] text-muted-foreground ${isGoogle ? "opacity-50" : ""}`}>
-          Định dạng: JPEG, PNG, WEBP (Tối đa 5MB)
+          {t('Định dạng: JPEG, PNG, WEBP (Tối đa 5MB)')}
         </p>
       </div>
 

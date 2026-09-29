@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 
 import { MathfieldElement } from 'mathlive'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface TiptapProps {
   value: string
@@ -60,6 +61,7 @@ export default function TiptapEditor({
   readOnly = false,
   compact = false,
 }: TiptapProps) {
+  const { t } = useI18n()
   const isEditable = editable !== undefined ? editable : !readOnly
   const [showMathToolbar, setShowMathToolbar] = useState(compact ? true : false)
   const [uploadModalState, setUploadModalState] = useState<{ isOpen: boolean, mode: UploadModalMode }>({
@@ -380,7 +382,7 @@ export default function TiptapEditor({
               }`}
           >
             <span className="font-mono text-xs leading-none">∑</span>
-            {showMathToolbar ? 'Ẩn bảng công thức' : 'Hiện bảng công thức'}
+            {showMathToolbar ? t('Ẩn bảng công thức') : t('Hiện bảng công thức')}
           </button>
         </div>
       )}
@@ -404,7 +406,7 @@ export default function TiptapEditor({
               onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
               className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
                 }`}
-              title="Tiêu đề lớn"
+              title={t("Tiêu đề lớn")}
             >
               <Heading1 className="w-4 h-4" />
             </button>
@@ -414,7 +416,7 @@ export default function TiptapEditor({
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
               className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
                 }`}
-              title="Tiêu đề vừa"
+              title={t("Tiêu đề vừa")}
             >
               <Heading2 className="w-4 h-4" />
             </button>
@@ -430,7 +432,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('bold') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
             }`}
-          title="In đậm"
+          title={t("In đậm")}
         >
           <Bold className="w-4 h-4" />
         </button>
@@ -440,7 +442,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('italic') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
             }`}
-          title="In nghiêng"
+          title={t("In nghiêng")}
         >
           <Italic className="w-4 h-4" />
         </button>
@@ -453,7 +455,7 @@ export default function TiptapEditor({
               onClick={() => setUploadModalState({ isOpen: true, mode: 'link' })}
               className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('link') ? 'bg-slate-200 dark:bg-slate-800 text-primary font-bold' : 'text-slate-600 dark:text-slate-400'
                 }`}
-              title="Chèn liên kết"
+              title={t("Chèn liên kết")}
             >
               <LinkIcon className="w-4 h-4" />
             </button>
@@ -462,7 +464,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setUploadModalState({ isOpen: true, mode: 'image' })}
               className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-              title="Tải lên ảnh từ máy tính"
+              title={t("Tải lên ảnh từ máy tính")}
             >
               <ImageIcon className="w-4 h-4" />
             </button>
@@ -472,7 +474,7 @@ export default function TiptapEditor({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setUploadModalState({ isOpen: true, mode: 'file' })}
                 className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-                title="Tải lên file"
+                title={t("Tải lên file")}
               >
                 <FileText className="w-4 h-4" />
               </button>
@@ -489,7 +491,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('bulletList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
             }`}
-          title="Danh sách dấu đầu dòng"
+          title={t("Danh sách dấu đầu dòng")}
         >
           <List className="w-4 h-4" />
         </button>
@@ -499,7 +501,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('orderedList') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
             }`}
-          title="Danh sách số"
+          title={t("Danh sách số")}
         >
           <ListOrdered className="w-4 h-4" />
         </button>
@@ -510,7 +512,7 @@ export default function TiptapEditor({
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-800 text-primary' : 'text-slate-600 dark:text-slate-400'
               }`}
-            title="Trích dẫn"
+            title={t("Trích dẫn")}
           >
             <Quote className="w-4 h-4" />
           </button>
@@ -526,7 +528,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
               className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-              title="Chèn bảng"
+              title={t("Chèn bảng")}
             >
               <TableIcon className="w-4 h-4" />
             </button>
@@ -540,7 +542,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().addColumnAfter().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded transition-colors"
-              title="Thêm cột bên phải"
+              title={t("Thêm cột bên phải")}
             >
               + Cột
             </button>
@@ -549,7 +551,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().addRowAfter().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded transition-colors"
-              title="Thêm dòng bên dưới"
+              title={t("Thêm dòng bên dưới")}
             >
               + Dòng
             </button>
@@ -558,7 +560,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteColumn().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-colors"
-              title="Xóa cột hiện tại"
+              title={t("Xóa cột hiện tại")}
             >
               Xóa Cột
             </button>
@@ -567,7 +569,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteRow().run()}
               className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition-colors"
-              title="Xóa dòng hiện tại"
+              title={t("Xóa dòng hiện tại")}
             >
               Xóa Dòng
             </button>
@@ -576,7 +578,7 @@ export default function TiptapEditor({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => editor.chain().focus().deleteTable().run()}
               className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors"
-              title="Xóa toàn bộ bảng"
+              title={t("Xóa toàn bộ bảng")}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -592,7 +594,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-40 transition-colors"
-          title="Hoàn tác"
+          title={t("Hoàn tác")}
         >
           <Undo className="w-4 h-4" />
         </button>
@@ -602,7 +604,7 @@ export default function TiptapEditor({
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-40 transition-colors"
-          title="Làm lại"
+          title={t("Làm lại")}
         >
           <Redo className="w-4 h-4" />
         </button>

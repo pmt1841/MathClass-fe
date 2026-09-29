@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDateTime } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface SubmissionTableProps {
   assignmentId: number
@@ -31,6 +32,7 @@ interface SubmissionTableProps {
 }
 
 export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProps) {
+  const { t } = useI18n()
   const [page, setPage] = useState(0)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedKeyword, setDebouncedKeyword] = useState('')
@@ -61,13 +63,13 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Đã nộp</Badge>
+        return <Badge className="bg-blue-500 hover:bg-blue-600">{t('Đã nộp')}</Badge>
       case 'GRADED':
-        return <Badge className="bg-green-500 hover:bg-green-600">Đã chấm</Badge>
+        return <Badge className="bg-green-500 hover:bg-green-600">{t('Đã chấm')}</Badge>
       case 'LATE':
-        return <Badge className="bg-red-500 hover:bg-red-600">Trễ</Badge>
+        return <Badge className="bg-red-500 hover:bg-red-600">{t('Trễ')}</Badge>
       case 'DRAFT':
-        return <Badge variant="secondary">Bản nháp</Badge>
+        return <Badge variant="secondary">{t('Bản nháp')}</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -78,7 +80,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <Input
-          placeholder="Tìm kiếm tên học sinh..."
+          placeholder={t('Tìm kiếm tên học sinh...')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="max-w-sm"
@@ -91,13 +93,13 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
           }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Chọn trạng thái" />
+            <SelectValue placeholder={t('Chọn trạng thái')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Tất cả</SelectItem>
-            <SelectItem value="SUBMITTED">Đã nộp</SelectItem>
-            <SelectItem value="GRADED">Đã chấm</SelectItem>
-            <SelectItem value="LATE">Trễ</SelectItem>
+            <SelectItem value="ALL">{t('Tất cả')}</SelectItem>
+            <SelectItem value="SUBMITTED">{t('Đã nộp')}</SelectItem>
+            <SelectItem value="GRADED">{t('Đã chấm')}</SelectItem>
+            <SelectItem value="LATE">{t('Trễ')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -107,11 +109,11 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tên học sinh</TableHead>
-              <TableHead>Thời gian nộp</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Điểm</TableHead>
-              <TableHead className="text-right">Hành động</TableHead>
+              <TableHead>{t('Tên học sinh')}</TableHead>
+              <TableHead>{t('Thời gian nộp')}</TableHead>
+              <TableHead>{t('Trạng thái')}</TableHead>
+              <TableHead>{t('Điểm')}</TableHead>
+              <TableHead className="text-right">{t('Hành động')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,7 +130,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
             ) : isError ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-red-500">
-                  Lỗi khi tải dữ liệu: {(error as Error).message}
+                  {t('Lỗi khi tải dữ liệu:')} {(error as Error).message}
                 </TableCell>
               </TableRow>
             ) : data?.content && data.content.length > 0 ? (
@@ -143,7 +145,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
                   <TableCell className="text-right">
                     <Link href={`/assignments/${assignmentId}/submissions/${sub.id}${classCode ? `?classCode=${classCode}` : ''}`}>
                       <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                        Xem chi tiết
+                        {t('Xem chi tiết')}
                       </Button>
                     </Link>
                   </TableCell>
@@ -152,7 +154,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  Không tìm thấy bài nộp nào.
+                  {t('Không tìm thấy bài nộp nào.')}
                 </TableCell>
               </TableRow>
             )}
@@ -169,10 +171,10 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
             onClick={() => setPage((old) => Math.max(old - 1, 0))}
             disabled={page === 0}
           >
-            Trang trước
+            {t('Trang trước')}
           </Button>
           <div className="text-sm text-muted-foreground">
-            Trang {page + 1} / {data.totalPages}
+            {t('Trang')} {page + 1} / {data.totalPages}
           </div>
           <Button
             variant="outline"
@@ -180,7 +182,7 @@ export function SubmissionTable({ assignmentId, classCode }: SubmissionTableProp
             onClick={() => setPage((old) => (data.last ? old : old + 1))}
             disabled={data.last}
           >
-            Trang sau
+            {t('Trang sau')}
           </Button>
         </div>
       )}

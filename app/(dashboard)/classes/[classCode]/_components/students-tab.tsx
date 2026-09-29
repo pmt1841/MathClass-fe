@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function StudentsTab({
   classCode,
@@ -37,6 +38,7 @@ export function StudentsTab({
   classroom: ClassroomDetail | null
   loadingClass: boolean
 }) {
+  const { t } = useI18n()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [page, setPage] = useState(0)
@@ -92,11 +94,11 @@ export function StudentsTab({
     const { id: studentId, name: studentName } = studentToRemove
     removeStudentMutation.mutate(studentId, {
       onSuccess: () => {
-        toast.success(`Đã xóa học sinh: ${studentName}`)
+        toast.success(t('Đã xóa học sinh: {name}', { name: studentName }))
         setStudentToRemove(null)
       },
       onError: () => {
-        toast.error('Không thể xóa học sinh')
+        toast.error(t('Không thể xóa học sinh'))
         setStudentToRemove(null)
       }
     })
@@ -107,9 +109,9 @@ export function StudentsTab({
       {!loadingClass && classroom && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StatCard
-            label="Sĩ số hiện tại"
+            label={t('Sĩ số hiện tại')}
             value={`${classroom.studentCount ?? 0}`}
-            sub={`/ ${classroom.maxStudents ?? '∞'} học sinh`}
+            sub={t('/ {count} học sinh', { count: classroom.maxStudents ?? '∞' })}
             color="from-indigo-500 to-purple-600"
             icon={<Users className="h-5 w-5 text-white" />}
           />
@@ -129,7 +131,7 @@ export function StudentsTab({
                     value={addStudentForm.values.email}
                     onChange={addStudentForm.handleChange}
                     onBlur={addStudentForm.handleBlur}
-                    placeholder={isFull ? 'Lớp đã đầy' : 'Email học sinh...'}
+                    placeholder={isFull ? t('Lớp đã đầy') : t('Email học sinh...')}
                     disabled={addStudentForm.isSubmitting || isFull}
                     className={`w-full h-10 px-3 rounded-lg border ${addStudentForm.touched.email && addStudentForm.errors.email ? 'border-destructive' : 'border-border'} bg-slate-50/50 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed`}
                   />
@@ -140,7 +142,7 @@ export function StudentsTab({
                   disabled={addStudentForm.isSubmitting || !addStudentForm.values.email.trim() || isFull}
                   className="flex-shrink-0 flex items-center justify-center h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {addStudentForm.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Thêm'}
+                  {addStudentForm.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('Thêm')}
                 </button>
               </div>
               {addStudentForm.touched.email && addStudentForm.errors.email && (
@@ -158,9 +160,9 @@ export function StudentsTab({
               <Users className="h-4.5 w-4.5 text-slate-600" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground">Danh sách học sinh</h2>
+              <h2 className="text-sm font-bold text-foreground">{t('Danh sách học sinh')}</h2>
               <p className="text-xs text-muted-foreground">
-                {loadingStudents ? 'Đang tải...' : `${totalElements} học sinh`}
+                {loadingStudents ? t('common.loading') : t('{count} học sinh', { count: totalElements })}
               </p>
             </div>
           </div>
@@ -169,7 +171,7 @@ export function StudentsTab({
             <button
               onClick={() => { setSortAsc(!sortAsc); setPage(0) }}
               className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-              title="Sắp xếp theo tên"
+              title={t('Sắp xếp theo tên')}
             >
               <Users className="h-3.5 w-3.5" />
               {sortAsc ? 'A-Z' : 'Z-A'}
@@ -180,17 +182,17 @@ export function StudentsTab({
               onChange={(e) => { setSize(Number(e.target.value)); setPage(0) }}
               className="h-9 px-2 rounded-lg border border-border bg-white text-xs text-slate-600 outline-none hover:bg-slate-50 transition-colors"
             >
-              <option value={5}>5 / trang</option>
-              <option value={10}>10 / trang</option>
-              <option value={15}>15 / trang</option>
-              <option value={20}>20 / trang</option>
+              <option value={5}>{t('{size} / trang', { size: 5 })}</option>
+              <option value={10}>{t('{size} / trang', { size: 10 })}</option>
+              <option value={15}>{t('{size} / trang', { size: 15 })}</option>
+              <option value={20}>{t('{size} / trang', { size: 20 })}</option>
             </select>
 
             <div className="relative w-48 hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm trong danh sách..."
+                placeholder={t('Tìm trong danh sách...')}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
@@ -228,10 +230,10 @@ export function StudentsTab({
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">
-                  {searchQuery ? 'Không tìm thấy học sinh' : 'Chưa có học sinh nào'}
+                  {searchQuery ? t('Không tìm thấy học sinh') : t('Chưa có học sinh nào')}
                 </p>
                 <p className="text-xs text-muted-foreground max-w-xs">
-                  {searchQuery ? 'Thử thay đổi từ khoá tìm kiếm.' : 'Thêm học sinh vào lớp bằng email bên trên.'}
+                  {searchQuery ? t('Thử thay đổi từ khoá tìm kiếm.') : t('Thêm học sinh vào lớp bằng email bên trên.')}
                 </p>
               </div>
             </div>
@@ -255,10 +257,14 @@ export function StudentsTab({
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-5 py-3 bg-slate-50">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <p className="hidden sm:block">
-                Đang hiển thị {page * size + 1} - {Math.min((page + 1) * size, totalElements)} trên tổng số {totalElements}
+                {t('Đang hiển thị {from} - {to} trên tổng số {total}', {
+                  from: page * size + 1,
+                  to: Math.min((page + 1) * size, totalElements),
+                  total: totalElements
+                })}
               </p>
               <div className="flex items-center gap-1.5">
-                <span>Hiển thị:</span>
+                <span>{t('Hiển thị:')}</span>
                 <Select
                   value={String(size)}
                   onValueChange={(val) => {
@@ -276,7 +282,7 @@ export function StudentsTab({
                     <SelectItem value="50">50</SelectItem>
                   </SelectContent>
                 </Select>
-                <span>/ trang</span>
+                <span>{t('/ trang')}</span>
               </div>
             </div>
 
@@ -314,20 +320,22 @@ export function StudentsTab({
       <AlertDialog open={!!studentToRemove} onOpenChange={(open) => !open && setStudentToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xóa học sinh</AlertDialogTitle>
+            <AlertDialogTitle>{t('Xóa học sinh')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa học sinh &quot;{studentToRemove?.name}&quot; khỏi lớp không?
+              {t('Bạn có chắc muốn xóa học sinh "{name}" khỏi lớp không?', {
+                name: studentToRemove?.name || ''
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white text-black border border-slate-200 hover:bg-slate-300 hover:text-black transition-colors">
-              Hủy
+              {t('Hủy')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveStudent}
               className="bg-white text-destructive border border-destructive hover:bg-destructive hover:text-white transition-colors"
             >
-              Xóa
+              {t('Xóa')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

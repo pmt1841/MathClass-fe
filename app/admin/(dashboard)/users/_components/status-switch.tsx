@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface StatusSwitchProps {
   userId: number
@@ -28,6 +29,7 @@ export function StatusSwitch({
   isPending,
   onToggle,
 }: StatusSwitchProps) {
+  const { t } = useI18n()
   /*
    * DIALOG XÁC NHẬN KHÓA:
    * Mở dialog xác nhận trước khi thực hiện hành động Khóa tài khoản người dùng
@@ -60,11 +62,11 @@ export function StatusSwitch({
           checked={isActive}
           disabled={isPending || isCurrentUser}
           onCheckedChange={handleSwitchChange}
-          aria-label={isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
-          title={isCurrentUser ? 'Bạn không thể tự khóa tài khoản quản trị của chính mình' : undefined}
+          aria-label={isActive ? t('Khóa tài khoản') : t('Mở khóa tài khoản')}
+          title={isCurrentUser ? t('Bạn không thể tự khóa tài khoản quản trị của chính mình') : undefined}
         />
         <span className="text-sm text-muted-foreground select-none font-medium">
-          {isActive ? 'Hoạt động' : 'Bị khóa'}
+          {isActive ? t('Hoạt động') : t('Bị khóa')}
         </span>
       </div>
 
@@ -73,20 +75,19 @@ export function StatusSwitch({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive">
-              Xác nhận khóa tài khoản?
+              {t('Xác nhận khóa tài khoản?')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground">
-              Tài khoản này sẽ lập tức bị hủy toàn bộ phiên làm việc (Refresh Token)
-              và bị đăng xuất khỏi hệ thống ngay khi thực hiện bất kỳ thao tác nào.
+              {t('Tài khoản này sẽ lập tức bị hủy toàn bộ phiên làm việc (Refresh Token) và bị đăng xuất khỏi hệ thống ngay khi thực hiện bất kỳ thao tác nào.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+            <AlertDialogCancel>{t('Hủy bỏ')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmLock}
               className="bg-red-600 text-white hover:bg-red-700 font-semibold border-none"
             >
-              Xác nhận khóa
+              {t('Xác nhận khóa')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

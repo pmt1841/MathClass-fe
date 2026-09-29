@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getDaysInMonthAndYear } from '@/lib/date-utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface DateSelectGroupProps {
   value?: string // Format: "dd-MM-yyyy" or partial like "13--"
@@ -23,6 +24,7 @@ export function DateSelectGroup({
   disabled = false,
   className,
 }: DateSelectGroupProps) {
+  const { t } = useI18n()
   const [dayVal, monthVal, yearVal] = value ? value.split('-') : ['', '', '']
 
   const currentYear = new Date().getFullYear()
@@ -70,7 +72,7 @@ export function DateSelectGroup({
         onValueChange={(val) => handleSelectChange('day', val)}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Ngày" />
+          <SelectValue placeholder={t('Ngày')} />
         </SelectTrigger>
         <SelectContent>
           {days.map((d) => (
@@ -87,12 +89,12 @@ export function DateSelectGroup({
         onValueChange={(val) => handleSelectChange('month', val)}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Tháng" />
+          <SelectValue placeholder={t('Tháng')} />
         </SelectTrigger>
         <SelectContent>
           {months.map((m) => (
             <SelectItem key={m} value={m}>
-              Tháng {m}
+              {t('Tháng {month}', { month: m })}
             </SelectItem>
           ))}
         </SelectContent>
@@ -104,7 +106,7 @@ export function DateSelectGroup({
         onValueChange={(val) => handleSelectChange('year', val)}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Năm" />
+          <SelectValue placeholder={t('Năm')} />
         </SelectTrigger>
         <SelectContent>
           {years.map((y) => (

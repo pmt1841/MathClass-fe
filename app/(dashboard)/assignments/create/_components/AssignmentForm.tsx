@@ -28,6 +28,7 @@ import { AssignmentTagInput } from '@/components/assignments/assignment-tag-inpu
 import { AiQuestionGeneratorModal } from '@/components/ai/AiQuestionGeneratorModal'
 import { AiGeneratedQuestionDTO } from '@/services/aiQuestionService'
 import { useAiFeatures, AI_FEATURE_TASKS } from '@/hooks/useAiFeatures'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 import { normalizeCanvasElements } from '@/components/ui/jsxgraph-editor-modal'
 
@@ -72,10 +73,10 @@ export const extractDrawings = (content: string) => {
 const JsxGraphEditorModal = dynamic(() => import('@/components/ui/jsxgraph-editor-modal').then(mod => mod.JsxGraphEditorModal), { ssr: false })
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
-const assignmentSchema = z.object({
-  title: z.string().min(1, 'Tiêu đề bài tập không được để trống'),
+export const getAssignmentSchema = (t: (key: string) => string) => z.object({
+  title: z.string().min(1, t('Tiêu đề bài tập không được để trống')),
   description: z.string().optional().default(''),
-  content: z.string().min(1, 'Nội dung bài tập không được để trống'),
+  content: z.string().min(1, t('Nội dung bài tập không được để trống')),
   drawings: z.array(z.any()).optional(),
   images: z.array(z.any()).optional(),
   tagIds: z.array(z.number()).optional(),
@@ -83,7 +84,16 @@ const assignmentSchema = z.object({
   allowResubmit: z.boolean().optional().default(false)
 })
 
-export type AssignmentFormValues = z.infer<typeof assignmentSchema>
+export type AssignmentFormValues = {
+  title: string
+  description?: string
+  content: string
+  drawings?: any[]
+  images?: any[]
+  tagIds?: number[]
+  tagNames?: string[]
+  allowResubmit?: boolean
+}
 
 interface AssignmentFormProps {
   pageTitle: string
@@ -106,11 +116,13 @@ export function AssignmentForm({
   onPublishClick,
   isSubmitting,
   defaultValues,
-  submitDraftText = 'Lưu nháp',
+  submitDraftText,
   assignmentId,
   onAutoSave
 }: AssignmentFormProps) {
   const router = useRouter()
+  const { t } = useI18n()
+  const resolvedSubmitDraftText = submitDraftText || t('Lưu nháp')
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
   const [showSidebar, setShowSidebar] = useState(true)
@@ -154,7 +166,7 @@ export function AssignmentForm({
     setValue,
     formState: { errors, isSubmitted }
   } = useForm<AssignmentFormValues>({
-    resolver: zodResolver(assignmentSchema),
+    resolver: zodResolver(getAssignmentSchema(t)),
     defaultValues: defaultValues || {
       title: '',
       description: '',
@@ -166,7 +178,7 @@ export function AssignmentForm({
     }
   })
 
-  useEffect(() => { assignmentService.getTags().then(setAvailableTags).catch(() => toast.error('Không thể tải danh sách tag')) }, [])
+  useEffect(() => { assignmentService.getTags().then(setAvailableTags).catch(() => toast.error(t('Không thể tải danh sách tag'))) }, [t])
 
   useEffect(() => {
     let mergedValues = defaultValues || { title: '', description: '', content: '', drawings: [], allowResubmit: false }
@@ -443,18 +455,18 @@ export function AssignmentForm({
 
   const handleImageUploadFromEditor = async (file: File, onProgress?: (percent: number) => void) => {
     if (images.length >= 10) {
-      toast.error('Chỉ được phép tải lên tối đa 10 ảnh.')
+      toast.error(t('Chỉ được phép tải lên tối đa 10 ảnh.'))
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Dung lượng ảnh vượt quá 5MB.')
+      toast.error(t('Dung lượng ảnh vượt quá 5MB.'))
       return
     }
 
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!validTypes.includes(file.type)) {
-      toast.error('Định dạng ảnh không hợp lệ. Vui lòng chọn .jpg, .png, .webp')
+      toast.error(t('Định dạng ảnh không hợp lệ. Vui lòng chọn .jpg, .png, .webp'))
       return
     }
 
@@ -484,7 +496,7 @@ export function AssignmentForm({
     } catch (error: any) {
       const msg = typeof error.response?.data === 'string'
         ? error.response.data
-        : error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tải ảnh lên'
+        : error.response?.data?.message || error.message || t('Có lỗi xảy ra khi tải ảnh lên')
       toast.error(msg)
       throw error
     } finally {
@@ -494,7 +506,7 @@ export function AssignmentForm({
 
   const processFileUpload = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('Dung lượng file vượt quá 10MB.')
+      toast.error(t('Dung lượng file vượt quá 10MB.'))
       return
     }
 
@@ -516,7 +528,7 @@ export function AssignmentForm({
         }
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Có lỗi xảy ra khi trích xuất nội dung file')
+      toast.error(error.response?.data?.error || t('Có lỗi xảy ra khi trích xuất nội dung file'))
     } finally {
       setIsUploadingFile(false)
     }
@@ -541,11 +553,11 @@ export function AssignmentForm({
       if (newImagesArr && newImagesArr.length > 0) {
         setImages(newImagesArr)
         setValue('images', newImagesArr, { shouldValidate: true, shouldDirty: true })
-        toast.success(`Đã thay thế nội dung và thêm ${newImagesArr.length} hình ảnh`)
+        toast.success(`${t('Đã thay thế nội dung và thêm')} ${newImagesArr.length} ${t('hình ảnh')}`)
       } else {
         setImages([])
         setValue('images', [], { shouldValidate: true, shouldDirty: true })
-        toast.success('Đã thay thế nội dung thành công')
+        toast.success(t('Đã thay thế nội dung thành công'))
       }
     } else { // 'append'
       const appendHtml = `<p></p><p></p>` + markdownToHtml(content)
@@ -563,9 +575,9 @@ export function AssignmentForm({
         const updatedImages = [...images, ...newImagesArr]
         setImages(updatedImages)
         setValue('images', updatedImages, { shouldValidate: true, shouldDirty: true })
-        toast.success(`Đã bổ sung nội dung và ${newImagesArr.length} hình ảnh`)
+        toast.success(`${t('Đã bổ sung nội dung và')} ${newImagesArr.length} ${t('hình ảnh')}`)
       } else {
-        toast.success('Đã bổ sung nội dung thành công')
+        toast.success(t('Đã bổ sung nội dung thành công'))
       }
     }
   }
@@ -750,12 +762,12 @@ export function AssignmentForm({
             {isAutoSaving ? (
               <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500 font-medium">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Đang lưu...
+                {t('Đang lưu...')}
               </span>
             ) : lastSavedTime ? (
               <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-500 font-medium">
                 <Check className="h-3.5 w-3.5" />
-                Đã lưu ({formatDateTime(lastSavedTime)})
+                {t('Đã lưu')} ({formatDateTime(lastSavedTime)})
               </span>
             ) : null}
           </div>
@@ -773,7 +785,7 @@ export function AssignmentForm({
                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
                 }`}
             >
-              <Edit3 className="w-3.5 h-3.5" /> Soạn thảo
+              <Edit3 className="w-3.5 h-3.5" /> {t('Soạn thảo')}
             </button>
             <button
               type="button"
@@ -783,7 +795,7 @@ export function AssignmentForm({
                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900/50'
                 }`}
             >
-              <Eye className="w-3.5 h-3.5" /> Xem trước
+              <Eye className="w-3.5 h-3.5" /> {t('Xem trước')}
             </button>
           </div>
 
@@ -794,7 +806,7 @@ export function AssignmentForm({
             className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-750 shadow-sm border border-slate-200 dark:border-slate-700 transition-all disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" />
-            {submitDraftText}
+            {resolvedSubmitDraftText}
           </button>
 
           {onPublishClick && (
@@ -805,7 +817,7 @@ export function AssignmentForm({
               className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/95 shadow-sm active:scale-98 transition-all disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
-              Giao bài
+              {t('assignments.assign')}
             </button>
           )}
 
@@ -817,9 +829,9 @@ export function AssignmentForm({
             onClick={() => setShowSidebar(!showSidebar)}
             className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${showSidebar
               ? 'bg-primary/10 text-primary border-primary/20'
-              : 'bg-background text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900'
+              : 'bg-background text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-855 hover:bg-slate-50 dark:hover:bg-slate-900'
               }`}
-            title="Cài đặt bài tập"
+            title={t('Cài đặt bài tập')}
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -836,24 +848,24 @@ export function AssignmentForm({
               <>
                 {/* Title */}
                 <div className="relative mb-6">
-                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tiêu đề bài tập</label>
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">{t('Tiêu đề bài tập')}</label>
                   <input
                     type="text"
                     {...register('title')}
-                    placeholder="Nhập tiêu đề bài tập..."
+                    placeholder={t('Nhập tiêu đề bài tập...')}
                     className={`w-full text-3xl font-extrabold bg-transparent border-none outline-none border-b border-slate-100 dark:border-slate-800 pb-3 focus:border-primary/50 transition-all placeholder:text-slate-200 dark:placeholder:text-slate-800 ${errors.title ? 'border-destructive' : ''
                       }`}
                   />
                   {errors.title && (
                     <span className="absolute left-0 -bottom-5 text-[10px] text-destructive font-medium">
-                      {errors.title.message}
+                      {t(errors.title.message || '')}
                     </span>
                   )}
                 </div>
 
                 {/* Content Separator Label */}
                 <div className="mb-2 flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</label>
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('Nội dung chi tiết')}</label>
                   {isAiQuestionGenEnabled && (
                     <button
                       type="button"
@@ -861,7 +873,7 @@ export function AssignmentForm({
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-indigo-500/20 active:scale-98 transition-all cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      Dùng AI sinh đề bài
+                      {t('Dùng AI sinh đề bài')}
                     </button>
                   )}
                 </div>
@@ -872,7 +884,7 @@ export function AssignmentForm({
                 <div className="flex-1 flex flex-col relative min-h-0 h-full">
                   {errors.content && (
                     <span className="absolute right-0 -top-6 bg-destructive/10 text-destructive px-2 py-0.5 rounded text-[11px] font-medium border border-destructive/20 z-10">
-                      {errors.content.message}
+                      {t(errors.content.message || '')}
                     </span>
                   )}
                   <TiptapEditor
@@ -882,7 +894,7 @@ export function AssignmentForm({
                     onUploadImage={handleImageUploadFromEditor}
                     onUploadFile={processFileUpload}
                     images={images}
-                    placeholder="Soạn thảo nội dung bài tập ở đây (hỗ trợ chèn công thức toán học từ thanh công cụ)..."
+                    placeholder={t('Soạn thảo nội dung bài tập ở đây (hỗ trợ chèn công thức toán học từ thanh công cụ)...')}
                   />
                 </div>
               </>
@@ -891,7 +903,7 @@ export function AssignmentForm({
               <div className="space-y-6 flex-1 flex flex-col min-h-0">
                 <div className="border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
                   <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-50">
-                    {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">Chưa nhập tiêu đề</span>}
+                    {watch('title') || <span className="text-slate-300 dark:text-slate-700 italic">{t('Chưa nhập tiêu đề')}</span>}
                   </h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                     {watch('description')}
@@ -901,7 +913,7 @@ export function AssignmentForm({
                   {debouncedContentValue ? (
                     renderContentWithDrawings(debouncedContentValue)
                   ) : (
-                    <p className="text-slate-400 dark:text-slate-600 italic text-sm mt-0">Nội dung xem trước sẽ hiển thị ở đây...</p>
+                    <p className="text-slate-400 dark:text-slate-600 italic text-sm mt-0">{t('Nội dung xem trước sẽ hiển thị ở đây...')}</p>
                   )}
                 </div>
               </div>
@@ -922,7 +934,7 @@ export function AssignmentForm({
           }`}>
           {/* Sidebar Header */}
           <div className="h-14 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900 shrink-0">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cấu hình bài tập</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('Cấu hình bài tập')}</span>
             <button
               type="button"
               onClick={() => setShowSidebar(false)}
@@ -936,12 +948,12 @@ export function AssignmentForm({
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Section 1: Thông tin chung */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông tin chung</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Thông tin chung')}</h3>
               <div className="space-y-1 relative">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mô tả ngắn gọn (Tùy chọn)</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('Mô tả ngắn gọn (Tùy chọn)')}</label>
                 <textarea
                   {...register('description')}
-                  placeholder="Mô tả tóm tắt nội dung bài tập này cho học sinh..."
+                  placeholder={t('Mô tả tóm tắt nội dung bài tập này cho học sinh...')}
                   rows={4}
                   className={`w-full px-3 py-2 text-sm rounded-xl border bg-slate-50/30 dark:bg-slate-950/20 text-slate-800 dark:text-slate-200 outline-none transition-all focus:bg-white dark:focus:bg-slate-950/40 focus:ring-2 focus:ring-primary/10 ${errors.description ? 'border-destructive focus:border-destructive' : 'border-slate-200 dark:border-slate-800 focus:border-primary'
                     }`}
@@ -955,20 +967,20 @@ export function AssignmentForm({
             <div className="h-px bg-slate-100 dark:bg-slate-850" />
 
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phân loại bài tập</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Phân loại bài tập')}</h3>
               <AssignmentTagInput value={formValues.tagNames || []} onChange={tagNames => setValue('tagNames', tagNames, { shouldDirty: true })} />
-              <p className="text-xs text-slate-500">Cần có ít nhất 1 tag để đăng lên Thư viện cộng đồng.</p>
+              <p className="text-xs text-slate-500">{t('Cần có ít nhất 1 tag để đăng lên Thư viện cộng đồng.')}</p>
             </div>
 
             <div className="h-px bg-slate-100 dark:bg-slate-850" />
 
             {/* Section 2: Tài nguyên học liệu */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thư viện tài nguyên</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Thư viện tài nguyên')}</h3>
 
               {/* JSXGraph & Image Section */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">Hình vẽ, Đồ thị & Ảnh</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">{t('Hình vẽ, Đồ thị & Ảnh')}</span>
 
                 {/* Upload Image Button */}
                 <button
@@ -977,14 +989,14 @@ export function AssignmentForm({
                   onClick={() => setMediaModalState({ isOpen: true, mode: 'image' })}
                   className={`w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-emerald-200 dark:border-emerald-900/50 cursor-pointer ${viewMode === 'preview' || isUploading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
                     }`}
-                  title={viewMode === 'preview' ? 'Quay lại soạn thảo để thêm ảnh' : undefined}
+                  title={viewMode === 'preview' ? t('Quay lại soạn thảo để thêm ảnh') : undefined}
                 >
                   {isUploading ? (
                     <span className="w-3.5 h-3.5 border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
                   ) : (
                     <ImagePlus className="w-3.5 h-3.5" />
                   )}
-                  Thêm ảnh
+                  {t('Thêm ảnh')}
                 </button>
 
                 {/* Uploaded Images List */}
@@ -997,7 +1009,7 @@ export function AssignmentForm({
                           disabled={viewMode === 'preview'}
                           onClick={() => handleInsertImage(img.imageCode)}
                           className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                          title="Nhấp để chèn vào vị trí con trỏ"
+                          title={t('Nhấp để chèn vào vị trí con trỏ')}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={img.imageUrl} alt={img.imageCode} className="w-5 h-5 rounded object-cover border border-slate-200 dark:border-slate-700 shrink-0" />
@@ -1008,7 +1020,7 @@ export function AssignmentForm({
                           disabled={viewMode === 'preview'}
                           onClick={() => handleDeleteImage(img.imageCode)}
                           className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
-                          title="Xóa ảnh"
+                          title={t('Xóa ảnh')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -1020,7 +1032,7 @@ export function AssignmentForm({
                 {/* Add Graph / Drawing Button */}
                 <button
                   type="button"
-                  title={viewMode === 'preview' ? 'Quay lại soạn thảo để thêm đồ thị' : undefined}
+                  title={viewMode === 'preview' ? t('Quay lại soạn thảo để thêm đồ thị') : undefined}
                   disabled={viewMode === 'preview'}
                   onClick={(e) => {
                     e.preventDefault();
@@ -1030,7 +1042,7 @@ export function AssignmentForm({
                   className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center gap-1.5 transition-all text-xs font-semibold border border-blue-200 dark:border-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
                 >
                   <CircleDot className="w-3.5 h-3.5" />
-                  Thêm hình vẽ đồ thị
+                  {t('Thêm hình vẽ đồ thị')}
                 </button>
 
                 {drawings.length > 0 ? (
@@ -1042,7 +1054,7 @@ export function AssignmentForm({
                           disabled={viewMode === 'preview'}
                           onClick={() => handleInsertDrawing(d.shapeCode)}
                           className="text-xs font-semibold text-slate-700 dark:text-slate-350 hover:text-primary dark:hover:text-primary transition-colors truncate max-w-[170px] disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Nhấp để chèn vào vị trí con trỏ"
+                          title={t('Nhấp để chèn vào vị trí con trỏ')}
                         >
                           {d.shapeCode} {d.width || d.height ? `(${d.width || '100%'}x${d.height || '300'})` : ''}
                         </button>
@@ -1052,7 +1064,7 @@ export function AssignmentForm({
                             disabled={viewMode === 'preview'}
                             onClick={() => handleEditDrawing(d.shapeCode)}
                             className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Sửa hình vẽ"
+                            title={t('Sửa hình vẽ')}
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
@@ -1061,7 +1073,7 @@ export function AssignmentForm({
                             disabled={viewMode === 'preview'}
                             onClick={() => handleDeleteDrawing(d.shapeCode)}
                             className="p-1 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Xóa hình vẽ"
+                            title={t('Xóa hình vẽ')}
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1070,14 +1082,14 @@ export function AssignmentForm({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-1">Chưa có hình vẽ JSXGraph nào.</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-1">{t('Chưa có hình vẽ JSXGraph nào.')}</p>
                 )}
               </div>
 
 
               {/* HDSD Note */}
               <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-                💡 <b>Mẹo:</b> Thiết lập kích thước mong muốn ở trên, sau đó nhấp vào hình vẽ hoặc ảnh để chèn mã tương ứng (ví dụ: <code className="text-primary font-mono">{`[SHAPE_1|500x250]`}</code>, <code className="text-primary font-mono">{`[IMAGE_1|300xauto]`}</code>) vào vị trí con trỏ.
+                💡 <b>{t('Mẹo:')}</b> {t('Thiết lập kích thước mong muốn ở trên, sau đó nhấp vào hình vẽ hoặc ảnh để chèn mã tương ứng')} (<code className="text-primary font-mono">{`[SHAPE_1|500x250]`}</code>, <code className="text-primary font-mono">{`[IMAGE_1|300xauto]`}</code>) {t('vào vị trí con trỏ.')}
               </div>
             </div>
           </div>
@@ -1089,9 +1101,9 @@ export function AssignmentForm({
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Hủy bỏ các thay đổi?</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">{t('Hủy bỏ các thay đổi?')}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Bạn có chắc chắn muốn quay lại không? Các thông tin bạn vừa nhập có thể bị mất.
+                {t('Bạn có chắc chắn muốn quay lại không? Các thông tin bạn vừa nhập có thể bị mất.')}
               </p>
             </div>
             <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 justify-end">
@@ -1099,13 +1111,13 @@ export function AssignmentForm({
                 onClick={() => setShowLeaveModal(false)}
                 className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 bg-slate-100 dark:bg-slate-900 rounded-xl transition-colors"
               >
-                Tiếp tục ở lại
+                {t('Tiếp tục ở lại')}
               </button>
               <button
                 onClick={handleLeaveConfirm}
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
               >
-                Vẫn quay lại
+                {t('Vẫn quay lại')}
               </button>
             </div>
           </div>
@@ -1117,7 +1129,7 @@ export function AssignmentForm({
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 pb-2">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải nội dung file</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{t('Tải nội dung file')}</h3>
               <button
                 onClick={() => {
                   setShowUploadConfirmModal(false)
@@ -1125,14 +1137,14 @@ export function AssignmentForm({
                   setPendingUploadFile(null)
                 }}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title="Đóng"
+                title={t('Đóng')}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-6 pb-6 pt-2">
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Bạn muốn <b>thay thế toàn bộ</b> dữ liệu cũ bằng file này, hay muốn <b>bổ sung thêm</b> dữ liệu mới vào cuối bài tập hiện tại?
+                {t('Bạn muốn')} <b>{t('thay thế toàn bộ')}</b> {t('dữ liệu cũ bằng file này, hay muốn')} <b>{t('bổ sung thêm')}</b> {t('dữ liệu mới vào cuối bài tập hiện tại?')}
               </p>
             </div>
             <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 justify-end">
@@ -1140,13 +1152,13 @@ export function AssignmentForm({
                 onClick={() => handleConfirmUpload('replace')}
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
               >
-                Thay thế
+                {t('Thay thế')}
               </button>
               <button
                 onClick={() => handleConfirmUpload('append')}
                 className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-sm"
               >
-                Bổ sung
+                {t('Bổ sung')}
               </button>
             </div>
           </div>

@@ -4,8 +4,11 @@ import { CreditBalanceCard } from '@/components/credits/credit-balance-card'
 import { CreditPackagesSection } from '@/components/credits/credit-packages-section'
 import { CreditTransactionsTable } from '@/components/credits/credit-transactions-table'
 import { Coins } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export default function CreditsPage() {
+  const { t } = useI18n()
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
       <div className="border-b border-border bg-white py-6">
@@ -15,10 +18,10 @@ export default function CreditsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <Coins className="h-5.5 w-5.5 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Ví Credit AI</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('credits.title')}</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Credit dùng chung cho các tính năng AI (gợi ý, chấm bài, sinh đề...). Hết credit vui lòng nạp thêm.
+              {t('credits.subheading')}
             </p>
           </div>
         </div>

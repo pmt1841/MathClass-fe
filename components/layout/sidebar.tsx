@@ -23,8 +23,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadChatClasses } from '@/hooks/useUnreadChatClasses'
 import { ReportBugModal } from '@/components/bug-report/ReportBugModal'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export interface NavItem {
+
   icon: React.ElementType
   label: string
   href: string
@@ -124,6 +126,25 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
   const [showReportModal, setShowReportModal] = useState(false)
   const { user } = useAuth()
   const { hasAnyUnread } = useUnreadChatClasses()
+  const { t } = useI18n()
+
+  const getTranslatedLabel = (item: NavItem) => {
+    if (item.href === '/home' || item.href === '/admin') return t('sidebar.overview')
+    if (item.href === '/classes') return t('sidebar.myClasses')
+    if (item.href === '/assignments') return t('sidebar.assignmentBank')
+    if (item.href === '/library') return t('sidebar.sharedLibrary')
+    if (item.href === '/credits') return t('sidebar.aiCredits')
+    if (item.href === '#report-bug') return t('sidebar.bugReport')
+    if (item.href === '/admin/users') return t('Quản lý Người dùng')
+    if (item.href === '/admin/roles') return t('Quản lý Quyền hạn')
+    if (item.href === '/admin/ai-config') return t('Cấu hình Dịch vụ AI')
+    if (item.href === '/admin/logs') return t('Nhật ký hệ thống')
+    if (item.href === '/admin/storage') return t('Quản lý Lưu trữ')
+    if (item.href === '/admin/bug-reports') return t('Quản lý Báo cáo lỗi')
+    return t(item.label)
+  }
+
+
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -187,6 +208,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
             const Icon = item.icon
             const active = !item.isAction && isActive(item.href)
             const isClassesItem = item.href === '/classes'
+            const label = getTranslatedLabel(item)
 
             if (item.isAction) {
               return (
@@ -194,12 +216,12 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                   key={item.label}
                   type="button"
                   onClick={() => setShowReportModal(true)}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed ? label : undefined}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-left cursor-pointer ${collapsed ? 'justify-center' : ''
                     } text-muted-foreground hover:bg-destructive/10 hover:text-destructive`}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0 text-destructive" />
-                  {!collapsed && <span className="flex-1 font-semibold">{item.label}</span>}
+                  {!collapsed && <span className="flex-1 font-semibold">{label}</span>}
                 </button>
               )
             }
@@ -208,7 +230,7 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
               <Link
                 key={item.href}
                 href={item.href}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? label : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${collapsed ? 'justify-center' : ''
                   } ${active
                     ? 'bg-primary/10 text-primary'
@@ -224,7 +246,8 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
                     </span>
                   )}
                 </div>
-                {!collapsed && <span className="flex-1">{item.label}</span>}
+                {!collapsed && <span className="flex-1">{label}</span>}
+
                 {!collapsed && isClassesItem && hasAnyUnread && (
                   <span className="relative flex h-2.5 w-2.5 ml-auto">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

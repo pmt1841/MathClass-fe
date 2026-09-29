@@ -12,23 +12,25 @@ import { useToast } from '@/hooks/use-toast'
 import { Separator } from '@/components/ui/separator'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsService, NotificationSettings } from '@/services/settingsService'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 import { ChangePasswordCard } from '@/components/settings/ChangePasswordCard'
 
 type SettingsTab = 'NOTIFICATIONS' | 'PASSWORD'
 
-const TABS: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
-  { key: 'NOTIFICATIONS', label: 'Thông báo Email', icon: BellRing },
-  { key: 'PASSWORD', label: 'Đổi mật khẩu', icon: KeyRound },
-]
-
 export default function SettingsPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   
   const [activeTab, setActiveTab] = useState<SettingsTab>('NOTIFICATIONS')
+
+  const TABS: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
+    { key: 'NOTIFICATIONS', label: t('Thông báo Email'), icon: BellRing },
+    { key: 'PASSWORD', label: t('Đổi mật khẩu'), icon: KeyRound },
+  ]
 
   // Role
   const isTeacher = user?.role === 'TEACHER'
@@ -53,14 +55,14 @@ export default function SettingsPage() {
     onSuccess: (data) => {
       queryClient.setQueryData(['notificationSettings'], data)
       toast({
-        title: 'Thành công',
-        description: 'Đã lưu cài đặt thông báo.',
+        title: t('Thành công'),
+        description: t('Đã lưu cài đặt thông báo.'),
       })
     },
     onError: () => {
       toast({
-        title: 'Lỗi',
-        description: 'Có lỗi xảy ra khi lưu cài đặt.',
+        title: t('Lỗi'),
+        description: t('Có lỗi xảy ra khi lưu cài đặt.'),
         variant: 'destructive'
       })
     }
@@ -92,7 +94,7 @@ export default function SettingsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-2 text-slate-500">
           <span className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
-          Đang tải cấu hình...
+          {t('Đang tải cấu hình...')}
         </div>
       </div>
     )
@@ -104,9 +106,9 @@ export default function SettingsPage() {
     <div className="flex-1 overflow-y-auto w-full bg-slate-50/50">
       <div className="container max-w-4xl py-8 px-4 md:px-8 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Cài đặt</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t('Cài đặt')}</h1>
           <p className="text-muted-foreground mt-2">
-            Quản lý tùy chọn nhận thông báo và các thiết lập tài khoản khác.
+            {t('Quản lý tùy chọn nhận thông báo và các thiết lập tài khoản khác.')}
           </p>
         </div>
 
@@ -134,10 +136,10 @@ export default function SettingsPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-xl flex items-center gap-2 text-slate-800">
                 <BellRing className="w-5 h-5 text-blue-500" />
-                Thông báo qua Email
+                {t('Thông báo qua Email')}
               </CardTitle>
               <CardDescription className="text-slate-500">
-                Chọn các sự kiện bạn muốn nhận email thông báo để không bỏ lỡ thông tin quan trọng.
+                {t('Chọn các sự kiện bạn muốn nhận email thông báo để không bỏ lỡ thông tin quan trọng.')}
               </CardDescription>
             </CardHeader>
             
@@ -146,10 +148,10 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 transition-colors hover:bg-slate-100/80">
                 <div className="space-y-0.5">
                   <Label className="text-base font-semibold text-slate-900 cursor-pointer" htmlFor="master-toggle">
-                    Nhận thông báo email
+                    {t('Nhận thông báo email')}
                   </Label>
                   <p className="text-sm text-slate-500">
-                    Bật/tắt toàn bộ thông báo gửi về email của bạn
+                    {t('Bật/tắt toàn bộ thông báo gửi về email của bạn')}
                   </p>
                 </div>
                 <Switch 
@@ -175,10 +177,10 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold leading-none cursor-pointer text-slate-800" htmlFor="teacher-join">
-                            Học sinh xin vào lớp
+                            {t('Học sinh xin vào lớp')}
                           </Label>
                           <p className="text-sm text-slate-500 max-w-[500px]">
-                            Nhận email khi có học sinh gửi yêu cầu tham gia vào lớp học của bạn.
+                            {t('Nhận email khi có học sinh gửi yêu cầu tham gia vào lớp học của bạn.')}
                           </p>
                         </div>
                       </div>
@@ -198,10 +200,10 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold leading-none cursor-pointer text-slate-800" htmlFor="teacher-submit">
-                            Học sinh nộp bài
+                            {t('Học sinh nộp bài')}
                           </Label>
                           <p className="text-sm text-slate-500 max-w-[500px]">
-                            Nhận email mỗi khi có học sinh hoàn thành và nộp bài tập mới.
+                            {t('Nhận email mỗi khi có học sinh hoàn thành và nộp bài tập mới.')}
                           </p>
                         </div>
                       </div>
@@ -226,10 +228,10 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold leading-none cursor-pointer text-slate-800" htmlFor="student-assign">
-                            Có bài tập mới
+                            {t('Có bài tập mới')}
                           </Label>
                           <p className="text-sm text-slate-500 max-w-[500px]">
-                            Nhận email ngay khi giáo viên giao một bài tập mới cho lớp của bạn.
+                            {t('Nhận email ngay khi giáo viên giao một bài tập mới cho lớp của bạn.')}
                           </p>
                         </div>
                       </div>
@@ -249,10 +251,10 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold leading-none cursor-pointer text-slate-800" htmlFor="student-graded">
-                            Bài đã được chấm
+                            {t('Bài đã được chấm')}
                           </Label>
                           <p className="text-sm text-slate-500 max-w-[500px]">
-                            Nhận email khi giáo viên đã hoàn tất việc chấm điểm và nhận xét bài làm của bạn.
+                            {t('Nhận email khi giáo viên đã hoàn tất việc chấm điểm và nhận xét bài làm của bạn.')}
                           </p>
                         </div>
                       </div>
@@ -272,10 +274,10 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold leading-none cursor-pointer text-slate-800" htmlFor="student-reminder">
-                            Nhắc nhở sắp đến hạn
+                            {t('Nhắc nhở sắp đến hạn')}
                           </Label>
                           <p className="text-sm text-slate-500 max-w-[500px]">
-                            Hệ thống tự động gửi email nhắc nhở trước 24 giờ khi bài tập sắp hết hạn.
+                            {t('Hệ thống tự động gửi email nhắc nhở trước 24 giờ khi bài tập sắp hết hạn.')}
                           </p>
                         </div>
                       </div>
@@ -293,7 +295,7 @@ export default function SettingsPage() {
                 {/* Empty state nếu không phải teacher/student */}
                 {!isTeacher && !isStudent && (
                   <p className="text-sm text-slate-500 italic py-4">
-                    Không có tùy chọn thông báo nào khả dụng cho tài khoản của bạn lúc này.
+                    {t('Không có tùy chọn thông báo nào khả dụng cho tài khoản của bạn lúc này.')}
                   </p>
                 )}
 
@@ -303,18 +305,18 @@ export default function SettingsPage() {
             <CardFooter className="bg-slate-50/80 px-6 py-4 border-t border-slate-100 flex justify-end gap-3 rounded-b-xl">
               <Button variant="outline" onClick={handleCancel} disabled={isSaving} className="border-slate-200 text-slate-600 hover:bg-slate-100">
                 <X className="w-4 h-4 mr-1.5" />
-                Hủy
+                {t('Hủy')}
               </Button>
               <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-medium">
                 {isSaving ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    Đang lưu...
+                    {t('Đang lưu...')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Save className="w-4 h-4" />
-                    Lưu thay đổi
+                    {t('Lưu thay đổi')}
                   </span>
                 )}
               </Button>

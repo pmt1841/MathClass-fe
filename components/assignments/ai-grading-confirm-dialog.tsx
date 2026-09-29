@@ -11,6 +11,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AiGradingConfirmDialogProps {
   open: boolean
@@ -30,6 +31,8 @@ export function AiGradingConfirmDialog({
   onCancel,
   onContinueViewing,
 }: AiGradingConfirmDialogProps) {
+  const { t } = useI18n()
+
   return (
     <AlertDialog open={open}>
       <AlertDialogContent className="max-w-md rounded-2xl border-slate-100 p-6 shadow-2xl">
@@ -40,15 +43,15 @@ export function AiGradingConfirmDialog({
             </div>
             <div>
               <AlertDialogTitle className="text-base font-bold text-slate-900">
-                Tiến trình AI đang chạy
+                {t('Tiến trình AI đang chạy')}
               </AlertDialogTitle>
               <p className="text-xs text-slate-500">
-                Bài làm của {studentName || 'học sinh'}
+                {t('Bài làm của')} {studentName || t('học sinh')}
               </p>
             </div>
           </div>
           <AlertDialogDescription className="text-sm leading-relaxed text-slate-600">
-            Hệ thống đang đối chiếu hình vẽ Canvas và chấm sơ bộ bài tự luận. Bạn muốn ẩn cửa sổ để tiếp tục thao tác hay hủy tiến trình này?
+            {t('Hệ thống đang đối chiếu hình vẽ Canvas và chấm sơ bộ bài tự luận. Bạn muốn ẩn cửa sổ để tiếp tục thao tác hay hủy tiến trình này?')}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -62,7 +65,7 @@ export function AiGradingConfirmDialog({
               className="border-slate-200 text-slate-700 hover:bg-slate-50"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Tiếp tục xem
+              {t('Tiếp tục xem')}
             </Button>
             <Button
               type="button"
@@ -72,7 +75,7 @@ export function AiGradingConfirmDialog({
               className="bg-rose-600 text-white hover:bg-rose-700"
             >
               <XCircle className="mr-1.5 h-4 w-4" />
-              Hủy chấm bài
+              {t('Hủy chấm bài')}
             </Button>
             <Button
               type="button"
@@ -81,7 +84,7 @@ export function AiGradingConfirmDialog({
               className="bg-violet-600 text-white hover:bg-violet-700"
             >
               <Eye className="mr-1.5 h-4 w-4" />
-              Ẩn & Chạy ngầm
+              {t('Ẩn & Chạy ngầm')}
             </Button>
           </div>
         </AlertDialogFooter>

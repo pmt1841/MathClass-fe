@@ -6,6 +6,7 @@ import { formatDateTime } from '@/lib/utils'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { assignmentService } from '@/services/assignmentService'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function AssignmentRow({
   assignment,
@@ -16,6 +17,7 @@ export function AssignmentRow({
 }) {
   const router = useRouter()
   const params = useParams()
+  const { t } = useI18n()
   const classCode = params.classCode as string
 
   const [allowResubmit, setAllowResubmit] = useState<boolean>(assignment.allowResubmit ?? false)
@@ -41,17 +43,17 @@ export function AssignmentRow({
 
   const statusConfig = {
     DRAFT: {
-      label: 'Bản nháp',
+      label: t('Bản nháp'),
       className: 'bg-amber-50 text-amber-700 border-amber-200',
       dot: 'bg-amber-400',
     },
     PUBLISHED: {
-      label: 'Đã giao',
+      label: t('Đã giao'),
       className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       dot: 'bg-emerald-500',
     },
     ARCHIVED: {
-      label: 'Lưu trữ',
+      label: t('Lưu trữ'),
       className: 'bg-slate-100 text-slate-500 border-slate-200',
       dot: 'bg-slate-400',
     },
@@ -103,11 +105,11 @@ export function AssignmentRow({
                   ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
                   : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
               }`}
-              title={allowResubmit ? 'Bấm để tắt cho phép học sinh nộp lại' : 'Bấm để bật cho phép học sinh nộp lại'}
+              title={allowResubmit ? t('Bấm để tắt cho phép học sinh nộp lại') : t('Bấm để bật cho phép học sinh nộp lại')}
             >
               <RotateCcw className={`h-3.5 w-3.5 ${allowResubmit ? 'text-blue-600 animate-spin-reverse' : 'text-slate-400'}`} />
               <span className="hidden md:inline">
-                {allowResubmit ? 'Cho nộp lại: Bật' : 'Cho nộp lại: Tắt'}
+                {allowResubmit ? t('Cho nộp lại: Bật') : t('Cho nộp lại: Tắt')}
               </span>
             </button>
           </PermissionGuard>
@@ -123,10 +125,10 @@ export function AssignmentRow({
               router.push(url)
             }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
-            title="Xem bài nộp"
+            title={t('Xem bài nộp')}
           >
             <ListChecks className="h-3.5 w-3.5" />
-            Bài nộp
+            {t('Bài nộp')}
           </button>
         )}
 
@@ -140,10 +142,10 @@ export function AssignmentRow({
               router.push(url)
             }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-white text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-foreground transition-colors"
-            title="Chỉnh sửa bài tập"
+            title={t('Chỉnh sửa bài tập')}
           >
             <Pencil className="h-3.5 w-3.5" />
-            Sửa
+            {t('Sửa')}
           </button>
         </PermissionGuard>
 
@@ -153,14 +155,15 @@ export function AssignmentRow({
               id={`publish-assignment-${assignment.id}`}
               onClick={onPublish}
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-              title="Giao bài tập này"
+              title={t('assignments.assign')}
             >
               <Send className="h-3.5 w-3.5" />
-              Giao bài
+              {t('assignments.assign')}
             </button>
           </PermissionGuard>
         )}
       </div>
+
     </div>
   )
 }

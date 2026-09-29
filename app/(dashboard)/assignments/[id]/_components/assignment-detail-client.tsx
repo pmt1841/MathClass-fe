@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { PermissionGuard } from '@/components/ui/with-permission'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 const JsxGraphBoard = dynamic(() => import('@/components/ui/jsxgraph-board').then(mod => mod.JsxGraphBoard), { ssr: false })
 
@@ -72,6 +73,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const id = resolvedParams.id
   const assignmentId = parseInt(id)
 
+  const { t } = useI18n()
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
@@ -81,6 +83,17 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
   const queryClient = useQueryClient()
   const { user, isInitializing } = useAuth()
   const [userRole, setUserRole] = useState<string>('STUDENT')
+
+  const getFromText = () => {
+    if (from === 'class') {
+      if (!assignment?.className) return t('Lớp học')
+      return assignment.className.toLowerCase().startsWith('lớp') || assignment.className.toLowerCase().startsWith('class')
+        ? assignment.className
+        : `${t('Lớp')} ${assignment.className}`
+    }
+    return t('Kho bài tập')
+  }
+
 
   // Submission states
   const [submissionId, setSubmissionId] = useState<number | null>(null)
@@ -389,16 +402,16 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
           submissionScore={submissionScore}
           teacherFeedback={submissionTeacherFeedback}
           onBack={handleBackClick}
-          fromText={from === 'class' ? `Lớp ${assignment.className}` : 'Kho bài tập'}
+          fromText={getFromText()}
           onAutoSave={handleAutoSaveDraft}
         />
         {showLeaveModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Rời khỏi trang?</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('Rời khỏi trang?')}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Bạn có chắc chắn muốn rời khỏi trang này không? Những thay đổi chưa được lưu tự động có thể bị mất.
+                  {t('Bạn có chắc chắn muốn rời khỏi trang này không? Những thay đổi chưa được lưu tự động có thể bị mất.')}
                 </p>
               </div>
               <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
@@ -406,13 +419,13 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   onClick={() => setShowLeaveModal(false)}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
                 >
-                  Hủy bỏ
+                  {t('Hủy bỏ')}
                 </button>
                 <button
                   onClick={handleLeaveConfirm}
                   className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm"
                 >
-                  Vẫn rời đi
+                  {t('Vẫn rời đi')}
                 </button>
               </div>
             </div>
@@ -425,9 +438,9 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                 <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
                   <XCircle className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận hủy nộp bài</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('Xác nhận hủy nộp bài')}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Bạn có chắc chắn muốn hủy nộp bài không? Bài làm của bạn sẽ chuyển về trạng thái Lưu nháp và bạn có thể tiếp tục chỉnh sửa.
+                  {t('Bạn có chắc chắn muốn hủy nộp bài không? Bài làm của bạn sẽ chuyển về trạng thái Lưu nháp và bạn có thể tiếp tục chỉnh sửa.')}
                 </p>
               </div>
               <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
@@ -435,14 +448,14 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   onClick={() => setShowUnsubmitModal(false)}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
                 >
-                  Không, quay lại
+                  {t('Không, quay lại')}
                 </button>
                 <button
                   onClick={handleUnsubmitConfirm}
                   disabled={isSavingExternal}
                   className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
                 >
-                  Đồng ý hủy nộp
+                  {t('Đồng ý hủy nộp')}
                 </button>
               </div>
             </div>
@@ -456,10 +469,13 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   <RotateCcw className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">
-                  Xác nhận làm lại bài ({submissionVersions ? Math.min(submissionVersions.length + 1, 3) : 2}/3)
+                  {t('Xác nhận làm lại bài ({current}/{max})', {
+                    current: submissionVersions ? Math.min(submissionVersions.length + 1, 3) : 2,
+                    max: 3
+                  })}
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Bản làm mới sẽ được gửi lên giáo viên để chấm lại. Lịch sử các lần nộp và điểm trước đây của bạn vẫn được lưu lại đầy đủ (Tối đa 3 lần nộp bài).
+                  {t('Bản làm mới sẽ được gửi lên giáo viên để chấm lại. Lịch sử các lần nộp và điểm trước đây của bạn vẫn được lưu lại đầy đủ (Tối đa 3 lần nộp bài).')}
                 </p>
               </div>
               <div className="flex items-center gap-3 p-4 bg-slate-50 border-t border-border justify-end">
@@ -467,14 +483,14 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
                   onClick={() => setShowResubmitModal(false)}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
                 >
-                  Hủy bỏ
+                  {t('Hủy bỏ')}
                 </button>
                 <button
                   onClick={handleResubmitConfirm}
                   disabled={isSavingExternal}
                   className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors shadow-sm disabled:opacity-50"
                 >
-                  Đồng ý làm lại bài
+                  {t('Đồng ý làm lại bài')}
                 </button>
               </div>
             </div>
@@ -483,6 +499,7 @@ export function AssignmentDetailClient({ params }: { params: Promise<{ id: strin
       </>
     )
   }
+
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden">

@@ -32,6 +32,7 @@ import { ClassroomStudentChatWidget } from '@/components/chat/ClassroomStudentCh
 import { ChatDockProvider, useChatDock } from '@/components/chat/ChatDockContext'
 import { FloatingChatDock } from '@/components/chat/FloatingChatDock'
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface PageProps {
   params: Promise<{ classCode: string }>
@@ -106,6 +107,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
   const { classCode } = use(params)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useI18n()
 
   const [classroom, setClassroom] = useState<ClassroomData | null>(null)
   const [assignedTasks, setAssignedTasks] = useState<StudentTask[]>([])
@@ -245,7 +247,7 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
             }
           }
         })
-        const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 'Chưa có điểm'
+        const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : t('Chưa có điểm')
 
         setStats({
           completionRate: `${totalCompleted}/${totalPublished}`,
@@ -256,12 +258,14 @@ export function StudentClassDetailPageClient({ params }: PageProps) {
         const generatedAnnouncements = allTasks
           .map((task: StudentTask) => ({
             id: task.id + (task.isSheet ? 2000 : 1000),
-            author: classData?.teacherName || 'Giáo viên',
+            author: classData?.teacherName || t('Giáo viên'),
             initials: (classData?.teacherName || 'GV').split(' ').pop()?.[0]?.toUpperCase() || 'GV',
             time: formatDateTime(task.createdAt),
             pinned: false,
             type: 'assignment',
-            content: `đã giao một ${task.isSheet ? 'phiếu bài tập' : 'bài tập'} mới: ${task.title}`,
+            content: task.isSheet 
+              ? t('đã giao một phiếu bài tập mới: {title}', { title: task.title })
+              : t('đã giao một bài tập mới: {title}', { title: task.title }),
             comments: 0,
             createdAt: task.createdAt
           }))
@@ -387,6 +391,7 @@ function StudentClassDetailPageContent({
   router,
   searchParams,
 }: StudentClassDetailPageContentProps) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const { openChat } = useChatDock()
   const { hasGroupUnread, groupUnreadCount, hasAnyStudentUnread, unreadStudentIds, studentUnreadCounts } = useClassroomChatUnread(classCode)
@@ -409,7 +414,7 @@ function StudentClassDetailPageContent({
             className="mb-4 flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors w-fit"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quay lại danh sách lớp
+            {t('Quay lại danh sách lớp')}
           </button>
 
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
@@ -418,7 +423,7 @@ function StudentClassDetailPageContent({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200/60 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
                   <BookOpen className="h-3 w-3" />
-                  Mã lớp: {classCode}
+                  {t('Mã lớp')}: {classCode}
                 </span>
                 <ClassroomStudentsPopover
                   classCode={classCode}
@@ -429,7 +434,7 @@ function StudentClassDetailPageContent({
                 <button
                   type="button"
                   onClick={async () => {
-                    openChat({ id: 'group', type: 'CLASS_GROUP', title: 'Chat Lớp' })
+                    openChat({ id: 'group', type: 'CLASS_GROUP', title: t('Chat Lớp') })
                     try {
                       await chatService.markGroupAsRead(classCode)
                       queryClient.invalidateQueries({ queryKey: ['classroom-chat-unread', classCode] })
@@ -438,7 +443,7 @@ function StudentClassDetailPageContent({
                     }
                   }}
                   className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/60 px-3.5 py-1 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:text-indigo-800 transition-all cursor-pointer active:scale-95"
-                  title="Mở kênh Chat nhóm Lớp học"
+                  title={t('Mở kênh Chat nhóm Lớp học')}
                 >
                   <div className="relative flex items-center justify-center">
                     <Users className="h-3.5 w-3.5 text-indigo-600" />
@@ -449,10 +454,10 @@ function StudentClassDetailPageContent({
                       </span>
                     )}
                   </div>
-                  <span>Chat Lớp</span>
+                  <span>{t('Chat Lớp')}</span>
                   {hasGroupUnread && (
                     <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                      {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                      {groupUnreadCount > 0 ? t('{groupUnreadCount} mới', { groupUnreadCount }) : t('Mới')}
                     </span>
                   )}
                 </button>
@@ -474,7 +479,7 @@ function StudentClassDetailPageContent({
                     }
                   }}
                   className="relative inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3.5 py-1 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 transition-all cursor-pointer active:scale-95"
-                  title="Mở khung Chat riêng với Giảng viên"
+                  title={t('Mở khung Chat riêng với Giảng viên')}
                 >
                   <div className="relative flex items-center justify-center">
                     <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
@@ -485,17 +490,17 @@ function StudentClassDetailPageContent({
                       </span>
                     )}
                   </div>
-                  <span>Hỏi Giảng viên</span>
+                  <span>{t('Hỏi Giảng viên')}</span>
                   {hasTeacherUnread && (
                     <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                      {teacherUnreadCount > 0 ? `${teacherUnreadCount} mới` : 'Mới'}
+                      {teacherUnreadCount > 0 ? t('{teacherUnreadCount} mới', { teacherUnreadCount }) : t('Mới')}
                     </span>
                   )}
                 </button>
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">
-                {classroom?.className || 'Đang tải...'}
+                {classroom?.className || t('Đang tải...')}
               </h1>
             </div>
 
@@ -510,13 +515,13 @@ function StudentClassDetailPageContent({
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-full">Tin mới nhất</span>
-                      <span className="text-[11px] text-amber-600/80">{latestAnnouncement?.time}</span>
+                      <span className="text-xs font-bold text-amber-800 bg-amber-200/50 px-2 py-0.5 rounded-full">{t('Tin mới nhất')}</span>
+                      <span className="text-[11px] text-amber-600/80">{latestAnnouncement?.time ? t(latestAnnouncement.time) : ''}</span>
                     </div>
                     <p className="text-sm text-amber-950 font-medium leading-snug line-clamp-2 group-hover:line-clamp-none transition-all duration-300">
                       {latestAnnouncement?.content}
                     </p>
-                    <p className="text-[11px] font-semibold text-amber-700 mt-2">— {latestAnnouncement?.author}</p>
+                    <p className="text-[11px] font-semibold text-amber-700 mt-2">— {latestAnnouncement?.author ? t(latestAnnouncement.author) : ''}</p>
                   </div>
                 </div>
               </div>
@@ -532,7 +537,7 @@ function StudentClassDetailPageContent({
 
             <div className="space-y-6 lg:col-span-1 hidden lg:block">
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-slate-300 transition-all duration-200">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Giáo viên phụ trách</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">{t('Giáo viên phụ trách')}</h3>
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-blue-50 text-indigo-700 text-base font-extrabold border border-indigo-200/50 shadow-sm">
                     {teacherInitials}
@@ -546,14 +551,14 @@ function StudentClassDetailPageContent({
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-hidden">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1">Kết quả của bạn</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1">{t('Kết quả của bạn')}</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       </div>
-                      <span className="text-sm font-medium text-slate-600">Hoàn thành</span>
+                      <span className="text-sm font-medium text-slate-600">{t('Hoàn thành')}</span>
                     </div>
                     <span className="text-sm font-bold text-slate-900">{stats.completionRate}</span>
                   </div>
@@ -563,7 +568,7 @@ function StudentClassDetailPageContent({
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
                         <TrendingUp className="h-4 w-4 text-blue-500" />
                       </div>
-                      <span className="text-sm font-medium text-slate-600">Điểm trung bình</span>
+                      <span className="text-sm font-medium text-slate-600">{t('Điểm trung bình')}</span>
                     </div>
                     <span className="text-sm font-bold text-slate-900">{stats.avgScore}</span>
                   </div>
@@ -580,7 +585,7 @@ function StudentClassDetailPageContent({
                       <Clock className="h-4 w-4 text-blue-600" />
                     </div>
                     <h3 className="text-sm font-bold text-slate-900">
-                      Bài tập cần làm
+                      {t('Bài tập cần làm')}
                       <span className="ml-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5">
                         {assignedTasks.length}
                       </span>
@@ -594,12 +599,12 @@ function StudentClassDetailPageContent({
                   className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3 max-h-[400px] overflow-y-auto pr-1"
                 >
                   {loading ? (
-                    <div className="text-sm text-muted-foreground text-center py-8">Đang tải danh sách bài tập...</div>
+                    <div className="text-sm text-muted-foreground text-center py-8">{t('Đang tải danh sách bài tập...')}</div>
                   ) : assignedTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
                       <CheckCircle2 className="h-10 w-10 text-emerald-400 mb-3" />
-                      <p className="text-sm font-bold text-slate-700">Thật tuyệt vời!</p>
-                      <p className="text-xs text-muted-foreground mt-1">Bạn đã hoàn thành tất cả bài tập hiện tại.</p>
+                      <p className="text-sm font-bold text-slate-700">{t('Thật tuyệt vời!')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('Bạn đã hoàn thành tất cả bài tập hiện tại.')}</p>
                     </div>
                   ) : (
                     <>
@@ -616,21 +621,21 @@ function StudentClassDetailPageContent({
                                     <BookOpen className="h-5 w-5" />
                                   </div>
                                   <div>
-                                    <h4 className="font-bold text-base text-slate-900 group-hover:text-indigo-700 transition-colors">{task.title} (Phiếu bài tập)</h4>
-                                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || 'Không có mô tả chi tiết'}</p>
+                                    <h4 className="font-bold text-base text-slate-900 group-hover:text-indigo-700 transition-colors">{task.title} ({t('Phiếu bài tập')})</h4>
+                                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || t('Không có mô tả chi tiết')}</p>
                                     <div className="flex items-center gap-3 mt-3">
                                       <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-red-50 text-red-600 border border-red-100">
                                         <Clock className="h-3 w-3" />
-                                        Hạn nộp: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
+                                        {t('Hạn nộp')}: {task.deadline ? formatDateTime(task.deadline) : t('Không có thời hạn')}
                                       </span>
                                       <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                        {task.items?.length || 0} bài tập
+                                        {t('{count} bài tập', { count: task.items?.length || 0 })}
                                       </span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-all">
-                                  Mở phiếu
+                                  {t('Mở phiếu')}
                                   <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                                 </div>
                               </summary>
@@ -640,7 +645,7 @@ function StudentClassDetailPageContent({
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
                                       <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
-                                        {item.maxScore ?? 10} đ
+                                        {item.maxScore ?? 10} {t('đ')}
                                       </span>
                                     </div>
                                     <Link
@@ -649,9 +654,9 @@ function StudentClassDetailPageContent({
                                     >
                                       {(() => {
                                         const isItemOverdue = task.deadline && (parseDateSafe(task.deadline)?.getTime() ?? 0) < Date.now();
-                                        if (item.submissionStatus === 'GRADED') return 'Xem điểm';
-                                        if (item.submissionStatus === 'SUBMITTED' || item.submissionStatus === 'LATE') return isItemOverdue ? 'Xem bài nộp' : 'Sửa bài nộp';
-                                        return isItemOverdue ? 'Xem đề bài' : 'Làm bài';
+                                        if (item.submissionStatus === 'GRADED') return t('Xem điểm');
+                                        if (item.submissionStatus === 'SUBMITTED' || item.submissionStatus === 'LATE') return isItemOverdue ? t('Xem bài nộp') : t('Sửa bài nộp');
+                                        return isItemOverdue ? t('Xem đề bài') : t('Làm bài');
                                       })()}
                                     </Link>
                                   </div>
@@ -672,11 +677,11 @@ function StudentClassDetailPageContent({
                               </div>
                               <div>
                                 <h4 className="font-bold text-base text-slate-900 group-hover:text-blue-700 transition-colors">{task.title}</h4>
-                                <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || 'Không có mô tả chi tiết'}</p>
+                                <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || t('Không có mô tả chi tiết')}</p>
                                 <div className="flex items-center gap-3 mt-3">
                                   <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-red-50 text-red-600 border border-red-100">
                                     <Clock className="h-3 w-3" />
-                                    Hạn nộp: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
+                                    {t('Hạn nộp')}: {task.deadline ? formatDateTime(task.deadline) : t('Không có thời hạn')}
                                   </span>
                                 </div>
                               </div>
@@ -685,7 +690,7 @@ function StudentClassDetailPageContent({
                               href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                               className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-600 hover:shadow-md hover:shadow-blue-200 transition-all active:scale-[.98]"
                             >
-                              Làm bài
+                              {t('Làm bài')}
                               <ChevronRight className="h-4 w-4" />
                             </Link>
                           </div>
@@ -697,15 +702,15 @@ function StudentClassDetailPageContent({
                           {loadingMoreAssigned ? (
                             <p className="flex items-center justify-center gap-2 text-xs font-semibold text-blue-600 py-2 border-t border-dashed border-blue-200">
                               <span className="h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                              Đang tải 5 bài tiếp theo...
+                              {t('Đang tải 5 bài tiếp theo...')}
                             </p>
                           ) : assignedLimit < assignedTasks.length ? (
                             <p className="text-xs font-medium text-slate-400 py-2 border-t border-dashed border-slate-200">
-                              Cuộn xuống để tải thêm bài tập... ({assignedLimit}/{assignedTasks.length} bài)
+                              {t('Cuộn xuống để tải thêm bài tập...')} ({assignedLimit}/{assignedTasks.length} {t('bài')})
                             </p>
                           ) : (
                             <p className="text-xs font-semibold text-slate-400 py-2 border-t border-slate-200/60 bg-slate-100/50 rounded-xl">
-                              ✓ Đã hiển thị tất cả {assignedTasks.length} bài tập
+                              ✓ {t('Đã hiển thị tất cả {count} bài tập', { count: assignedTasks.length })}
                             </p>
                           )}
                         </div>
@@ -722,7 +727,7 @@ function StudentClassDetailPageContent({
                       <AlertCircle className="h-4 w-4 text-red-600" />
                     </div>
                     <h3 className="text-sm font-bold text-slate-900">
-                      Bài tập quá hạn
+                      {t('Bài tập quá hạn')}
                       <span className="ml-2 rounded-full bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5">
                         {overdueTasks.length}
                       </span>
@@ -735,7 +740,7 @@ function StudentClassDetailPageContent({
                   className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3 max-h-[400px] overflow-y-auto pr-1"
                 >
                   {overdueTasks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-2">Bạn không có bài tập nào quá hạn.</p>
+                    <p className="text-xs text-muted-foreground text-center py-2">{t('Bạn không có bài tập nào quá hạn.')}</p>
                   ) : (
                     <>
                       {overdueTasks.slice(0, overdueLimit).map((task: StudentTask) => {
@@ -751,21 +756,21 @@ function StudentClassDetailPageContent({
                                     <BookOpen className="h-5 w-5" />
                                   </div>
                                   <div>
-                                    <h4 className="font-bold text-base text-slate-900 group-hover:text-red-700 transition-colors">{task.title} (Phiếu quá hạn)</h4>
-                                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || 'Không có mô tả chi tiết'}</p>
+                                    <h4 className="font-bold text-base text-slate-900 group-hover:text-red-700 transition-colors">{task.title} ({t('Phiếu quá hạn')})</h4>
+                                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{task.description || t('Không có mô tả chi tiết')}</p>
                                     <div className="flex items-center gap-3 mt-3">
                                       <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-red-100 text-red-700 border border-red-200">
                                         <Clock className="h-3 w-3" />
-                                        Đã quá hạn: {task.deadline ? formatDateTime(task.deadline) : ''}
+                                        {t('Đã quá hạn')}: {task.deadline ? formatDateTime(task.deadline) : ''}
                                       </span>
                                       <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 bg-slate-100 text-slate-600">
-                                        {task.items?.length || 0} bài tập
+                                        {t('{count} bài tập', { count: task.items?.length || 0 })}
                                       </span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 transition-all">
-                                  Xem chi tiết
+                                  {t('Xem chi tiết')}
                                   <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                                 </div>
                               </summary>
@@ -775,7 +780,7 @@ function StudentClassDetailPageContent({
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
                                       <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex-shrink-0">
-                                        {item.maxScore ?? 10} đ
+                                        {item.maxScore ?? 10} {t('đ')}
                                       </span>
                                     </div>
                                     <Link
@@ -783,9 +788,9 @@ function StudentClassDetailPageContent({
                                       className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100"
                                     >
                                       {(() => {
-                                        if (item.submissionStatus === 'GRADED') return 'Xem điểm';
-                                        if (item.submissionStatus === 'SUBMITTED' || item.submissionStatus === 'LATE') return 'Xem bài nộp';
-                                        return 'Vẫn nộp bài';
+                                        if (item.submissionStatus === 'GRADED') return t('Xem điểm');
+                                        if (item.submissionStatus === 'SUBMITTED' || item.submissionStatus === 'LATE') return t('Xem bài nộp');
+                                        return t('Vẫn nộp bài');
                                       })()}
                                     </Link>
                                   </div>
@@ -801,14 +806,14 @@ function StudentClassDetailPageContent({
                               <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
                               <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-red-500">
                                 <AlertCircle className="h-3 w-3" />
-                                Hết hạn: {task.deadline ? formatDateTime(task.deadline) : 'Không có thời hạn'}
+                                {t('Hết hạn')}: {task.deadline ? formatDateTime(task.deadline) : t('Không có thời hạn')}
                               </span>
                             </div>
                             <Link
                               href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                               className="flex-shrink-0 self-start sm:self-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-100"
                             >
-                              Vẫn nộp bài
+                              {t('Vẫn nộp bài')}
                             </Link>
                           </div>
                         )
@@ -819,15 +824,15 @@ function StudentClassDetailPageContent({
                           {loadingMoreOverdue ? (
                             <p className="flex items-center justify-center gap-2 text-xs font-semibold text-red-600 py-2 border-t border-dashed border-red-200">
                               <span className="h-3.5 w-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></span>
-                              Đang tải 5 bài tiếp theo...
+                              {t('Đang tải 5 bài tiếp theo...')}
                             </p>
                           ) : overdueLimit < overdueTasks.length ? (
                             <p className="text-xs font-medium text-red-400 py-2 border-t border-dashed border-red-200">
-                              Cuộn xuống để tải thêm bài tập... ({overdueLimit}/{overdueTasks.length} bài)
+                              {t('Cuộn xuống để tải thêm bài tập...')} ({overdueLimit}/{overdueTasks.length} {t('bài')})
                             </p>
                           ) : (
                             <p className="text-xs font-semibold text-red-400 py-2 border-t border-red-200/60 bg-red-50/50 rounded-xl">
-                              ✓ Đã hiển thị tất cả {overdueTasks.length} bài tập quá hạn
+                              ✓ {t('Đã hiển thị tất cả {count} bài tập quá hạn', { count: overdueTasks.length })}
                             </p>
                           )}
                         </div>
@@ -844,7 +849,7 @@ function StudentClassDetailPageContent({
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     </div>
                     <h3 className="text-sm font-bold text-slate-900">
-                      Đã hoàn thành
+                      {t('Đã hoàn thành')}
                       <span className="ml-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5">
                         {completedTasks.length}
                       </span>
@@ -857,13 +862,13 @@ function StudentClassDetailPageContent({
                   className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-3 max-h-[400px] overflow-y-auto pr-1"
                 >
                   {completedTasks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-2">Bạn chưa hoàn thành bài tập nào.</p>
+                    <p className="text-xs text-muted-foreground text-center py-2">{t('Bạn chưa hoàn thành bài tập nào.')}</p>
                   ) : (
                     <>
                       {completedTasks.slice(0, completedLimit).map((task: StudentTask) => {
                         if (task.isSheet) {
                           const isGraded = task.submissionStatus === 'GRADED';
-                          const submittedAt = 'Đã hoàn thành';
+                          const submittedAt = t('Đã hoàn thành');
 
                           const totalSheetScore = task.items?.reduce((sum: number, item: TaskItem) => sum + (item.submissionScore || 0), 0) || 0;
                           const allItemsGraded = (task.items?.length ?? 0) > 0 && task.items!.every((item: TaskItem) => item.submissionStatus === 'GRADED');
@@ -876,27 +881,27 @@ function StudentClassDetailPageContent({
                               <summary className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 cursor-pointer">
                                 <div className="flex flex-col">
                                   <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title} (Phiếu bài tập)</h4>
+                                    <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title} ({t('Phiếu bài tập')})</h4>
                                     <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
-                                      {task.items?.length || 0} bài tập
+                                      {t('{count} bài tập', { count: task.items?.length || 0 })}
                                     </span>
                                     {allItemsGraded && (
                                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                        {totalSheetScore}/10 điểm
+                                        {totalSheetScore}/10 {t('điểm')}
                                       </span>
                                     )}
                                   </div>
-                                  <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {submittedAt}</p>
+                                  <p className="mt-1 text-[11px] text-slate-400">{t('Đã nộp')}: {submittedAt}</p>
                                 </div>
                                 <div className="flex-shrink-0 self-start sm:self-center flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200">
-                                  Xem chi tiết
+                                  {t('Xem chi tiết')}
                                   <ChevronDown className="h-4 w-4 details-chevron transition-transform duration-300" />
                                 </div>
                               </summary>
                               <div className="p-4 border-t border-slate-100 bg-slate-50/30 space-y-3">
                                 {task.items?.map((item: TaskItem, i: number) => {
                                   const itemGraded = item.submissionStatus === 'GRADED';
-                                  const itemSubmittedAt = item.submissionUpdatedAt || item.submissionCreatedAt ? formatDateTime(item.submissionUpdatedAt || item.submissionCreatedAt) : 'Chưa có thông tin';
+                                  const itemSubmittedAt = item.submissionUpdatedAt || item.submissionCreatedAt ? formatDateTime(item.submissionUpdatedAt || item.submissionCreatedAt) : t('Chưa có thông tin');
                                   return (
                                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-all">
                                       <div className="flex flex-col">
@@ -904,21 +909,21 @@ function StudentClassDetailPageContent({
                                           <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{i + 1}. {item.title}</h4>
                                           {itemGraded ? (
                                             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                              {item.submissionScore ?? 0}/{item.maxScore ?? 10} điểm
+                                              {item.submissionScore ?? 0}/{item.maxScore ?? 10} {t('điểm')}
                                             </span>
                                           ) : (
                                             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
-                                              Chờ chấm
+                                              {t('Chờ chấm')}
                                             </span>
                                           )}
                                         </div>
-                                        <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {itemSubmittedAt}</p>
+                                        <p className="mt-1 text-[11px] text-slate-400">{t('Đã nộp')}: {itemSubmittedAt}</p>
                                       </div>
                                       <Link
                                         href={`/assignments/${item.id}?classCode=${classCode}&from=class`}
                                         className="flex-shrink-0 self-start sm:self-center text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
                                       >
-                                        Xem lại bài
+                                        {t('Xem lại bài')}
                                       </Link>
                                     </div>
                                   )
@@ -929,7 +934,7 @@ function StudentClassDetailPageContent({
                         }
 
                         const isGraded = task.submissionStatus === 'GRADED';
-                        const submittedAt = task.submissionUpdatedAt || task.submissionCreatedAt ? formatDateTime(task.submissionUpdatedAt || task.submissionCreatedAt) : 'Chưa có thông tin';
+                        const submittedAt = task.submissionUpdatedAt || task.submissionCreatedAt ? formatDateTime(task.submissionUpdatedAt || task.submissionCreatedAt) : t('Chưa có thông tin');
 
                         return (
                           <div key={task.isSheet ? `sheet-${task.id}` : `task-${task.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
@@ -938,21 +943,21 @@ function StudentClassDetailPageContent({
                                 <h4 className="font-semibold text-sm text-slate-800 line-clamp-1">{task.title}</h4>
                                 {isGraded ? (
                                   <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                                    {task.submissionScore ?? 0}/{task.maxScore ?? 10} điểm
+                                    {task.submissionScore ?? 0}/{task.maxScore ?? 10} {t('điểm')}
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
-                                    Chờ chấm
+                                    {t('Chờ chấm')}
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-[11px] text-slate-400">Đã nộp: {submittedAt}</p>
+                              <p className="mt-1 text-[11px] text-slate-400">{t('Đã nộp')}: {submittedAt}</p>
                             </div>
                             <Link
                               href={`/assignments/${task.id}?classCode=${classCode}&from=class`}
                               className="flex-shrink-0 self-start sm:self-center text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
                             >
-                              Xem lại bài
+                              {t('Xem lại bài')}
                             </Link>
                           </div>
                         )
@@ -963,15 +968,15 @@ function StudentClassDetailPageContent({
                           {loadingMoreCompleted ? (
                             <p className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600 py-2 border-t border-dashed border-emerald-200">
                               <span className="h-3.5 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
-                              Đang tải 5 bài tiếp theo...
+                              {t('Đang tải 5 bài tiếp theo...')}
                             </p>
                           ) : completedLimit < completedTasks.length ? (
                             <p className="text-xs font-medium text-emerald-500 py-2 border-t border-dashed border-emerald-200">
-                              Cuộn xuống để tải thêm bài tập... ({completedLimit}/{completedTasks.length} bài)
+                              {t('Cuộn xuống để tải thêm bài tập...')} ({completedLimit}/{completedTasks.length} {t('bài')})
                             </p>
                           ) : (
                             <p className="text-xs font-semibold text-emerald-600 py-2 border-t border-emerald-200/60 bg-emerald-50/50 rounded-xl">
-                              ✓ Đã hiển thị tất cả {completedTasks.length} bài tập đã hoàn thành
+                              ✓ {t('Đã hiển thị tất cả {count} bài tập đã hoàn thành', { count: completedTasks.length })}
                             </p>
                           )}
                         </div>
@@ -991,7 +996,7 @@ function StudentClassDetailPageContent({
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100">
                       <Bell className="h-3.5 w-3.5 text-indigo-600" />
                     </div>
-                    <h2 className="text-sm font-bold text-slate-800">Thông báo khác</h2>
+                    <h2 className="text-sm font-bold text-slate-800">{t('Thông báo khác')}</h2>
                   </div>
                 </div>
 
@@ -1006,17 +1011,17 @@ function StudentClassDetailPageContent({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-xs text-slate-800">{ann.author}</span>
-                          <span className="text-[10px] text-slate-400">{ann.time}</span>
+                          <span className="font-semibold text-xs text-slate-800">{ann.author ? t(ann.author) : ''}</span>
+                          <span className="text-[10px] text-slate-400">{ann.time ? t(ann.time) : ''}</span>
                         </div>
-                        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{ann.content}</p>
+                        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{ann.content ? t(ann.content) : ''}</p>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="p-3 border-t border-slate-100 bg-slate-50/50">
                   <button className="w-full text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors py-1.5">
-                    Xem tất cả thông báo
+                    {t('Xem tất cả thông báo')}
                   </button>
                 </div>
               </div>

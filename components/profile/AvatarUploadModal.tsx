@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useUploadAvatar } from '@/hooks/useProfile'
 import { getCroppedImg, PixelCrop } from '@/lib/utils/cropImage'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AvatarUploadModalProps {
   open: boolean
@@ -38,6 +39,7 @@ export function AvatarUploadModal({
   onOpenChange,
   onUploadSuccess
 }: AvatarUploadModalProps) {
+  const { t } = useI18n()
   const [step, setStep] = useState<'SELECT' | 'CROP'>('SELECT')
   const [imageSrc, setImageSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -193,12 +195,12 @@ export function AvatarUploadModal({
       <DialogContent showCloseButton={!isUploading} className="sm:max-w-md p-6 rounded-2xl overflow-hidden">
         <DialogHeader className="space-y-1 text-left">
           <DialogTitle className="text-xl font-bold tracking-tight text-foreground flex items-center justify-between">
-            <span>Cập nhật ảnh đại diện</span>
+            <span>{t('Cập nhật ảnh đại diện')}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {step === 'SELECT'
-              ? 'Tải lên ảnh mới bằng cách chọn tệp hoặc kéo thả trực tiếp vào ô bên dưới.'
-              : 'Thu phóng, xoay và điều chỉnh vị trí để có bức ảnh hoàn hảo nhất.'}
+              ? t('Tải lên ảnh mới bằng cách chọn tệp hoặc kéo thả trực tiếp vào ô bên dưới.')
+              : t('Thu phóng, xoay và điều chỉnh vị trí để có bức ảnh hoàn hảo nhất.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -229,11 +231,11 @@ export function AvatarUploadModal({
 
               <div className="space-y-1.5 pointer-events-none">
                 <p className="text-sm font-semibold text-slate-800">
-                  Kéo và thả ảnh vào đây, hoặc{' '}
-                  <span className="text-primary underline underline-offset-2">Duyệt tìm tệp</span>
+                  {t('Kéo và thả ảnh vào đây, hoặc')}{' '}
+                  <span className="text-primary underline underline-offset-2">{t('Duyệt tìm tệp')}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Hỗ trợ các định dạng PNG, JPG, WEBP (Tối đa 5MB)
+                  {t('Hỗ trợ các định dạng PNG, JPG, WEBP (Tối đa 5MB)')}
                 </p>
               </div>
 
@@ -282,7 +284,7 @@ export function AvatarUploadModal({
               </div>
 
               <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
-                <span className="text-muted-foreground font-medium">Thu phóng: {Math.round(zoom * 100)}%</span>
+                <span className="text-muted-foreground font-medium">{t('Thu phóng: {zoom}%', { zoom: Math.round(zoom * 100) })}</span>
                 <Button
                   type="button"
                   variant="outline"
@@ -291,7 +293,7 @@ export function AvatarUploadModal({
                   className="h-8 gap-1.5 text-xs font-semibold hover:bg-white"
                 >
                   <RotateCw className="h-3.5 w-3.5 text-slate-600" />
-                  Xoay 90°
+                  {t('Xoay 90°')}
                 </Button>
               </div>
             </div>
@@ -310,7 +312,7 @@ export function AvatarUploadModal({
                 className="gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Chọn ảnh khác
+                {t('Chọn ảnh khác')}
               </Button>
 
               <div className="flex items-center gap-2">
@@ -322,7 +324,7 @@ export function AvatarUploadModal({
                   onClick={() => handleOpenChange(false)}
                   className="text-xs"
                 >
-                  Hủy
+                  {t('Hủy')}
                 </Button>
                 <Button
                   type="button"
@@ -334,10 +336,10 @@ export function AvatarUploadModal({
                   {isUploading ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Đang lưu...
+                      {t('Đang lưu...')}
                     </>
                   ) : (
-                    'Lưu thay đổi'
+                    t('Lưu thay đổi')
                   )}
                 </Button>
               </div>
@@ -351,7 +353,7 @@ export function AvatarUploadModal({
                 onClick={() => handleOpenChange(false)}
                 className="text-xs"
               >
-                Đóng
+                {t('Đóng')}
               </Button>
             </div>
           )}

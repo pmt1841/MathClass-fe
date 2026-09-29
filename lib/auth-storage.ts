@@ -1,4 +1,5 @@
 import { AUTH_KEYS, COOKIE_OPTIONS } from '@/lib/constants/auth'
+import { setLocaleCookie } from '@/lib/constants/i18n'
 
 export const authStorage = {
   getToken(): string | null {
@@ -85,10 +86,15 @@ export const authStorage = {
       document.cookie = cookieBase
     }
 
+    if (userInfo?.language) {
+      setLocaleCookie(userInfo.language)
+    }
+
     // Clear old storages to ensure strict adherence to cookies
     localStorage.removeItem(AUTH_KEYS.USER_INFO)
     sessionStorage.removeItem(AUTH_KEYS.USER_INFO)
   },
+
 
   getUserInfo(): any | null {
     if (typeof window === 'undefined') return null

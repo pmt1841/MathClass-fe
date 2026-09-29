@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Lock } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export const LOCK_REASON_PRESETS = [
   'Vi phạm tiêu chuẩn cộng đồng / Ngôn từ không phù hợp',
@@ -41,6 +42,7 @@ export function LockUserModal({
   userEmail,
   isPending = false,
 }: LockUserModalProps) {
+  const { t } = useI18n()
   const [selectedPreset, setSelectedPreset] = useState<string>(LOCK_REASON_PRESETS[0])
   const [customReason, setCustomReason] = useState<string>('')
   const [error, setError] = useState<string>('')
@@ -69,12 +71,12 @@ export function LockUserModal({
     }
 
     if (!finalReason || finalReason.length < 5) {
-      setError('Vui lòng nhập lý do khóa cụ thể (tối thiểu 5 ký tự).')
+      setError(t('Vui lòng nhập lý do khóa cụ thể (tối thiểu 5 ký tự).'))
       return
     }
 
     if (finalReason.length > 500) {
-      setError('Lý do không được vượt quá 500 ký tự.')
+      setError(t('Lý do không được vượt quá 500 ký tự.'))
       return
     }
 
@@ -88,16 +90,16 @@ export function LockUserModal({
         <DialogHeader>
           <div className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />
-            <DialogTitle>Xác nhận Khóa Tài Khoản</DialogTitle>
+            <DialogTitle>{t('Xác nhận Khóa Tài Khoản')}</DialogTitle>
           </div>
           <DialogDescription className="pt-2 text-slate-600">
-            Bạn đang thực hiện khóa tài khoản của <strong>{userFullName}</strong> ({userEmail}). Người dùng sẽ bị ngắt toàn bộ phiên làm việc và nhận email thông báo lý do.
+            {t('Bạn đang thực hiện khóa tài khoản của')} <strong>{userFullName}</strong> ({userEmail}). {t('Người dùng sẽ bị ngắt toàn bộ phiên làm việc và nhận email thông báo lý do.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-3">
           <Label className="text-sm font-medium text-slate-800">
-            Chọn lý do khóa tài khoản <span className="text-red-500">*</span>
+            {t('Chọn lý do khóa tài khoản')} <span className="text-red-500">*</span>
           </Label>
 
           <RadioGroup value={selectedPreset} onValueChange={handlePresetChange} className="space-y-2">
@@ -105,17 +107,16 @@ export function LockUserModal({
               <div key={preset} className="flex items-center space-x-2">
                 <RadioGroupItem value={preset} id={`lock-reason-${index}`} />
                 <Label htmlFor={`lock-reason-${index}`} className="text-sm font-normal text-slate-700 cursor-pointer">
-                  {preset === 'OTHER' ? 'Khác (Tự nhập lý do chi tiết)' : preset}
+                  {preset === 'OTHER' ? t('Khác (Tự nhập lý do chi tiết)') : t(preset)}
                 </Label>
               </div>
             ))}
           </RadioGroup>
 
-
           {selectedPreset === 'OTHER' && (
             <div className="space-y-1 pt-1">
               <Textarea
-                placeholder="Nhập lý do chi tiết (tối thiểu 5 ký tự)..."
+                placeholder={t('Nhập lý do chi tiết (tối thiểu 5 ký tự)...')}
                 value={customReason}
                 onChange={(e) => {
                   setCustomReason(e.target.value)
@@ -124,7 +125,7 @@ export function LockUserModal({
                 className="min-h-[90px] text-sm"
                 maxLength={500}
               />
-              <p className="text-xs text-slate-400 text-right">{customReason.length}/500 ký tự</p>
+              <p className="text-xs text-slate-400 text-right">{customReason.length}/500 {t('ký tự')}</p>
             </div>
           )}
 
@@ -133,11 +134,11 @@ export function LockUserModal({
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Hủy bỏ
+            {t('Hủy bỏ')}
           </Button>
           <Button variant="destructive" onClick={handleConfirm} disabled={isPending} className="gap-1.5 bg-red-600 hover:bg-red-700">
             <Lock className="h-4 w-4" />
-            {isPending ? 'Đang xử lý...' : 'Xác nhận Khóa'}
+            {isPending ? t('Đang xử lý...') : t('Xác nhận Khóa')}
           </Button>
         </DialogFooter>
       </DialogContent>

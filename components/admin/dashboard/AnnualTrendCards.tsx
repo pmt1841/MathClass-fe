@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { UserPlus, Banknote } from 'lucide-react'
 import { MonthlyUserTrend, MonthlyRevenueTrend } from '@/types/admin-dashboard'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface AnnualTrendCardsProps {
   userTrends?: MonthlyUserTrend[]
@@ -15,6 +16,7 @@ export function AnnualTrendCards({
   revenueTrends = [],
   year,
 }: AnnualTrendCardsProps) {
+  const { t, locale } = useI18n()
   const [hoveredUserPoint, setHoveredUserPoint] = useState<number | null>(null)
   const [hoveredRevPoint, setHoveredRevPoint] = useState<number | null>(null)
 
@@ -33,7 +35,7 @@ export function AnnualTrendCards({
   })
 
   const formatVND = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -98,10 +100,10 @@ export function AnnualTrendCards({
             </div>
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                Tăng Trưởng Đăng Ký Năm {year}
+                {t('Tăng Trưởng Đăng Ký Năm {year}', { year })}
               </h4>
               <p className="text-[11px] text-muted-foreground">
-                Số lượng tài khoản mới qua 12 tháng
+                {t('Số lượng tài khoản mới qua 12 tháng')}
               </p>
             </div>
           </div>
@@ -109,7 +111,7 @@ export function AnnualTrendCards({
           {/* Góc phải: Tag trạng thái 12 Tháng (Bỏ số tổng ở góc) */}
           <div>
             <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border">
-              12 Tháng
+              {t('12 Tháng')}
             </span>
           </div>
         </div>
@@ -184,7 +186,7 @@ export function AnnualTrendCards({
                         : 'fill-muted-foreground/70'
                     }`}
                   >
-                    T{pt.month}
+                    {locale === 'en' ? `M${pt.month}` : `T${pt.month}`}
                   </text>
 
                   {/* Vùng hover tương tác */}
@@ -236,12 +238,12 @@ export function AnnualTrendCards({
               }}
             >
               <span className="font-semibold text-foreground">
-                Tháng {userSvgPoints[hoveredUserPoint].month}:
+                {t('Tháng {month}:', { month: userSvgPoints[hoveredUserPoint].month })}
               </span>{' '}
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                 +{userSvgPoints[hoveredUserPoint].count}
               </span>{' '}
-              tài khoản
+              {t('tài khoản')}
             </div>
           )}
         </div>
@@ -256,10 +258,10 @@ export function AnnualTrendCards({
             </div>
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                Xu Hướng Doanh Thu Năm {year}
+                {t('Xu Hướng Doanh Thu Năm {year}', { year })}
               </h4>
               <p className="text-[11px] text-muted-foreground">
-                Doanh số nạp credit qua 12 tháng
+                {t('Doanh số nạp credit qua 12 tháng')}
               </p>
             </div>
           </div>
@@ -267,7 +269,7 @@ export function AnnualTrendCards({
           {/* Góc phải: Tag trạng thái 12 Tháng (Bỏ số tổng ở góc) */}
           <div>
             <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border">
-              12 Tháng
+              {t('12 Tháng')}
             </span>
           </div>
         </div>
@@ -342,7 +344,7 @@ export function AnnualTrendCards({
                         : 'fill-muted-foreground/70'
                     }`}
                   >
-                    T{pt.month}
+                    {locale === 'en' ? `M${pt.month}` : `T${pt.month}`}
                   </text>
 
                   {/* Vùng hover tương tác */}
@@ -394,7 +396,7 @@ export function AnnualTrendCards({
               }}
             >
               <span className="font-semibold text-foreground">
-                Tháng {revSvgPoints[hoveredRevPoint].month}:
+                {t('Tháng {month}:', { month: revSvgPoints[hoveredRevPoint].month })}
               </span>{' '}
               <span className="text-amber-600 dark:text-amber-400 font-bold">
                 {formatVND(revSvgPoints[hoveredRevPoint].revenue)}

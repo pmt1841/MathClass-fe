@@ -10,8 +10,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function CreateAssignmentPageClient() {
+  const { t } = useI18n()
   const router = useRouter()
   const { user, isInitializing } = useAuth()
   const queryClient = useQueryClient()
@@ -28,7 +30,7 @@ export function CreateAssignmentPageClient() {
     if (user) {
       const role = user.role || user.userRole || 'STUDENT'
       if (role !== 'TEACHER') {
-        toast.error('Bạn không có quyền truy cập trang này')
+        toast.error(t('Bạn không có quyền truy cập trang này'))
         router.replace('/assignments')
         return
       }
@@ -36,7 +38,7 @@ export function CreateAssignmentPageClient() {
       router.replace('/')
       return
     }
-  }, [user, isInitializing, router])
+  }, [user, isInitializing, router, t])
 
   if (!user && !isInitializing) return null
 
@@ -49,12 +51,12 @@ export function CreateAssignmentPageClient() {
         await assignmentService.createAssignment(data)
       }
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
-      toast.success('Đã lưu nháp bài tập thành công!')
+      toast.success(t('Đã lưu nháp bài tập thành công!'))
       router.push('/assignments')
     } catch (err: any) {
       console.error('Error drafting assignment:', err)
-      const msg = err.response?.data || 'Có lỗi xảy ra khi lưu nháp'
-      toast.error(typeof msg === 'string' ? msg : 'Không thể lưu nháp bài tập')
+      const msg = err.response?.data || t('Có lỗi xảy ra khi lưu nháp')
+      toast.error(typeof msg === 'string' ? msg : t('Không thể lưu nháp bài tập'))
     } finally {
       setIsSubmitting(false)
     }
@@ -95,7 +97,7 @@ export function CreateAssignmentPageClient() {
       }
 
       if (!assignmentId) {
-        throw new Error('Không lấy được ID bài tập sau khi tạo.')
+        throw new Error(t('Không lấy được ID bài tập sau khi tạo.'))
       }
 
       // Step 2: Publish it
@@ -107,12 +109,12 @@ export function CreateAssignmentPageClient() {
       })
 
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
-      toast.success('Đã đăng bài tập thành công!')
+      toast.success(t('Đã đăng bài tập thành công!'))
       setPublishModalOpen(false)
       router.push('/assignments')
     } catch (err: any) {
       console.error('Error publishing assignment:', err)
-      toast.error(handleApiError(err, 'Không thể giao bài tập'))
+      toast.error(handleApiError(err, t('Không thể giao bài tập')))
     } finally {
       setIsSubmitting(false)
     }
@@ -129,9 +131,9 @@ export function CreateAssignmentPageClient() {
   return (
     <>
       <AssignmentForm
-        pageTitle="Tạo bài tập mới"
+        pageTitle={t('Tạo bài tập mới')}
         backHref="/assignments"
-        backText="Quay lại danh sách"
+        backText={t('Quay lại danh sách')}
         isSubmitting={isSubmitting}
         onSubmitDraft={handleDraft}
         onPublishClick={handleOpenPublishModal}

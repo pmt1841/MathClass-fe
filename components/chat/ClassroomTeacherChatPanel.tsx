@@ -11,6 +11,7 @@ import { ChatMessageItem } from './ChatMessageItem';
 import { useAuth } from '@/hooks/useAuth';
 import { useClassroomChatUnread } from '@/hooks/useClassroomChatUnread';
 import { chatService } from '@/services/chatService';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 export interface StudentInfo {
   id: number;
@@ -32,6 +33,7 @@ export function ClassroomTeacherChatPanel({
   students,
   initialStudentId,
 }: ClassroomTeacherChatPanelProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const {
     hasGroupUnread,
@@ -189,10 +191,10 @@ export function ClassroomTeacherChatPanel({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1">
-                <p className="text-xs font-bold truncate">📢 Chat Lớp (Kênh chung)</p>
+                <p className="text-xs font-bold truncate">📢 {t('Chat Lớp (Kênh chung)')}</p>
                 {hasGroupUnread && (
                   <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                    {groupUnreadCount > 0 ? `${groupUnreadCount} mới` : 'Mới'}
+                    {groupUnreadCount > 0 ? `${groupUnreadCount} ${t('mới')}` : t('Mới')}
                   </span>
                 )}
               </div>
@@ -201,14 +203,14 @@ export function ClassroomTeacherChatPanel({
                   selectedMode === 'GROUP' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
-                Trao đổi với tất cả học sinh
+                {t('Trao đổi với tất cả học sinh')}
               </p>
             </div>
           </button>
 
           <h3 className="font-semibold text-xs text-slate-500 dark:text-slate-400 pt-1 px-1 flex items-center justify-between uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
-              <UserIcon className="w-3.5 h-3.5 text-indigo-600" /> Trò chuyện 1-1 ({students.length})
+              <UserIcon className="w-3.5 h-3.5 text-indigo-600" /> {t('Trò chuyện 1-1')} ({students.length})
             </span>
           </h3>
           <div className="relative">
@@ -216,7 +218,7 @@ export function ClassroomTeacherChatPanel({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo tên hoặc email..."
+              placeholder={t('Tìm theo tên hoặc email...')}
               className="pl-9 h-9 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
@@ -225,7 +227,7 @@ export function ClassroomTeacherChatPanel({
         {/* Danh sách học sinh có thể cuộn */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 max-h-[460px]">
           {sortedStudents.length === 0 ? (
-            <p className="text-xs text-center text-slate-400 py-6">Không tìm thấy học sinh nào</p>
+            <p className="text-xs text-center text-slate-400 py-6">{t('Không tìm thấy học sinh nào')}</p>
           ) : (
             sortedStudents.map((student) => {
               const isSelected = selectedMode === 'STUDENT' && selectedStudent?.id === student.id;
@@ -271,7 +273,7 @@ export function ClassroomTeacherChatPanel({
                       </p>
                       {hasUnread && (
                         <span className="flex-shrink-0 text-[10px] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full animate-pulse shadow-xs">
-                          {unreadCount > 0 ? `${unreadCount} mới` : 'Mới'}
+                          {unreadCount > 0 ? `${unreadCount} ${t('mới')}` : t('Mới')}
                         </span>
                       )}
                     </div>
@@ -287,7 +289,7 @@ export function ClassroomTeacherChatPanel({
                       {hasUnread && (
                         <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                          Có tin nhắn chưa đọc
+                          {t('Có tin nhắn chưa đọc')}
                         </span>
                       )}
                     </div>
@@ -311,10 +313,10 @@ export function ClassroomTeacherChatPanel({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    📢 Chat Lớp chung ({classCode})
+                    📢 {t('Chat Lớp chung')} ({classCode})
                   </h4>
                   <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                    Kênh trao đổi chung dành cho toàn bộ học sinh và giảng viên trong lớp
+                    {t('Kênh trao đổi chung dành cho toàn bộ học sinh và giảng viên trong lớp')}
                   </p>
                 </div>
               </div>
@@ -324,16 +326,16 @@ export function ClassroomTeacherChatPanel({
             <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
               {isLoadingHistory && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs">
-                  Đang nạp tin nhắn chat lớp...
+                  {t('Đang nạp tin nhắn chat lớp...')}
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
                   <MessageSquare className="w-12 h-12 stroke-1 mb-2 text-indigo-300" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Chưa có tin nhắn nào trong kênh Chat Lớp
+                    {t('Chưa có tin nhắn nào trong kênh Chat Lớp')}
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Nhập nội dung tin nhắn bên dưới để bắt đầu gửi thông báo hoặc trao đổi với toàn bộ học sinh.
+                    {t('Nhập nội dung tin nhắn bên dưới để bắt đầu gửi thông báo hoặc trao đổi với toàn bộ học sinh.')}
                   </p>
                 </div>
               ) : (
@@ -354,7 +356,7 @@ export function ClassroomTeacherChatPanel({
                 <Input
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Gửi tin nhắn chung cho cả lớp (hỗ trợ công thức toán $latex$)..."
+                  placeholder={t('Gửi tin nhắn chung cho cả lớp (hỗ trợ công thức toán $latex$)...')}
                   className="flex-1 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-full px-5 h-10 focus-visible:ring-indigo-500"
                 />
                 <Button
@@ -362,7 +364,7 @@ export function ClassroomTeacherChatPanel({
                   disabled={!inputText.trim()}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-5 h-10 gap-2"
                 >
-                  <Send className="w-4 h-4" /> Gửi cả lớp
+                  <Send className="w-4 h-4" /> {t('Gửi cả lớp')}
                 </Button>
               </div>
             </form>
@@ -407,16 +409,16 @@ export function ClassroomTeacherChatPanel({
             <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 bg-slate-50/40 dark:bg-slate-900/40">
               {isLoadingHistory && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs">
-                  Đang nạp tin nhắn...
+                  {t('Đang nạp tin nhắn...')}
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
                   <MessageSquare className="w-12 h-12 stroke-1 mb-2 text-indigo-300" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Chưa có tin nhắn nào với {selectedStudent.fullName}
+                    {t('Chưa có tin nhắn nào')} {selectedStudent.fullName}
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Nhập nội dung phản hồi bên dưới để trò chuyện trực tiếp với học sinh này.
+                    {t('Nhập nội dung phản hồi bên dưới để trò chuyện trực tiếp với học sinh này.')}
                   </p>
                 </div>
               ) : (
@@ -437,7 +439,7 @@ export function ClassroomTeacherChatPanel({
                 <Input
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Gửi phản hồi cho ${selectedStudent.fullName} (hỗ trợ công thức toán $latex$)...`}
+                  placeholder={`${t('Gửi phản hồi cho')} ${selectedStudent.fullName} (${t('hỗ trợ công thức toán')} $latex$)...`}
                   className="flex-1 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-full px-5 h-10 focus-visible:ring-indigo-500"
                 />
                 <Button
@@ -445,7 +447,7 @@ export function ClassroomTeacherChatPanel({
                   disabled={!inputText.trim()}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-5 h-10 gap-2"
                 >
-                  <Send className="w-4 h-4" /> Gửi
+                  <Send className="w-4 h-4" /> {t('Gửi')}
                 </Button>
               </div>
             </form>
@@ -453,7 +455,7 @@ export function ClassroomTeacherChatPanel({
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm">
             <MessageSquare className="w-12 h-12 stroke-1 mb-2 text-slate-300" />
-            Vui lòng chọn kênh Chat Lớp hoặc chọn một học sinh trong danh sách để bắt đầu trò chuyện.
+            {t('Vui lòng chọn kênh Chat Lớp hoặc chọn một học sinh trong danh sách để bắt đầu trò chuyện.')}
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { RefreshCw, Check, ChevronDown } from 'lucide-react'
 import { aiConfigService } from '@/services/aiConfigService'
 import { useToast } from '@/components/ui/use-toast'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface ModelInputWithFetchProps {
   providerId: number
@@ -22,14 +23,17 @@ export function ModelInputWithFetch({
   value,
   onChange,
   disabled = false,
-  placeholder = 'Vui lòng chọn hoặc gõ tên Model...',
+  placeholder,
   id,
 }: ModelInputWithFetchProps) {
+  const { t } = useI18n()
   const { toast } = useToast()
   const [fetching, setFetching] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const actualPlaceholder = placeholder || t('Vui lòng chọn hoặc gõ tên Model...')
 
   // Tự động đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -45,8 +49,8 @@ export function ModelInputWithFetch({
   const handleFetchModels = async () => {
     if (!providerId) {
       toast({
-        title: 'Chưa chọn Provider',
-        description: 'Vui lòng chọn Provider trước khi tải danh sách Model.',
+        title: t('Chưa chọn Provider'),
+        description: t('Vui lòng chọn Provider trước khi tải danh sách Model.'),
         variant: 'destructive',
       })
       return
@@ -60,19 +64,19 @@ export function ModelInputWithFetch({
       if (fetchedList.length > 0) {
         setShowDropdown(true)
         toast({
-          title: '⚡ Tải danh sách Model thành công!',
-          description: `Đã tìm thấy ${fetchedList.length} models từ Provider API.`,
+          title: t('⚡ Tải danh sách Model thành công!'),
+          description: t('Đã tìm thấy {count} models từ Provider API.', { count: fetchedList.length }),
         })
       } else {
         toast({
-          title: 'Không tìm thấy Model',
-          description: 'Provider API không trả về danh sách model hoặc chưa cấu hình API Key.',
+          title: t('Không tìm thấy Model'),
+          description: t('Provider API không trả về danh sách model hoặc chưa cấu hình API Key.'),
           variant: 'destructive',
         })
       }
     } catch (err: any) {
       toast({
-        title: 'Tải danh sách Model thất bại',
+        title: t('Tải danh sách Model thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -95,7 +99,7 @@ export function ModelInputWithFetch({
           <Input
             id={id}
             className="h-9 text-xs font-mono pr-7"
-            placeholder={placeholder}
+            placeholder={actualPlaceholder}
             value={value}
             onChange={(e) => {
               onChange(e.target.value)
@@ -126,14 +130,14 @@ export function ModelInputWithFetch({
           className="h-9 px-2.5 text-[11px] whitespace-nowrap shrink-0"
           onClick={handleFetchModels}
           disabled={disabled || fetching || !providerId}
-          title="Tải danh sách Model trực tiếp từ Provider API"
+          title={t('Tải danh sách Model trực tiếp từ Provider API')}
         >
           {fetching ? (
             <Spinner className="h-3.5 w-3.5" />
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Tải Models
+              {t('Tải Models')}
             </>
           )}
         </Button>

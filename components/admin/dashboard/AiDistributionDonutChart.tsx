@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { Bot, Info } from 'lucide-react'
 import { AiTaskUsage } from '@/types/admin-dashboard'
+import { useI18n } from '@/lib/i18n/i18n-context'
+import { getCreditTaskLabel } from '@/lib/constants/credit'
 
 interface AiDistributionDonutChartProps {
   aiTaskUsages: AiTaskUsage[]
@@ -43,6 +45,7 @@ const TASK_COLORS: Record<string, { stroke: string; bg: string; text: string }> 
 }
 
 export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutChartProps) {
+  const { t } = useI18n()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const totalCalls = aiTaskUsages.reduce((sum, item) => sum + item.callCount, 0)
@@ -65,8 +68,11 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
       text: 'text-slate-600',
     }
 
+    const translatedName = getCreditTaskLabel(task.taskCode, t)
+
     return {
       ...task,
+      taskName: translatedName || task.taskName,
       index,
       percent: Math.round(percent * 10) / 10,
       strokeDasharray,
@@ -87,16 +93,16 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
           </div>
           <div>
             <h3 className="font-semibold text-foreground text-sm">
-              Phân Bổ Lượt Dùng AI
+              {t('Phân Bổ Lượt Dùng AI')}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Thống kê tỷ lệ sử dụng theo từng nghiệp vụ AI
+              {t('Thống kê tỷ lệ sử dụng theo từng nghiệp vụ AI')}
             </p>
           </div>
         </div>
 
         <div className="rounded-full bg-muted/60 px-3 py-1 text-xs font-semibold text-muted-foreground">
-          Tổng: {totalCalls.toLocaleString()} lượt
+          {t('Tổng: {count} lượt', { count: totalCalls.toLocaleString() })}
         </div>
       </div>
 
@@ -155,7 +161,7 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
                   {activeSegment.taskName}
                 </span>
                 <span className="text-[10px] text-muted-foreground/80 mt-0.5">
-                  {activeSegment.callCount.toLocaleString()} lượt
+                  {t('{count} lượt', { count: activeSegment.callCount.toLocaleString() })}
                 </span>
               </>
             ) : (
@@ -163,9 +169,9 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
                 <span className="text-xl font-bold tracking-tight text-foreground">
                   {totalCalls > 0 ? totalCalls.toLocaleString() : '0'}
                 </span>
-                <span className="text-xs text-muted-foreground">Lượt gọi AI</span>
+                <span className="text-xs text-muted-foreground">{t('Lượt gọi AI')}</span>
                 <span className="text-[10px] text-muted-foreground/70">
-                  {totalCalls > 0 ? 'Rê chuột để xem' : 'Chưa có dữ liệu'}
+                  {totalCalls > 0 ? t('Rê chuột để xem') : t('Chưa có dữ liệu')}
                 </span>
               </>
             )}
@@ -201,7 +207,7 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className="text-[11px] text-muted-foreground">
-                        {task.callCount.toLocaleString()} lượt
+                        {t('{count} lượt', { count: task.callCount.toLocaleString() })}
                       </span>
                       <span className="text-[10px] text-muted-foreground/40">•</span>
                       {task.callCount > 0 ? (
@@ -213,12 +219,16 @@ export function AiDistributionDonutChart({ aiTaskUsages }: AiDistributionDonutCh
                               ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                               : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                           }`}
-                          title={`Thành công: ${task.successCount} | Thất bại: ${task.failedCount}`}
+                          title={`${t('Thành công')}: ${task.successCount} | ${t('Thất bại')}: ${task.failedCount}`}
                         >
-                          {task.successRate}% thành công ({task.successCount}/{task.callCount})
+                          {t('{rate}% thành công ({success}/{total})', {
+                            rate: task.successRate,
+                            success: task.successCount,
+                            total: task.callCount
+                          })}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/60">Chưa có lượt</span>
+                        <span className="text-[10px] text-muted-foreground/60">{t('Chưa có lượt')}</span>
                       )}
                     </div>
                   </div>

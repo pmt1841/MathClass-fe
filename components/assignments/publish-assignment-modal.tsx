@@ -19,6 +19,7 @@ import {
 import { useMyClassrooms } from '@/hooks/useClassrooms'
 import { usePublishAssignment } from '@/hooks/usePublishAssignment'
 import { handleApiError } from '@/lib/utils/error-handler'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface TargetClassEntry {
   classCode: string
@@ -53,6 +54,7 @@ export function PublishAssignmentModal({
   onSubmit,
   isSubmitting = false,
 }: PublishAssignmentModalProps) {
+  const { t } = useI18n()
   const { data: myClasses = [], isLoading: loadingClasses } = useMyClassrooms()
   const publishMutation = usePublishAssignment(assignmentId)
   
@@ -114,17 +116,17 @@ export function PublishAssignmentModal({
   const handlePublish = () => {
     if (!assignmentId && !onSubmit) return
     
-    const missing = selectedTargets.filter((t) => !t.deadline)
+    const missing = selectedTargets.filter((item) => !item.deadline)
     if (missing.length > 0) {
-      toast.error(`Vui lòng chọn hạn nộp cho: ${missing.map((t) => t.className).join(', ')}`)
+      toast.error(`${t('Vui lòng chọn hạn nộp cho:')} ${missing.map((item) => item.className).join(', ')}`)
       return
     }
     if (selectedTargets.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một lớp để giao bài')
+      toast.error(t('Vui lòng chọn ít nhất một lớp để giao bài'))
       return
     }
 
-    const payloadTargets = selectedTargets.map((t) => ({ classCode: t.classCode, deadline: t.deadline }))
+    const payloadTargets = selectedTargets.map((item) => ({ classCode: item.classCode, deadline: item.deadline }))
 
     if (onSubmit) {
       onSubmit(payloadTargets)
@@ -135,11 +137,11 @@ export function PublishAssignmentModal({
       { targets: payloadTargets },
       {
         onSuccess: () => {
-          toast.success(assignmentTitle ? `Đã giao bài tập "${assignmentTitle}" thành công!` : 'Đã giao bài tập thành công!')
+          toast.success(assignmentTitle ? `${t('Đã giao bài tập thành công!')} "${assignmentTitle}"` : t('Đã giao bài tập thành công!'))
           onSuccess()
         },
         onError: (err) => {
-          toast.error(handleApiError(err, 'Không thể giao bài tập'))
+          toast.error(handleApiError(err, t('Không thể giao bài tập')))
         }
       }
     )
@@ -153,10 +155,10 @@ export function PublishAssignmentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
-            Giao bài tập
+            {t('assignments.assign')}
           </DialogTitle>
           <DialogDescription>
-            Chọn lớp và cấu hình hạn nộp{assignmentTitle ? <span> cho <span className="font-semibold text-foreground">&quot;{assignmentTitle}&quot;</span></span> : ''}
+            {t('Chọn lớp và cấu hình hạn nộp')}{assignmentTitle ? <span> {t('cho')} <span className="font-semibold text-foreground">&quot;{assignmentTitle}&quot;</span></span> : ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,70 +172,70 @@ export function PublishAssignmentModal({
               {/* Left: Class list */}
               <div className="w-52 flex-shrink-0 flex flex-col gap-1.5 overflow-y-auto pr-1">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">
-                  Chọn lớp học
+                  {t('Chọn lớp học')}
                 </p>
                 {myClasses.length === 0 ? (
-                  <p className="text-xs text-muted-foreground px-1">Không có lớp học nào.</p>
+                  <p className="text-xs text-muted-foreground px-1">{t('Không có lớp học nào.')}</p>
                 ) : (
-                  targets.map((t) => {
+                  targets.map((target) => {
                     const card = (
                       <div
-                        id={`publish-class-${t.classCode}`}
-                        onClick={() => !t.isAlreadyPublished && toggleClass(t.classCode)}
+                        id={`publish-class-${target.classCode}`}
+                        onClick={() => !target.isAlreadyPublished && toggleClass(target.classCode)}
                         className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-150 w-full ${
-                          t.isAlreadyPublished
+                          target.isAlreadyPublished
                             ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed select-none'
-                            : t.selected
+                            : target.selected
                             ? 'border-primary/40 bg-primary/5 shadow-sm cursor-pointer'
                             : 'border-border bg-white hover:bg-slate-50 cursor-pointer'
                         }`}
                       >
                         <div
                           className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                            t.isAlreadyPublished
+                            target.isAlreadyPublished
                               ? 'border-slate-300 bg-slate-200 text-slate-400'
-                              : t.selected
+                              : target.selected
                               ? 'border-primary bg-primary'
                               : 'border-slate-300'
                           }`}
                         >
-                          {(t.selected || t.isAlreadyPublished) && (
-                            <Check className={`h-2.5 w-2.5 ${t.isAlreadyPublished ? 'text-slate-400' : 'text-white'}`} />
+                          {(target.selected || target.isAlreadyPublished) && (
+                            <Check className={`h-2.5 w-2.5 ${target.isAlreadyPublished ? 'text-slate-400' : 'text-white'}`} />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-semibold text-foreground truncate">{t.className}</p>
-                            {t.isAlreadyPublished && (
+                            <p className="text-xs font-semibold text-foreground truncate">{target.className}</p>
+                            {target.isAlreadyPublished && (
                               <Badge
                                 variant="secondary"
                                 className="text-[9px] px-1.5 py-0 h-4 bg-slate-200 text-slate-600 font-normal shrink-0"
                               >
-                                Đã giao
+                                {t('Đã giao')}
                               </Badge>
                             )}
                           </div>
-                          <p className="text-[10px] text-muted-foreground font-mono">{t.classCode}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{target.classCode}</p>
                         </div>
                       </div>
                     )
 
-                    if (t.isAlreadyPublished) {
+                    if (target.isAlreadyPublished) {
                       return (
-                        <TooltipProvider key={t.classCode}>
+                        <TooltipProvider key={target.classCode}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="w-full">{card}</div>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="bg-slate-900 text-white text-xs">
-                              Bài tập/phiếu đã được giao cho lớp này
+                              {t('Bài tập/phiếu đã được giao cho lớp này')}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       )
                     }
 
-                    return <div key={t.classCode}>{card}</div>
+                    return <div key={target.classCode}>{card}</div>
                   })
                 )}
               </div>
@@ -241,47 +243,47 @@ export function PublishAssignmentModal({
               {/* Right: Deadline config for selected classes */}
               <div className="flex-1 overflow-y-auto flex flex-col gap-3 pl-1 border-l border-border">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">
-                  Cấu hình hạn nộp
+                  {t('Cấu hình hạn nộp')}
                 </p>
                 {allClassesAlreadyPublished ? (
                   <div className="flex flex-col items-center justify-center flex-1 text-center space-y-2 py-8 px-4">
                     <div className="h-10 w-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-1">
                       <Check className="h-5 w-5" />
                     </div>
-                    <p className="text-sm font-medium text-slate-700">Tất cả lớp học đã được giao bài tập này</p>
+                    <p className="text-sm font-medium text-slate-700">{t('Tất cả lớp học đã được giao bài tập này')}</p>
                     <p className="text-xs text-muted-foreground max-w-xs">
-                      Không còn lớp học nào khả dụng để giao thêm bài tập này.
+                      {t('Không còn lớp học nào khả dụng để giao thêm bài tập này.')}
                     </p>
                   </div>
                 ) : selectedTargets.length === 0 ? (
                   <div className="flex flex-col items-center justify-center flex-1 text-center space-y-2 py-8">
                     <CalendarDays className="h-8 w-8 text-slate-300" />
-                    <p className="text-sm text-muted-foreground">Chọn lớp học để cấu hình hạn nộp</p>
+                    <p className="text-sm text-muted-foreground">{t('Chọn lớp học để cấu hình hạn nộp')}</p>
                   </div>
                 ) : (
-                  selectedTargets.map((t) => (
+                  selectedTargets.map((target) => (
                     <div
-                      key={t.classCode}
+                      key={target.classCode}
                       className="flex items-center gap-3 p-3 rounded-xl border border-border bg-white animate-in slide-in-from-left-2 duration-200"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{t.className}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{t.classCode}</p>
+                        <p className="text-sm font-semibold text-foreground">{target.className}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{target.classCode}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <input
-                          id={`deadline-${t.classCode}`}
+                          id={`deadline-${target.classCode}`}
                           type="datetime-local"
-                          value={t.deadline}
-                          onChange={(e) => setDeadline(t.classCode, e.target.value)}
+                          value={target.deadline}
+                          onChange={(e) => setDeadline(target.classCode, e.target.value)}
                           min={new Date().toISOString().slice(0, 16)}
                           className="h-9 px-2 text-xs rounded-lg border border-border bg-slate-50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
                         />
                         <button
-                          onClick={() => toggleClass(t.classCode)}
+                          onClick={() => toggleClass(target.classCode)}
                           className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-rose-50 transition-colors flex-shrink-0"
-                          title="Bỏ chọn lớp này"
+                          title={t('Bỏ chọn lớp này')}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -298,10 +300,10 @@ export function PublishAssignmentModal({
           <div className="flex items-center gap-2 w-full justify-between">
             <p className="text-xs text-muted-foreground">
               {allClassesAlreadyPublished
-                ? 'Tất cả lớp học đã được giao'
+                ? t('Tất cả lớp học đã được giao')
                 : selectedTargets.length > 0
-                ? `Sẽ giao cho ${selectedTargets.length} lớp`
-                : 'Chưa chọn lớp nào'}
+                ? `${t('Sẽ giao cho')} ${selectedTargets.length} ${t('lớp')}`
+                : t('Chưa chọn lớp nào')}
             </p>
             <div className="flex gap-2">
               <button
@@ -310,7 +312,7 @@ export function PublishAssignmentModal({
                 disabled={isPublishing}
                 className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                Hủy
+                {t('Hủy')}
               </button>
               <button
                 id="confirm-publish-btn"
@@ -324,7 +326,7 @@ export function PublishAssignmentModal({
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                Giao bài
+                {t('assignments.assign')}
               </button>
             </div>
           </div>

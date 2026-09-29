@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Spinner } from '@/components/ui/spinner'
 import { ApiKeyCreateRequest, ApiKeyItem, ApiKeyUpdateRequest } from '@/services/aiConfigService'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface ApiKeyDialogProps {
   open: boolean
@@ -31,6 +32,7 @@ export function ApiKeyDialog({
   initialData,
   onSubmit,
 }: ApiKeyDialogProps) {
+  const { t } = useI18n()
   const isEdit = !!initialData
   const [name, setName] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -80,21 +82,23 @@ export function ApiKeyDialog({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">
-              {isEdit ? `Chỉnh sửa API Key: ${initialData?.name || `Key #${initialData?.id}`}` : `Thêm API Key cho ${providerName || 'nhà cung cấp'}`}
+              {isEdit
+                ? t('Chỉnh sửa API Key: {name}', { name: initialData?.name || `Key #${initialData?.id}` })
+                : t('Thêm API Key cho {provider}', { provider: providerName || t('nhà cung cấp') })}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {isEdit
-                ? 'Cập nhật tên gợi nhớ, độ ưu tiên hoặc nhập chuỗi API Key mới để thay thế.'
-                : 'Nhập chuỗi API Key. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.'}
+                ? t('Cập nhật tên gợi nhớ, độ ưu tiên hoặc nhập chuỗi API Key mới để thay thế.')
+                : t('Nhập chuỗi API Key. Hệ thống sẽ tự động mã hóa AES-256-GCM trước khi lưu xuống CSDL.')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="key-name">Tên gợi nhớ (Tùy chọn)</Label>
+              <Label htmlFor="key-name">{t('Tên gợi nhớ (Tùy chọn)')}</Label>
               <Input
                 id="key-name"
-                placeholder="VD: Gemini Chấm bài 01"
+                placeholder={t('VD: Gemini Chấm bài 01')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -102,24 +106,24 @@ export function ApiKeyDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="api-key">
-                {isEdit ? 'Chuỗi API Key mới (Để trống nếu giữ nguyên)' : 'Chuỗi API Key'}
+                {isEdit ? t('Chuỗi API Key mới (Để trống nếu giữ nguyên)') : t('Chuỗi API Key')}
               </Label>
               <PasswordInput
                 id="api-key"
-                placeholder={isEdit ? 'Nhập nếu muốn đổi Key mới...' : 'Nhập chuỗi API Key tại đây...'}
+                placeholder={isEdit ? t('Nhập nếu muốn đổi Key mới...') : t('Nhập chuỗi API Key tại đây...')}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 required={!isEdit}
               />
               <p className="text-[11px] text-muted-foreground">
                 {isEdit
-                  ? `Key hiện tại: ${initialData?.maskedApiKey || 'Đã mã hóa'}`
-                  : 'Mã API Key sẽ được che mờ an toàn trên giao diện sau khi tạo.'}
+                  ? t('Key hiện tại: {key}', { key: initialData?.maskedApiKey || t('Đã mã hóa') })
+                  : t('Mã API Key sẽ được che mờ an toàn trên giao diện sau khi tạo.')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="priority">Mức độ ưu tiên</Label>
+              <Label htmlFor="priority">{t('Mức độ ưu tiên')}</Label>
               <Input
                 id="priority"
                 type="number"
@@ -130,18 +134,18 @@ export function ApiKeyDialog({
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Số càng lớn độ ưu tiên càng cao (áp dụng khi Provider dùng chiến lược PRIORITY).
+                {t('Số càng lớn độ ưu tiên càng cao (áp dụng khi Provider dùng chiến lược PRIORITY).')}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Hủy
+              {t('Hủy')}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting && <Spinner className="mr-2 h-4 w-4" />}
-              {isEdit ? 'Lưu thay đổi' : 'Lưu Key'}
+              {isEdit ? t('Lưu thay đổi') : t('Lưu Key')}
             </Button>
           </DialogFooter>
         </form>

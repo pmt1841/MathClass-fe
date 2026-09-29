@@ -35,6 +35,7 @@ import {
 } from '@/services/aiConfigService'
 import { ModelInputWithFetch } from '@/components/admin/ai-config/ModelInputWithFetch'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 interface TaskMetadata {
   taskCode: string
@@ -83,6 +84,7 @@ const SYSTEM_TASKS: TaskMetadata[] = [
 ]
 
 export function TaskRoutingTab() {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [initialTaskConfigs, setInitialTaskConfigs] = useState<Record<string, TaskConfig | null>>({})
@@ -99,17 +101,17 @@ export function TaskRoutingTab() {
       const initialMap: Record<string, TaskConfig | null> = {}
       const currentMap: Record<string, TaskConfig> = {}
 
-      for (const t of SYSTEM_TASKS) {
+      for (const task of SYSTEM_TASKS) {
         try {
-          const cfg = await aiConfigService.getTaskConfig(t.taskCode)
-          initialMap[t.taskCode] = { ...cfg }
-          currentMap[t.taskCode] = { ...cfg }
+          const cfg = await aiConfigService.getTaskConfig(task.taskCode)
+          initialMap[task.taskCode] = { ...cfg }
+          currentMap[task.taskCode] = { ...cfg }
         } catch {
           // Chưa được cấu hình trong CSDL -> Để trống providerId (0), model ("") và mặc định TẮT
           // (khớp với /ai/features: task chưa cấu hình => enabled=false)
-          initialMap[t.taskCode] = null
-          currentMap[t.taskCode] = {
-            task: t.taskCode,
+          initialMap[task.taskCode] = null
+          currentMap[task.taskCode] = {
+            task: task.taskCode,
             providerId: 0,
             model: '',
             temperature: 0.7,
@@ -122,7 +124,7 @@ export function TaskRoutingTab() {
       setInitialTaskConfigs(initialMap)
       setTaskConfigs(currentMap)
     } catch (err: any) {
-      toast.error('Lỗi nạp cấu hình Task', {
+      toast.error(t('Lỗi nạp cấu hình Task'), {
         description: err.response?.data?.message || err.message,
       })
     } finally {
@@ -170,15 +172,15 @@ export function TaskRoutingTab() {
   const handleSaveTaskConfig = async (taskCode: string) => {
     const config = taskConfigs[taskCode]
     if (!config || !config.providerId || config.providerId === 0) {
-      toast.error('Chưa chọn Provider', {
-        description: 'Vui lòng chọn Provider cho tác vụ trước khi lưu.',
+      toast.error(t('Chưa chọn Provider'), {
+        description: t('Vui lòng chọn Provider cho tác vụ trước khi lưu.'),
       })
       return
     }
 
     if (!config.model.trim()) {
-      toast.error('Chưa nhập Model', {
-        description: 'Vui lòng nhập hoặc chọn Model AI cho tác vụ.',
+      toast.error(t('Chưa nhập Model'), {
+        description: t('Vui lòng nhập hoặc chọn Model AI cho tác vụ.'),
       })
       return
     }
@@ -197,11 +199,11 @@ export function TaskRoutingTab() {
       setTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
       setInitialTaskConfigs((prev) => ({ ...prev, [taskCode]: { ...updated } }))
 
-      toast.success('⚡ Lưu cấu hình Task thành công!', {
-        description: `Đã cập nhật định tuyến cho tác vụ thành công.`,
+      toast.success(t('⚡ Lưu cấu hình Task thành công!'), {
+        description: t('Đã cập nhật định tuyến cho tác vụ thành công.'),
       })
     } catch (err: any) {
-      toast.error('Lưu thất bại', {
+      toast.error(t('Lưu thất bại'), {
         description: err.response?.data?.message || err.message,
       })
     } finally {
@@ -225,8 +227,8 @@ export function TaskRoutingTab() {
 
     // Bật tính năng khi chưa chọn Provider/Model -> chặn với thông báo rõ ràng
     if (newEnabled && (!config.providerId || config.providerId === 0 || !config.model.trim())) {
-      toast.error('Chưa thể bật tính năng', {
-        description: 'Vui lòng chọn Provider và Model AI trước khi bật tính năng này.',
+      toast.error(t('Chưa thể bật tính năng'), {
+        description: t('Vui lòng chọn Provider và Model AI trước khi bật tính năng này.'),
       })
       return
     }
@@ -279,12 +281,12 @@ export function TaskRoutingTab() {
       queryClient.invalidateQueries({ queryKey: ['ai-features'] })
 
       if (newEnabled) {
-        toast.success('✅ Đã bật tính năng', {
-          description: `Task ${taskCode} đã được bật. Giao diện Giáo viên/Học sinh sẽ hiển thị nút tương ứng ngay lập tức.`,
+        toast.success(t('✅ Đã bật tính năng'), {
+          description: t('Task {taskCode} đã được bật. Giao diện Giáo viên/Học sinh sẽ hiển thị nút tương ứng ngay lập tức.', { taskCode }),
         })
       } else {
-        toast.success('⏻ Đã tắt tính năng', {
-          description: `Task ${taskCode} đã bị tắt. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.`,
+        toast.success(t('⏻ Đã tắt tính năng'), {
+          description: t('Task {taskCode} đã bị tắt. Giao diện Giáo viên/Học sinh sẽ ẩn nút tương ứng ngay lập tức.', { taskCode }),
         })
       }
     } catch (err: any) {
@@ -297,7 +299,7 @@ export function TaskRoutingTab() {
         ...prev,
         [taskCode]: prev[taskCode] ? { ...prev[taskCode], enabled: prevEnabled } : prev[taskCode],
       }))
-      toast.error('Cập nhật thất bại', {
+      toast.error(t('Cập nhật thất bại'), {
         description: err.response?.data?.message || err.message,
       })
     } finally {
@@ -306,9 +308,9 @@ export function TaskRoutingTab() {
   }
 
   const getTemperatureLabel = (temp: number) => {
-    if (temp <= 0.2) return `${temp} (Rất chính xác / Logic)`
-    if (temp <= 0.7) return `${temp} (Cân bằng logic & linh hoạt)`
-    return `${temp} (Sáng tạo phong phú)`
+    if (temp <= 0.2) return `${temp} (${t('Rất chính xác / Logic')})`
+    if (temp <= 0.7) return `${temp} (${t('Cân bằng logic & linh hoạt')})`
+    return `${temp} (${t('Sáng tạo phong phú')})`
   }
 
   if (loading) {
@@ -324,30 +326,30 @@ export function TaskRoutingTab() {
       <div>
         <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
           <Route className="h-5 w-5 text-indigo-600 shrink-0" />
-          Định tuyến Tác vụ Hệ thống (Task Routing)
+          {t('Định tuyến Tác vụ Hệ thống (Task Routing)')}
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Phân công nhà cung cấp, phiên bản Model AI và các tham số tối ưu cho từng loại tác vụ chuyên biệt.
+          {t('Phân công nhà cung cấp, phiên bản Model AI và các tham số tối ưu cho từng loại tác vụ chuyên biệt.')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {SYSTEM_TASKS.map((t) => {
-          const Icon = t.icon
-          const cfg = taskConfigs[t.taskCode] || {
-            task: t.taskCode,
+        {SYSTEM_TASKS.map((taskItem) => {
+          const Icon = taskItem.icon
+          const cfg = taskConfigs[taskItem.taskCode] || {
+            task: taskItem.taskCode,
             providerId: 0,
             model: '',
             temperature: 0.7,
             maxToken: 2048,
             enabled: false,
           }
-          const isConfigured = !!initialTaskConfigs[t.taskCode]
-          const dirty = isTaskDirty(t.taskCode)
-          const isSaving = savingTask === t.taskCode
+          const isConfigured = !!initialTaskConfigs[taskItem.taskCode]
+          const dirty = isTaskDirty(taskItem.taskCode)
+          const isSaving = savingTask === taskItem.taskCode
 
           return (
-            <Card key={t.taskCode} className="shadow-sm hover:shadow transition-shadow border">
+            <Card key={taskItem.taskCode} className="shadow-sm hover:shadow transition-shadow border">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -356,7 +358,7 @@ export function TaskRoutingTab() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <CardTitle className="text-sm sm:text-base font-semibold">{t.title}</CardTitle>
+                        <CardTitle className="text-sm sm:text-base font-semibold">{t(taskItem.title)}</CardTitle>
                         <Badge
                           variant="outline"
                           className={
@@ -365,11 +367,11 @@ export function TaskRoutingTab() {
                               : 'border-amber-500 text-amber-600 bg-amber-50 text-[10px]'
                           }
                         >
-                          {isConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'}
+                          {isConfigured ? t('Đã cấu hình') : t('Chưa cấu hình')}
                         </Badge>
                       </div>
                       <CardDescription className="text-xs line-clamp-2 mt-0.5">
-                        {t.description}
+                        {t(taskItem.description)}
                       </CardDescription>
                     </div>
                   </div>
@@ -377,7 +379,7 @@ export function TaskRoutingTab() {
                   <div className="flex items-center gap-2 shrink-0 pt-0.5">
                     <Switch
                       checked={cfg.enabled}
-                      onCheckedChange={(val) => handleToggleTask(t.taskCode, val)}
+                      onCheckedChange={(val) => handleToggleTask(taskItem.taskCode, val)}
                     />
                   </div>
                 </div>
@@ -386,7 +388,7 @@ export function TaskRoutingTab() {
               <CardContent className="space-y-4 text-xs pt-1">
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Nhà cung cấp (Provider)</Label>
+                    <Label className="text-xs">{t('Nhà cung cấp (Provider)')}</Label>
                     <Select
                       value={cfg.providerId ? cfg.providerId.toString() : '0'}
                       onValueChange={(val) => {
@@ -394,8 +396,8 @@ export function TaskRoutingTab() {
                         if (newProviderId !== cfg.providerId) {
                           setTaskConfigs((prev) => ({
                             ...prev,
-                            [t.taskCode]: {
-                              ...prev[t.taskCode],
+                            [taskItem.taskCode]: {
+                              ...prev[taskItem.taskCode],
                               providerId: newProviderId,
                               model: '', // Reset model khi thay đổi Provider
                             },
@@ -404,11 +406,11 @@ export function TaskRoutingTab() {
                       }}
                     >
                       <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="Vui lòng chọn Provider..." />
+                        <SelectValue placeholder={t('Vui lòng chọn Provider...')} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="0" disabled className="text-xs text-muted-foreground">
-                          -- Chưa chọn Provider --
+                          {t('-- Chưa chọn Provider --')}
                         </SelectItem>
                         {providers.map((p) => (
                           <SelectItem key={p.id} value={p.id.toString()} className="text-xs">
@@ -420,19 +422,19 @@ export function TaskRoutingTab() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Tên Model AI</Label>
+                    <Label className="text-xs">{t('Tên Model AI')}</Label>
                     <ModelInputWithFetch
                       providerId={cfg.providerId}
                       value={cfg.model}
-                      onChange={(val) => handleUpdateTaskField(t.taskCode, 'model', val)}
-                      placeholder="Vui lòng chọn hoặc gõ tên Model..."
+                      onChange={(val) => handleUpdateTaskField(taskItem.taskCode, 'model', val)}
+                      placeholder={t('Vui lòng chọn hoặc gõ tên Model...')}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2 pt-1">
                   <div className="flex justify-between items-center text-xs">
-                    <Label className="text-xs">Temperature (Độ sáng tạo)</Label>
+                    <Label className="text-xs">{t('Temperature (Độ sáng tạo)')}</Label>
                     <span className="font-semibold text-indigo-600 font-mono text-[11px]">
                       {getTemperatureLabel(cfg.temperature)}
                     </span>
@@ -443,13 +445,13 @@ export function TaskRoutingTab() {
                     step={0.1}
                     value={[cfg.temperature]}
                     onValueChange={(vals) =>
-                      handleUpdateTaskField(t.taskCode, 'temperature', vals[0])
+                      handleUpdateTaskField(taskItem.taskCode, 'temperature', vals[0])
                     }
                   />
                 </div>
 
                 <div className="space-y-1.5 pt-1">
-                  <Label className="text-xs">Max Tokens (Giới hạn phản hồi)</Label>
+                  <Label className="text-xs">{t('Max Tokens (Giới hạn phản hồi)')}</Label>
                   <Input
                     type="number"
                     className="h-9 text-xs font-mono"
@@ -457,7 +459,7 @@ export function TaskRoutingTab() {
                     value={cfg.maxToken}
                     onChange={(e) => {
                       const val = e.target.value
-                      handleUpdateTaskField(t.taskCode, 'maxToken', val === '' ? '' : parseInt(val) || 2048)
+                      handleUpdateTaskField(taskItem.taskCode, 'maxToken', val === '' ? '' : parseInt(val) || 2048)
                     }}
                   />
                 </div>
@@ -467,7 +469,7 @@ export function TaskRoutingTab() {
                 <Button
                   size="sm"
                   className="w-full sm:w-auto"
-                  onClick={() => handleSaveTaskConfig(t.taskCode)}
+                  onClick={() => handleSaveTaskConfig(taskItem.taskCode)}
                   disabled={!dirty || isSaving || !cfg.providerId || !cfg.model.trim()}
                 >
                   {isSaving ? (
@@ -475,7 +477,7 @@ export function TaskRoutingTab() {
                   ) : (
                     <Save className="mr-1.5 h-3.5 w-3.5" />
                   )}
-                  Lưu cấu hình Task
+                  {t('Lưu cấu hình Task')}
                 </Button>
               </CardFooter>
             </Card>

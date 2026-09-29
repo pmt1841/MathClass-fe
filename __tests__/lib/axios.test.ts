@@ -55,4 +55,67 @@ describe('axios client (lib/axios.ts)', () => {
     expect(requestedUrls).not.toContain('/auth/refresh-token')
     expect(requestedUrls).toEqual(['/auth/logout'])
   })
+
+  describe('Accept-Language header interceptor', () => {
+    beforeEach(() => {
+      document.cookie = 'NEXT_LOCALE=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    })
+
+    it('attaches Accept-Language header matching NEXT_LOCALE cookie', async () => {
+      document.cookie = 'NEXT_LOCALE=en; path=/'
+      let capturedHeaders: any = null
+
+      api.defaults.adapter = async (config) => {
+        capturedHeaders = config.headers
+        return {
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        }
+      }
+
+      await api.get('/test-locale')
+      expect(capturedHeaders['Accept-Language']).toBe('en')
+    })
+
+    it('defaults Accept-Language header to vi when NEXT_LOCALE is not set', async () => {
+      let capturedHeaders: any = null
+
+      api.defaults.adapter = async (config) => {
+        capturedHeaders = config.headers
+        return {
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        }
+      }
+
+      await api.get('/test-locale-default')
+      expect(capturedHeaders['Accept-Language']).toBe('vi')
+    })
+
+    it('falls back to vi when NEXT_LOCALE contains an unsupported locale', async () => {
+      document.cookie = 'NEXT_LOCALE=fr; path=/'
+      let capturedHeaders: any = null
+
+      api.defaults.adapter = async (config) => {
+        capturedHeaders = config.headers
+        return {
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        }
+      }
+
+      await api.get('/test-locale-unsupported')
+      expect(capturedHeaders['Accept-Language']).toBe('vi')
+    })
+  })
 })
+

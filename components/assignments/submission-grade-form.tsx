@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Save } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export const createGradeSchema = (maxScore: number = 10) => z.object({
   score: z
@@ -46,6 +47,7 @@ export function SubmissionGradeForm({
   maxScore = 10,
   onSubmit 
 }: SubmissionGradeFormProps) {
+  const { t } = useI18n()
   const schema = useMemo(() => createGradeSchema(maxScore), [maxScore])
   const form = useForm<GradeFormValues>({
     resolver: zodResolver(schema),
@@ -64,7 +66,7 @@ export function SubmissionGradeForm({
     <div className="flex items-center gap-4">
       <Form {...form}>
         <form id="grade-form" noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-          <span className="text-sm font-semibold text-slate-600">Điểm:</span>
+          <span className="text-sm font-semibold text-slate-600">{t('Điểm:')}</span>
           <FormField
             control={form.control}
             name="score"
@@ -96,8 +98,9 @@ export function SubmissionGradeForm({
         className="bg-blue-600 hover:bg-blue-700 h-9 px-6 font-semibold"
       >
         <Save className="w-4 h-4 mr-2" />
-        {isSubmitting ? 'Đang lưu...' : 'Lưu điểm'}
+        {isSubmitting ? t('Đang lưu...') : t('Lưu điểm')}
       </Button>
     </div>
   )
 }
+

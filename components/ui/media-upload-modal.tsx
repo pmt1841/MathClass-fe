@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, UploadCloud, Link as LinkIcon, Image as ImageIcon, FileText, Check, Trash2, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export type UploadModalMode = 'image' | 'file' | 'link'
 
@@ -39,6 +40,7 @@ export function MediaUploadModal({
   isUploading = false,
   initialLinkUrl = ''
 }: MediaUploadModalProps) {
+  const { t } = useI18n()
   const [activeMode, setActiveMode] = useState<UploadModalMode>(initialMode)
   const [isDragging, setIsDragging] = useState(false)
   const [linkUrl, setLinkUrl] = useState(initialLinkUrl)
@@ -127,19 +129,19 @@ export function MediaUploadModal({
       if (invalidSizeFiles.length > 0 || invalidTypeFiles.length > 0) {
         const errorDetails: string[] = []
         if (invalidSizeFiles.length > 0) {
-          errorDetails.push(`Vượt quá 5MB (${invalidSizeFiles.length}): ${invalidSizeFiles.join(', ')}`)
+          errorDetails.push(`${t("Vượt quá 5MB")} (${invalidSizeFiles.length}): ${invalidSizeFiles.join(', ')}`)
         }
         if (invalidTypeFiles.length > 0) {
-          errorDetails.push(`Không đúng định dạng .jpg/.png/.webp (${invalidTypeFiles.length}): ${invalidTypeFiles.join(', ')}`)
+          errorDetails.push(`${t("Không đúng định dạng .jpg/.png/.webp")} (${invalidTypeFiles.length}): ${invalidTypeFiles.join(', ')}`)
         }
-        toast.error(`Có ${invalidSizeFiles.length + invalidTypeFiles.length} file không thể chọn:\n• ${errorDetails.join('\n• ')}`)
+        toast.error(`${t("Có")} ${invalidSizeFiles.length + invalidTypeFiles.length} ${t("file không thể chọn:")}\n• ${errorDetails.join('\n• ')}`)
       }
 
       if (validFiles.length === 0) return
 
       // Limit max 10 files
       if (uploadItems.length + validFiles.length > 10) {
-        toast.error('Chỉ được chọn tối đa 10 ảnh trong 1 lượt upload.')
+        toast.error(t('Chỉ được chọn tối đa 10 ảnh trong 1 lượt upload.'))
       }
 
       const availableSlot = 10 - uploadItems.length
@@ -167,12 +169,12 @@ export function MediaUploadModal({
     } else if (activeMode === 'file') {
       const file = newFiles[0]
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`Tập tin "${file.name}" vượt quá dung lượng tối đa 10MB.`)
+        toast.error(`${t("Tập tin")} "${file.name}" ${t("vượt quá dung lượng tối đa 10MB.")}`)
         return
       }
       const fileName = file.name.toLowerCase()
       if (!fileName.endsWith('.docx') && !fileName.endsWith('.txt') && !fileName.endsWith('.pdf')) {
-        toast.error(`Tập tin "${file.name}" không hợp lệ. Vui lòng chọn .docx, .txt hoặc .pdf`)
+        toast.error(`${t("Tập tin")} "${file.name}" ${t("không hợp lệ. Vui lòng chọn .docx, .txt hoặc .pdf")}`)
         return
       }
 
@@ -216,11 +218,11 @@ export function MediaUploadModal({
           await onUploadImages(filesToUpload, (fileId, percent) => {
             setUploadItems(prev => prev.map(item => item.id === fileId ? { ...item, progress: percent } : item))
           })
-          toast.success(`Đã tải lên thành công ${uploadItems.length} ảnh!`)
+          toast.success(`${t("Đã tải lên thành công")} ${uploadItems.length} ${t("ảnh!")}`)
           onClose()
         } catch (err: any) {
-          toast.error('Có lỗi xảy ra trong quá trình tải ảnh.')
-          setUploadItems(prev => prev.map(item => item.status === 'uploading' ? { ...item, status: 'error', errorMessage: 'Tải lên thất bại' } : item))
+          toast.error(t('Có lỗi xảy ra trong quá trình tải ảnh.'))
+          setUploadItems(prev => prev.map(item => item.status === 'uploading' ? { ...item, status: 'error', errorMessage: t('Tải lên thất bại') } : item))
         } finally {
           setIsProcessing(false)
         }
@@ -241,16 +243,16 @@ export function MediaUploadModal({
             setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'success', progress: 100 } : i))
           } catch (err) {
             hasError = true
-            setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'error', errorMessage: 'Lỗi tải lên' } : i))
+            setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'error', errorMessage: t('Lỗi tải lên') } : i))
           }
         }
 
         setIsProcessing(false)
         if (!hasError) {
-          toast.success(`Đã tải lên thành công ${totalItems} ảnh!`)
+          toast.success(`${t("Đã tải lên thành công")} ${totalItems} ${t("ảnh!")}`)
           onClose()
         } else {
-          toast.error('Có ảnh tải lên bị lỗi, vui lòng kiểm tra lại.')
+          toast.error(t('Có ảnh tải lên bị lỗi, vui lòng kiểm tra lại.'))
         }
       }
     } else if (activeMode === 'file') {
@@ -260,7 +262,7 @@ export function MediaUploadModal({
         try {
           await onUploadFile(item.file)
           setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'success', progress: 100 } : i))
-          toast.success('Đã tải lên tập tin!')
+          toast.success(t('Đã tải lên tập tin!'))
           onClose()
         } catch (err) {
           setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'error', errorMessage: 'Lỗi tải lên' } : i))
@@ -281,7 +283,7 @@ export function MediaUploadModal({
           setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, progress: percent } : i))
         })
         setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'success', progress: 100 } : i))
-        toast.success(`Đã tải lên ${item.file.name}`)
+        toast.success(`${t("Đã tải lên")} ${item.file.name}`)
       } catch (err) {
         setUploadItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'error', errorMessage: 'Lỗi tải lên' } : i))
       }
@@ -291,7 +293,7 @@ export function MediaUploadModal({
   const handleSubmitLink = (e: React.FormEvent) => {
     e.preventDefault()
     if (!linkUrl.trim()) {
-      toast.error('Vui lòng nhập địa chỉ liên kết (URL)')
+      toast.error(t('Vui lòng nhập địa chỉ liên kết (URL)'))
       return
     }
     let formattedUrl = linkUrl.trim()
@@ -370,7 +372,7 @@ export function MediaUploadModal({
             disabled={isProcessing}
             onClick={onClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-            title="Đóng"
+            title={t("Đóng")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -383,7 +385,7 @@ export function MediaUploadModal({
             <form onSubmit={handleSubmitLink} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-350">
-                  Địa chỉ liên kết (URL) <span className="text-destructive">*</span>
+                  {t("Địa chỉ liên kết (URL)")} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
@@ -397,13 +399,13 @@ export function MediaUploadModal({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-350">
-                  Văn bản hiển thị (Tùy chọn)
+                  {t("Văn bản hiển thị (Tùy chọn)")}
                 </label>
                 <input
                   type="text"
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
-                  placeholder="Ví dụ: Tham khảo bài viết"
+                  placeholder={t("Ví dụ: Tham khảo bài viết")}
                   className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 text-slate-900 dark:text-slate-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-400"
                 />
               </div>
@@ -456,17 +458,17 @@ export function MediaUploadModal({
                   </div>
 
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Kéo & thả {activeMode === 'image' ? 'các hình ảnh' : 'tập tin'} vào đây
+                    {t("Kéo & thả")} {activeMode === 'image' ? t('các hình ảnh') : t('tập tin')} {t("vào đây")}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                    hoặc <span className="text-primary font-bold hover:underline">chọn từ thiết bị của bạn</span>
+                    {t("hoặc")} <span className="text-primary font-bold hover:underline">{t("chọn từ thiết bị của bạn")}</span>
                   </p>
 
                   <div className="px-3 py-1.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                     {activeMode === 'image' ? (
-                      <>Hỗ trợ chọn <strong className="text-slate-600 dark:text-slate-300">nhiều ảnh</strong> (.jpg, .png, .webp - Tối đa 5MB/ảnh)</>
+                      <>{t("Hỗ trợ chọn")} <strong className="text-slate-600 dark:text-slate-300">{t("nhiều ảnh")}</strong> {t("(.jpg, .png, .webp - Tối đa 5MB/ảnh)")}</>
                     ) : (
-                      <>Định dạng hỗ trợ: <strong className="text-slate-600 dark:text-slate-300">.docx, .txt, .pdf</strong> (Tối đa 10MB)</>
+                      <>{t("Định dạng hỗ trợ:")} <strong className="text-slate-600 dark:text-slate-300">.docx, .txt, .pdf</strong> {t("(Tối đa 10MB)")}</>
                     )}
                   </div>
                 </div>
@@ -475,7 +477,7 @@ export function MediaUploadModal({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Đã chọn {uploadItems.length} {activeMode === 'image' ? 'ảnh' : 'tập tin'}
+                      {t("Đã chọn")} {uploadItems.length} {activeMode === 'image' ? t('ảnh') : t('tập tin')}
                     </span>
                     {!isProcessing && uploadItems.length < 10 && activeMode === 'image' && (
                       <button
@@ -483,7 +485,7 @@ export function MediaUploadModal({
                         onClick={() => fileInputRef.current?.click()}
                         className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                       >
-                        + Thêm ảnh khác
+                        + {t("Thêm ảnh khác")}
                       </button>
                     )}
                   </div>
@@ -515,7 +517,7 @@ export function MediaUploadModal({
                                 type="button"
                                 onClick={() => removeItem(item.id)}
                                 className="p-1 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-xs"
-                                title="Xóa"
+                                title={t("Xóa")}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -539,7 +541,7 @@ export function MediaUploadModal({
                           {item.status === 'success' && (
                             <div className="relative z-10 flex items-center justify-center bg-emerald-600/80 text-white rounded-lg p-1">
                               <CheckCircle2 className="w-4 h-4 mr-1" />
-                              <span className="text-[10px] font-bold">Xong</span>
+                              <span className="text-[10px] font-bold">{t("Xong")}</span>
                             </div>
                           )}
 
@@ -547,14 +549,14 @@ export function MediaUploadModal({
                           {item.status === 'error' && (
                             <div className="relative z-10 flex flex-col items-center justify-center bg-rose-600/85 text-white rounded-lg p-2 text-center">
                               <AlertCircle className="w-4 h-4 mb-1" />
-                              <span className="text-[10px] font-bold mb-1">Thất bại</span>
+                              <span className="text-[10px] font-bold mb-1">{t("Thất bại")}</span>
                               {!isProcessing && (
                                 <button
                                   type="button"
                                   onClick={() => handleRetryItem(item)}
                                   className="px-2 py-0.5 bg-white text-rose-700 text-[10px] font-bold rounded-md flex items-center gap-1 hover:bg-slate-100"
                                 >
-                                  <RefreshCw className="w-2.5 h-2.5" /> Thử lại
+                                  <RefreshCw className="w-2.5 h-2.5" /> {t("Thử lại")}
                                 </button>
                               )}
                             </div>
@@ -607,12 +609,12 @@ export function MediaUploadModal({
                       {isProcessing ? (
                         <>
                           <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          Đang tải lên...
+                          {t("Đang tải lên...")}
                         </>
                       ) : (
                         <>
                           <UploadCloud className="w-3.5 h-3.5" />
-                          Tải lên {uploadItems.length} {activeMode === 'image' ? 'ảnh' : 'file'}
+                          {t("Tải lên")} {uploadItems.length} {activeMode === 'image' ? t('ảnh') : t('file')}
                         </>
                       )}
                     </button>

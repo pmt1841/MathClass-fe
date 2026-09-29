@@ -43,8 +43,10 @@ import { ProviderDialog } from './ProviderDialog'
 import { ApiKeyDialog } from './ApiKeyDialog'
 import { useToast } from '@/components/ui/use-toast'
 import { formatDateTime } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 function KeyCooldownBadge({ expiresAt, initialSeconds }: { expiresAt?: string; initialSeconds?: number }) {
+  const { t } = useI18n()
   const calculateRemaining = () => {
     if (expiresAt) {
       const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
@@ -79,15 +81,16 @@ function KeyCooldownBadge({ expiresAt, initialSeconds }: { expiresAt?: string; i
   return (
     <div
       className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 mt-1 whitespace-nowrap w-[116px] select-none"
-      title={`API Key đang trong thời gian tạm nghỉ do lỗi 429 Vượt hạn mức (Quota Exceeded). Tự động phục hồi sau ${formatted}`}
+      title={t('API Key đang trong thời gian tạm nghỉ do lỗi 429 Vượt hạn mức (Quota Exceeded). Tự động phục hồi sau {time}', { time: formatted })}
     >
       <Timer className="w-3 h-3 text-amber-500 shrink-0" />
-      <span>Tạm nghỉ <span className="font-mono tabular-nums font-bold">({formatted})</span></span>
+      <span>{t('Tạm nghỉ')} <span className="font-mono tabular-nums font-bold">({formatted})</span></span>
     </div>
   )
 }
 
 export function ProviderTab() {
+  const { t } = useI18n()
   const { toast } = useToast()
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,7 +118,7 @@ export function ProviderTab() {
       setProviders(data)
     } catch (err: any) {
       toast({
-        title: 'Lỗi tải danh sách Provider',
+        title: t('Lỗi tải danh sách Provider'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -131,7 +134,7 @@ export function ProviderTab() {
       setKeysMap((prev) => ({ ...prev, [providerId]: keys }))
     } catch (err: any) {
       toast({
-        title: 'Lỗi tải danh sách Key',
+        title: t('Lỗi tải danh sách Key'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -148,13 +151,13 @@ export function ProviderTab() {
     try {
       await aiConfigService.createProvider(data)
       toast({
-        title: 'Tạo Provider thành công',
-        description: `Đã tạo Provider ${data.name} (${data.code})`,
+        title: t('Tạo Provider thành công'),
+        description: t('Đã tạo Provider {name} ({code})', { name: data.name, code: data.code }),
       })
       loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Tạo Provider thất bại',
+        title: t('Tạo Provider thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -166,12 +169,12 @@ export function ProviderTab() {
     try {
       await aiConfigService.updateProvider(id, data)
       toast({
-        title: 'Cập nhật Provider thành công',
+        title: t('Cập nhật Provider thành công'),
       })
       loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Cập nhật Provider thất bại',
+        title: t('Cập nhật Provider thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -180,16 +183,16 @@ export function ProviderTab() {
   }
 
   const handleDeleteProvider = async (id: number, name: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa Provider "${name}" không?`)) return
+    if (!confirm(t('Bạn có chắc chắn muốn xóa Provider "{name}" không?', { name }))) return
     try {
       await aiConfigService.deleteProvider(id)
       toast({
-        title: 'Xóa Provider thành công',
+        title: t('Xóa Provider thành công'),
       })
       loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Xóa Provider thất bại',
+        title: t('Xóa Provider thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -201,15 +204,15 @@ export function ProviderTab() {
       try {
         await aiConfigService.updateKey(selectedKeyForEdit.key.id, data as ApiKeyUpdateRequest)
         toast({
-          title: 'Cập nhật API Key thành công',
-          description: `Đã cập nhật thông tin Key #${selectedKeyForEdit.key.id}`,
+          title: t('Cập nhật API Key thành công'),
+          description: t('Đã cập nhật thông tin Key #{id}', { id: selectedKeyForEdit.key.id }),
         })
         loadKeysForProvider(selectedKeyForEdit.providerId)
         loadProviders(false)
         setSelectedKeyForEdit(null)
       } catch (err: any) {
         toast({
-          title: 'Cập nhật Key thất bại',
+          title: t('Cập nhật Key thất bại'),
           description: err.response?.data?.message || err.message,
           variant: 'destructive',
         })
@@ -219,14 +222,14 @@ export function ProviderTab() {
       try {
         await aiConfigService.addKey(targetProviderForKey.id, data as ApiKeyCreateRequest)
         toast({
-          title: 'Thêm API Key thành công',
-          description: `Đã thêm Key mới cho Provider ${targetProviderForKey.name}`,
+          title: t('Thêm API Key thành công'),
+          description: t('Đã thêm Key mới cho Provider {name}', { name: targetProviderForKey.name }),
         })
         loadKeysForProvider(targetProviderForKey.id)
         loadProviders(false)
       } catch (err: any) {
         toast({
-          title: 'Thêm Key thất bại',
+          title: t('Thêm Key thất bại'),
           description: err.response?.data?.message || err.message,
           variant: 'destructive',
         })
@@ -240,13 +243,13 @@ export function ProviderTab() {
     try {
       await aiConfigService.updateKeyStatus(keyId, nextStatus)
       toast({
-        title: `Đã chuyển trạng thái Key sang ${nextStatus}`,
+        title: t('Đã chuyển trạng thái Key sang {status}', { status: nextStatus }),
       })
       loadKeysForProvider(providerId)
       loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Cập nhật trạng thái Key thất bại',
+        title: t('Cập nhật trạng thái Key thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -254,17 +257,17 @@ export function ProviderTab() {
   }
 
   const handleDeleteKey = async (providerId: number, keyId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa API Key này không?')) return
+    if (!confirm(t('Bạn có chắc chắn muốn xóa API Key này không?'))) return
     try {
       await aiConfigService.deleteKey(keyId)
       toast({
-        title: 'Xóa Key thành công',
+        title: t('Xóa Key thành công'),
       })
       loadKeysForProvider(providerId)
       loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Xóa Key thất bại',
+        title: t('Xóa Key thất bại'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -277,13 +280,13 @@ export function ProviderTab() {
       const res = await aiConfigService.verifyKey(keyId)
       if (res.success || res.valid) {
         toast({
-          title: '⚡ Kiểm tra Key hợp lệ!',
-          description: `Key hoạt động bình thường. Độ trễ: ${res.latencyMs || 0} ms.`,
+          title: t('⚡ Kiểm tra Key hợp lệ!'),
+          description: t('Key hoạt động bình thường. Độ trễ: {ms} ms.', { ms: res.latencyMs || 0 }),
         })
       } else {
         toast({
-          title: '❌ Key không hợp lệ hoặc hết Quota',
-          description: (res.message || res.errorCode || 'Kiểm tra thất bại') + ' - Trạng thái Key đã được chuyển thành INACTIVE.',
+          title: t('❌ Key không hợp lệ hoặc hết Quota'),
+          description: (res.message || res.errorCode || t('Kiểm tra thất bại')) + ' - ' + t('Trạng thái Key đã được chuyển thành INACTIVE.'),
           variant: 'destructive',
         })
       }
@@ -291,7 +294,7 @@ export function ProviderTab() {
       await loadProviders(false)
     } catch (err: any) {
       toast({
-        title: 'Lỗi kiểm tra Key',
+        title: t('Lỗi kiểm tra Key'),
         description: err.response?.data?.message || err.message,
         variant: 'destructive',
       })
@@ -301,8 +304,8 @@ export function ProviderTab() {
   }
 
   const formatDateStr = (dateStr?: string) => {
-    if (!dateStr) return 'Chưa sử dụng'
-    return formatDateTime(dateStr) || 'Chưa sử dụng'
+    if (!dateStr) return t('Chưa sử dụng')
+    return formatDateTime(dateStr) || t('Chưa sử dụng')
   }
 
   if (loading) {
@@ -317,9 +320,9 @@ export function ProviderTab() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-semibold">Danh sách Nhà cung cấp AI (Providers)</h3>
+          <h3 className="text-base sm:text-lg font-semibold">{t('Danh sách Nhà cung cấp AI (Providers)')}</h3>
           <p className="text-xs text-muted-foreground">
-            Quản lý tập trung các AI Provider, định nghĩa chiến lược failover và danh sách API Keys.
+            {t('Quản lý tập trung các AI Provider, định nghĩa chiến lược failover và danh sách API Keys.')}
           </p>
         </div>
 
@@ -331,13 +334,13 @@ export function ProviderTab() {
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Thêm Provider mới
+          {t('Thêm Provider mới')}
         </Button>
       </div>
 
       {providers.length === 0 ? (
         <div className="rounded-lg border bg-white p-6 sm:p-8 text-center text-xs sm:text-sm text-muted-foreground">
-          Chưa có Nhà cung cấp AI nào được cấu hình. Hãy bấm nút "Thêm Provider mới" ở trên.
+          {t('Chưa có Nhà cung cấp AI nào được cấu hình. Hãy bấm nút "Thêm Provider mới" ở trên.')}
         </div>
       ) : (
         <Accordion
@@ -424,7 +427,7 @@ export function ProviderTab() {
                       }}
                     >
                       <Edit2 className="h-3.5 w-3.5 mr-1" />
-                      Sửa
+                      {t('Sửa')}
                     </Button>
 
                     <Button
@@ -450,7 +453,7 @@ export function ProviderTab() {
                       }}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
-                      Thêm Key
+                      {t('Thêm Key')}
                     </Button>
                   </div>
                 </div>
@@ -460,7 +463,7 @@ export function ProviderTab() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                         <Key className="h-4 w-4 text-amber-500" />
-                        Danh sách API Keys ({keys.length})
+                        {t('Danh sách API Keys ({count})', { count: keys.length })}
                       </div>
                     </div>
 
@@ -470,19 +473,19 @@ export function ProviderTab() {
                       </div>
                     ) : keys.length === 0 ? (
                       <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                        Chưa có API Key nào cho nhà cung cấp này. Bấm "+ Thêm Key" để bổ sung.
+                        {t('Chưa có API Key nào cho nhà cung cấp này. Bấm "+ Thêm Key" để bổ sung.')}
                       </div>
                     ) : (
                       <div className="rounded-md border overflow-x-auto">
                         <Table className="min-w-[900px] table-fixed w-full">
                           <TableHeader>
                             <TableRow className="bg-slate-50 text-xs">
-                              <TableHead className="w-[180px] px-3">Tên Key / Ghi chú</TableHead>
-                              <TableHead className="w-[170px] px-3">Mã API Key</TableHead>
-                              <TableHead className="w-[110px] px-3 text-center">Ưu tiên</TableHead>
-                              <TableHead className="w-[150px] px-3 text-center">Sử dụng cuối</TableHead>
-                              <TableHead className="w-[140px] px-3 text-center">Trạng thái</TableHead>
-                              <TableHead className="w-[150px] px-3 text-right">Thao tác</TableHead>
+                              <TableHead className="w-[180px] px-3">{t('Tên Key / Ghi chú')}</TableHead>
+                              <TableHead className="w-[170px] px-3">{t('Mã API Key')}</TableHead>
+                              <TableHead className="w-[110px] px-3 text-center">{t('Ưu tiên')}</TableHead>
+                              <TableHead className="w-[150px] px-3 text-center">{t('Sử dụng cuối')}</TableHead>
+                              <TableHead className="w-[140px] px-3 text-center">{t('Trạng thái')}</TableHead>
+                              <TableHead className="w-[150px] px-3 text-right">{t('Thao tác')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -493,7 +496,7 @@ export function ProviderTab() {
                                 </TableCell>
                                 <TableCell className="font-mono text-xs text-slate-600 px-3">
                                   <span className="bg-slate-50 px-2 py-1 rounded border border-slate-200 inline-block my-1 truncate max-w-full">
-                                    {k.maskedApiKey || 'API Key đã mã hóa'}
+                                    {k.maskedApiKey || t('API Key đã mã hóa')}
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-center px-3">
@@ -505,13 +508,13 @@ export function ProviderTab() {
                                       setKeyModalOpen(true)
                                     }}
                                     className="group inline-flex items-center gap-1 cursor-pointer focus:outline-hidden"
-                                    title="Bấm để chỉnh sửa độ ưu tiên và thông tin API Key"
+                                    title={t('Bấm để chỉnh sửa độ ưu tiên và thông tin API Key')}
                                   >
                                     <Badge
                                       variant="secondary"
                                       className="font-mono text-xs group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors"
                                     >
-                                      Ưu tiên: {k.priority}
+                                      {t('Ưu tiên: {priority}', { priority: k.priority })}
                                       <Edit2 className="w-2.5 h-2.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
                                     </Badge>
                                   </button>
@@ -559,14 +562,14 @@ export function ProviderTab() {
                                     ) : (
                                       <ShieldCheck className="h-3 w-3 mr-1 text-emerald-600" />
                                     )}
-                                    Verify
+                                    {t('Verify')}
                                   </Button>
 
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
-                                    title="Chỉnh sửa Key / Độ ưu tiên"
+                                    title={t('Chỉnh sửa Key / Độ ưu tiên')}
                                     onClick={() => {
                                       setTargetProviderForKey(p)
                                       setSelectedKeyForEdit({ providerId: p.id, key: k })
@@ -580,7 +583,7 @@ export function ProviderTab() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                                    title="Xóa Key"
+                                    title={t('Xóa Key')}
                                     onClick={() => handleDeleteKey(p.id, k.id)}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />

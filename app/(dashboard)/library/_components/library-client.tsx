@@ -10,15 +10,12 @@ import { LibraryAssignmentDetailModal } from './library-assignment-detail-modal'
 import { useLibraryAssignments, useLibrarySheets } from '@/hooks/useLibrary'
 import { useAuth } from '@/hooks/useAuth'
 import { AssignmentSheet } from '@/hooks/useAssignments'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 type LibraryTab = 'SINGLE' | 'SHEET'
 
-const TABS: { key: LibraryTab; label: string; icon: React.ElementType }[] = [
-  { key: 'SINGLE', label: 'Bài đơn lẻ', icon: BookOpen },
-  { key: 'SHEET', label: 'Phiếu bài tập', icon: Layers },
-]
-
 export function LibraryClient() {
+  const { t } = useI18n()
   const { user } = useAuth()
   const userRole = user?.role ?? 'TEACHER'
 
@@ -28,6 +25,11 @@ export function LibraryClient() {
   const [page, setPage] = useState(0)
   const [cloneTarget, setCloneTarget] = useState<CloneTarget | null>(null)
   const [previewAssignmentId, setPreviewAssignmentId] = useState<number | null>(null)
+
+  const tabs = useMemo<{ key: LibraryTab; label: string; icon: React.ElementType }[]>(() => [
+    { key: 'SINGLE', label: t('library.singleTab'), icon: BookOpen },
+    { key: 'SHEET', label: t('library.sheetTab'), icon: Layers },
+  ], [t])
 
   // Debounce search input 500ms + reset trang về 0 khi search mới
   useEffect(() => {
@@ -75,8 +77,8 @@ export function LibraryClient() {
   const handleRefresh = () => {
     const activeRefetch = activeTab === 'SINGLE' ? refetchAssignments : refetchSheets
     activeRefetch()
-      .then(() => toast.success('Đã cập nhật danh sách thư viện'))
-      .catch(() => toast.error('Không thể làm mới danh sách thư viện'))
+      .then(() => toast.success(t('library.refreshed')))
+      .catch(() => toast.error(t('library.refreshFailed')))
   }
 
   return (
@@ -89,10 +91,10 @@ export function LibraryClient() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <Library className="h-5.5 w-5.5 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Thư viện dùng chung</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('library.title')}</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Khám phá và sao chép bài tập từ cộng đồng giáo viên.
+              {t('library.subheading')}
             </p>
           </div>
 
@@ -114,7 +116,7 @@ export function LibraryClient() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tiêu đề..."
+                placeholder={t('library.searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
@@ -123,7 +125,7 @@ export function LibraryClient() {
             </div>
 
             <div className="flex bg-slate-200/60 p-1 rounded-xl items-center gap-1 shrink-0">
-              {TABS.map(({ key, label, icon: Icon }) => (
+              {tabs.map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
@@ -159,12 +161,12 @@ export function LibraryClient() {
                 <BookX className="h-8 w-8" />
               </div>
               <h3 className="text-lg font-bold text-foreground">
-                {searchQuery ? 'Không tìm thấy bài tập phù hợp' : 'Chưa có bài tập nào được chia sẻ'}
+                {searchQuery ? t('library.notFound') : t('library.empty')}
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
                 {searchQuery
-                  ? `Không tìm thấy kết quả cho "${searchQuery}". Thử tìm kiếm với từ khóa khác.`
-                  : 'Chưa có bài tập nào được chia sẻ công khai từ cộng đồng giáo viên.'}
+                  ? t('library.notFoundDesc', { query: searchQuery })
+                  : t('library.emptyDesc')}
               </p>
             </div>
           ) : (
@@ -195,17 +197,17 @@ export function LibraryClient() {
                 disabled={page === 0}
                 className="px-4 py-2 rounded-xl text-sm font-semibold border border-border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
               >
-                Trước
+                {t('library.prev')}
               </button>
               <span className="text-sm text-muted-foreground font-medium px-2">
-                Trang {page + 1} / {totalPages}
+                {t('library.pageInfo', { page: page + 1, total: totalPages })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
                 className="px-4 py-2 rounded-xl text-sm font-semibold border border-border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
               >
-                Sau
+                {t('library.next')}
               </button>
             </div>
           )}

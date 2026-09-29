@@ -38,10 +38,13 @@ import { dashboardService } from '@/services/dashboardService'
 import { classroomService } from '@/services/classroomService'
 import Link from 'next/link'
 import { formatDistanceToNowSafe } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function TeacherDashboardClient() {
+  const { t } = useI18n()
   const [selectedClass, setSelectedClass] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+
 
   const { data: stats, isLoading, refetch: refetchStats } = useQuery({
     queryKey: ['teacher-stats'],
@@ -97,17 +100,17 @@ export function TeacherDashboardClient() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-500/20">
                 <LayoutDashboard className="h-5.5 w-5.5 text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tổng quan</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard.overview')}</h1>
             </div>
             <p className="text-sm text-slate-500 mt-1 font-medium">
-              {selectedClass === 'all' ? 'Hiển thị dữ liệu của tất cả các lớp.' : `Hiển thị dữ liệu của ${classesData.find((c: any) => c.classCode === selectedClass)?.className || 'lớp'}.`}
+              {selectedClass === 'all' ? t('dashboard.allClassesData') : `Hiển thị dữ liệu của ${classesData.find((c: any) => c.classCode === selectedClass)?.className || 'lớp'}.`}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <RefreshButton
               onClick={handleRefresh}
-              title="Làm mới bảng điều khiển"
+              title={t('common.refresh')}
             />
           </div>
         </div>
@@ -126,8 +129,9 @@ export function TeacherDashboardClient() {
                   <Users className="h-4.5 w-4.5 text-blue-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Tổng học sinh
+                  {t('dashboard.totalStudents')}
                 </span>
+
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
                 {isLoading ? '-' : stats?.managedStudents ?? 125}
@@ -144,7 +148,7 @@ export function TeacherDashboardClient() {
                   <BookOpen className="h-4.5 w-4.5 text-purple-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Lớp quản lý
+                  {t('dashboard.managedClasses')}
                 </span>
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
@@ -162,7 +166,7 @@ export function TeacherDashboardClient() {
                   <FileText className="h-4.5 w-4.5 text-emerald-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Bài đang mở
+                  {t('dashboard.openAssignments')}
                 </span>
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
@@ -180,7 +184,7 @@ export function TeacherDashboardClient() {
                   <BookCopy className="h-4.5 w-4.5 text-cyan-600" />
                 </div>
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
-                  Phiếu bài tập
+                  {t('dashboard.worksheets')}
                 </span>
               </div>
               <span className="text-2xl font-black text-slate-800 tracking-tight shrink-0">
@@ -198,7 +202,7 @@ export function TeacherDashboardClient() {
                   <PenTool className="h-4.5 w-4.5 text-white" />
                 </div>
                 <span className="text-xs font-bold text-orange-100 uppercase tracking-wider truncate">
-                  Bài chờ chấm
+                  {t('dashboard.pendingGrading')}
                 </span>
               </div>
               <span className="text-2xl font-black text-white tracking-tight shrink-0">
@@ -215,16 +219,16 @@ export function TeacherDashboardClient() {
           <div className="lg:col-span-8 space-y-4 min-w-0">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                Bài nộp chờ chấm
+                {t('dashboard.pendingGradingSubmissions')}
               </h2>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-full sm:w-[200px] bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg font-medium h-10 text-sm transition-shadow">
-                    <SelectValue placeholder="Chọn lớp học..." />
+                    <SelectValue placeholder={t('dashboard.selectClassPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="font-medium text-slate-700">Tất cả các lớp</SelectItem>
+                    <SelectItem value="all" className="font-medium text-slate-700">{t('dashboard.allClasses')}</SelectItem>
                     {classesData.map((cls: any) => (
                       <SelectItem key={cls.classCode} value={cls.classCode} className="font-medium">{cls.className}</SelectItem>
                     ))}
@@ -235,7 +239,7 @@ export function TeacherDashboardClient() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     type="search"
-                    placeholder="Tìm kiếm học sinh, bài tập..."
+                    placeholder={t('dashboard.searchPlaceholder')}
                     className="w-full pl-9 bg-white border-0 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-blue-600 rounded-lg h-10 text-sm transition-shadow"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -249,13 +253,14 @@ export function TeacherDashboardClient() {
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-100 shadow-xs">
                     <TableRow className="hover:bg-transparent border-none">
-                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Học sinh</TableHead>
-                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Tên bài tập</TableHead>
-                      <TableHead className="hidden md:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Lớp</TableHead>
-                      <TableHead className="hidden sm:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">Thời gian nộp</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">{t('dashboard.student')}</TableHead>
+                      <TableHead className="font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">{t('dashboard.assignmentName')}</TableHead>
+                      <TableHead className="hidden md:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">{t('dashboard.className')}</TableHead>
+                      <TableHead className="hidden sm:table-cell font-semibold text-slate-500 py-3 uppercase text-xs tracking-wider">{t('dashboard.submitTime')}</TableHead>
                       <TableHead className="text-right py-3 pr-4"></TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
                     {filteredAssignments.length > 0 ? (
                       filteredAssignments.map((task: any) => (
@@ -267,7 +272,7 @@ export function TeacherDashboardClient() {
                               </div>
                               <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-slate-800 truncate">{task.studentName}</span>
-                                <span className="text-xs text-slate-500 md:hidden mt-0.5 truncate">Lớp: {task.className}</span>
+                                <span className="text-xs text-slate-500 md:hidden mt-0.5 truncate">{t('dashboard.className')}: {task.className}</span>
                               </div>
                             </div>
                           </TableCell>
@@ -275,7 +280,7 @@ export function TeacherDashboardClient() {
                             <div className="flex flex-col min-w-0">
                               <span className="truncate block">{task.assignmentTitle}</span>
                               <span className="text-xs text-slate-500 sm:hidden mt-0.5 truncate">
-                                {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
+                                {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : '-'}
                               </span>
                             </div>
                           </TableCell>
@@ -285,12 +290,12 @@ export function TeacherDashboardClient() {
                             </Badge>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-slate-500 text-sm py-3 font-medium">
-                            {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : 'Chưa rõ'}
+                            {task.submittedAt ? formatDistanceToNowSafe(task.submittedAt, { addSuffix: true }) : '-'}
                           </TableCell>
                           <TableCell className="text-right py-3 pr-4">
                             <Link href={`/assignments/${task.assignmentId}/submissions/${task.id}`}>
                               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow-sm transition-all opacity-90 group-hover:opacity-100 rounded-lg font-medium px-3.5 h-8 text-xs">
-                                Chấm ngay
+                                {t('dashboard.gradeNow')}
                               </Button>
                             </Link>
                           </TableCell>
@@ -304,8 +309,8 @@ export function TeacherDashboardClient() {
                               <CheckCircle className="h-8 w-8 text-emerald-500" />
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-800 text-lg">Tuyệt vời!</p>
-                              <p className="text-slate-500 mt-1">Không có bài tập nào chờ chấm trong danh sách.</p>
+                              <p className="font-semibold text-slate-800 text-lg">{t('common.success')}</p>
+                              <p className="text-slate-500 mt-1">{t('dashboard.noPendingGradingAssignments')}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -321,18 +326,19 @@ export function TeacherDashboardClient() {
           <div className="lg:col-span-4 space-y-4 min-w-0">
             <div className="flex items-center justify-between min-h-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                Học sinh cần chú ý
+                {t('dashboard.studentsNeedingAttention')}
               </h2>
+
               {atRiskStudents.length > 0 && (
                 <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-200/60 font-semibold text-xs">
-                  {atRiskStudents.length} học sinh
+                  {atRiskStudents.length} {t('dashboard.studentUnit')}
                 </Badge>
               )}
             </div>
 
             <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
               {isLoadingAtRisk ? (
-                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-xs">Đang tải dữ liệu...</div>
+                <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-xs">{t('common.loading')}</div>
               ) : atRiskStudents.length > 0 ? (
                 atRiskStudents.map((student: any, index: number) => {
                   const isLowScore = student.issueType === 'low_score';
@@ -371,10 +377,11 @@ export function TeacherDashboardClient() {
                 })) : (
                 <div className="text-center py-8 text-slate-500 bg-white rounded-xl shadow-xs">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm">Không có học sinh nào cần chú ý</p>
+                  <p className="text-sm">{t('dashboard.noStudentsNeedingAttention')}</p>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </main>

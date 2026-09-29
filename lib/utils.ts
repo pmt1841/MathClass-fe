@@ -85,43 +85,49 @@ export function formatDistanceToNowSafe(dateInput: Date | string | number | null
   return dateFnsFormatDistanceToNow(d, { locale: vi, ...options });
 }
 
-export function formatRelativeLastLogin(dateInput: Date | string | number | null | undefined | any[]): string {
+export function formatRelativeLastLogin(
+  dateInput: Date | string | number | null | undefined | any[],
+  t?: (key: string, variables?: Record<string, string | number>) => string
+): string {
   const d = parseDateSafe(dateInput);
-  if (!d) return 'Chưa đăng nhập';
+  if (!d) return t ? t('Chưa đăng nhập') : 'Chưa đăng nhập';
 
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
 
   if (diffMs < 0 || diffMs < 60 * 1000) {
-    return 'Vừa xong';
+    return t ? t('Vừa xong') : 'Vừa xong';
   }
 
   const minutes = Math.floor(diffMs / (60 * 1000));
   if (minutes < 60) {
-    return `${minutes} phút trước`;
+    return t ? t('{minutes} phút trước', { minutes }) : `${minutes} phút trước`;
   }
 
   const hours = Math.floor(diffMs / (60 * 60 * 1000));
   if (hours < 24) {
     const remainMinutes = minutes % 60;
     if (remainMinutes > 0) {
-      return `${hours} giờ ${remainMinutes} phút trước`;
+      return t
+        ? t('{hours} giờ {minutes} phút trước', { hours, minutes: remainMinutes })
+        : `${hours} giờ ${remainMinutes} phút trước`;
     }
-    return `${hours} giờ trước`;
+    return t ? t('{hours} giờ trước', { hours }) : `${hours} giờ trước`;
   }
 
   const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
   if (days < 30) {
-    return `${days} ngày trước`;
+    return t ? t('{days} ngày trước', { days }) : `${days} ngày trước`;
   }
 
   const months = Math.floor(days / 30);
   if (months < 12) {
-    return `${months} tháng trước`;
+    return t ? t('{months} tháng trước', { months }) : `${months} tháng trước`;
   }
 
   const years = Math.floor(days / 365);
-  return `${Math.max(1, years)} năm trước`;
+  const finalYears = Math.max(1, years);
+  return t ? t('{years} năm trước', { years: finalYears }) : `${finalYears} năm trước`;
 }
 
 export function normalizeKatexDelimiters(content: string): string {

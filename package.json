@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "i18n:sync": "tsx scripts/i18n-sync.ts",
+    "i18n:sync-safe": "tsx scripts/i18n-sync.ts --safe",
+    "i18n:check": "tsx scripts/i18n-sync.ts --check",
+    "i18n:prune": "tsx scripts/i18n-sync.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -116,6 +120,7 @@
     "msw": "^2.15.0",
     "postcss": "^8.5.16",
     "tailwindcss": "^4.2.0",
+    "tsx": "^4.23.15",
     "tw-animate-css": "1.3.3",
     "typescript": "5.7.3",
     "vitest": "^4.1.8"

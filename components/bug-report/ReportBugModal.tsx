@@ -49,16 +49,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { bugReportService, BugErrorType } from '@/services/bugReportService'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
-const ERROR_TYPE_OPTIONS: { value: BugErrorType; label: string }[] = [
-  { value: 'LOGIN_ACCOUNT', label: '1. Lỗi đăng nhập / tài khoản' },
-  { value: 'UI_KATEX', label: '2. Lỗi hiển thị giao diện / công thức Toán (KaTeX)' },
-  { value: 'SUBMISSION_PROBLEM', label: '3. Lỗi không nộp bài / không tải được đề bài' },
-  { value: 'PERFORMANCE', label: '4. Lỗi tốc độ / không phản hồi' },
-  { value: 'AI_ASSISTANT', label: '5. Lỗi trợ lý AI' },
-  { value: 'CREDIT_TRANSACTION', label: '6. Lỗi giao dịch Credit' },
-  { value: 'PAYMENT_REFUND', label: '7. Nạp Credit / Yêu cầu hoàn tiền' },
-  { value: 'OTHER', label: '8. Khác' },
+const ERROR_TYPE_OPTIONS: { value: BugErrorType; labelKey: string }[] = [
+  { value: 'LOGIN_ACCOUNT', labelKey: 'bugReport.errLoginAccount' },
+  { value: 'UI_KATEX', labelKey: 'bugReport.errUiKaTex' },
+  { value: 'SUBMISSION_PROBLEM', labelKey: 'bugReport.errSubmission' },
+  { value: 'PERFORMANCE', labelKey: 'bugReport.errPerformance' },
+  { value: 'AI_ASSISTANT', labelKey: 'bugReport.errAiAssistant' },
+  { value: 'CREDIT_TRANSACTION', labelKey: 'bugReport.errCreditTransaction' },
+  { value: 'PAYMENT_REFUND', labelKey: '7. Nạp Credit / Yêu cầu hoàn tiền' },
+  { value: 'OTHER', labelKey: 'bugReport.errOther' },
 ]
 
 const formSchema = z
@@ -125,6 +126,7 @@ export function ReportBugModal({
   defaultName = '',
   isAuthenticated = false,
 }: ReportBugModalProps) {
+  const { t } = useI18n()
   const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; url?: string }[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -403,7 +405,7 @@ export function ReportBugModal({
         await bugReportService.createPublicReport(payload)
       }
 
-      toast.success('Cảm ơn bạn! Báo cáo lỗi đã được gửi thành công đến Quản trị viên.')
+      toast.success(t('bugReport.successMessage'))
       onClose()
     } catch (error: any) {
       console.warn('Submit report error:', error?.response?.data?.message || error?.message)
@@ -425,10 +427,10 @@ export function ReportBugModal({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-foreground">
-                Báo cáo lỗi hệ thống
+                {t('bugReport.title')}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                Hãy cho chúng tôi biết sự cố bạn đang gặp phải để bộ phận kỹ thuật hỗ trợ kịp thời.
+                {t('bugReport.subheading')}
               </DialogDescription>
             </div>
           </div>
@@ -453,7 +455,7 @@ export function ReportBugModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-semibold">
-                    Email liên hệ <span className="text-destructive">*</span>
+                    {t('bugReport.contactEmail')} <span className="text-destructive">*</span>
                   </FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
@@ -475,11 +477,11 @@ export function ReportBugModal({
                         {sendingOtp ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : otpCooldown > 0 ? (
-                          <span>Gửi lại ({otpCooldown}s)</span>
+                          <span>{t('bugReport.resendIn', { seconds: otpCooldown })}</span>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <Mail className="h-4 w-4" />
-                            <span>{otpSent ? 'Gửi lại OTP' : 'Gửi mã OTP'}</span>
+                            <span>{otpSent ? t('bugReport.resendOtp') : t('bugReport.sendOtp')}</span>
                           </div>
                         )}
                       </Button>
@@ -487,7 +489,7 @@ export function ReportBugModal({
                   </div>
                   {isAuthenticated && (
                     <p className="text-xs text-muted-foreground">
-                      Tự động sử dụng Email tài khoản đang đăng nhập của bạn.
+                      {t('bugReport.otpSentDesc')}
                     </p>
                   )}
                   <FormMessage />
@@ -503,10 +505,10 @@ export function ReportBugModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold flex items-center justify-between">
-                      <span>Mã xác thực OTP (6 chữ số) <span className="text-destructive">*</span></span>
+                      <span>{t('bugReport.otpCode')} <span className="text-destructive">*</span></span>
                       {otpSent && (
                         <span className="text-xs text-emerald-600 font-normal">
-                          ✓ Đã gửi mã về email của bạn
+                          {t('bugReport.otpSentCheck')}
                         </span>
                       )}
                     </FormLabel>
@@ -514,7 +516,7 @@ export function ReportBugModal({
                       <div className="relative">
                         <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="Nhập 6 chữ số OTP (ví dụ: 582910)"
+                          placeholder={t('bugReport.otpPlaceholder')}
                           maxLength={6}
                           className="pl-9 font-mono tracking-widest text-base font-semibold"
                           {...field}
@@ -534,18 +536,18 @@ export function ReportBugModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-semibold">
-                    Lựa chọn loại lỗi <span className="text-destructive">*</span>
+                    {t('bugReport.errorType')} <span className="text-destructive">*</span>
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn loại lỗi bạn gặp phải" />
+                        <SelectValue placeholder={t('bugReport.selectErrorType')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {ERROR_TYPE_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -854,11 +856,13 @@ export function ReportBugModal({
                   <FormLabel className="font-semibold">
                     {watchErrorType === 'PAYMENT_REFUND' ? (
                       <span>
-                        Lý do hoàn tiền / Ghi chú bổ sung <span className="text-xs font-normal text-muted-foreground">(Không bắt buộc)</span>
+                        {t('Lý do hoàn tiền / Ghi chú bổ sung')}{' '}
+                        <span className="text-xs font-normal text-muted-foreground">({t('Không bắt buộc')})</span>
                       </span>
                     ) : (
                       <span>
-                        Mô tả sự cố <span className="text-xs font-normal text-muted-foreground">(Không bắt buộc)</span>
+                        {t('bugReport.description')}{' '}
+                        <span className="text-xs font-normal text-muted-foreground">{t('bugReport.descriptionOptional')}</span>
                       </span>
                     )}
                   </FormLabel>
@@ -866,10 +870,10 @@ export function ReportBugModal({
                     <Textarea
                       placeholder={
                         watchErrorType === 'PAYMENT_REFUND'
-                          ? 'Ghi chú thêm nếu cần (ví dụ: Tôi chuyển tiền quá hạn 15 phút...)'
-                          : 'Chi tiết về các bước xảy ra lỗi hoặc thông tin bổ sung giúp giải quyết nhanh hơn...'
+                          ? t('Ghi chú thêm nếu cần (ví dụ: Tôi chuyển tiền quá hạn 15 phút...)')
+                          : t('bugReport.descriptionPlaceholder')
                       }
-                      rows={2}
+                      rows={watchErrorType === 'PAYMENT_REFUND' ? 2 : 3}
                       className="resize-none"
                       {...field}
                     />
@@ -883,7 +887,7 @@ export function ReportBugModal({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <FormLabel className="font-semibold">
-                  Ảnh đính kèm <span className="text-xs font-normal text-muted-foreground">(Tối đa 3 ảnh, ≤ 5MB/ảnh)</span>
+                  {t('bugReport.attachments')} <span className="text-xs font-normal text-muted-foreground">{t('bugReport.attachmentsLimit')}</span>
                 </FormLabel>
                 <span className="text-xs font-medium text-muted-foreground">
                   {imageFiles.length}/3 ảnh
@@ -925,7 +929,7 @@ export function ReportBugModal({
                   >
                     <Upload className={`h-5 w-5 mb-1 transition-transform pointer-events-none ${isDragging ? 'text-primary animate-bounce' : ''}`} />
                     <span className="text-xs font-medium text-center px-1 pointer-events-none">
-                      {isDragging ? 'Thả ảnh vào đây' : 'Kéo thả / Chọn ảnh'}
+                      {isDragging ? t('bugReport.dropHere') : t('bugReport.dragDropOrSelect')}
                     </span>
                     <input
                       type="file"
@@ -942,18 +946,18 @@ export function ReportBugModal({
             {/* Form Actions */}
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Hủy bỏ
+                {t('bugReport.cancel')}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {uploadingImage ? 'Đang tải ảnh...' : 'Đang gửi...'}
+                    {uploadingImage ? t('bugReport.uploadingImages') : t('bugReport.submitting')}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4" />
-                    Gửi báo cáo
+                    {t('bugReport.submit')}
                   </div>
                 )}
               </Button>
