@@ -241,13 +241,17 @@
     "title": "Thư viện dùng chung"
   },
   "sidebar": {
-    "aiCredits": "Nạp credit AI",
+    "aiCredits": "Ví credit AI",
     "assignmentBank": "Kho bài tập",
     "bugReport": "Báo cáo sự cố",
     "myClasses": "Lớp học của tôi",
     "overview": "Tổng quan",
     "sharedLibrary": "Thư viện bài tập"
   },
+  "Hạn mức Credit": "Hạn mức Credit",
+  "Cổng VietQR & Đơn nạp": "Cổng VietQR & Đơn nạp",
+  "Quản lý chi phí tác vụ AI, hạn mức mặc định theo vai trò, gói credit và lịch sử biến động số dư.": "Quản lý chi phí tác vụ AI, hạn mức mặc định theo vai trò, gói credit và lịch sử biến động số dư.",
+  "Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts và thử nghiệm kết nối.": "Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts và thử nghiệm kết nối.",
   "- truy cập hôm nay": "- truy cập hôm nay",
   "-- Chọn giao thức API --": "-- Chọn giao thức API --",
   "-- Chưa chọn Provider --": "-- Chưa chọn Provider --",

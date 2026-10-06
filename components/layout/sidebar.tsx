@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Library,
-  Zap,
   AlertTriangle,
   Shield,
   FileText,
@@ -16,6 +15,7 @@ import {
   LayoutDashboard,
   CreditCard,
   HardDrive,
+  Coins,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -57,6 +57,11 @@ export const adminNavItems: NavItem[] = [
     icon: Cpu,
     label: 'Cấu hình Dịch vụ AI',
     href: '/admin/ai-config',
+  },
+  {
+    icon: Coins,
+    label: 'Hạn mức Credit',
+    href: '/admin/credit-quota',
   },
   {
     icon: CreditCard,
@@ -103,8 +108,8 @@ const navItems: NavItem[] = [
     permission: 'library:read',
   },
   {
-    icon: Zap,
-    label: 'Nạp credit AI',
+    icon: Coins,
+    label: 'Ví credit AI',
     href: '/credits',
   },
   {
@@ -138,6 +143,8 @@ export function Sidebar({ onCreateClass, customNavItems }: SidebarProps = {}) {
     if (item.href === '/admin/users') return t('Quản lý Người dùng')
     if (item.href === '/admin/roles') return t('Quản lý Quyền hạn')
     if (item.href === '/admin/ai-config') return t('Cấu hình Dịch vụ AI')
+    if (item.href === '/admin/credit-quota') return t('Hạn mức Credit')
+    if (item.href === '/admin/payments') return t('Cổng VietQR & Đơn nạp')
     if (item.href === '/admin/logs') return t('Nhật ký hệ thống')
     if (item.href === '/admin/storage') return t('Quản lý Lưu trữ')
     if (item.href === '/admin/bug-reports') return t('Quản lý Báo cáo lỗi')

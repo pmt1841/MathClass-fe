@@ -9,12 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Cpu, Route, FlaskConical, MessageSquareCode, Coins } from 'lucide-react'
+import { Cpu, Route, FlaskConical, MessageSquareCode } from 'lucide-react'
 import { ProviderTab } from '@/components/admin/ai-config/ProviderTab'
 import { TaskRoutingTab } from '@/components/admin/ai-config/TaskRoutingTab'
 import { TestConnectionTab } from '@/components/admin/ai-config/TestConnectionTab'
 import { SystemPromptTab } from '@/components/admin/ai-config/SystemPromptTab'
-import { CreditQuotaTab } from '@/components/admin/ai-config/CreditQuotaTab'
 import { useI18n } from '@/lib/i18n/i18n-context'
 
 export default function AdminAiConfigPage() {
@@ -46,12 +45,6 @@ export default function AdminAiConfigPage() {
       tabletLabel: t('Kiểm tra Kết nối'),
       icon: FlaskConical,
     },
-    {
-      id: 'credit',
-      label: t('Hạn mức Credit'),
-      tabletLabel: t('Hạn mức Credit'),
-      icon: Coins,
-    },
   ]
 
   return (
@@ -69,7 +62,7 @@ export default function AdminAiConfigPage() {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              {t('Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts, thử nghiệm kết nối và hạn mức Credit.')}
+              {t('Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts và thử nghiệm kết nối.')}
             </p>
           </div>
         </div>
@@ -135,10 +128,6 @@ export default function AdminAiConfigPage() {
 
             <TabsContent value="test-connection" className="space-y-4">
               <TestConnectionTab />
-            </TabsContent>
-
-            <TabsContent value="credit" className="space-y-4">
-              <CreditQuotaTab />
             </TabsContent>
           </Tabs>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Coins, Loader2, Zap, Wrench } from 'lucide-react'
+import { Coins, Loader2, Wrench } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -77,7 +77,7 @@ export function CreditPackagesSection() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-violet-500" />
+            <Coins className="h-5 w-5 text-amber-500" />
             {t('credits.buyMore')}
           </CardTitle>
           <CardDescription>

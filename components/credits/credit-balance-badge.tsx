@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
+import { Coins } from 'lucide-react'
 import { useMyCreditBalance } from '@/hooks/useCredits'
 
 /**
@@ -19,7 +19,7 @@ export function CreditBalanceBadge() {
       data-testid="credit-balance-badge"
       className="flex items-center gap-1.5 rounded-lg bg-primary-foreground/15 px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/25 transition-colors"
     >
-      <Zap className="h-4 w-4 text-amber-300" />
+      <Coins className="h-4 w-4 text-amber-300" />
       <span data-testid="credit-balance-value">
         {isLoading || balance === undefined ? '...' : balance}
       </span>

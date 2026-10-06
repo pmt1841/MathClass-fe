@@ -248,6 +248,10 @@
     "overview": "Overview",
     "sharedLibrary": "Shared Library"
   },
+  "Hạn mức Credit": "Credit Quota",
+  "Cổng VietQR & Đơn nạp": "VietQR Gateway & Orders",
+  "Quản lý chi phí tác vụ AI, hạn mức mặc định theo vai trò, gói credit và lịch sử biến động số dư.": "Manage AI task costs, default credits by role, credit packages, and balance adjustment history.",
+  "Quản lý nhà cung cấp AI, định tuyến tác vụ AI, System Prompts và thử nghiệm kết nối.": "Manage AI providers, task routing, system prompts, and test connections.",
   "- truy cập hôm nay": "- active today",
   "-- Chọn giao thức API --": "-- Select API Protocol --",
   "-- Chưa chọn Provider --": "-- No Provider Selected --",
