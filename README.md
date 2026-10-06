@@ -208,9 +208,15 @@ Ngoài tầng proxy, frontend còn kiểm tra quyền chi tiết (permission) b�
 
 | Tài liệu | Mô tả |
 | :--- | :--- |
-| [docs/01-overview.md](docs/01-overview.md) | Tổng quan dự án |
-| [docs/02-setup-guide.md](docs/02-setup-guide.md) | Hướng dẫn cài đặt môi trường |
-| [docs/03-frontend-guide.md](docs/03-frontend-guide.md) | Quy chuẩn & hướng dẫn phát triển |
+| [docs/01-overview.md](docs/01-overview.md) | Tổng quan dự án & phân hệ người dùng |
+| [docs/02-setup-guide.md](docs/02-setup-guide.md) | Hướng dẫn cài đặt môi trường & biến môi trường |
+| [docs/03-frontend-guide.md](docs/03-frontend-guide.md) | Quy chuẩn code, Naming Conventions (*Request/*Response) & hướng dẫn phát triển |
 | [docs/04-architecture.md](docs/04-architecture.md) | Kiến trúc ứng dụng (auth, RBAC, data fetching, API map) |
 | [docs/05-folder-structure.md](docs/05-folder-structure.md) | Cấu trúc thư mục chi tiết |
+| [docs/06-math-interactive-tools.md](docs/06-math-interactive-tools.md) | Công cụ Toán học: KaTeX, MathLive, JSXGraph (trục/lưới/text) & Canvas OCR |
+| [docs/07-auth-and-security.md](docs/07-auth-and-security.md) | Cơ chế xác thực 2FA TOTP, Refresh Token Mutex, Cookie HttpOnly & proxy.ts |
+| [docs/08-realtime-and-sockets.md](docs/08-realtime-and-sockets.md) | Tích hợp WebSocket STOMP: Chat, Thông báo, Trạng thái Online 5 phút |
+| [docs/09-credits-and-payment-flow.md](docs/09-credits-and-payment-flow.md) | Mô hình tính phí AI Credit, Cổng thanh toán SePay VietQR & Sổ cái |
+| [docs/10-admin-ai-subsystem-portal.md](docs/10-admin-ai-subsystem-portal.md) | Quản trị AI Providers, API Keys (AES-256), Task Routing & Sandbox Prompt |
+| [docs/11-testing-and-qa-guide.md](docs/11-testing-and-qa-guide.md) | Chiến lược kiểm thử tự động: Vitest, MSW Mock và Playwright E2E |
 

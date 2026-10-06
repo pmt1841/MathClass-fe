@@ -46,10 +46,16 @@ Frontend được xây dựng nhằm cung cấp trải nghiệm học tập, gi�
 
 ## 3. Các Tài Liệu Chi Tiết
 
-Hãy đọc các tài liệu hướng dẫn tiếp theo để bắt tay vào phát triển:
+Hệ thống tài liệu Frontend được cấu trúc chi tiết theo từng module và khía cạnh kỹ thuật:
 
 1. [Hướng dẫn Cài đặt Môi trường (Setup Guide)](02-setup-guide.md)
 2. [Quy chuẩn và Hướng dẫn Code (Frontend Guide)](03-frontend-guide.md)
-3. [Kiến trúc Ứng dụng & Bản đồ API (Architecture)](04-architecture.md)
+3. [Kiến trúc Ứng dụng & Luồng Dữ liệu (Architecture)](04-architecture.md)
 4. [Cấu trúc Thư mục Chi tiết (Folder Structure)](05-folder-structure.md)
+5. [Tích hợp Công cụ Toán học & Soạn thảo (Math Interactive Tools)](06-math-interactive-tools.md)
+6. [Cơ chế Xác thực & Bảo mật (Auth & Security)](07-auth-and-security.md)
+7. [Tích hợp Real-time & WebSocket (Realtime & Sockets)](08-realtime-and-sockets.md)
+8. [Tích hợp Hệ thống Credit & Thanh toán (Credits & Payment Flow)](09-credits-and-payment-flow.md)
+9. [Cổng Quản trị AI Subsystem (Admin AI Subsystem Portal)](10-admin-ai-subsystem-portal.md)
+10. [Hướng dẫn Kiểm thử & Đảm bảo Chất lượng (Testing & QA Guide)](11-testing-and-qa-guide.md)
 

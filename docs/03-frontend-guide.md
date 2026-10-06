@@ -72,10 +72,14 @@ Component → Hook (React Query) → Service (Axios) → Backend
 - Tận dụng `components/ui` (shadcn) — **không** tự viết lại base component đã có.
 - Chỉnh theme qua CSS variables trong `app/globals.css`.
 
-### 2.5 Types
+### 2.5 Types & Interface Naming Conventions (Bắt buộc)
 
-- Type dùng chung đặt trong `types/` (Student, Assignment, PageResponse...).
-- Type riêng của 1 domain đặt ngay tại file service tương ứng (vd: `AssignmentResponse` trong `assignmentService.ts`).
+- **Type & Interface Naming Conventions:**
+  - **Dữ liệu gửi lên Backend (Request):** Bắt buộc sử dụng hậu tố `*Request` (ví dụ: `CreateAssignmentRequest`, `LoginRequest`, `UpdateProfileRequest`).
+  - **Dữ liệu nhận về từ Backend (Response):** Bắt buộc sử dụng hậu tố `*Response` cho các model phản hồi từ API (ví dụ: `UserResponse`, `AssignmentResponse`, `ClassroomResponse`).
+  - **Tuyệt đối KHÔNG** sử dụng hậu tố `*Dto` (như `AssignmentDto`, `UserDto`) trong TypeScript interface/type.
+- Type dùng chung đặt trong `types/` (Student, Assignment, UserResponse, PageResponse...).
+- Type riêng của 1 domain đặt ngay tại file service hoặc types tương ứng.
 - Khi đổi kiểu dữ liệu backend, cập nhật type trước khi sửa component.
 
 ### 2.6 State
